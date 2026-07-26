@@ -1,0 +1,30 @@
+# Metarr root configuration.
+#
+# This file is the single source of connection info for the backend
+# services. In docker-compose, the credentials below match the users
+# provisioned by mongo/init/init-mongo.js. For local (non-docker)
+# development, point the host at "localhost" instead of "mongodb".
+#
+# The path to this file can be overridden with the METARR_CONFIG_PATH
+# environment variable; otherwise the app looks for it at the project root.
+
+mongodb:
+  # Read/write credential — used only for the app's own data
+  # (user profiles, saved queries). Never used to touch the media library.
+  app_uri: "mongodb://metarr:metarr@mongodb:27017/metarr?authSource=metarr"
+
+  # Read-only credential — used exclusively by the Search screen to query
+  # the media library. This user has the Mongo "read" role only, so writes
+  # are rejected by the database itself, independent of application logic.
+  readonly_uri: "mongodb://readonly:readonlypassword@mongodb:27017/metarr?authSource=metarr"
+
+  database: metarr
+
+redis:
+  # Backs the job queue: job state is stored here and new work is
+  # announced over a Redis Pub/Sub channel (see app/jobs/queue.py).
+  uri: "redis://redis:6379/0"
+
+server:
+  host: "0.0.0.0"
+  port: 8080

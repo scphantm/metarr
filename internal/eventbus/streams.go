@@ -1,0 +1,85 @@
+package eventbus
+
+import (
+	"context"
+	"encoding/json"
+
+	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill-redisstream/pkg/redisstream"
+	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/redis/go-redis/v9"
+)
+
+// StreamBus is the Redis Streams backed event-driven backend, built on the
+// watermill-redisstream library. Unlike PubSubBus, events published here
+// are durable: they persist on the stream until acknowledged, so a listener
+// that isn't running yet won't miss them. Consumer group creation, claiming
+// stuck pending messages, and acknowledgement are all handled by the
+// library rather than hand-rolled here.
+type StreamBus struct {
+	client    redis.UniversalClient
+	logger    watermill.LoggerAdapter
+	publisher *redisstream.Publisher
+}
+
+func NewStreamBus(client redis.UniversalClient, logger watermill.LoggerAdapter) (*StreamBus, error) {
+	publisher, err := redisstream.NewPublisher(redisstream.PublisherConfig{Client: client}, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StreamBus{
+		client:    client,
+		logger:    logger,
+		publisher: publisher,
+	}, nil
+}
+
+// Fire appends evt to stream and returns immediately (non-blocking).
+func (b *StreamBus) Fire(ctx context.Context, stream string, evt Event) error {
+	payload, err := json.Marshal(evt)
+	if err != nil {
+		return err
+	}
+
+	msg := message.NewMessage(watermill.NewUUID(), payload)
+	msg.SetContext(ctx)
+	return b.publisher.Publish(stream, msg)
+}
+
+// Consume runs a blocking read loop for a single consumer within group,
+// invoking handler for each event and acknowledging it on success. It
+// returns when ctx is canceled.
+func (b *StreamBus) Consume(ctx context.Context, stream, group, consumer string, handler func(context.Context, Event) error) error {
+	subscriber, err := redisstream.NewSubscriber(redisstream.SubscriberConfig{
+		Client:        b.client,
+		ConsumerGroup: group,
+		Consumer:      consumer,
+	}, b.logger)
+	if err != nil {
+		return err
+	}
+	defer subscriber.Close()
+
+	messages, err := subscriber.Subscribe(ctx, stream)
+	if err != nil {
+		return err
+	}
+
+	for msg := range messages {
+		var evt Event
+		if err := json.Unmarshal(msg.Payload, &evt); err != nil {
+			msg.Nack()
+			continue
+		}
+
+		if err := handler(ctx, evt); err != nil {
+			msg.Nack()
+			continue
+		}
+
+		msg.Ack()
+	}
+
+	return ctx.Err()
+}

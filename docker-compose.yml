@@ -1,0 +1,67 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: metarr-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-change-me-root-password}
+      MONGO_DATABASE: ${MONGO_DATABASE:-metarr}
+      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME:-app}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:-apppassword}
+      MONGO_READONLY_USERNAME: ${MONGO_READONLY_USERNAME:-readonly}
+      MONGO_READONLY_PASSWORD: ${MONGO_READONLY_PASSWORD:-readonlypassword}
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo/init/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - metarr-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: metarr-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - metarr-net
+
+  compooss:
+    image: abdullahmia/compooss:latest
+    environment:
+      # Root creds so the admin UI can browse every database; reaches
+      # mongodb by its service name over the internal network below,
+      # never via the host's external IP.
+      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-root}:${MONGO_INITDB_ROOT_PASSWORD:-change-me-root-password}@mongodb:27017/?authSource=admin
+    ports:
+      - "6969:3000"
+    depends_on:
+      - mongodb
+    networks:
+      - metarr-net
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: redis-insight
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    volumes:
+      - redis-insight-data:/data
+    networks:
+      - metarr-net
+    depends_on:
+      - redis
+
+volumes:
+  mongodb_data:
+  redis_data:
+  redis-insight-data:
+
+networks:
+  metarr-net:
+    driver: bridge
