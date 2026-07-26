@@ -14,6 +14,7 @@ type PubSubBus struct {
 	client *redis.Client
 }
 
+// NewPubSubBus wraps client as a PubSubBus.
 func NewPubSubBus(client *redis.Client) *PubSubBus {
 	return &PubSubBus{client: client}
 }
@@ -26,8 +27,9 @@ func ReplyChannel(correlationID string) string {
 	return fmt.Sprintf("reply.%s", correlationID)
 }
 
-func (b *PubSubBus) Publish(ctx context.Context, channel string, evt Event) error {
-	data, err := json.Marshal(evt)
+// Publish marshals event to JSON and publishes it on channel.
+func (b *PubSubBus) Publish(ctx context.Context, channel string, event Event) error {
+	data, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
@@ -40,11 +42,11 @@ func (b *PubSubBus) Subscribe(ctx context.Context, channel string) *redis.PubSub
 	return b.client.Subscribe(ctx, channel)
 }
 
-// Request publishes evt to requestChannel and blocks until a reply arrives
+// Request publishes event to requestChannel and blocks until a reply arrives
 // on that correlation ID's reply channel, or ctx is done. This backs the
 // heartbeat API's blocking behavior.
-func (b *PubSubBus) Request(ctx context.Context, requestChannel string, evt Event) (Event, error) {
-	sub := b.client.Subscribe(ctx, ReplyChannel(evt.CorrelationID))
+func (b *PubSubBus) Request(ctx context.Context, requestChannel string, event Event) (Event, error) {
+	sub := b.client.Subscribe(ctx, ReplyChannel(event.CorrelationID))
 	defer sub.Close()
 
 	// Wait for the subscription to be acknowledged before publishing, so
@@ -53,17 +55,17 @@ func (b *PubSubBus) Request(ctx context.Context, requestChannel string, evt Even
 		return Event{}, err
 	}
 
-	if err := b.Publish(ctx, requestChannel, evt); err != nil {
+	if err := b.Publish(ctx, requestChannel, event); err != nil {
 		return Event{}, err
 	}
 
 	select {
-	case msg, ok := <-sub.Channel():
+	case replyMsg, ok := <-sub.Channel():
 		if !ok {
-			return Event{}, fmt.Errorf("eventbus: reply subscription closed for correlation_id=%s", evt.CorrelationID)
+			return Event{}, fmt.Errorf("eventbus: reply subscription closed for correlation_id=%s", event.CorrelationID)
 		}
 		var reply Event
-		if err := json.Unmarshal([]byte(msg.Payload), &reply); err != nil {
+		if err := json.Unmarshal([]byte(replyMsg.Payload), &reply); err != nil {
 			return Event{}, err
 		}
 		return reply, nil
@@ -72,8 +74,8 @@ func (b *PubSubBus) Request(ctx context.Context, requestChannel string, evt Even
 	}
 }
 
-// Reply publishes evt as the response to the request identified by
+// Reply publishes event as the response to the request identified by
 // correlationID. Used by listeners answering a Request call.
-func (b *PubSubBus) Reply(ctx context.Context, correlationID string, evt Event) error {
-	return b.Publish(ctx, ReplyChannel(correlationID), evt)
+func (b *PubSubBus) Reply(ctx context.Context, correlationID string, event Event) error {
+	return b.Publish(ctx, ReplyChannel(correlationID), event)
 }

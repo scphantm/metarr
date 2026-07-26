@@ -32,16 +32,16 @@ func (h *Handlers) Heartbeat(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	correlationID := correlation.FromContext(ctx)
 
-	reqCtx, cancel := context.WithTimeout(ctx, h.HeartbeatTimeout)
+	timeoutCtx, cancel := context.WithTimeout(ctx, h.HeartbeatTimeout)
 	defer cancel()
 
-	evt := eventbus.Event{
+	event := eventbus.Event{
 		CorrelationID: correlationID,
 		Name:          "heartbeat.request",
 		Timestamp:     time.Now().UTC(),
 	}
 
-	reply, err := h.PubSub.Request(reqCtx, eventbus.HeartbeatRequestChannel, evt)
+	reply, err := h.PubSub.Request(timeoutCtx, eventbus.HeartbeatRequestChannel, event)
 	if err != nil {
 		h.Logger.Error("heartbeat request failed", "correlation_id", correlationID, "error", err)
 		if errors.Is(err, context.DeadlineExceeded) {

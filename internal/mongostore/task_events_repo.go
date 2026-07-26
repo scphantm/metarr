@@ -15,17 +15,20 @@ type TaskEventRecord struct {
 	FiredAt       time.Time `bson:"fired_at"`
 }
 
+// TaskEventRepo persists TaskEventRecords to MongoDB.
 type TaskEventRepo struct {
 	collection *mongo.Collection
 }
 
+// NewTaskEventRepo opens the task events collection in database.
 func NewTaskEventRepo(client *mongo.Client, database string) *TaskEventRepo {
 	return &TaskEventRepo{
 		collection: client.Database(database).Collection("task_events"),
 	}
 }
 
-func (r *TaskEventRepo) Record(ctx context.Context, rec TaskEventRecord) error {
-	_, err := r.collection.InsertOne(ctx, rec)
+// Record inserts record as a new document.
+func (r *TaskEventRepo) Record(ctx context.Context, record TaskEventRecord) error {
+	_, err := r.collection.InsertOne(ctx, record)
 	return err
 }

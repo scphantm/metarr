@@ -17,7 +17,7 @@ func Get() *Config {
 	return current.Load()
 }
 
-// Set replaces the in-memory singleton with cfg.
-func Set(cfg *Config) {
-	current.Store(cfg)
+// Set replaces the in-memory singleton with config.
+func Set(config *Config) {
+	current.Store(config)
 }

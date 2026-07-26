@@ -18,12 +18,12 @@ func New(path string) (*slog.Logger, error) {
 		}
 	}
 
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	logFile, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		return nil, err
 	}
 
-	writer := io.MultiWriter(os.Stdout, f)
+	writer := io.MultiWriter(os.Stdout, logFile)
 	handler := slog.NewJSONHandler(writer, &slog.HandlerOptions{Level: slog.LevelInfo})
 	return slog.New(handler), nil
 }

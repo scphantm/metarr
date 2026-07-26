@@ -34,8 +34,8 @@ func RunHeartbeatListener(ctx context.Context, bus *eventbus.PubSubBus, logger *
 				return
 			}
 
-			var req eventbus.Event
-			if err := json.Unmarshal([]byte(msg.Payload), &req); err != nil {
+			var requestEvent eventbus.Event
+			if err := json.Unmarshal([]byte(msg.Payload), &requestEvent); err != nil {
 				logger.Error("heartbeat listener: invalid request payload", "error", err)
 				continue
 			}
@@ -43,22 +43,22 @@ func RunHeartbeatListener(ctx context.Context, bus *eventbus.PubSubBus, logger *
 			now := time.Now().UTC()
 			payload, err := json.Marshal(heartbeatReply{
 				Time:          now.Format(time.RFC3339),
-				CorrelationID: req.CorrelationID,
+				CorrelationID: requestEvent.CorrelationID,
 			})
 			if err != nil {
-				logger.Error("heartbeat listener: failed to marshal reply", "correlation_id", req.CorrelationID, "error", err)
+				logger.Error("heartbeat listener: failed to marshal reply", "correlation_id", requestEvent.CorrelationID, "error", err)
 				continue
 			}
 
-			reply := eventbus.Event{
-				CorrelationID: req.CorrelationID,
+			replyEvent := eventbus.Event{
+				CorrelationID: requestEvent.CorrelationID,
 				Name:          "heartbeat.reply",
 				Payload:       payload,
 				Timestamp:     now,
 			}
 
-			if err := bus.Reply(ctx, req.CorrelationID, reply); err != nil {
-				logger.Error("heartbeat listener: failed to publish reply", "correlation_id", req.CorrelationID, "error", err)
+			if err := bus.Reply(ctx, requestEvent.CorrelationID, replyEvent); err != nil {
+				logger.Error("heartbeat listener: failed to publish reply", "correlation_id", requestEvent.CorrelationID, "error", err)
 			}
 		}
 	}

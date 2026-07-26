@@ -11,6 +11,8 @@ import (
 
 type contextKey struct{}
 
+// HeaderName is the HTTP header carrying the correlation ID, both on
+// incoming requests (optional) and outgoing responses (always set).
 const HeaderName = "X-Correlation-ID"
 
 // New generates a fresh correlation ID.
@@ -19,12 +21,12 @@ func New() string {
 }
 
 // WithID returns a new context carrying the given correlation ID.
-func WithID(ctx context.Context, id string) context.Context {
-	return context.WithValue(ctx, contextKey{}, id)
+func WithID(ctx context.Context, correlationID string) context.Context {
+	return context.WithValue(ctx, contextKey{}, correlationID)
 }
 
 // FromContext returns the correlation ID stored in ctx, or "" if none is set.
 func FromContext(ctx context.Context) string {
-	id, _ := ctx.Value(contextKey{}).(string)
-	return id
+	correlationID, _ := ctx.Value(contextKey{}).(string)
+	return correlationID
 }

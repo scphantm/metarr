@@ -15,10 +15,13 @@ type Config struct {
 	Interfaces InterfacesConfig `bson:"interfaces" json:"interfaces"`
 }
 
+// InterfacesConfig groups the configuration for every external service
+// interface Metarr integrates with.
 type InterfacesConfig struct {
 	Sonarr []SonarrInstance `bson:"sonarr" json:"sonarr"`
 }
 
+// SonarrInstance configures a single Sonarr instance to cache data from.
 type SonarrInstance struct {
 	InstanceName string           `bson:"instance_name" json:"instance_name"`
 	InstanceSlug string           `bson:"instance_slug" json:"instance_slug"`
@@ -28,11 +31,16 @@ type SonarrInstance struct {
 	Storage      StorageConfig    `bson:"storage" json:"storage"`
 }
 
+// RootDirMapping maps a root folder path as Sonarr sees it to the
+// corresponding local filesystem path.
 type RootDirMapping struct {
 	SonarrPath string `bson:"sonarr_path" json:"sonarr_path"`
 	LocalPath  string `bson:"local_path" json:"local_path"`
 }
 
+// StorageConfig controls how cached data for an interface is retained:
+// "cache" mode expires data after TTL elapses, "versioned" mode keeps every
+// revision.
 type StorageConfig struct {
 	Mode string `bson:"mode" json:"mode"`
 	TTL  string `bson:"ttl,omitempty" json:"ttl,omitempty"`

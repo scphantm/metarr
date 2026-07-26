@@ -21,8 +21,8 @@ func NewSlogAdapter(logger *slog.Logger) watermill.LoggerAdapter {
 
 func (a *slogAdapter) args(fields watermill.LogFields) []any {
 	args := make([]any, 0, len(fields)*2)
-	for k, v := range fields {
-		args = append(args, k, v)
+	for key, value := range fields {
+		args = append(args, key, value)
 	}
 	return args
 }

@@ -20,6 +20,8 @@ const (
 	defaultHeartbeatTimeout = 5 * time.Second
 )
 
+// Config is the application's runtime configuration, loaded from the
+// project's config.yaml (or the file named by METARR_CONFIG_FILE).
 type Config struct {
 	// HTTP server
 	Host string
@@ -55,6 +57,9 @@ type fileConfig struct {
 	} `yaml:"server"`
 }
 
+// Load reads and validates the config file, failing fast with a
+// path-naming error if it's missing, unparseable, or missing required
+// fields.
 func Load() (Config, error) {
 	path := defaultConfigPath
 	if override := os.Getenv(configFileEnvVar); override != "" {
@@ -66,27 +71,27 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("config: reading %s: %w", path, err)
 	}
 
-	var fc fileConfig
-	if err := yaml.Unmarshal(data, &fc); err != nil {
+	var parsedConfig fileConfig
+	if err := yaml.Unmarshal(data, &parsedConfig); err != nil {
 		return Config{}, fmt.Errorf("config: parsing %s: %w", path, err)
 	}
 
-	if fc.MongoDB.AppURI == "" {
+	if parsedConfig.MongoDB.AppURI == "" {
 		return Config{}, fmt.Errorf("config: %s: mongodb.app_uri is required", path)
 	}
-	if fc.MongoDB.Database == "" {
+	if parsedConfig.MongoDB.Database == "" {
 		return Config{}, fmt.Errorf("config: %s: mongodb.database is required", path)
 	}
-	if fc.Redis.URI == "" {
+	if parsedConfig.Redis.URI == "" {
 		return Config{}, fmt.Errorf("config: %s: redis.uri is required", path)
 	}
 
 	return Config{
-		Host:             fc.Server.Host,
-		Port:             fc.Server.Port,
-		MongoURI:         fc.MongoDB.AppURI,
-		MongoDatabase:    fc.MongoDB.Database,
-		RedisURI:         fc.Redis.URI,
+		Host:             parsedConfig.Server.Host,
+		Port:             parsedConfig.Server.Port,
+		MongoURI:         parsedConfig.MongoDB.AppURI,
+		MongoDatabase:    parsedConfig.MongoDB.Database,
+		RedisURI:         parsedConfig.Redis.URI,
 		LogFilePath:      defaultLogFilePath,
 		HeartbeatTimeout: defaultHeartbeatTimeout,
 	}, nil

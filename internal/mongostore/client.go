@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
+// Connect dials MongoDB at uri and verifies the connection with a ping.
 func Connect(ctx context.Context, uri string) (*mongo.Client, error) {
 	client, err := mongo.Connect(options.Client().ApplyURI(uri))
 	if err != nil {

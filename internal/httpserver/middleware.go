@@ -14,13 +14,13 @@ import (
 // can be traced through every downstream event.
 func withCorrelationID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id := r.Header.Get(correlation.HeaderName)
-		if id == "" {
-			id = correlation.New()
+		correlationID := r.Header.Get(correlation.HeaderName)
+		if correlationID == "" {
+			correlationID = correlation.New()
 		}
 
-		w.Header().Set(correlation.HeaderName, id)
-		ctx := correlation.WithID(r.Context(), id)
+		w.Header().Set(correlation.HeaderName, correlationID)
+		ctx := correlation.WithID(r.Context(), correlationID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

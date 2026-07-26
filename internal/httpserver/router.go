@@ -10,6 +10,8 @@ import (
 	"Metarr/internal/handlers"
 )
 
+// NewRouter builds the application's HTTP route table, wrapped with
+// correlation ID and request logging middleware.
 func NewRouter(h *handlers.Handlers, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 

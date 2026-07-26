@@ -15,13 +15,13 @@ import (
 func RunSonarrCacheDataListener(ctx context.Context, bus *eventbus.StreamBus, repo *mongostore.TaskEventRepo, logger *slog.Logger) error {
 	logger.Info("sonarr_cache_data listener started", "stream", eventbus.SonarrCacheDataStream)
 
-	return bus.Consume(ctx, eventbus.SonarrCacheDataStream, eventbus.SonarrCacheDataGroup, "worker-1", func(ctx context.Context, evt eventbus.Event) error {
-		logger.Info("event fired", "event", evt.Name, "correlation_id", evt.CorrelationID)
+	return bus.Consume(ctx, eventbus.SonarrCacheDataStream, eventbus.SonarrCacheDataGroup, "worker-1", func(ctx context.Context, event eventbus.Event) error {
+		logger.Info("event fired", "event", event.Name, "correlation_id", event.CorrelationID)
 
 		return repo.Record(ctx, mongostore.TaskEventRecord{
-			CorrelationID: evt.CorrelationID,
-			EventName:     evt.Name,
-			FiredAt:       evt.Timestamp,
+			CorrelationID: event.CorrelationID,
+			EventName:     event.Name,
+			FiredAt:       event.Timestamp,
 		})
 	})
 }

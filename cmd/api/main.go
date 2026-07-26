@@ -94,8 +94,8 @@ func run() error {
 		}
 	}()
 
-	h := handlers.New(pubsubBus, streamBus, appConfigRepo, logger, cfg.HeartbeatTimeout)
-	router := httpserver.NewRouter(h, logger)
+	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, logger, cfg.HeartbeatTimeout)
+	router := httpserver.NewRouter(apiHandlers, logger)
 	server := httpserver.New(cfg.Host, cfg.Port, router)
 
 	serverErr := make(chan error, 1)

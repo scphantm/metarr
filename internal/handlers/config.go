@@ -21,7 +21,7 @@ import (
 // @Success		200	{object}	appconfig.Config
 // @Router			/api/config [get]
 func (h *Handlers) GetConfig(w http.ResponseWriter, r *http.Request) {
-	cfg, err := h.AppConfigRepo.Get(r.Context())
+	appConfig, err := h.AppConfigRepo.Get(r.Context())
 	if err != nil {
 		h.Logger.Error("failed to fetch app config", "error", err)
 		http.Error(w, "failed to fetch config", http.StatusInternalServerError)
@@ -29,7 +29,7 @@ func (h *Handlers) GetConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(cfg)
+	json.NewEncoder(w).Encode(appConfig)
 }
 
 // UpdateConfig handles PUT /api/config. It fires the system_config_update
@@ -51,27 +51,27 @@ func (h *Handlers) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	correlationID := correlation.FromContext(ctx)
 
-	var cfg appconfig.Config
-	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+	var updatedConfig appconfig.Config
+	if err := json.NewDecoder(r.Body).Decode(&updatedConfig); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	payload, err := json.Marshal(cfg)
+	payload, err := json.Marshal(updatedConfig)
 	if err != nil {
 		h.Logger.Error("failed to encode config payload", "correlation_id", correlationID, "error", err)
 		http.Error(w, "failed to encode config", http.StatusInternalServerError)
 		return
 	}
 
-	evt := eventbus.Event{
+	event := eventbus.Event{
 		CorrelationID: correlationID,
 		Name:          eventbus.SystemConfigUpdateEventName,
 		Payload:       payload,
 		Timestamp:     time.Now().UTC(),
 	}
 
-	if err := h.Streams.Fire(ctx, eventbus.SystemConfigUpdateStream, evt); err != nil {
+	if err := h.Streams.Fire(ctx, eventbus.SystemConfigUpdateStream, event); err != nil {
 		h.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
 		http.Error(w, "failed to queue config update", http.StatusInternalServerError)
 		return

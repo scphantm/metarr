@@ -11,6 +11,7 @@ import (
 	"Metarr/internal/eventbus"
 )
 
+// Handlers bundles the dependencies shared by every HTTP handler.
 type Handlers struct {
 	PubSub           *eventbus.PubSubBus
 	Streams          *eventbus.StreamBus
@@ -19,6 +20,7 @@ type Handlers struct {
 	HeartbeatTimeout time.Duration
 }
 
+// New constructs a Handlers from its dependencies.
 func New(pubsub *eventbus.PubSubBus, streams *eventbus.StreamBus, appConfigRepo *appconfig.Repo, logger *slog.Logger, heartbeatTimeout time.Duration) *Handlers {
 	return &Handlers{
 		PubSub:           pubsub,

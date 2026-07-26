@@ -42,13 +42,13 @@ func (h *Handlers) SonarrCacheData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	evt := eventbus.Event{
+	event := eventbus.Event{
 		CorrelationID: correlationID,
 		Name:          eventbus.SonarrCacheDataEventName,
 		Timestamp:     time.Now().UTC(),
 	}
 
-	if err := h.Streams.Fire(ctx, eventbus.SonarrCacheDataStream, evt); err != nil {
+	if err := h.Streams.Fire(ctx, eventbus.SonarrCacheDataStream, event); err != nil {
 		h.Logger.Error("failed to fire sonarr_cache_data event", "correlation_id", correlationID, "error", err)
 		http.Error(w, "failed to queue task", http.StatusInternalServerError)
 		return

@@ -16,20 +16,20 @@ import (
 func RunSystemConfigUpdateListener(ctx context.Context, bus *eventbus.StreamBus, repo *appconfig.Repo, logger *slog.Logger) error {
 	logger.Info("system_config_update listener started", "stream", eventbus.SystemConfigUpdateStream)
 
-	return bus.Consume(ctx, eventbus.SystemConfigUpdateStream, eventbus.SystemConfigUpdateGroup, "worker-1", func(ctx context.Context, evt eventbus.Event) error {
-		var cfg appconfig.Config
-		if err := json.Unmarshal(evt.Payload, &cfg); err != nil {
-			logger.Error("system_config_update listener: invalid payload", "correlation_id", evt.CorrelationID, "error", err)
+	return bus.Consume(ctx, eventbus.SystemConfigUpdateStream, eventbus.SystemConfigUpdateGroup, "worker-1", func(ctx context.Context, event eventbus.Event) error {
+		var appConfig appconfig.Config
+		if err := json.Unmarshal(event.Payload, &appConfig); err != nil {
+			logger.Error("system_config_update listener: invalid payload", "correlation_id", event.CorrelationID, "error", err)
 			return err
 		}
 
-		if err := repo.Upsert(ctx, &cfg); err != nil {
-			logger.Error("failed to persist system config update", "correlation_id", evt.CorrelationID, "error", err)
+		if err := repo.Upsert(ctx, &appConfig); err != nil {
+			logger.Error("failed to persist system config update", "correlation_id", event.CorrelationID, "error", err)
 			return err
 		}
 
-		appconfig.Set(&cfg)
-		logger.Info("system config updated", "correlation_id", evt.CorrelationID)
+		appconfig.Set(&appConfig)
+		logger.Info("system config updated", "correlation_id", event.CorrelationID)
 		return nil
 	})
 }

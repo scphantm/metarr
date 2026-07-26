@@ -22,6 +22,8 @@ type StreamBus struct {
 	publisher *redisstream.Publisher
 }
 
+// NewStreamBus wraps client as a StreamBus, publishing through a
+// watermill-redisstream Publisher configured with logger.
 func NewStreamBus(client redis.UniversalClient, logger watermill.LoggerAdapter) (*StreamBus, error) {
 	publisher, err := redisstream.NewPublisher(redisstream.PublisherConfig{Client: client}, logger)
 	if err != nil {
@@ -35,9 +37,9 @@ func NewStreamBus(client redis.UniversalClient, logger watermill.LoggerAdapter) 
 	}, nil
 }
 
-// Fire appends evt to stream and returns immediately (non-blocking).
-func (b *StreamBus) Fire(ctx context.Context, stream string, evt Event) error {
-	payload, err := json.Marshal(evt)
+// Fire appends event to stream and returns immediately (non-blocking).
+func (b *StreamBus) Fire(ctx context.Context, stream string, event Event) error {
+	payload, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
@@ -67,13 +69,13 @@ func (b *StreamBus) Consume(ctx context.Context, stream, group, consumer string,
 	}
 
 	for msg := range messages {
-		var evt Event
-		if err := json.Unmarshal(msg.Payload, &evt); err != nil {
+		var event Event
+		if err := json.Unmarshal(msg.Payload, &event); err != nil {
 			msg.Nack()
 			continue
 		}
 
-		if err := handler(ctx, evt); err != nil {
+		if err := handler(ctx, event); err != nil {
 			msg.Nack()
 			continue
 		}
