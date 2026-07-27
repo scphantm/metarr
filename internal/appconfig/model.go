@@ -12,7 +12,22 @@ const SingletonID = "app_config"
 // Config is the root application configuration document.
 type Config struct {
 	ID         string           `bson:"_id" json:"-"`
+	APIKeys    APIKeysConfig    `bson:"api_keys" json:"api_keys"`
 	Interfaces InterfacesConfig `bson:"interfaces" json:"interfaces"`
+}
+
+// APIKeysConfig groups the API keys issued for each access-level category.
+type APIKeysConfig struct {
+	Admin    []APIKeyEntry `bson:"admin" json:"admin"`
+	User     []APIKeyEntry `bson:"user" json:"user"`
+	Webhook  []APIKeyEntry `bson:"webhook" json:"webhook"`
+	ReadOnly []APIKeyEntry `bson:"read_only" json:"read_only"`
+}
+
+// APIKeyEntry is a single named API key.
+type APIKeyEntry struct {
+	Name string `bson:"name" json:"name"`
+	Key  string `bson:"api_key" json:"api_key"`
 }
 
 // InterfacesConfig groups the configuration for every external service
@@ -39,18 +54,25 @@ type RootDirMapping struct {
 }
 
 // StorageConfig controls how cached data for an interface is retained:
-// "cache" mode expires data after TTL elapses, "versioned" mode keeps every
-// revision.
+// "cache" mode expires data after TTL elapses, "versioned" mode keeps up to
+// MaxCount revisions.
 type StorageConfig struct {
-	Mode string `bson:"mode" json:"mode"`
-	TTL  string `bson:"ttl,omitempty" json:"ttl,omitempty"`
+	Mode     string `bson:"mode" json:"mode"`
+	TTL      string `bson:"ttl,omitempty" json:"ttl,omitempty"`
+	MaxCount int    `bson:"max_count,omitempty" json:"max_count,omitempty"`
 }
 
 // Default returns the zero-value configuration (matching
-// app_config.default.yaml: no interfaces configured yet).
+// app_config.default.yaml: no API keys or interfaces configured yet).
 func Default() *Config {
 	return &Config{
-		ID:         SingletonID,
+		ID: SingletonID,
+		APIKeys: APIKeysConfig{
+			Admin:    []APIKeyEntry{},
+			User:     []APIKeyEntry{},
+			Webhook:  []APIKeyEntry{},
+			ReadOnly: []APIKeyEntry{},
+		},
 		Interfaces: InterfacesConfig{Sonarr: []SonarrInstance{}},
 	}
 }
