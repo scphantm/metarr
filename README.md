@@ -15,6 +15,12 @@ by Jellyfin.  (Other outputs possible).
 Unlike other *arr's, the database in this project is more for caching data from external systems than
 metadata storage.  With Metarr, the final system of record for your metadata are the nfo files in the file system.  
 
+## Local URI's
+
+* [Swagger API](http://localhost:8080/swagger/index.html)
+* [Mongo Express](http://10.0.0.22:6969/)
+* [Redis Insights](http://localhost:5540/)
+
 ## Architectural features
 Extensive use of caching.  I/O operations are the slowest operations in all of computer science.  And this application
 does thousands of them.  To prevent you from rate limiting your API keys, and to cut back on compilation times, this system

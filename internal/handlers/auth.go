@@ -39,6 +39,7 @@ type logoutResponse struct {
 // @Success		200		{object}	loginResponse
 // @Failure		400		{string}	string	"invalid request body"
 // @Failure		401		{string}	string	"invalid username or password"
+// @Failure		429		{string}	string	"too many requests"
 // @Router			/api/auth/login [post]
 func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -80,6 +81,9 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 // @Tags			Auth
 // @Produce		json
 // @Success		200	{object}	logoutResponse
+// @Failure		429	{string}	string	"too many requests"
+// @Security		ApiKeyHeaderAuth
+// @Security		ApiKeyQueryAuth
 // @Router			/api/auth/logout [post]
 func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

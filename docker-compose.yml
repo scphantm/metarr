@@ -30,15 +30,22 @@ services:
     networks:
       - metarr-net
 
-  compooss:
-    image: abdullahmia/compooss:latest
+  mongo-express:
+    image: mongo-express:latest
+    container_name: metarr-mongo-express
+    restart: unless-stopped
     environment:
       # Root creds so the admin UI can browse every database; reaches
       # mongodb by its service name over the internal network below,
-      # never via the host's external IP.
-      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-root}:${MONGO_INITDB_ROOT_PASSWORD:-change-me-root-password}@mongodb:27017/?authSource=admin
+      # never via the host's external IP. Unlike compooss (which this
+      # service replaces), mongo-express actually honors this at startup
+      # and comes up already connected — no manual UI step required.
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME:-root}:${MONGO_INITDB_ROOT_PASSWORD:-change-me-root-password}@mongodb:27017/?authSource=admin
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USERNAME:-admin}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-admin}
     ports:
-      - "6969:3000"
+      - "6969:8081"
     depends_on:
       - mongodb
     networks:
@@ -48,6 +55,15 @@ services:
     image: redis/redisinsight:latest
     container_name: redis-insight
     restart: unless-stopped
+    environment:
+      # Pre-configures a database connection at startup (RedisInsight's
+      # documented mechanism for this) so it's already connected on first
+      # load instead of requiring the connection to be added manually
+      # through the UI.
+      RI_REDIS_HOST: redis
+      RI_REDIS_PORT: 6379
+      RI_REDIS_ALIAS: metarr-redis
+      RI_ACCEPT_TERMS_AND_CONDITIONS: "true"
     ports:
       - "5540:5540"
     volumes:

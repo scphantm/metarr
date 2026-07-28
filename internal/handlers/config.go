@@ -20,6 +20,8 @@ import (
 // @Tags			Config
 // @Produce		json
 // @Success		200	{object}	appconfig.Config
+// @Security		ApiKeyHeaderAuth
+// @Security		ApiKeyQueryAuth
 // @Router			/api/config [get]
 func (h *Handlers) GetConfig(w http.ResponseWriter, r *http.Request) {
 	appConfig, err := h.AppConfigRepo.Get(r.Context())
@@ -53,6 +55,8 @@ func (h *Handlers) GetConfig(w http.ResponseWriter, r *http.Request) {
 // @Param			request	body		appconfig.Config	true	"Updated application config"
 // @Success		202		{object}	acceptedResponse
 // @Failure		400		{string}	string	"invalid request body"
+// @Security		ApiKeyHeaderAuth
+// @Security		ApiKeyQueryAuth
 // @Router			/api/config [put]
 func (h *Handlers) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

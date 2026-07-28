@@ -26,6 +26,7 @@ type HeartbeatResponse struct {
 // @Tags			Heartbeat
 // @Produce		json
 // @Success		200	{object}	HeartbeatResponse
+// @Failure		429	{string}	string	"too many requests"
 // @Failure		504	{string}	string	"heartbeat timed out"
 // @Router			/api/heartbeat [get]
 func (h *Handlers) Heartbeat(w http.ResponseWriter, r *http.Request) {

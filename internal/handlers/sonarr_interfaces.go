@@ -18,6 +18,8 @@ import (
 // @Tags			Config
 // @Produce		json
 // @Success		200	{array}	appconfig.SonarrInstance
+// @Security		ApiKeyHeaderAuth
+// @Security		ApiKeyQueryAuth
 // @Router			/api/config/interfaces/sonarr [get]
 func (h *Handlers) ListSonarrInterfaces(w http.ResponseWriter, r *http.Request) {
 	appConfig, err := h.AppConfigRepo.Get(r.Context())
@@ -40,6 +42,8 @@ func (h *Handlers) ListSonarrInterfaces(w http.ResponseWriter, r *http.Request) 
 // @Param			slug	path		string	true	"instance_slug"
 // @Success		200		{object}	appconfig.SonarrInstance
 // @Failure		404		{string}	string	"no Sonarr instance with that slug"
+// @Security		ApiKeyHeaderAuth
+// @Security		ApiKeyQueryAuth
 // @Router			/api/config/interfaces/sonarr/{slug} [get]
 func (h *Handlers) GetSonarrInterface(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
@@ -76,6 +80,8 @@ func (h *Handlers) GetSonarrInterface(w http.ResponseWriter, r *http.Request) {
 // @Success		202		{object}	acceptedResponse
 // @Failure		400		{string}	string	"invalid request body or missing instance_slug"
 // @Failure		409		{string}	string	"instance_slug already in use"
+// @Security		ApiKeyHeaderAuth
+// @Security		ApiKeyQueryAuth
 // @Router			/api/config/interfaces/sonarr [post]
 func (h *Handlers) CreateSonarrInterface(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -137,6 +143,8 @@ func (h *Handlers) CreateSonarrInterface(w http.ResponseWriter, r *http.Request)
 // @Success		202		{object}	acceptedResponse
 // @Failure		400		{string}	string	"invalid request body, or attempted to change instance_slug"
 // @Failure		404		{string}	string	"no Sonarr instance with that slug"
+// @Security		ApiKeyHeaderAuth
+// @Security		ApiKeyQueryAuth
 // @Router			/api/config/interfaces/sonarr/{slug} [put]
 func (h *Handlers) UpdateSonarrInterface(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -192,6 +200,8 @@ func (h *Handlers) UpdateSonarrInterface(w http.ResponseWriter, r *http.Request)
 // @Param			slug	path		string	true	"instance_slug"
 // @Success		202		{object}	acceptedResponse
 // @Failure		404		{string}	string	"no Sonarr instance with that slug"
+// @Security		ApiKeyHeaderAuth
+// @Security		ApiKeyQueryAuth
 // @Router			/api/config/interfaces/sonarr/{slug} [delete]
 func (h *Handlers) DeleteSonarrInterface(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

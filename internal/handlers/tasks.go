@@ -27,6 +27,8 @@ type taskRequest struct {
 // @Param			request	body		taskRequest	true	"Command to run"
 // @Success		202		{object}	acceptedResponse
 // @Failure		400		{string}	string	"invalid request body or unsupported command"
+// @Security		ApiKeyHeaderAuth
+// @Security		ApiKeyQueryAuth
 // @Router			/api/tasks/sonarr_cache_data [post]
 func (h *Handlers) SonarrCacheData(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

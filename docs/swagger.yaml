@@ -30,6 +30,10 @@ definitions:
     properties:
       email:
         type: string
+      password_hash:
+        type: string
+      password_salt:
+        type: string
       username:
         type: string
     type: object
@@ -167,6 +171,10 @@ paths:
           description: invalid username or password
           schema:
             type: string
+        "429":
+          description: too many requests
+          schema:
+            type: string
       summary: Log in as the admin user
       tags:
       - Auth
@@ -180,6 +188,13 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/handlers.logoutResponse'
+        "429":
+          description: too many requests
+          schema:
+            type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
       summary: Log out
       tags:
       - Auth
@@ -193,6 +208,9 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/appconfig.Config'
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
       summary: Fetch the application config
       tags:
       - Config
@@ -221,6 +239,9 @@ paths:
           description: invalid request body
           schema:
             type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
       summary: Update the application config
       tags:
       - Config
@@ -249,6 +270,9 @@ paths:
           description: invalid request body, or a provided field was empty
           schema:
             type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
       summary: Update the admin user's credentials
       tags:
       - Config
@@ -265,6 +289,9 @@ paths:
             items:
               $ref: '#/definitions/appconfig.SonarrInstance'
             type: array
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
       summary: List Sonarr interface instances
       tags:
       - Config
@@ -295,6 +322,9 @@ paths:
           description: instance_slug already in use
           schema:
             type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
       summary: Create a Sonarr interface instance
       tags:
       - Config
@@ -319,6 +349,9 @@ paths:
           description: no Sonarr instance with that slug
           schema:
             type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
       summary: Delete a Sonarr interface instance
       tags:
       - Config
@@ -342,6 +375,9 @@ paths:
           description: no Sonarr instance with that slug
           schema:
             type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
       summary: Fetch a single Sonarr interface instance
       tags:
       - Config
@@ -377,6 +413,9 @@ paths:
           description: no Sonarr instance with that slug
           schema:
             type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
       summary: Update a Sonarr interface instance
       tags:
       - Config
@@ -392,6 +431,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/handlers.HeartbeatResponse'
+        "429":
+          description: too many requests
+          schema:
+            type: string
         "504":
           description: heartbeat timed out
           schema:
@@ -423,7 +466,22 @@ paths:
           description: invalid request body or unsupported command
           schema:
             type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
       summary: Trigger the sonarr_cache_data background job
       tags:
       - Tasks
+securityDefinitions:
+  ApiKeyHeaderAuth:
+    description: API key via the X-Api-Key header.
+    in: header
+    name: X-Api-Key
+    type: apiKey
+  ApiKeyQueryAuth:
+    description: API key via the apikey query parameter. Either this or ApiKeyHeaderAuth
+      satisfies auth on protected routes.
+    in: query
+    name: apikey
+    type: apiKey
 swagger: "2.0"

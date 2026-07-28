@@ -32,6 +32,8 @@ type updateAdminRequest struct {
 // @Param			request	body		updateAdminRequest	true	"Fields to update"
 // @Success		202		{object}	acceptedResponse
 // @Failure		400		{string}	string	"invalid request body, or a provided field was empty"
+// @Security		ApiKeyHeaderAuth
+// @Security		ApiKeyQueryAuth
 // @Router			/api/config/admin [put]
 func (h *Handlers) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

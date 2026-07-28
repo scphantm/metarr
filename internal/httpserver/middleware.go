@@ -3,6 +3,7 @@ package httpserver
 import (
 	"log/slog"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"Metarr/internal/appconfig"
@@ -63,6 +64,26 @@ func requireAPIKey(sessions *session.Store, group auth.Group, next http.Handler)
 		}
 
 		next.ServeHTTP(w, r.WithContext(auth.WithAPIKey(r.Context(), apiKey)))
+	})
+}
+
+// rateLimit wraps next so it only allows one call through per interval,
+// globally across every caller (this is not a per-client/per-key limit —
+// each call to rateLimit gets its own independent counter, so wrapping two
+// different routes each gets its own separate budget). A call arriving
+// less than interval after the last one that was let through is rejected
+// with 429 Too Many Requests without ever reaching next.
+func rateLimit(interval time.Duration, next http.Handler) http.Handler {
+	var lastNano atomic.Int64
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		now := time.Now().UnixNano()
+		last := lastNano.Load()
+		if now-last < int64(interval) || !lastNano.CompareAndSwap(last, now) {
+			http.Error(w, "too many requests", http.StatusTooManyRequests)
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }
 

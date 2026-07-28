@@ -3,6 +3,7 @@ package httpserver
 import (
 	"log/slog"
 	"net/http"
+	"time"
 
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 
@@ -11,6 +12,10 @@ import (
 	"Metarr/internal/handlers"
 	"Metarr/internal/session"
 )
+
+// throttledInterval caps the heartbeat and auth (login/logout) endpoints at
+// one call each per this duration — each gets its own independent budget.
+const throttledInterval = 500 * time.Millisecond
 
 // NewRouter builds the application's HTTP route table, wrapped with
 // correlation ID and request logging middleware. Every route requires an
@@ -21,12 +26,15 @@ func NewRouter(h *handlers.Handlers, sessions *session.Store, logger *slog.Logge
 	protect := func(group auth.Group, handler http.HandlerFunc) http.Handler {
 		return requireAPIKey(sessions, group, handler)
 	}
+	throttle := func(handler http.Handler) http.Handler {
+		return rateLimit(throttledInterval, handler)
+	}
 
 	// Heartbeat and login are the only API endpoints callable without a key.
-	mux.HandleFunc("GET /api/heartbeat", h.Heartbeat)
-	mux.HandleFunc("POST /api/auth/login", h.Login)
+	mux.Handle("GET /api/heartbeat", throttle(http.HandlerFunc(h.Heartbeat)))
+	mux.Handle("POST /api/auth/login", throttle(http.HandlerFunc(h.Login)))
 
-	mux.Handle("POST /api/auth/logout", protect(auth.GroupConfig, h.Logout))
+	mux.Handle("POST /api/auth/logout", throttle(protect(auth.GroupConfig, h.Logout)))
 
 	mux.Handle("POST /api/tasks/sonarr_cache_data", protect(auth.GroupTasks, h.SonarrCacheData))
 

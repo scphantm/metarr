@@ -57,12 +57,26 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    "429": {
+                        "description": "too many requests",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
         },
         "/api/auth/logout": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
                 "description": "Revokes the session API key that authenticated this request.",
                 "produces": [
                     "application/json"
@@ -77,12 +91,26 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/handlers.logoutResponse"
                         }
+                    },
+                    "429": {
+                        "description": "too many requests",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
         },
         "/api/config": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
                 "description": "Reads the singleton application config document from MongoDB.",
                 "produces": [
                     "application/json"
@@ -101,6 +129,14 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
                 "description": "Fires a system_config_update event with the updated document as its payload and returns as soon as the event has been queued. The SystemConfigUpdate listener persists the change to MongoDB and then refreshes the in-memory config singleton.",
                 "consumes": [
                     "application/json"
@@ -141,6 +177,14 @@ const docTemplate = `{
         },
         "/api/config/admin": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
                 "description": "Updates any subset of the admin user's username, email, and password. A provided field cannot be empty. If password is set, it is re-hashed with a fresh salt.",
                 "consumes": [
                     "application/json"
@@ -181,6 +225,14 @@ const docTemplate = `{
         },
         "/api/config/interfaces/sonarr": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
                 "description": "Reads the application config from MongoDB and returns every configured Sonarr instance.",
                 "produces": [
                     "application/json"
@@ -202,6 +254,14 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
                 "description": "Adds a new Sonarr instance. instance_slug is required and must be unique across every interface type.",
                 "consumes": [
                     "application/json"
@@ -248,6 +308,14 @@ const docTemplate = `{
         },
         "/api/config/interfaces/sonarr/{slug}": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
                 "description": "Reads the application config from MongoDB and returns the Sonarr instance with the given instance_slug.",
                 "produces": [
                     "application/json"
@@ -281,6 +349,14 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
                 "description": "Replaces every field of the Sonarr instance at the given instance_slug except instance_slug itself, which cannot be changed once set.",
                 "consumes": [
                     "application/json"
@@ -332,6 +408,14 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
                 "description": "Removes the Sonarr instance with the given instance_slug and fires system_config_update with the resulting document.",
                 "produces": [
                     "application/json"
@@ -382,6 +466,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/handlers.HeartbeatResponse"
                         }
                     },
+                    "429": {
+                        "description": "too many requests",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "504": {
                         "description": "heartbeat timed out",
                         "schema": {
@@ -393,6 +483,14 @@ const docTemplate = `{
         },
         "/api/tasks/sonarr_cache_data": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
                 "description": "Fires the sonarr_cache_data event onto the durable event stream in a non-blocking way and returns as soon as the event has been queued.",
                 "consumes": [
                     "application/json"
@@ -477,6 +575,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "email": {
+                    "type": "string"
+                },
+                "password_hash": {
+                    "type": "string"
+                },
+                "password_salt": {
                     "type": "string"
                 },
                 "username": {
@@ -636,6 +740,20 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyHeaderAuth": {
+            "description": "API key via the X-Api-Key header.",
+            "type": "apiKey",
+            "name": "X-Api-Key",
+            "in": "header"
+        },
+        "ApiKeyQueryAuth": {
+            "description": "API key via the apikey query parameter. Either this or ApiKeyHeaderAuth satisfies auth on protected routes.",
+            "type": "apiKey",
+            "name": "apikey",
+            "in": "query"
         }
     }
 }`
