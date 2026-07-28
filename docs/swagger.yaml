@@ -86,14 +86,7 @@ definitions:
       ttl:
         type: string
     type: object
-  handlers.HeartbeatResponse:
-    properties:
-      correlation_id:
-        type: string
-      time:
-        type: string
-    type: object
-  handlers.acceptedResponse:
+  handlers.AcceptedResponse:
     properties:
       correlation_id:
         type: string
@@ -102,31 +95,38 @@ definitions:
       status:
         type: string
     type: object
-  handlers.loginRequest:
+  handlers.HeartbeatResponse:
+    properties:
+      correlation_id:
+        type: string
+      time:
+        type: string
+    type: object
+  handlers.LoginRequest:
     properties:
       password:
         type: string
       username:
         type: string
     type: object
-  handlers.loginResponse:
+  handlers.LoginResponse:
     properties:
       api_key:
         type: string
       expires_in_seconds:
         type: integer
     type: object
-  handlers.logoutResponse:
+  handlers.LogoutResponse:
     properties:
       status:
         type: string
     type: object
-  handlers.taskRequest:
+  handlers.TaskRequest:
     properties:
       command:
         type: string
     type: object
-  handlers.updateAdminRequest:
+  handlers.UpdateAdminRequest:
     properties:
       email:
         type: string
@@ -155,14 +155,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.loginRequest'
+          $ref: '#/definitions/handlers.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.loginResponse'
+            $ref: '#/definitions/handlers.LoginResponse'
         "400":
           description: invalid request body
           schema:
@@ -187,7 +187,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.logoutResponse'
+            $ref: '#/definitions/handlers.LogoutResponse'
         "429":
           description: too many requests
           schema:
@@ -234,7 +234,7 @@ paths:
         "202":
           description: Accepted
           schema:
-            $ref: '#/definitions/handlers.acceptedResponse'
+            $ref: '#/definitions/handlers.AcceptedResponse'
         "400":
           description: invalid request body
           schema:
@@ -258,14 +258,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.updateAdminRequest'
+          $ref: '#/definitions/handlers.UpdateAdminRequest'
       produces:
       - application/json
       responses:
         "202":
           description: Accepted
           schema:
-            $ref: '#/definitions/handlers.acceptedResponse'
+            $ref: '#/definitions/handlers.AcceptedResponse'
         "400":
           description: invalid request body, or a provided field was empty
           schema:
@@ -313,7 +313,7 @@ paths:
         "202":
           description: Accepted
           schema:
-            $ref: '#/definitions/handlers.acceptedResponse'
+            $ref: '#/definitions/handlers.AcceptedResponse'
         "400":
           description: invalid request body or missing instance_slug
           schema:
@@ -344,7 +344,7 @@ paths:
         "202":
           description: Accepted
           schema:
-            $ref: '#/definitions/handlers.acceptedResponse'
+            $ref: '#/definitions/handlers.AcceptedResponse'
         "404":
           description: no Sonarr instance with that slug
           schema:
@@ -404,7 +404,7 @@ paths:
         "202":
           description: Accepted
           schema:
-            $ref: '#/definitions/handlers.acceptedResponse'
+            $ref: '#/definitions/handlers.AcceptedResponse'
         "400":
           description: invalid request body, or attempted to change instance_slug
           schema:
@@ -454,14 +454,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.taskRequest'
+          $ref: '#/definitions/handlers.TaskRequest'
       produces:
       - application/json
       responses:
         "202":
           description: Accepted
           schema:
-            $ref: '#/definitions/handlers.acceptedResponse'
+            $ref: '#/definitions/handlers.AcceptedResponse'
         "400":
           description: invalid request body or unsupported command
           schema:

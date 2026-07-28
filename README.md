@@ -82,3 +82,11 @@ be written in Go or Rust because we want them tiny and as fast as possible.  The
 languages like python, Java, C#, etc.
 
 https://towardsdev.com/file-writing-speed-battle-node-python-go-rust-php-and-c-8a1c35ad870e
+
+### Metadata proxy.
+everything here is cached and versioned.  I want to build this so all other systems can point to it and
+they get cached results and versioned so you can see how a document changed over a period of time.  That 
+data will be used along side our data just like any other.
+
+### Metadata update
+This should have a way to update the other metadata registries if its possible thru their api.

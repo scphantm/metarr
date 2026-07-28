@@ -53,7 +53,7 @@ func (h *Handlers) GetConfig(w http.ResponseWriter, r *http.Request) {
 // @Accept			json
 // @Produce		json
 // @Param			request	body		appconfig.Config	true	"Updated application config"
-// @Success		202		{object}	acceptedResponse
+// @Success		202		{object}	AcceptedResponse
 // @Failure		400		{string}	string	"invalid request body"
 // @Security		ApiKeyHeaderAuth
 // @Security		ApiKeyQueryAuth
@@ -76,7 +76,7 @@ func (h *Handlers) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(acceptedResponse{
+	json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,

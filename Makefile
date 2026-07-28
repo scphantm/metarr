@@ -1,4 +1,4 @@
-.PHONY: generate build run test tidy
+.PHONY: generate build run test tidy install-cli
 
 generate:
 	go generate ./...
@@ -14,3 +14,6 @@ test: generate
 
 tidy:
 	go mod tidy
+
+install-cli:
+	go install ./cmd/metarrctl

@@ -9,7 +9,7 @@ import (
 	"Metarr/internal/eventbus"
 )
 
-type taskRequest struct {
+type TaskRequest struct {
 	Command string `json:"command"`
 }
 
@@ -24,8 +24,8 @@ type taskRequest struct {
 // @Tags			Tasks
 // @Accept			json
 // @Produce		json
-// @Param			request	body		taskRequest	true	"Command to run"
-// @Success		202		{object}	acceptedResponse
+// @Param			request	body		TaskRequest	true	"Command to run"
+// @Success		202		{object}	AcceptedResponse
 // @Failure		400		{string}	string	"invalid request body or unsupported command"
 // @Security		ApiKeyHeaderAuth
 // @Security		ApiKeyQueryAuth
@@ -34,7 +34,7 @@ func (h *Handlers) SonarrCacheData(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	correlationID := correlation.FromContext(ctx)
 
-	var req taskRequest
+	var req TaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
@@ -58,7 +58,7 @@ func (h *Handlers) SonarrCacheData(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(acceptedResponse{
+	json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SonarrCacheDataEventName,
 		CorrelationID: correlationID,

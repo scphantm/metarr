@@ -77,7 +77,7 @@ func (h *Handlers) GetSonarrInterface(w http.ResponseWriter, r *http.Request) {
 // @Accept			json
 // @Produce		json
 // @Param			request	body		appconfig.SonarrInstance	true	"New Sonarr instance"
-// @Success		202		{object}	acceptedResponse
+// @Success		202		{object}	AcceptedResponse
 // @Failure		400		{string}	string	"invalid request body or missing instance_slug"
 // @Failure		409		{string}	string	"instance_slug already in use"
 // @Security		ApiKeyHeaderAuth
@@ -121,7 +121,7 @@ func (h *Handlers) CreateSonarrInterface(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(acceptedResponse{
+	json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
@@ -140,7 +140,7 @@ func (h *Handlers) CreateSonarrInterface(w http.ResponseWriter, r *http.Request)
 // @Produce		json
 // @Param			slug	path		string						true	"instance_slug"
 // @Param			request	body		appconfig.SonarrInstance	true	"Updated Sonarr instance"
-// @Success		202		{object}	acceptedResponse
+// @Success		202		{object}	AcceptedResponse
 // @Failure		400		{string}	string	"invalid request body, or attempted to change instance_slug"
 // @Failure		404		{string}	string	"no Sonarr instance with that slug"
 // @Security		ApiKeyHeaderAuth
@@ -184,7 +184,7 @@ func (h *Handlers) UpdateSonarrInterface(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(acceptedResponse{
+	json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
@@ -198,7 +198,7 @@ func (h *Handlers) UpdateSonarrInterface(w http.ResponseWriter, r *http.Request)
 // @Tags			Config
 // @Produce		json
 // @Param			slug	path		string	true	"instance_slug"
-// @Success		202		{object}	acceptedResponse
+// @Success		202		{object}	AcceptedResponse
 // @Failure		404		{string}	string	"no Sonarr instance with that slug"
 // @Security		ApiKeyHeaderAuth
 // @Security		ApiKeyQueryAuth
@@ -230,7 +230,7 @@ func (h *Handlers) DeleteSonarrInterface(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(acceptedResponse{
+	json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,

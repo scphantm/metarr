@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.loginRequest"
+                            "$ref": "#/definitions/handlers.LoginRequest"
                         }
                     }
                 ],
@@ -43,7 +43,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.loginResponse"
+                            "$ref": "#/definitions/handlers.LoginResponse"
                         }
                     },
                     "400": {
@@ -89,7 +89,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.logoutResponse"
+                            "$ref": "#/definitions/handlers.LogoutResponse"
                         }
                     },
                     "429": {
@@ -163,7 +163,7 @@ const docTemplate = `{
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/handlers.acceptedResponse"
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
                         }
                     },
                     "400": {
@@ -203,7 +203,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.updateAdminRequest"
+                            "$ref": "#/definitions/handlers.UpdateAdminRequest"
                         }
                     }
                 ],
@@ -211,7 +211,7 @@ const docTemplate = `{
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/handlers.acceptedResponse"
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
                         }
                     },
                     "400": {
@@ -288,7 +288,7 @@ const docTemplate = `{
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/handlers.acceptedResponse"
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
                         }
                     },
                     "400": {
@@ -390,7 +390,7 @@ const docTemplate = `{
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/handlers.acceptedResponse"
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
                         }
                     },
                     "400": {
@@ -437,7 +437,7 @@ const docTemplate = `{
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/handlers.acceptedResponse"
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
                         }
                     },
                     "404": {
@@ -509,7 +509,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.taskRequest"
+                            "$ref": "#/definitions/handlers.TaskRequest"
                         }
                     }
                 ],
@@ -517,7 +517,7 @@ const docTemplate = `{
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/handlers.acceptedResponse"
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
                         }
                     },
                     "400": {
@@ -664,18 +664,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.HeartbeatResponse": {
-            "type": "object",
-            "properties": {
-                "correlation_id": {
-                    "type": "string"
-                },
-                "time": {
-                    "type": "string"
-                }
-            }
-        },
-        "handlers.acceptedResponse": {
+        "handlers.AcceptedResponse": {
             "type": "object",
             "properties": {
                 "correlation_id": {
@@ -689,7 +678,18 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.loginRequest": {
+        "handlers.HeartbeatResponse": {
+            "type": "object",
+            "properties": {
+                "correlation_id": {
+                    "type": "string"
+                },
+                "time": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.LoginRequest": {
             "type": "object",
             "properties": {
                 "password": {
@@ -700,7 +700,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.loginResponse": {
+        "handlers.LoginResponse": {
             "type": "object",
             "properties": {
                 "api_key": {
@@ -711,7 +711,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.logoutResponse": {
+        "handlers.LogoutResponse": {
             "type": "object",
             "properties": {
                 "status": {
@@ -719,7 +719,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.taskRequest": {
+        "handlers.TaskRequest": {
             "type": "object",
             "properties": {
                 "command": {
@@ -727,7 +727,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.updateAdminRequest": {
+        "handlers.UpdateAdminRequest": {
             "type": "object",
             "properties": {
                 "email": {

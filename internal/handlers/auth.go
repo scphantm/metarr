@@ -11,17 +11,17 @@ import (
 	"Metarr/internal/session"
 )
 
-type loginRequest struct {
+type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-type loginResponse struct {
+type LoginResponse struct {
 	APIKey           string `json:"api_key"`
 	ExpiresInSeconds int    `json:"expires_in_seconds"`
 }
 
-type logoutResponse struct {
+type LogoutResponse struct {
 	Status string `json:"status"`
 }
 
@@ -35,8 +35,8 @@ type logoutResponse struct {
 // @Tags			Auth
 // @Accept			json
 // @Produce		json
-// @Param			request	body		loginRequest	true	"Login credentials"
-// @Success		200		{object}	loginResponse
+// @Param			request	body		LoginRequest	true	"Login credentials"
+// @Success		200		{object}	LoginResponse
 // @Failure		400		{string}	string	"invalid request body"
 // @Failure		401		{string}	string	"invalid username or password"
 // @Failure		429		{string}	string	"too many requests"
@@ -45,7 +45,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	correlationID := correlation.FromContext(ctx)
 
-	var req loginRequest
+	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
@@ -67,7 +67,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(loginResponse{
+	json.NewEncoder(w).Encode(LoginResponse{
 		APIKey:           apiKey,
 		ExpiresInSeconds: int(session.TTL.Seconds()),
 	})
@@ -80,7 +80,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 // @Description	Revokes the session API key that authenticated this request.
 // @Tags			Auth
 // @Produce		json
-// @Success		200	{object}	logoutResponse
+// @Success		200	{object}	LogoutResponse
 // @Failure		429	{string}	string	"too many requests"
 // @Security		ApiKeyHeaderAuth
 // @Security		ApiKeyQueryAuth
@@ -97,5 +97,5 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(logoutResponse{Status: "logged_out"})
+	json.NewEncoder(w).Encode(LogoutResponse{Status: "logged_out"})
 }

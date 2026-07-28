@@ -34,9 +34,9 @@ func New(pubsub *eventbus.PubSubBus, streams *eventbus.StreamBus, appConfigRepo 
 	}
 }
 
-// acceptedResponse is the shared response shape for endpoints that fire an
+// AcceptedResponse is the shared response shape for endpoints that fire an
 // event and return before it's been processed.
-type acceptedResponse struct {
+type AcceptedResponse struct {
 	Status        string `json:"status"`
 	Event         string `json:"event"`
 	CorrelationID string `json:"correlation_id"`
