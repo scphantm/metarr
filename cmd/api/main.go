@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -21,7 +22,15 @@ import (
 	"Metarr/internal/listeners"
 	"Metarr/internal/logging"
 	"Metarr/internal/mongostore"
+	"Metarr/internal/passwordhash"
 	"Metarr/internal/redisclient"
+	"Metarr/internal/session"
+)
+
+const (
+	defaultAdminUsername      = "admin"
+	defaultAdminEmail         = "admin@example.com"
+	defaultAdminPasswordChars = 12
 )
 
 // @title			Metarr API
@@ -71,6 +80,7 @@ func run() error {
 	}
 	taskEventRepo := mongostore.NewTaskEventRepo(mongoClient, cfg.MongoDatabase)
 	appConfigRepo := appconfig.NewRepo(mongoClient, cfg.MongoDatabase)
+	sessions := session.NewStore(redisClient)
 
 	// Warm the in-memory config singleton from MongoDB before serving any
 	// requests, so it reflects the persisted config from process start.
@@ -78,6 +88,38 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	// Bootstrap the admin user the first time the app ever starts against
+	// this database: no admin has been configured yet, so generate a
+	// random password, hash it, and persist it. The plaintext is printed
+	// directly to stdout (not through logger) so it's never written to
+	// logs/app.log — shown once, same treatment mongo/init/init-mongo.js
+	// already gives the seeded API keys.
+	if startupCfg.Admin.Username == "" {
+		plaintextPassword, err := passwordhash.GenerateRandomPassword(defaultAdminPasswordChars)
+		if err != nil {
+			return err
+		}
+		salt, hash, err := passwordhash.Hash(plaintextPassword)
+		if err != nil {
+			return err
+		}
+		startupCfg.Admin = appconfig.AdminUser{
+			Username:     defaultAdminUsername,
+			Email:        defaultAdminEmail,
+			PasswordSalt: salt,
+			PasswordHash: hash,
+		}
+		if err := appConfigRepo.Upsert(connectCtx, startupCfg); err != nil {
+			return err
+		}
+		fmt.Println("==================================================================")
+		fmt.Println("Metarr: generated initial admin credentials (shown only once):")
+		fmt.Println("  username: " + defaultAdminUsername)
+		fmt.Println("  password: " + plaintextPassword)
+		fmt.Println("==================================================================")
+	}
+
 	appconfig.Set(startupCfg)
 
 	// Listeners run for the lifetime of the process, independent of any
@@ -94,8 +136,8 @@ func run() error {
 		}
 	}()
 
-	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, logger, cfg.HeartbeatTimeout)
-	router := httpserver.NewRouter(apiHandlers, logger)
+	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, sessions, logger, cfg.HeartbeatTimeout)
+	router := httpserver.NewRouter(apiHandlers, sessions, logger)
 	server := httpserver.New(cfg.Host, cfg.Port, router)
 
 	serverErr := make(chan error, 1)

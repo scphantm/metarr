@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -27,6 +28,12 @@ func (h *Handlers) GetConfig(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to fetch config", http.StatusInternalServerError)
 		return
 	}
+
+	// Redact the password hash/salt before this ever reaches a client.
+	// They round-trip through JSON internally (system_config_update event
+	// payloads), so the model can't hide them with a hard `json:"-"`.
+	appConfig.Admin.PasswordSalt = ""
+	appConfig.Admin.PasswordHash = ""
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(appConfig)
@@ -57,21 +64,7 @@ func (h *Handlers) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload, err := json.Marshal(updatedConfig)
-	if err != nil {
-		h.Logger.Error("failed to encode config payload", "correlation_id", correlationID, "error", err)
-		http.Error(w, "failed to encode config", http.StatusInternalServerError)
-		return
-	}
-
-	event := eventbus.Event{
-		CorrelationID: correlationID,
-		Name:          eventbus.SystemConfigUpdateEventName,
-		Payload:       payload,
-		Timestamp:     time.Now().UTC(),
-	}
-
-	if err := h.Streams.Fire(ctx, eventbus.SystemConfigUpdateStream, event); err != nil {
+	if err := h.fireConfigUpdate(ctx, correlationID, updatedConfig); err != nil {
 		h.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
 		http.Error(w, "failed to queue config update", http.StatusInternalServerError)
 		return
@@ -84,4 +77,25 @@ func (h *Handlers) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
 	})
+}
+
+// fireConfigUpdate marshals config and fires it as a system_config_update
+// event. Used for both whole-document updates (UpdateConfig) and
+// per-interface-instance CRUD, which read-modify-fire the same full
+// document so the existing SystemConfigUpdate listener can persist it and
+// refresh the in-memory config singleton without any changes of its own.
+func (h *Handlers) fireConfigUpdate(ctx context.Context, correlationID string, config appconfig.Config) error {
+	payload, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	event := eventbus.Event{
+		CorrelationID: correlationID,
+		Name:          eventbus.SystemConfigUpdateEventName,
+		Payload:       payload,
+		Timestamp:     time.Now().UTC(),
+	}
+
+	return h.Streams.Fire(ctx, eventbus.SystemConfigUpdateStream, event)
 }

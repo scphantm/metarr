@@ -13,7 +13,24 @@ const SingletonID = "app_config"
 type Config struct {
 	ID         string           `bson:"_id" json:"-"`
 	APIKeys    APIKeysConfig    `bson:"api_keys" json:"api_keys"`
+	Admin      AdminUser        `bson:"admin" json:"admin"`
 	Interfaces InterfacesConfig `bson:"interfaces" json:"interfaces"`
+}
+
+// AdminUser is the system's single administrative user account.
+//
+// PasswordSalt and PasswordHash use `omitempty` rather than `json:"-"`: the
+// system_config_update event payload round-trips a full Config through
+// JSON (see Handlers.fireConfigUpdate), so a hard "-" here would silently
+// wipe the stored hash on every config update, not just ones touching
+// admin credentials. Client-facing responses (GetConfig) are responsible
+// for redacting these two fields to "" before encoding, which
+// `omitempty` then drops from the response entirely.
+type AdminUser struct {
+	Username     string `bson:"username" json:"username"`
+	Email        string `bson:"email" json:"email"`
+	PasswordSalt string `bson:"password_salt" json:"password_salt,omitempty"`
+	PasswordHash string `bson:"password_hash" json:"password_hash,omitempty"`
 }
 
 // APIKeysConfig groups the API keys issued for each access-level category.
@@ -34,6 +51,29 @@ type APIKeyEntry struct {
 // interface Metarr integrates with.
 type InterfacesConfig struct {
 	Sonarr []SonarrInstance `bson:"sonarr" json:"sonarr"`
+}
+
+// AllInstanceSlugs returns every instance_slug currently in use across all
+// interface types. instance_slug must be unique across all interfaces, not
+// just within one type, so this is the one place to extend when a new
+// interface type (e.g. Radarr) is added alongside Sonarr.
+func (c InterfacesConfig) AllInstanceSlugs() []string {
+	slugs := make([]string, 0, len(c.Sonarr))
+	for _, instance := range c.Sonarr {
+		slugs = append(slugs, instance.InstanceSlug)
+	}
+	return slugs
+}
+
+// FindSonarrIndex returns the index of the Sonarr instance with the given
+// slug, or -1 if none matches.
+func (c InterfacesConfig) FindSonarrIndex(slug string) int {
+	for i, instance := range c.Sonarr {
+		if instance.InstanceSlug == slug {
+			return i
+		}
+	}
+	return -1
 }
 
 // SonarrInstance configures a single Sonarr instance to cache data from.

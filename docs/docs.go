@@ -15,6 +15,72 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/auth/login": {
+            "post": {
+                "description": "Compares the submitted username/password against the stored admin credentials and issues a session API key carrying admin rights.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Log in as the admin user",
+                "parameters": [
+                    {
+                        "description": "Login credentials",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.loginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.loginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "invalid username or password",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/logout": {
+            "post": {
+                "description": "Revokes the session API key that authenticated this request.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Log out",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.logoutResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/config": {
             "get": {
                 "description": "Reads the singleton application config document from MongoDB.",
@@ -29,7 +95,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/Metarr_internal_appconfig.Config"
+                            "$ref": "#/definitions/appconfig.Config"
                         }
                     }
                 }
@@ -53,7 +119,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/Metarr_internal_appconfig.Config"
+                            "$ref": "#/definitions/appconfig.Config"
                         }
                     }
                 ],
@@ -61,11 +127,237 @@ const docTemplate = `{
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.acceptedResponse"
+                            "$ref": "#/definitions/handlers.acceptedResponse"
                         }
                     },
                     "400": {
                         "description": "invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/config/admin": {
+            "put": {
+                "description": "Updates any subset of the admin user's username, email, and password. A provided field cannot be empty. If password is set, it is re-hashed with a fresh salt.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Update the admin user's credentials",
+                "parameters": [
+                    {
+                        "description": "Fields to update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.updateAdminRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.acceptedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body, or a provided field was empty",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/config/interfaces/sonarr": {
+            "get": {
+                "description": "Reads the application config from MongoDB and returns every configured Sonarr instance.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "List Sonarr interface instances",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/appconfig.SonarrInstance"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Adds a new Sonarr instance. instance_slug is required and must be unique across every interface type.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Create a Sonarr interface instance",
+                "parameters": [
+                    {
+                        "description": "New Sonarr instance",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/appconfig.SonarrInstance"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.acceptedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body or missing instance_slug",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "instance_slug already in use",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/config/interfaces/sonarr/{slug}": {
+            "get": {
+                "description": "Reads the application config from MongoDB and returns the Sonarr instance with the given instance_slug.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Fetch a single Sonarr interface instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "instance_slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/appconfig.SonarrInstance"
+                        }
+                    },
+                    "404": {
+                        "description": "no Sonarr instance with that slug",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Replaces every field of the Sonarr instance at the given instance_slug except instance_slug itself, which cannot be changed once set.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Update a Sonarr interface instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "instance_slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated Sonarr instance",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/appconfig.SonarrInstance"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.acceptedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body, or attempted to change instance_slug",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "no Sonarr instance with that slug",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Removes the Sonarr instance with the given instance_slug and fires system_config_update with the resulting document.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Delete a Sonarr interface instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "instance_slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.acceptedResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "no Sonarr instance with that slug",
                         "schema": {
                             "type": "string"
                         }
@@ -87,7 +379,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.HeartbeatResponse"
+                            "$ref": "#/definitions/handlers.HeartbeatResponse"
                         }
                     },
                     "504": {
@@ -119,7 +411,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.taskRequest"
+                            "$ref": "#/definitions/handlers.taskRequest"
                         }
                     }
                 ],
@@ -127,7 +419,7 @@ const docTemplate = `{
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.acceptedResponse"
+                            "$ref": "#/definitions/handlers.acceptedResponse"
                         }
                     },
                     "400": {
@@ -141,26 +433,83 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "Metarr_internal_appconfig.Config": {
+        "appconfig.APIKeyEntry": {
             "type": "object",
             "properties": {
-                "interfaces": {
-                    "$ref": "#/definitions/Metarr_internal_appconfig.InterfacesConfig"
+                "api_key": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },
-        "Metarr_internal_appconfig.InterfacesConfig": {
+        "appconfig.APIKeysConfig": {
+            "type": "object",
+            "properties": {
+                "admin": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/appconfig.APIKeyEntry"
+                    }
+                },
+                "read_only": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/appconfig.APIKeyEntry"
+                    }
+                },
+                "user": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/appconfig.APIKeyEntry"
+                    }
+                },
+                "webhook": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/appconfig.APIKeyEntry"
+                    }
+                }
+            }
+        },
+        "appconfig.AdminUser": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "appconfig.Config": {
+            "type": "object",
+            "properties": {
+                "admin": {
+                    "$ref": "#/definitions/appconfig.AdminUser"
+                },
+                "api_keys": {
+                    "$ref": "#/definitions/appconfig.APIKeysConfig"
+                },
+                "interfaces": {
+                    "$ref": "#/definitions/appconfig.InterfacesConfig"
+                }
+            }
+        },
+        "appconfig.InterfacesConfig": {
             "type": "object",
             "properties": {
                 "sonarr": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/Metarr_internal_appconfig.SonarrInstance"
+                        "$ref": "#/definitions/appconfig.SonarrInstance"
                     }
                 }
             }
         },
-        "Metarr_internal_appconfig.RootDirMapping": {
+        "appconfig.RootDirMapping": {
             "type": "object",
             "properties": {
                 "local_path": {
@@ -171,7 +520,7 @@ const docTemplate = `{
                 }
             }
         },
-        "Metarr_internal_appconfig.SonarrInstance": {
+        "appconfig.SonarrInstance": {
             "type": "object",
             "properties": {
                 "instance_name": {
@@ -183,7 +532,7 @@ const docTemplate = `{
                 "root_dir_map": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/Metarr_internal_appconfig.RootDirMapping"
+                        "$ref": "#/definitions/appconfig.RootDirMapping"
                     }
                 },
                 "sonarr_api_key": {
@@ -193,13 +542,16 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "storage": {
-                    "$ref": "#/definitions/Metarr_internal_appconfig.StorageConfig"
+                    "$ref": "#/definitions/appconfig.StorageConfig"
                 }
             }
         },
-        "Metarr_internal_appconfig.StorageConfig": {
+        "appconfig.StorageConfig": {
             "type": "object",
             "properties": {
+                "max_count": {
+                    "type": "integer"
+                },
                 "mode": {
                     "type": "string"
                 },
@@ -208,7 +560,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handlers.HeartbeatResponse": {
+        "handlers.HeartbeatResponse": {
             "type": "object",
             "properties": {
                 "correlation_id": {
@@ -219,7 +571,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handlers.acceptedResponse": {
+        "handlers.acceptedResponse": {
             "type": "object",
             "properties": {
                 "correlation_id": {
@@ -233,10 +585,54 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handlers.taskRequest": {
+        "handlers.loginRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.loginResponse": {
+            "type": "object",
+            "properties": {
+                "api_key": {
+                    "type": "string"
+                },
+                "expires_in_seconds": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.logoutResponse": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.taskRequest": {
             "type": "object",
             "properties": {
                 "command": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.updateAdminRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }

@@ -9,6 +9,7 @@ import (
 
 	"Metarr/internal/appconfig"
 	"Metarr/internal/eventbus"
+	"Metarr/internal/session"
 )
 
 // Handlers bundles the dependencies shared by every HTTP handler.
@@ -16,16 +17,18 @@ type Handlers struct {
 	PubSub           *eventbus.PubSubBus
 	Streams          *eventbus.StreamBus
 	AppConfigRepo    *appconfig.Repo
+	Sessions         *session.Store
 	Logger           *slog.Logger
 	HeartbeatTimeout time.Duration
 }
 
 // New constructs a Handlers from its dependencies.
-func New(pubsub *eventbus.PubSubBus, streams *eventbus.StreamBus, appConfigRepo *appconfig.Repo, logger *slog.Logger, heartbeatTimeout time.Duration) *Handlers {
+func New(pubsub *eventbus.PubSubBus, streams *eventbus.StreamBus, appConfigRepo *appconfig.Repo, sessions *session.Store, logger *slog.Logger, heartbeatTimeout time.Duration) *Handlers {
 	return &Handlers{
 		PubSub:           pubsub,
 		Streams:          streams,
 		AppConfigRepo:    appConfigRepo,
+		Sessions:         sessions,
 		Logger:           logger,
 		HeartbeatTimeout: heartbeatTimeout,
 	}

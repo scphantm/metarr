@@ -1,25 +1,62 @@
 basePath: /
 definitions:
-  Metarr_internal_appconfig.Config:
+  appconfig.APIKeyEntry:
     properties:
-      interfaces:
-        $ref: '#/definitions/Metarr_internal_appconfig.InterfacesConfig'
+      api_key:
+        type: string
+      name:
+        type: string
     type: object
-  Metarr_internal_appconfig.InterfacesConfig:
+  appconfig.APIKeysConfig:
+    properties:
+      admin:
+        items:
+          $ref: '#/definitions/appconfig.APIKeyEntry'
+        type: array
+      read_only:
+        items:
+          $ref: '#/definitions/appconfig.APIKeyEntry'
+        type: array
+      user:
+        items:
+          $ref: '#/definitions/appconfig.APIKeyEntry'
+        type: array
+      webhook:
+        items:
+          $ref: '#/definitions/appconfig.APIKeyEntry'
+        type: array
+    type: object
+  appconfig.AdminUser:
+    properties:
+      email:
+        type: string
+      username:
+        type: string
+    type: object
+  appconfig.Config:
+    properties:
+      admin:
+        $ref: '#/definitions/appconfig.AdminUser'
+      api_keys:
+        $ref: '#/definitions/appconfig.APIKeysConfig'
+      interfaces:
+        $ref: '#/definitions/appconfig.InterfacesConfig'
+    type: object
+  appconfig.InterfacesConfig:
     properties:
       sonarr:
         items:
-          $ref: '#/definitions/Metarr_internal_appconfig.SonarrInstance'
+          $ref: '#/definitions/appconfig.SonarrInstance'
         type: array
     type: object
-  Metarr_internal_appconfig.RootDirMapping:
+  appconfig.RootDirMapping:
     properties:
       local_path:
         type: string
       sonarr_path:
         type: string
     type: object
-  Metarr_internal_appconfig.SonarrInstance:
+  appconfig.SonarrInstance:
     properties:
       instance_name:
         type: string
@@ -27,30 +64,32 @@ definitions:
         type: string
       root_dir_map:
         items:
-          $ref: '#/definitions/Metarr_internal_appconfig.RootDirMapping'
+          $ref: '#/definitions/appconfig.RootDirMapping'
         type: array
       sonarr_api_key:
         type: string
       sonarr_url:
         type: string
       storage:
-        $ref: '#/definitions/Metarr_internal_appconfig.StorageConfig'
+        $ref: '#/definitions/appconfig.StorageConfig'
     type: object
-  Metarr_internal_appconfig.StorageConfig:
+  appconfig.StorageConfig:
     properties:
+      max_count:
+        type: integer
       mode:
         type: string
       ttl:
         type: string
     type: object
-  internal_handlers.HeartbeatResponse:
+  handlers.HeartbeatResponse:
     properties:
       correlation_id:
         type: string
       time:
         type: string
     type: object
-  internal_handlers.acceptedResponse:
+  handlers.acceptedResponse:
     properties:
       correlation_id:
         type: string
@@ -59,9 +98,37 @@ definitions:
       status:
         type: string
     type: object
-  internal_handlers.taskRequest:
+  handlers.loginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  handlers.loginResponse:
+    properties:
+      api_key:
+        type: string
+      expires_in_seconds:
+        type: integer
+    type: object
+  handlers.logoutResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  handlers.taskRequest:
     properties:
       command:
+        type: string
+    type: object
+  handlers.updateAdminRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
         type: string
     type: object
 info:
@@ -72,6 +139,50 @@ info:
   title: Metarr API
   version: "1.0"
 paths:
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Compares the submitted username/password against the stored admin
+        credentials and issues a session API key carrying admin rights.
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.loginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.loginResponse'
+        "400":
+          description: invalid request body
+          schema:
+            type: string
+        "401":
+          description: invalid username or password
+          schema:
+            type: string
+      summary: Log in as the admin user
+      tags:
+      - Auth
+  /api/auth/logout:
+    post:
+      description: Revokes the session API key that authenticated this request.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.logoutResponse'
+      summary: Log out
+      tags:
+      - Auth
   /api/config:
     get:
       description: Reads the singleton application config document from MongoDB.
@@ -81,7 +192,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Metarr_internal_appconfig.Config'
+            $ref: '#/definitions/appconfig.Config'
       summary: Fetch the application config
       tags:
       - Config
@@ -98,19 +209,175 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/Metarr_internal_appconfig.Config'
+          $ref: '#/definitions/appconfig.Config'
       produces:
       - application/json
       responses:
         "202":
           description: Accepted
           schema:
-            $ref: '#/definitions/internal_handlers.acceptedResponse'
+            $ref: '#/definitions/handlers.acceptedResponse'
         "400":
           description: invalid request body
           schema:
             type: string
       summary: Update the application config
+      tags:
+      - Config
+  /api/config/admin:
+    put:
+      consumes:
+      - application/json
+      description: Updates any subset of the admin user's username, email, and password.
+        A provided field cannot be empty. If password is set, it is re-hashed with
+        a fresh salt.
+      parameters:
+      - description: Fields to update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.updateAdminRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/handlers.acceptedResponse'
+        "400":
+          description: invalid request body, or a provided field was empty
+          schema:
+            type: string
+      summary: Update the admin user's credentials
+      tags:
+      - Config
+  /api/config/interfaces/sonarr:
+    get:
+      description: Reads the application config from MongoDB and returns every configured
+        Sonarr instance.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/appconfig.SonarrInstance'
+            type: array
+      summary: List Sonarr interface instances
+      tags:
+      - Config
+    post:
+      consumes:
+      - application/json
+      description: Adds a new Sonarr instance. instance_slug is required and must
+        be unique across every interface type.
+      parameters:
+      - description: New Sonarr instance
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/appconfig.SonarrInstance'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/handlers.acceptedResponse'
+        "400":
+          description: invalid request body or missing instance_slug
+          schema:
+            type: string
+        "409":
+          description: instance_slug already in use
+          schema:
+            type: string
+      summary: Create a Sonarr interface instance
+      tags:
+      - Config
+  /api/config/interfaces/sonarr/{slug}:
+    delete:
+      description: Removes the Sonarr instance with the given instance_slug and fires
+        system_config_update with the resulting document.
+      parameters:
+      - description: instance_slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/handlers.acceptedResponse'
+        "404":
+          description: no Sonarr instance with that slug
+          schema:
+            type: string
+      summary: Delete a Sonarr interface instance
+      tags:
+      - Config
+    get:
+      description: Reads the application config from MongoDB and returns the Sonarr
+        instance with the given instance_slug.
+      parameters:
+      - description: instance_slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/appconfig.SonarrInstance'
+        "404":
+          description: no Sonarr instance with that slug
+          schema:
+            type: string
+      summary: Fetch a single Sonarr interface instance
+      tags:
+      - Config
+    put:
+      consumes:
+      - application/json
+      description: Replaces every field of the Sonarr instance at the given instance_slug
+        except instance_slug itself, which cannot be changed once set.
+      parameters:
+      - description: instance_slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Updated Sonarr instance
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/appconfig.SonarrInstance'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/handlers.acceptedResponse'
+        "400":
+          description: invalid request body, or attempted to change instance_slug
+          schema:
+            type: string
+        "404":
+          description: no Sonarr instance with that slug
+          schema:
+            type: string
+      summary: Update a Sonarr interface instance
       tags:
       - Config
   /api/heartbeat:
@@ -124,7 +391,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_handlers.HeartbeatResponse'
+            $ref: '#/definitions/handlers.HeartbeatResponse'
         "504":
           description: heartbeat timed out
           schema:
@@ -144,14 +411,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_handlers.taskRequest'
+          $ref: '#/definitions/handlers.taskRequest'
       produces:
       - application/json
       responses:
         "202":
           description: Accepted
           schema:
-            $ref: '#/definitions/internal_handlers.acceptedResponse'
+            $ref: '#/definitions/handlers.acceptedResponse'
         "400":
           description: invalid request body or unsupported command
           schema:
