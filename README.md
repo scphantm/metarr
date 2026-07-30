@@ -43,8 +43,7 @@ When documents are saved they can be saved with cache time to live or permanent 
 
 If the cached_ttl field is set it just sits there.  A scheduled job scans the documents and deletes
 any documents from the database that exceed the ttl.
-
-Versioned save is different.
+ioned save is different.
 * Save the initial document
 * On update, it does a compare with the existing document and records the difference somehow.
 * the get will have an overload, if you request a previous version, the service will use the history to reconstruct

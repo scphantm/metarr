@@ -202,6 +202,157 @@ var sonarrDeleteCmd = &cobra.Command{
 	},
 }
 
+var directoryScannerCmd = &cobra.Command{
+	Use:   "directory-scanner",
+	Short: "Manage the directory scanner config",
+}
+
+var directoryScannerGetCmd = &cobra.Command{
+	Use:   "get",
+	Short: "Fetch the directory scanner config",
+	Long:  "Reads the application config from MongoDB and returns the directory scanner section (parallel_count and scan_directories).",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := newClient()
+		if err != nil {
+			return err
+		}
+		resp, err := client.GetDirectoryScannerConfig(cmd.Context())
+		if err != nil {
+			return err
+		}
+		return printJSON(resp)
+	},
+}
+
+var directoryScannerParallelCount int
+
+var directoryScannerSetCmd = &cobra.Command{
+	Use:   "set",
+	Short: "Update the directory scanner config",
+	Long:  "Updates parallel_count.",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		req := handlers.UpdateDirectoryScannerRequest{}
+		if cmd.Flags().Changed("parallel-count") {
+			req.ParallelCount = &directoryScannerParallelCount
+		}
+
+		client, err := newClient()
+		if err != nil {
+			return err
+		}
+		resp, err := client.UpdateDirectoryScannerConfig(cmd.Context(), req)
+		if err != nil {
+			return err
+		}
+		return printJSON(resp)
+	},
+}
+
+var directoryScannerDirectoriesCmd = &cobra.Command{
+	Use:   "directories",
+	Short: "Manage scan directories",
+}
+
+var directoriesListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List scan directories",
+	Long:  "Reads the application config from MongoDB and returns every configured scan directory.",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := newClient()
+		if err != nil {
+			return err
+		}
+		resp, err := client.ListScanDirectories(cmd.Context())
+		if err != nil {
+			return err
+		}
+		return printJSON(resp)
+	},
+}
+
+var directoriesGetCmd = &cobra.Command{
+	Use:   "get <slug>",
+	Short: "Fetch a single scan directory",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := newClient()
+		if err != nil {
+			return err
+		}
+		resp, err := client.GetScanDirectory(cmd.Context(), args[0])
+		if err != nil {
+			return err
+		}
+		return printJSON(resp)
+	},
+}
+
+var directoriesCreateFile string
+
+var directoriesCreateCmd = &cobra.Command{
+	Use:   "create",
+	Short: "Add a scan directory",
+	Long:  `Adds a new scan directory. scanner_slug is required and must be unique. Reads the entry as JSON from --file, or stdin if --file is omitted or "-".`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var entry appconfig.ScanDirectory
+		if err := readJSONInput(directoriesCreateFile, &entry); err != nil {
+			return err
+		}
+
+		client, err := newClient()
+		if err != nil {
+			return err
+		}
+		resp, err := client.CreateScanDirectory(cmd.Context(), entry)
+		if err != nil {
+			return err
+		}
+		return printJSON(resp)
+	},
+}
+
+var directoriesUpdateFile string
+
+var directoriesUpdateCmd = &cobra.Command{
+	Use:   "update <slug>",
+	Short: "Update a scan directory",
+	Long:  `Replaces every field of the scan directory at the given scanner_slug except scanner_slug itself, which cannot be changed once set. Reads the entry as JSON from --file, or stdin if --file is omitted or "-".`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var entry appconfig.ScanDirectory
+		if err := readJSONInput(directoriesUpdateFile, &entry); err != nil {
+			return err
+		}
+
+		client, err := newClient()
+		if err != nil {
+			return err
+		}
+		resp, err := client.UpdateScanDirectory(cmd.Context(), args[0], entry)
+		if err != nil {
+			return err
+		}
+		return printJSON(resp)
+	},
+}
+
+var directoriesDeleteCmd = &cobra.Command{
+	Use:   "delete <slug>",
+	Short: "Delete a scan directory",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := newClient()
+		if err != nil {
+			return err
+		}
+		resp, err := client.DeleteScanDirectory(cmd.Context(), args[0])
+		if err != nil {
+			return err
+		}
+		return printJSON(resp)
+	},
+}
+
 // readJSONInput reads JSON from path (or stdin if path is "" or "-") and
 // decodes it into out.
 func readJSONInput(path string, out any) error {
@@ -224,9 +375,11 @@ func readJSONInput(path string, out any) error {
 }
 
 func init() {
-	configCmd.AddCommand(configGetCmd, configSetCmd, configSetAdminCmd, configInterfacesCmd)
+	configCmd.AddCommand(configGetCmd, configSetCmd, configSetAdminCmd, configInterfacesCmd, directoryScannerCmd)
 	configInterfacesCmd.AddCommand(configInterfacesSonarrCmd)
 	configInterfacesSonarrCmd.AddCommand(sonarrListCmd, sonarrGetCmd, sonarrCreateCmd, sonarrUpdateCmd, sonarrDeleteCmd)
+	directoryScannerCmd.AddCommand(directoryScannerGetCmd, directoryScannerSetCmd, directoryScannerDirectoriesCmd)
+	directoryScannerDirectoriesCmd.AddCommand(directoriesListCmd, directoriesGetCmd, directoriesCreateCmd, directoriesUpdateCmd, directoriesDeleteCmd)
 
 	configSetCmd.Flags().StringVar(&configSetFile, "file", "", `JSON file to read (default: stdin, or pass "-")`)
 	configSetAdminCmd.Flags().StringVar(&setAdminUsername, "username", "", "New username")
@@ -234,4 +387,7 @@ func init() {
 	configSetAdminCmd.Flags().StringVar(&setAdminPassword, "password", "", "New password")
 	sonarrCreateCmd.Flags().StringVar(&sonarrCreateFile, "file", "", `JSON file to read (default: stdin, or pass "-")`)
 	sonarrUpdateCmd.Flags().StringVar(&sonarrUpdateFile, "file", "", `JSON file to read (default: stdin, or pass "-")`)
+	directoryScannerSetCmd.Flags().IntVar(&directoryScannerParallelCount, "parallel-count", 0, "New parallel_count")
+	directoriesCreateCmd.Flags().StringVar(&directoriesCreateFile, "file", "", `JSON file to read (default: stdin, or pass "-")`)
+	directoriesUpdateCmd.Flags().StringVar(&directoriesUpdateFile, "file", "", `JSON file to read (default: stdin, or pass "-")`)
 }

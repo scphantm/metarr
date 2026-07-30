@@ -223,6 +223,306 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/config/directory-scanner": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Reads the application config from MongoDB and returns the directory scanner section (parallel_count and scan_directories).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Fetch the directory scanner config",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/appconfig.DirectoryScannerConfig"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Updates parallel_count. A provided value must be greater than zero.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Update the directory scanner config",
+                "parameters": [
+                    {
+                        "description": "Fields to update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UpdateDirectoryScannerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body, or parallel_count was not greater than zero",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/config/directory-scanner/directories": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Reads the application config from MongoDB and returns every configured scan directory.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "List scan directories",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/appconfig.ScanDirectory"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Adds a new scan directory. scanner_slug is required and must be unique.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Add a scan directory",
+                "parameters": [
+                    {
+                        "description": "New scan directory",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/appconfig.ScanDirectory"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body or missing scanner_slug",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "scanner_slug already in use",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/config/directory-scanner/directories/{slug}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Reads the application config from MongoDB and returns the scan directory instance with the given scanner_slug.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Fetch a single scan directory",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "scanner_slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/appconfig.ScanDirectory"
+                        }
+                    },
+                    "404": {
+                        "description": "no scan directory with that slug",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Replaces every field of the scan directory at the given scanner_slug except scanner_slug itself, which cannot be changed once set.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Update a scan directory",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "scanner_slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated scan directory",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/appconfig.ScanDirectory"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body, or attempted to change scanner_slug",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "no scan directory with that slug",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Removes the scan directory with the given scanner_slug and fires system_config_update with the resulting document.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Delete a scan directory",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "scanner_slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "no scan directory with that slug",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/config/interfaces/sonarr": {
             "get": {
                 "security": [
@@ -597,8 +897,25 @@ const docTemplate = `{
                 "api_keys": {
                     "$ref": "#/definitions/appconfig.APIKeysConfig"
                 },
+                "directory_scanner": {
+                    "$ref": "#/definitions/appconfig.DirectoryScannerConfig"
+                },
                 "interfaces": {
                     "$ref": "#/definitions/appconfig.InterfacesConfig"
+                }
+            }
+        },
+        "appconfig.DirectoryScannerConfig": {
+            "type": "object",
+            "properties": {
+                "parallel_count": {
+                    "type": "integer"
+                },
+                "scan_directories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/appconfig.ScanDirectory"
+                    }
                 }
             }
         },
@@ -620,6 +937,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "sonarr_path": {
+                    "type": "string"
+                }
+            }
+        },
+        "appconfig.ScanDirectory": {
+            "type": "object",
+            "properties": {
+                "directory": {
+                    "type": "string"
+                },
+                "scan_type": {
+                    "type": "string"
+                },
+                "scanner_slug": {
                     "type": "string"
                 }
             }
@@ -738,6 +1069,14 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "handlers.UpdateDirectoryScannerRequest": {
+            "type": "object",
+            "properties": {
+                "parallel_count": {
+                    "type": "integer"
                 }
             }
         }

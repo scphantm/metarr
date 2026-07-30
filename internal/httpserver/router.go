@@ -48,6 +48,15 @@ func NewRouter(h *handlers.Handlers, sessions *session.Store, logger *slog.Logge
 	mux.Handle("PUT /api/config/interfaces/sonarr/{slug}", protect(auth.GroupConfig, h.UpdateSonarrInterface))
 	mux.Handle("DELETE /api/config/interfaces/sonarr/{slug}", protect(auth.GroupConfig, h.DeleteSonarrInterface))
 
+	mux.Handle("GET /api/config/directory-scanner", protect(auth.GroupConfig, h.GetDirectoryScannerConfig))
+	mux.Handle("PUT /api/config/directory-scanner", protect(auth.GroupConfig, h.UpdateDirectoryScannerConfig))
+
+	mux.Handle("GET /api/config/directory-scanner/directories", protect(auth.GroupConfig, h.ListScanDirectories))
+	mux.Handle("POST /api/config/directory-scanner/directories", protect(auth.GroupConfig, h.CreateScanDirectory))
+	mux.Handle("GET /api/config/directory-scanner/directories/{slug}", protect(auth.GroupConfig, h.GetScanDirectory))
+	mux.Handle("PUT /api/config/directory-scanner/directories/{slug}", protect(auth.GroupConfig, h.UpdateScanDirectory))
+	mux.Handle("DELETE /api/config/directory-scanner/directories/{slug}", protect(auth.GroupConfig, h.DeleteScanDirectory))
+
 	// Documentation, not part of the authenticated API surface.
 	mux.HandleFunc("GET /swagger/", httpSwagger.WrapHandler)
 

@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -13,6 +14,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/google/uuid"
 
 	"Metarr/internal/appconfig"
 	"Metarr/internal/config"
@@ -31,6 +34,16 @@ const (
 	defaultAdminUsername      = "admin"
 	defaultAdminEmail         = "admin@example.com"
 	defaultAdminPasswordChars = 12
+
+	// defaultDirectoryScannerParallelCount is how many directories the
+	// scanner processes concurrently when the config doesn't set its own
+	// value yet.
+	defaultDirectoryScannerParallelCount = 16
+
+	// httpClientEnvFile is the JetBrains HTTP Client's per-developer
+	// secrets file, kept in sync with freshly bootstrapped API keys if
+	// the developer has one at the project root.
+	httpClientEnvFile = "http-client.private.env.json"
 )
 
 // @title			Metarr API
@@ -99,12 +112,53 @@ func run() error {
 		return err
 	}
 
+	// The two bootstrap checks below only mutate startupCfg in memory and
+	// record what changed; the Mongo write and the
+	// http-client.private.env.json sync each happen at most once, after
+	// both checks, regardless of whether one or both fired — a fresh
+	// install needing both doesn't pay for either round trip twice.
+	var (
+		bootstrapped     bool
+		bootstrappedKeys *appconfig.APIKeysConfig
+		newAdminPassword string
+	)
+
+	// Bootstrap the four API key categories the first time the app ever
+	// starts against this database: none has been configured yet, so
+	// generate one key per category. This used to be seeded by
+	// mongo/init/init-mongo.js; it lives here instead so it can also sync
+	// http-client.private.env.json, which only Go — not the mongo
+	// container — has a normal filesystem path to.
+	if len(startupCfg.APIKeys.Admin) == 0 && len(startupCfg.APIKeys.User) == 0 &&
+		len(startupCfg.APIKeys.Webhook) == 0 && len(startupCfg.APIKeys.ReadOnly) == 0 {
+		adminKey := uuid.NewString()
+		userKey := uuid.NewString()
+		webhookKey := uuid.NewString()
+		readOnlyKey := uuid.NewString()
+
+		startupCfg.APIKeys = appconfig.APIKeysConfig{
+			Admin:    []appconfig.APIKeyEntry{{Name: "Administrator Key", Key: adminKey}},
+			User:     []appconfig.APIKeyEntry{{Name: "User Key", Key: userKey}},
+			Webhook:  []appconfig.APIKeyEntry{{Name: "Webhook Key", Key: webhookKey}},
+			ReadOnly: []appconfig.APIKeyEntry{{Name: "Read Only Key", Key: readOnlyKey}},
+		}
+		bootstrapped = true
+		bootstrappedKeys = &startupCfg.APIKeys
+
+		fmt.Println("==================================================================")
+		fmt.Println("Metarr: generated default API keys (shown only once, save these):")
+		fmt.Println("  admin:     " + adminKey)
+		fmt.Println("  user:      " + userKey)
+		fmt.Println("  webhook:   " + webhookKey)
+		fmt.Println("  read_only: " + readOnlyKey)
+		fmt.Println("==================================================================")
+	}
+
 	// Bootstrap the admin user the first time the app ever starts against
 	// this database: no admin has been configured yet, so generate a
-	// random password, hash it, and persist it. The plaintext is printed
-	// directly to stdout (not through logger) so it's never written to
-	// logs/app.log — shown once, same treatment mongo/init/init-mongo.js
-	// already gives the seeded API keys.
+	// random password and hash it. The plaintext is printed directly to
+	// stdout (not through logger) so it's never written to logs/app.log —
+	// shown once, same treatment as the API keys above.
 	if startupCfg.Admin.Username == "" {
 		plaintextPassword, err := passwordhash.GenerateRandomPassword(defaultAdminPasswordChars)
 		if err != nil {
@@ -120,14 +174,35 @@ func run() error {
 			PasswordSalt: salt,
 			PasswordHash: hash,
 		}
-		if err := appConfigRepo.Upsert(connectCtx, startupCfg); err != nil {
-			return err
-		}
+		bootstrapped = true
+		newAdminPassword = plaintextPassword
+
 		fmt.Println("==================================================================")
 		fmt.Println("Metarr: generated initial admin credentials (shown only once):")
 		fmt.Println("  username: " + defaultAdminUsername)
 		fmt.Println("  password: " + plaintextPassword)
 		fmt.Println("==================================================================")
+	}
+
+	// Bootstrap the directory scanner config the first time the app starts
+	// against this database (a fresh install, or an existing database
+	// predating the directory_scanner section): default to 16 parallel
+	// workers and no directories configured to scan yet.
+	if startupCfg.DirectoryScanner.ParallelCount == 0 {
+		startupCfg.DirectoryScanner = appconfig.DirectoryScannerConfig{
+			ParallelCount:   defaultDirectoryScannerParallelCount,
+			ScanDirectories: []appconfig.ScanDirectory{},
+		}
+		bootstrapped = true
+	}
+
+	if bootstrapped {
+		if err := appConfigRepo.Upsert(connectCtx, startupCfg); err != nil {
+			return err
+		}
+		if err := syncHTTPClientEnv(bootstrappedKeys, newAdminPassword); err != nil {
+			logger.Error("failed to sync http-client.private.env.json", "error", err)
+		}
 	}
 
 	appconfig.Set(startupCfg)
@@ -172,4 +247,55 @@ func run() error {
 	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelShutdown()
 	return server.Shutdown(shutdownCtx)
+}
+
+// syncHTTPClientEnv updates the JetBrains HTTP Client's per-developer
+// secrets file with whichever of the freshly bootstrapped API keys or
+// admin password apply this run — apiKeys is nil, or adminPassword is "",
+// when that part wasn't (re)generated — if the developer has one at the
+// project root; it's a no-op, not an error, if the file doesn't exist.
+// One read and one write handle both fields together, rather than the
+// caller sync-ing each separately. The file is read as a generic map
+// rather than a typed struct because it's IDE-managed and carries fields
+// Go doesn't own — a generic round-trip only touches the fields this call
+// was asked to set and leaves everything else exactly as it was.
+func syncHTTPClientEnv(apiKeys *appconfig.APIKeysConfig, adminPassword string) error {
+	data, err := os.ReadFile(httpClientEnvFile)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("reading %s: %w", httpClientEnvFile, err)
+	}
+
+	var envFile map[string]any
+	if err := json.Unmarshal(data, &envFile); err != nil {
+		return fmt.Errorf("parsing %s: %w", httpClientEnvFile, err)
+	}
+
+	local, _ := envFile["local"].(map[string]any)
+	if local == nil {
+		local = map[string]any{}
+	}
+	if apiKeys != nil {
+		local["api_key_admin"] = apiKeys.Admin[0].Key
+		local["api_key_user"] = apiKeys.User[0].Key
+		local["api_key_webhook"] = apiKeys.Webhook[0].Key
+		local["api_key_read_only"] = apiKeys.ReadOnly[0].Key
+	}
+	if adminPassword != "" {
+		local["admin_pass"] = adminPassword
+	}
+	envFile["local"] = local
+
+	updated, err := json.MarshalIndent(envFile, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encoding %s: %w", httpClientEnvFile, err)
+	}
+	if err := os.WriteFile(httpClientEnvFile, append(updated, '\n'), 0o644); err != nil {
+		return fmt.Errorf("writing %s: %w", httpClientEnvFile, err)
+	}
+
+	fmt.Println("Metarr: synced " + httpClientEnvFile + ".")
+	return nil
 }

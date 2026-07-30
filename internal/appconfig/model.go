@@ -11,10 +11,11 @@ const SingletonID = "app_config"
 
 // Config is the root application configuration document.
 type Config struct {
-	ID         string           `bson:"_id" json:"-"`
-	APIKeys    APIKeysConfig    `bson:"api_keys" json:"api_keys"`
-	Admin      AdminUser        `bson:"admin" json:"admin"`
-	Interfaces InterfacesConfig `bson:"interfaces" json:"interfaces"`
+	ID               string                 `bson:"_id" json:"-"`
+	APIKeys          APIKeysConfig          `bson:"api_keys" json:"api_keys"`
+	Admin            AdminUser              `bson:"admin" json:"admin"`
+	Interfaces       InterfacesConfig       `bson:"interfaces" json:"interfaces"`
+	DirectoryScanner DirectoryScannerConfig `bson:"directory_scanner" json:"directory_scanner"`
 }
 
 // AdminUser is the system's single administrative user account.
@@ -102,6 +103,34 @@ type StorageConfig struct {
 	MaxCount int    `bson:"max_count,omitempty" json:"max_count,omitempty"`
 }
 
+// DirectoryScannerConfig controls the background filesystem scanner: how
+// many directories it scans concurrently, and which directories it scans.
+type DirectoryScannerConfig struct {
+	ParallelCount   int             `bson:"parallel_count" json:"parallel_count"`
+	ScanDirectories []ScanDirectory `bson:"scan_directories" json:"scan_directories"`
+}
+
+// ScanDirectory is a single filesystem path the directory scanner watches,
+// tagged with the type of media expected under it. ScannerSlug identifies
+// the entry for the API and CLI, playing the same role instance_slug plays
+// for a SonarrInstance.
+type ScanDirectory struct {
+	ScannerSlug string `bson:"scanner_slug" json:"scanner_slug"`
+	ScanType    string `bson:"scan_type" json:"scan_type"`
+	Directory   string `bson:"directory" json:"directory"`
+}
+
+// FindScanDirectoryIndex returns the index of the scan directory entry with
+// the given scanner_slug, or -1 if none matches.
+func (c DirectoryScannerConfig) FindScanDirectoryIndex(slug string) int {
+	for i, entry := range c.ScanDirectories {
+		if entry.ScannerSlug == slug {
+			return i
+		}
+	}
+	return -1
+}
+
 // Default returns the zero-value configuration (matching
 // app_config.default.yaml: no API keys or interfaces configured yet).
 func Default() *Config {
@@ -113,6 +142,7 @@ func Default() *Config {
 			Webhook:  []APIKeyEntry{},
 			ReadOnly: []APIKeyEntry{},
 		},
-		Interfaces: InterfacesConfig{Sonarr: []SonarrInstance{}},
+		Interfaces:       InterfacesConfig{Sonarr: []SonarrInstance{}},
+		DirectoryScanner: DirectoryScannerConfig{ScanDirectories: []ScanDirectory{}},
 	}
 }

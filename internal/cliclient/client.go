@@ -196,6 +196,69 @@ func (c *Client) DeleteSonarrInterface(ctx context.Context, slug string) (*handl
 	return &resp, nil
 }
 
+// GetDirectoryScannerConfig calls GET /api/config/directory-scanner.
+func (c *Client) GetDirectoryScannerConfig(ctx context.Context) (*appconfig.DirectoryScannerConfig, error) {
+	var resp appconfig.DirectoryScannerConfig
+	if err := c.do(ctx, http.MethodGet, "/api/config/directory-scanner", nil, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// UpdateDirectoryScannerConfig calls PUT /api/config/directory-scanner.
+func (c *Client) UpdateDirectoryScannerConfig(ctx context.Context, req handlers.UpdateDirectoryScannerRequest) (*handlers.AcceptedResponse, error) {
+	var resp handlers.AcceptedResponse
+	if err := c.do(ctx, http.MethodPut, "/api/config/directory-scanner", req, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// ListScanDirectories calls GET /api/config/directory-scanner/directories.
+func (c *Client) ListScanDirectories(ctx context.Context) ([]appconfig.ScanDirectory, error) {
+	var resp []appconfig.ScanDirectory
+	if err := c.do(ctx, http.MethodGet, "/api/config/directory-scanner/directories", nil, &resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetScanDirectory calls GET /api/config/directory-scanner/directories/{slug}.
+func (c *Client) GetScanDirectory(ctx context.Context, slug string) (*appconfig.ScanDirectory, error) {
+	var resp appconfig.ScanDirectory
+	if err := c.do(ctx, http.MethodGet, "/api/config/directory-scanner/directories/"+url.PathEscape(slug), nil, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// CreateScanDirectory calls POST /api/config/directory-scanner/directories.
+func (c *Client) CreateScanDirectory(ctx context.Context, entry appconfig.ScanDirectory) (*handlers.AcceptedResponse, error) {
+	var resp handlers.AcceptedResponse
+	if err := c.do(ctx, http.MethodPost, "/api/config/directory-scanner/directories", entry, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// UpdateScanDirectory calls PUT /api/config/directory-scanner/directories/{slug}.
+func (c *Client) UpdateScanDirectory(ctx context.Context, slug string, entry appconfig.ScanDirectory) (*handlers.AcceptedResponse, error) {
+	var resp handlers.AcceptedResponse
+	if err := c.do(ctx, http.MethodPut, "/api/config/directory-scanner/directories/"+url.PathEscape(slug), entry, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// DeleteScanDirectory calls DELETE /api/config/directory-scanner/directories/{slug}.
+func (c *Client) DeleteScanDirectory(ctx context.Context, slug string) (*handlers.AcceptedResponse, error) {
+	var resp handlers.AcceptedResponse
+	if err := c.do(ctx, http.MethodDelete, "/api/config/directory-scanner/directories/"+url.PathEscape(slug), nil, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
 // TriggerSonarrCacheData calls POST /api/tasks/sonarr_cache_data.
 func (c *Client) TriggerSonarrCacheData(ctx context.Context) (*handlers.AcceptedResponse, error) {
 	var resp handlers.AcceptedResponse
