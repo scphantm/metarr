@@ -7,6 +7,7 @@ import (
 	"Metarr/internal/appconfig"
 	"Metarr/internal/correlation"
 	"Metarr/internal/eventbus"
+	"Metarr/internal/mediascan"
 )
 
 // GetDirectoryScannerConfig handles GET /api/config/directory-scanner. It
@@ -159,13 +160,13 @@ func (h *Handlers) GetScanDirectory(w http.ResponseWriter, r *http.Request) {
 // system_config_update with the full resulting document.
 //
 // @Summary		Add a scan directory
-// @Description	Adds a new scan directory. scanner_slug is required and must be unique.
+// @Description	Adds a new scan directory. scanner_slug is required and must be unique, and scan_type must be one of "movie", "tv" or "music_video".
 // @Tags			Config
 // @Accept			json
 // @Produce		json
 // @Param			request	body		appconfig.ScanDirectory	true	"New scan directory"
 // @Success		202		{object}	AcceptedResponse
-// @Failure		400		{string}	string	"invalid request body or missing scanner_slug"
+// @Failure		400		{string}	string	"invalid request body, missing scanner_slug, or unknown scan_type"
 // @Failure		409		{string}	string	"scanner_slug already in use"
 // @Security		ApiKeyHeaderAuth
 // @Security		ApiKeyQueryAuth
@@ -181,6 +182,12 @@ func (h *Handlers) CreateScanDirectory(w http.ResponseWriter, r *http.Request) {
 	}
 	if entry.ScannerSlug == "" {
 		http.Error(w, "scanner_slug is required", http.StatusBadRequest)
+		return
+	}
+	// Reject an unscannable scan_type here rather than letting it fail later in
+	// the scan listener, where nobody is waiting to see the error.
+	if _, err := mediascan.ParseDirectoryType(entry.ScanType); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -220,14 +227,14 @@ func (h *Handlers) CreateScanDirectory(w http.ResponseWriter, r *http.Request) {
 // replaced with what the body supplies.
 //
 // @Summary		Update a scan directory
-// @Description	Replaces every field of the scan directory at the given scanner_slug except scanner_slug itself, which cannot be changed once set.
+// @Description	Replaces every field of the scan directory at the given scanner_slug except scanner_slug itself, which cannot be changed once set. scan_type must be one of "movie", "tv" or "music_video".
 // @Tags			Config
 // @Accept			json
 // @Produce		json
 // @Param			slug	path		string					true	"scanner_slug"
 // @Param			request	body		appconfig.ScanDirectory	true	"Updated scan directory"
 // @Success		202		{object}	AcceptedResponse
-// @Failure		400		{string}	string	"invalid request body, or attempted to change scanner_slug"
+// @Failure		400		{string}	string	"invalid request body, attempted to change scanner_slug, or unknown scan_type"
 // @Failure		404		{string}	string	"no scan directory with that slug"
 // @Security		ApiKeyHeaderAuth
 // @Security		ApiKeyQueryAuth
@@ -247,6 +254,10 @@ func (h *Handlers) UpdateScanDirectory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	entry.ScannerSlug = slug
+	if _, err := mediascan.ParseDirectoryType(entry.ScanType); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	appConfig, err := h.AppConfigRepo.Get(ctx)
 	if err != nil {
