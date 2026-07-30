@@ -415,3 +415,5 @@ $RECYCLE.BIN/
 /internal/appconfig/app_config.local.yaml
 /config.local.yaml
 /http-client.private.env.json
+/http-client.env.json
+/metarr.http

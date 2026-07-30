@@ -12,10 +12,13 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"Metarr/internal/appconfig"
 	"Metarr/internal/handlers"
+	"Metarr/internal/mediascan"
+	"Metarr/internal/nfo"
 )
 
 const apiKeyHeaderName = "X-Api-Key"
@@ -264,6 +267,94 @@ func (c *Client) TriggerSonarrCacheData(ctx context.Context) (*handlers.Accepted
 	var resp handlers.AcceptedResponse
 	req := handlers.TaskRequest{Command: "run"}
 	if err := c.do(ctx, http.MethodPost, "/api/tasks/sonarr_cache_data", req, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// TriggerDirectoryScan calls POST /api/tasks/directory-scan/{slug}.
+func (c *Client) TriggerDirectoryScan(ctx context.Context, slug string) (*handlers.AcceptedResponse, error) {
+	var resp handlers.AcceptedResponse
+	req := handlers.TaskRequest{Command: "run"}
+	if err := c.do(ctx, http.MethodPost, "/api/tasks/directory-scan/"+url.PathEscape(slug), req, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// ListLocalDirectoriesRequest carries the optional filters accepted by
+// GET /api/local-directories.
+type ListLocalDirectoriesRequest struct {
+	Type     string
+	ScanRoot string
+	Limit    int
+	Skip     int
+}
+
+// ListLocalDirectories calls GET /api/local-directories.
+func (c *Client) ListLocalDirectories(ctx context.Context, req ListLocalDirectoriesRequest) ([]mediascan.LocalDirectory, error) {
+	query := url.Values{}
+	if req.Type != "" {
+		query.Set("type", req.Type)
+	}
+	if req.ScanRoot != "" {
+		query.Set("scan_root", req.ScanRoot)
+	}
+	if req.Limit > 0 {
+		query.Set("limit", strconv.Itoa(req.Limit))
+	}
+	if req.Skip > 0 {
+		query.Set("skip", strconv.Itoa(req.Skip))
+	}
+
+	path := "/api/local-directories"
+	if encoded := query.Encode(); encoded != "" {
+		path += "?" + encoded
+	}
+
+	var resp []mediascan.LocalDirectory
+	if err := c.do(ctx, http.MethodGet, path, nil, &resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetLocalDirectory calls GET /api/local-directories/{id}.
+func (c *Client) GetLocalDirectory(ctx context.Context, id string) (*mediascan.LocalDirectory, error) {
+	var resp mediascan.LocalDirectory
+	if err := c.do(ctx, http.MethodGet, "/api/local-directories/"+url.PathEscape(id), nil, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// ListDirectoryMediaFiles calls GET /api/local-directories/{id}/media-files.
+func (c *Client) ListDirectoryMediaFiles(ctx context.Context, id string) ([]mediascan.MediaFile, error) {
+	var resp []mediascan.MediaFile
+	if err := c.do(ctx, http.MethodGet, "/api/local-directories/"+url.PathEscape(id)+"/media-files", nil, &resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetMediaFile calls GET /api/media-files/{id}.
+func (c *Client) GetMediaFile(ctx context.Context, id string) (*mediascan.MediaFile, error) {
+	var resp mediascan.MediaFile
+	if err := c.do(ctx, http.MethodGet, "/api/media-files/"+url.PathEscape(id), nil, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+// GetLocalDirectoryNFO calls GET /api/local-directories/{id}/nfo, reading the
+// named .nfo file live from disk rather than from the scan snapshot.
+func (c *Client) GetLocalDirectoryNFO(ctx context.Context, id, relativePath string) (*nfo.Document, error) {
+	query := url.Values{}
+	query.Set("path", relativePath)
+
+	var resp nfo.Document
+	path := "/api/local-directories/" + url.PathEscape(id) + "/nfo?" + query.Encode()
+	if err := c.do(ctx, http.MethodGet, path, nil, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil

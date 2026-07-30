@@ -37,6 +37,7 @@ func NewRouter(h *handlers.Handlers, sessions *session.Store, logger *slog.Logge
 	mux.Handle("POST /api/auth/logout", throttle(protect(auth.GroupConfig, h.Logout)))
 
 	mux.Handle("POST /api/tasks/sonarr_cache_data", protect(auth.GroupTasks, h.SonarrCacheData))
+	mux.Handle("POST /api/tasks/directory-scan/{slug}", protect(auth.GroupTasks, h.DirectoryScan))
 
 	mux.Handle("GET /api/config", protect(auth.GroupConfig, h.GetConfig))
 	mux.Handle("PUT /api/config", protect(auth.GroupConfig, h.UpdateConfig))
@@ -56,6 +57,15 @@ func NewRouter(h *handlers.Handlers, sessions *session.Store, logger *slog.Logge
 	mux.Handle("GET /api/config/directory-scanner/directories/{slug}", protect(auth.GroupConfig, h.GetScanDirectory))
 	mux.Handle("PUT /api/config/directory-scanner/directories/{slug}", protect(auth.GroupConfig, h.UpdateScanDirectory))
 	mux.Handle("DELETE /api/config/directory-scanner/directories/{slug}", protect(auth.GroupConfig, h.DeleteScanDirectory))
+
+	// Scan results. These are data reads rather than configuration, so they sit
+	// in the tasks group alongside the scan trigger that produces them, which
+	// also lets the read-only role query the library.
+	mux.Handle("GET /api/local-directories", protect(auth.GroupTasks, h.ListLocalDirectories))
+	mux.Handle("GET /api/local-directories/{id}", protect(auth.GroupTasks, h.GetLocalDirectory))
+	mux.Handle("GET /api/local-directories/{id}/media-files", protect(auth.GroupTasks, h.ListDirectoryMediaFiles))
+	mux.Handle("GET /api/local-directories/{id}/nfo", protect(auth.GroupTasks, h.GetLocalDirectoryNFO))
+	mux.Handle("GET /api/media-files/{id}", protect(auth.GroupTasks, h.GetMediaFile))
 
 	// Documentation, not part of the authenticated API surface.
 	mux.HandleFunc("GET /swagger/", httpSwagger.WrapHandler)

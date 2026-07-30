@@ -103,7 +103,15 @@ func run() error {
 	}
 	taskEventRepo := mongostore.NewTaskEventRepo(mongoClient, cfg.MongoDatabase)
 	appConfigRepo := appconfig.NewRepo(mongoClient, cfg.MongoDatabase)
+	localDirectoryRepo := mongostore.NewLocalDirectoryRepo(mongoClient, cfg.MongoDatabase)
 	sessions := session.NewStore(redisClient)
+
+	// The local_directory indexes include the unique index on path that makes a
+	// rescan replace records rather than duplicate them, so a failure here is
+	// fatal rather than merely slow.
+	if err := localDirectoryRepo.EnsureIndexes(connectCtx); err != nil {
+		return err
+	}
 
 	// Warm the in-memory config singleton from MongoDB before serving any
 	// requests, so it reflects the persisted config from process start.
@@ -220,8 +228,13 @@ func run() error {
 			logger.Error("system_config_update listener stopped unexpectedly", "error", err)
 		}
 	}()
+	go func() {
+		if err := listeners.RunDirectoryScanListener(ctx, streamBus, localDirectoryRepo, logger); err != nil && ctx.Err() == nil {
+			logger.Error("directory_scan listener stopped unexpectedly", "error", err)
+		}
+	}()
 
-	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, sessions, logger, cfg.HeartbeatTimeout)
+	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, sessions, logger, cfg.HeartbeatTimeout)
 	router := httpserver.NewRouter(apiHandlers, sessions, logger)
 	server := httpserver.New(cfg.Host, cfg.Port, router)
 

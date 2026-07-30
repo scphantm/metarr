@@ -329,7 +329,7 @@
                         "ApiKeyQueryAuth": []
                     }
                 ],
-                "description": "Adds a new scan directory. scanner_slug is required and must be unique.",
+                "description": "Adds a new scan directory. scanner_slug is required and must be unique, and scan_type must be one of \"movie\", \"tv\" or \"music_video\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -359,7 +359,7 @@
                         }
                     },
                     "400": {
-                        "description": "invalid request body or missing scanner_slug",
+                        "description": "invalid request body, missing scanner_slug, or unknown scan_type",
                         "schema": {
                             "type": "string"
                         }
@@ -424,7 +424,7 @@
                         "ApiKeyQueryAuth": []
                     }
                 ],
-                "description": "Replaces every field of the scan directory at the given scanner_slug except scanner_slug itself, which cannot be changed once set.",
+                "description": "Replaces every field of the scan directory at the given scanner_slug except scanner_slug itself, which cannot be changed once set. scan_type must be one of \"movie\", \"tv\" or \"music_video\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -461,7 +461,7 @@
                         }
                     },
                     "400": {
-                        "description": "invalid request body, or attempted to change scanner_slug",
+                        "description": "invalid request body, attempted to change scanner_slug, or unknown scan_type",
                         "schema": {
                             "type": "string"
                         }
@@ -774,6 +774,342 @@
                 }
             }
         },
+        "/api/local-directories": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Returns the directory records in the local_directory collection, optionally filtered by media type and scan root path.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Media"
+                ],
+                "summary": "List scanned directories",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by media type: movie, tv or music_video",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by the configured scan directory these were found under",
+                        "name": "scan_root",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum records to return (default 100, max 500)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Records to skip",
+                        "name": "skip",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/mediascan.LocalDirectory"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid type, limit or skip",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/local-directories/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Returns one directory record by its generated id.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Media"
+                ],
+                "summary": "Fetch a scanned directory",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Directory record id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/mediascan.LocalDirectory"
+                        }
+                    },
+                    "400": {
+                        "description": "malformed id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "no directory with that id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/local-directories/{id}/media-files": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Returns the media file records — the movie, episode or music video files themselves — belonging to one scanned directory.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Media"
+                ],
+                "summary": "List a directory's media files",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Directory record id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/mediascan.MediaFile"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "malformed id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "no directory with that id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/local-directories/{id}/nfo": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Reads and parses one .nfo file inside a scanned directory, live from disk rather than from the scan snapshot. The path is relative to the directory and may not escape it.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Media"
+                ],
+                "summary": "Read an NFO file from disk",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Directory record id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Path to the .nfo file, relative to the directory",
+                        "name": "path",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/nfo.Document"
+                        }
+                    },
+                    "400": {
+                        "description": "missing or unsafe path, or not an .nfo file",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "no directory with that id, or no such file",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "422": {
+                        "description": "the file could not be parsed",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/media-files/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Returns one media file record by its generated id, including its own NFO metadata, subtitles, artwork and episode ids.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Media"
+                ],
+                "summary": "Fetch a media file record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Media file record id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/mediascan.MediaFile"
+                        }
+                    },
+                    "400": {
+                        "description": "malformed id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "no media file with that id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tasks/directory-scan/{slug}": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Scans the configured scan directory with the given scanner_slug, storing one record per media item directory plus one per media file in the local_directory collection. Fires the directory_scan event onto the durable event stream and returns as soon as it has been queued.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Trigger a directory scan",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "scanner_slug of the scan directory to scan",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Command to run",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.TaskRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body, unsupported command, or the entry has an unusable scan_type",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "no scan directory with that slug",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/tasks/sonarr_cache_data": {
             "post": {
                 "security": [
@@ -1070,6 +1406,1234 @@
             "properties": {
                 "parallel_count": {
                     "type": "integer"
+                }
+            }
+        },
+        "mediascan.DirectoryFile": {
+            "type": "object",
+            "properties": {
+                "extension": {
+                    "type": "string"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "image": {
+                    "$ref": "#/definitions/mediascan.ImageAttributes"
+                },
+                "modified_at": {
+                    "type": "string"
+                },
+                "nfo": {
+                    "$ref": "#/definitions/mediascan.NFOAttributes"
+                },
+                "relative_path": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/mediascan.FileRole"
+                },
+                "size_bytes": {
+                    "type": "integer"
+                },
+                "subtitle": {
+                    "$ref": "#/definitions/mediascan.SubtitleAttributes"
+                },
+                "video": {
+                    "$ref": "#/definitions/mediascan.VideoAttributes"
+                }
+            }
+        },
+        "mediascan.DirectoryType": {
+            "type": "string",
+            "enum": [
+                "movie",
+                "tv",
+                "music_video"
+            ],
+            "x-enum-varnames": [
+                "TypeMovie",
+                "TypeTV",
+                "TypeMusicVideo"
+            ]
+        },
+        "mediascan.FileRole": {
+            "type": "string",
+            "enum": [
+                "extra_video",
+                "subtitle",
+                "nfo",
+                "image",
+                "theme_music",
+                "disc_structure",
+                "unknown"
+            ],
+            "x-enum-varnames": [
+                "RoleExtraVideo",
+                "RoleSubtitle",
+                "RoleNFO",
+                "RoleImage",
+                "RoleThemeMusic",
+                "RoleDiscStructure",
+                "RoleUnknown"
+            ]
+        },
+        "mediascan.ImageAttributes": {
+            "type": "object",
+            "properties": {
+                "image_type": {
+                    "type": "string"
+                },
+                "index": {
+                    "description": "Index distinguishes numbered artwork such as backdrop-1 and backdrop2.",
+                    "type": "integer"
+                },
+                "scope": {
+                    "type": "string"
+                },
+                "season_number": {
+                    "type": "integer"
+                },
+                "target_base_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "mediascan.LocalDirectory": {
+            "type": "object",
+            "properties": {
+                "artist": {
+                    "type": "string"
+                },
+                "external_links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.Link"
+                    }
+                },
+                "files": {
+                    "description": "Files holds everything in the tree that is not a media file: artwork,\ndirectory-level NFO sidecars, theme music, trailers and other extras,\ndisc structure, and anything unrecognized.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/mediascan.DirectoryFile"
+                    }
+                },
+                "folder_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "record_type": {
+                    "$ref": "#/definitions/mediascan.RecordType"
+                },
+                "scan_root_path": {
+                    "type": "string"
+                },
+                "scanned_at": {
+                    "type": "string"
+                },
+                "seasons": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/mediascan.SeasonSummary"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/mediascan.DirectoryType"
+                },
+                "warnings": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "mediascan.MediaFile": {
+            "type": "object",
+            "properties": {
+                "directory_id": {
+                    "type": "string"
+                },
+                "directory_path": {
+                    "type": "string"
+                },
+                "episode_ids": {
+                    "description": "EpisodeIDs holds this episode's own external provider identifiers, kept\nseparate from the directory's series-level external_links.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.Link"
+                    }
+                },
+                "extension": {
+                    "type": "string"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/mediascan.DirectoryFile"
+                    }
+                },
+                "modified_at": {
+                    "type": "string"
+                },
+                "nfo": {
+                    "$ref": "#/definitions/mediascan.NFOAttributes"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "record_type": {
+                    "$ref": "#/definitions/mediascan.RecordType"
+                },
+                "relative_path": {
+                    "type": "string"
+                },
+                "scan_root_path": {
+                    "type": "string"
+                },
+                "scanned_at": {
+                    "type": "string"
+                },
+                "size_bytes": {
+                    "type": "integer"
+                },
+                "subtitles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/mediascan.DirectoryFile"
+                    }
+                },
+                "type": {
+                    "$ref": "#/definitions/mediascan.DirectoryType"
+                },
+                "video": {
+                    "$ref": "#/definitions/mediascan.VideoAttributes"
+                },
+                "warnings": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "mediascan.NFOAttributes": {
+            "type": "object",
+            "properties": {
+                "episodes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.EpisodeDetails"
+                    }
+                },
+                "kind": {
+                    "$ref": "#/definitions/nfo.DocumentKind"
+                },
+                "movie": {
+                    "$ref": "#/definitions/nfo.Movie"
+                },
+                "musicvideo": {
+                    "$ref": "#/definitions/nfo.MusicVideo"
+                },
+                "parse_error": {
+                    "description": "ParseError records why an NFO could not be read. A malformed sidecar is\nreported here rather than failing the scan.",
+                    "type": "string"
+                },
+                "scope": {
+                    "type": "string"
+                },
+                "season_number": {
+                    "type": "integer"
+                },
+                "target_base_name": {
+                    "type": "string"
+                },
+                "tvshow": {
+                    "$ref": "#/definitions/nfo.TVShow"
+                }
+            }
+        },
+        "mediascan.RecordType": {
+            "type": "string",
+            "enum": [
+                "directory",
+                "media_file"
+            ],
+            "x-enum-varnames": [
+                "RecordTypeDirectory",
+                "RecordTypeMediaFile"
+            ]
+        },
+        "mediascan.SeasonSummary": {
+            "type": "object",
+            "properties": {
+                "episode_count": {
+                    "type": "integer"
+                },
+                "folder_name": {
+                    "type": "string"
+                },
+                "season_number": {
+                    "type": "integer"
+                }
+            }
+        },
+        "mediascan.SubtitleAttributes": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": "boolean"
+                },
+                "forced": {
+                    "type": "boolean"
+                },
+                "hearing_impaired": {
+                    "type": "boolean"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "target_base_name": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "mediascan.VideoAttributes": {
+            "type": "object",
+            "properties": {
+                "air_date": {
+                    "type": "string"
+                },
+                "edition": {
+                    "type": "string"
+                },
+                "episode_numbers": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "episode_title": {
+                    "type": "string"
+                },
+                "extra_source": {
+                    "type": "string"
+                },
+                "extra_type": {
+                    "description": "ExtraType and ExtraSource are set only on extra videos.",
+                    "type": "string"
+                },
+                "is_special": {
+                    "type": "boolean"
+                },
+                "season_number": {
+                    "description": "SeasonNumber is nil when it could not be resolved, which is different\nfrom season zero (specials).",
+                    "type": "integer"
+                },
+                "stack_number": {
+                    "type": "integer"
+                },
+                "stack_type": {
+                    "type": "string"
+                },
+                "three_d_format": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "version_label": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        },
+        "nfo.Actor": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "thumb": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.AudioStream": {
+            "type": "object",
+            "properties": {
+                "channels": {
+                    "type": "string"
+                },
+                "codec": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.Document": {
+            "type": "object",
+            "properties": {
+                "episodes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.EpisodeDetails"
+                    }
+                },
+                "kind": {
+                    "$ref": "#/definitions/nfo.DocumentKind"
+                },
+                "movie": {
+                    "$ref": "#/definitions/nfo.Movie"
+                },
+                "musicvideo": {
+                    "$ref": "#/definitions/nfo.MusicVideo"
+                },
+                "tvshow": {
+                    "$ref": "#/definitions/nfo.TVShow"
+                }
+            }
+        },
+        "nfo.DocumentKind": {
+            "type": "string",
+            "enum": [
+                "movie",
+                "tvshow",
+                "episodedetails",
+                "musicvideo",
+                "url",
+                "unknown"
+            ],
+            "x-enum-varnames": [
+                "KindMovie",
+                "KindTVShow",
+                "KindEpisode",
+                "KindMusicVideo",
+                "KindURL",
+                "KindUnknown"
+            ]
+        },
+        "nfo.EpisodeBookmark": {
+            "type": "object",
+            "properties": {
+                "position": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.EpisodeDetails": {
+            "type": "object",
+            "properties": {
+                "actors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.Actor"
+                    }
+                },
+                "aired": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "credits": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "date_added": {
+                    "type": "string"
+                },
+                "directors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "display_episode": {
+                    "type": "string"
+                },
+                "display_season": {
+                    "type": "string"
+                },
+                "episode": {
+                    "type": "string"
+                },
+                "episode_bookmark": {
+                    "$ref": "#/definitions/nfo.EpisodeBookmark"
+                },
+                "extra": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.UnknownElement"
+                    }
+                },
+                "file_info": {
+                    "$ref": "#/definitions/nfo.FileInfo"
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_played": {
+                    "type": "string"
+                },
+                "mpaa": {
+                    "type": "string"
+                },
+                "original_title": {
+                    "type": "string"
+                },
+                "outline": {
+                    "type": "string"
+                },
+                "play_count": {
+                    "type": "string"
+                },
+                "plot": {
+                    "type": "string"
+                },
+                "premiered": {
+                    "type": "string"
+                },
+                "ratings": {
+                    "$ref": "#/definitions/nfo.Ratings"
+                },
+                "resume": {
+                    "$ref": "#/definitions/nfo.Resume"
+                },
+                "runtime": {
+                    "type": "string"
+                },
+                "season": {
+                    "type": "string"
+                },
+                "show_title": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "studios": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tagline": {
+                    "type": "string"
+                },
+                "thumbs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.Thumb"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "top250": {
+                    "type": "string"
+                },
+                "trailer": {
+                    "type": "string"
+                },
+                "unique_ids": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.UniqueID"
+                    }
+                },
+                "user_rating": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.Fanart": {
+            "type": "object",
+            "properties": {
+                "thumbs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.Thumb"
+                    }
+                }
+            }
+        },
+        "nfo.FileInfo": {
+            "type": "object",
+            "properties": {
+                "stream_details": {
+                    "$ref": "#/definitions/nfo.StreamDetails"
+                }
+            }
+        },
+        "nfo.Link": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.Movie": {
+            "type": "object",
+            "properties": {
+                "actors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.Actor"
+                    }
+                },
+                "countries": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "credits": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "date_added": {
+                    "type": "string"
+                },
+                "directors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "extra": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.UnknownElement"
+                    }
+                },
+                "fanart": {
+                    "$ref": "#/definitions/nfo.Fanart"
+                },
+                "file_info": {
+                    "$ref": "#/definitions/nfo.FileInfo"
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_played": {
+                    "type": "string"
+                },
+                "mpaa": {
+                    "type": "string"
+                },
+                "original_language": {
+                    "type": "string"
+                },
+                "original_title": {
+                    "type": "string"
+                },
+                "outline": {
+                    "type": "string"
+                },
+                "play_count": {
+                    "type": "string"
+                },
+                "plot": {
+                    "type": "string"
+                },
+                "premiered": {
+                    "type": "string"
+                },
+                "ratings": {
+                    "$ref": "#/definitions/nfo.Ratings"
+                },
+                "resume": {
+                    "$ref": "#/definitions/nfo.Resume"
+                },
+                "runtime": {
+                    "type": "string"
+                },
+                "set": {
+                    "$ref": "#/definitions/nfo.MovieSet"
+                },
+                "show_links": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "sort_title": {
+                    "type": "string"
+                },
+                "studios": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tagline": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "thumbs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.Thumb"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "top250": {
+                    "type": "string"
+                },
+                "trailer": {
+                    "type": "string"
+                },
+                "unique_ids": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.UniqueID"
+                    }
+                },
+                "user_rating": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.MovieSet": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "overview": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.MusicVideo": {
+            "type": "object",
+            "properties": {
+                "actors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.Actor"
+                    }
+                },
+                "aired": {
+                    "type": "string"
+                },
+                "album": {
+                    "type": "string"
+                },
+                "artists": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "code": {
+                    "type": "string"
+                },
+                "date_added": {
+                    "type": "string"
+                },
+                "directors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "extra": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.UnknownElement"
+                    }
+                },
+                "file_info": {
+                    "$ref": "#/definitions/nfo.FileInfo"
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_played": {
+                    "type": "string"
+                },
+                "mpaa": {
+                    "type": "string"
+                },
+                "outline": {
+                    "type": "string"
+                },
+                "play_count": {
+                    "type": "string"
+                },
+                "plot": {
+                    "type": "string"
+                },
+                "premiered": {
+                    "type": "string"
+                },
+                "resume": {
+                    "$ref": "#/definitions/nfo.Resume"
+                },
+                "runtime": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "studios": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tagline": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "thumbs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.Thumb"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "top250": {
+                    "type": "string"
+                },
+                "track": {
+                    "type": "string"
+                },
+                "trailer": {
+                    "type": "string"
+                },
+                "unique_ids": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.UniqueID"
+                    }
+                },
+                "user_rating": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.NamedSeason": {
+            "type": "object",
+            "properties": {
+                "number": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.Rating": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": "boolean"
+                },
+                "max": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                },
+                "votes": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.Ratings": {
+            "type": "object",
+            "properties": {
+                "rating": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.Rating"
+                    }
+                }
+            }
+        },
+        "nfo.Resume": {
+            "type": "object",
+            "properties": {
+                "position": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.SeasonPlot": {
+            "type": "object",
+            "properties": {
+                "number": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.StreamDetails": {
+            "type": "object",
+            "properties": {
+                "audio": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.AudioStream"
+                    }
+                },
+                "subtitle": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.SubtitleStream"
+                    }
+                },
+                "video": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.VideoStream"
+                    }
+                }
+            }
+        },
+        "nfo.SubtitleStream": {
+            "type": "object",
+            "properties": {
+                "language": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.TVShow": {
+            "type": "object",
+            "properties": {
+                "actors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.Actor"
+                    }
+                },
+                "aired": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "date_added": {
+                    "type": "string"
+                },
+                "display_episode": {
+                    "type": "string"
+                },
+                "display_season": {
+                    "type": "string"
+                },
+                "episode": {
+                    "type": "string"
+                },
+                "episode_guide": {
+                    "type": "string"
+                },
+                "extra": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.UnknownElement"
+                    }
+                },
+                "fanart": {
+                    "$ref": "#/definitions/nfo.Fanart"
+                },
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_played": {
+                    "type": "string"
+                },
+                "mpaa": {
+                    "type": "string"
+                },
+                "named_seasons": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.NamedSeason"
+                    }
+                },
+                "original_language": {
+                    "type": "string"
+                },
+                "original_title": {
+                    "type": "string"
+                },
+                "outline": {
+                    "type": "string"
+                },
+                "play_count": {
+                    "type": "string"
+                },
+                "plot": {
+                    "type": "string"
+                },
+                "premiered": {
+                    "type": "string"
+                },
+                "ratings": {
+                    "$ref": "#/definitions/nfo.Ratings"
+                },
+                "resume": {
+                    "$ref": "#/definitions/nfo.Resume"
+                },
+                "runtime": {
+                    "type": "string"
+                },
+                "season": {
+                    "type": "string"
+                },
+                "season_plots": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.SeasonPlot"
+                    }
+                },
+                "show_title": {
+                    "type": "string"
+                },
+                "sort_title": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "studios": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tagline": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "thumbs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.Thumb"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "top250": {
+                    "type": "string"
+                },
+                "trailer": {
+                    "type": "string"
+                },
+                "unique_ids": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nfo.UniqueID"
+                    }
+                },
+                "user_rating": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.Thumb": {
+            "type": "object",
+            "properties": {
+                "aspect": {
+                    "type": "string"
+                },
+                "preview": {
+                    "type": "string"
+                },
+                "season": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.UniqueID": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.UnknownElement": {
+            "type": "object",
+            "properties": {
+                "attrs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/xml.Attr"
+                    }
+                },
+                "inner_xml": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "nfo.VideoStream": {
+            "type": "object",
+            "properties": {
+                "aspect": {
+                    "type": "string"
+                },
+                "codec": {
+                    "type": "string"
+                },
+                "duration_in_seconds": {
+                    "type": "string"
+                },
+                "hdr_type": {
+                    "type": "string"
+                },
+                "height": {
+                    "type": "string"
+                },
+                "stereo_mode": {
+                    "type": "string"
+                },
+                "width": {
+                    "type": "string"
+                }
+            }
+        },
+        "xml.Attr": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "$ref": "#/definitions/xml.Name"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "xml.Name": {
+            "type": "object",
+            "properties": {
+                "local": {
+                    "type": "string"
+                },
+                "space": {
+                    "type": "string"
                 }
             }
         }

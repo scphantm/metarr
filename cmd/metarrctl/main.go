@@ -22,7 +22,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "metarrctl",
 	Short: "Command-line client for the Metarr API",
-	Long:  "metarrctl drives the Metarr API from the command line: heartbeat, login/logout, application config, and background tasks.",
+	Long:  "metarrctl drives the Metarr API from the command line: heartbeat, login/logout, application config, background tasks, and the scanned media library.",
 }
 
 func main() {
@@ -40,7 +40,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&serverURL, "server", envOrDefault("METARR_SERVER", "http://localhost:8080"), "Metarr API server URL")
 	rootCmd.PersistentFlags().StringVar(&apiKeyFlag, "api-key", os.Getenv("METARR_API_KEY"), "API key (falls back to a saved session from `metarrctl login`)")
 
-	rootCmd.AddCommand(heartbeatCmd, loginCmd, logoutCmd, configCmd, tasksCmd)
+	rootCmd.AddCommand(heartbeatCmd, loginCmd, logoutCmd, configCmd, tasksCmd, localDirectoriesCmd, mediaFilesCmd)
 }
 
 func envOrDefault(key, fallback string) string {

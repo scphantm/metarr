@@ -26,4 +26,15 @@ const (
 	// SystemConfigUpdateEventName is the event name carried in the Event
 	// envelope for a system_config_update event.
 	SystemConfigUpdateEventName = "system_config_update"
+
+	// DirectoryScanStream is the Redis Stream the directory_scan event is fired
+	// on when a configured scan directory is asked to be scanned. The event
+	// payload is the resolved appconfig.ScanDirectory.
+	DirectoryScanStream = "events.directory_scan"
+	// DirectoryScanGroup is the consumer group used to read
+	// DirectoryScanStream.
+	DirectoryScanGroup = "directory_scan_group"
+	// DirectoryScanEventName is the event name carried in the Event envelope
+	// for a directory_scan event.
+	DirectoryScanEventName = "directory_scan"
 )

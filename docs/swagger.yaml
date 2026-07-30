@@ -160,6 +160,834 @@ definitions:
       parallel_count:
         type: integer
     type: object
+  mediascan.DirectoryFile:
+    properties:
+      extension:
+        type: string
+      file_name:
+        type: string
+      image:
+        $ref: '#/definitions/mediascan.ImageAttributes'
+      modified_at:
+        type: string
+      nfo:
+        $ref: '#/definitions/mediascan.NFOAttributes'
+      relative_path:
+        type: string
+      role:
+        $ref: '#/definitions/mediascan.FileRole'
+      size_bytes:
+        type: integer
+      subtitle:
+        $ref: '#/definitions/mediascan.SubtitleAttributes'
+      video:
+        $ref: '#/definitions/mediascan.VideoAttributes'
+    type: object
+  mediascan.DirectoryType:
+    enum:
+    - movie
+    - tv
+    - music_video
+    type: string
+    x-enum-varnames:
+    - TypeMovie
+    - TypeTV
+    - TypeMusicVideo
+  mediascan.FileRole:
+    enum:
+    - extra_video
+    - subtitle
+    - nfo
+    - image
+    - theme_music
+    - disc_structure
+    - unknown
+    type: string
+    x-enum-varnames:
+    - RoleExtraVideo
+    - RoleSubtitle
+    - RoleNFO
+    - RoleImage
+    - RoleThemeMusic
+    - RoleDiscStructure
+    - RoleUnknown
+  mediascan.ImageAttributes:
+    properties:
+      image_type:
+        type: string
+      index:
+        description: Index distinguishes numbered artwork such as backdrop-1 and backdrop2.
+        type: integer
+      scope:
+        type: string
+      season_number:
+        type: integer
+      target_base_name:
+        type: string
+    type: object
+  mediascan.LocalDirectory:
+    properties:
+      artist:
+        type: string
+      external_links:
+        items:
+          $ref: '#/definitions/nfo.Link'
+        type: array
+      files:
+        description: |-
+          Files holds everything in the tree that is not a media file: artwork,
+          directory-level NFO sidecars, theme music, trailers and other extras,
+          disc structure, and anything unrecognized.
+        items:
+          $ref: '#/definitions/mediascan.DirectoryFile'
+        type: array
+      folder_name:
+        type: string
+      id:
+        type: string
+      path:
+        type: string
+      record_type:
+        $ref: '#/definitions/mediascan.RecordType'
+      scan_root_path:
+        type: string
+      scanned_at:
+        type: string
+      seasons:
+        items:
+          $ref: '#/definitions/mediascan.SeasonSummary'
+        type: array
+      title:
+        type: string
+      type:
+        $ref: '#/definitions/mediascan.DirectoryType'
+      warnings:
+        items:
+          type: string
+        type: array
+      year:
+        type: integer
+    type: object
+  mediascan.MediaFile:
+    properties:
+      directory_id:
+        type: string
+      directory_path:
+        type: string
+      episode_ids:
+        description: |-
+          EpisodeIDs holds this episode's own external provider identifiers, kept
+          separate from the directory's series-level external_links.
+        items:
+          $ref: '#/definitions/nfo.Link'
+        type: array
+      extension:
+        type: string
+      file_name:
+        type: string
+      id:
+        type: string
+      images:
+        items:
+          $ref: '#/definitions/mediascan.DirectoryFile'
+        type: array
+      modified_at:
+        type: string
+      nfo:
+        $ref: '#/definitions/mediascan.NFOAttributes'
+      path:
+        type: string
+      record_type:
+        $ref: '#/definitions/mediascan.RecordType'
+      relative_path:
+        type: string
+      scan_root_path:
+        type: string
+      scanned_at:
+        type: string
+      size_bytes:
+        type: integer
+      subtitles:
+        items:
+          $ref: '#/definitions/mediascan.DirectoryFile'
+        type: array
+      type:
+        $ref: '#/definitions/mediascan.DirectoryType'
+      video:
+        $ref: '#/definitions/mediascan.VideoAttributes'
+      warnings:
+        items:
+          type: string
+        type: array
+    type: object
+  mediascan.NFOAttributes:
+    properties:
+      episodes:
+        items:
+          $ref: '#/definitions/nfo.EpisodeDetails'
+        type: array
+      kind:
+        $ref: '#/definitions/nfo.DocumentKind'
+      movie:
+        $ref: '#/definitions/nfo.Movie'
+      musicvideo:
+        $ref: '#/definitions/nfo.MusicVideo'
+      parse_error:
+        description: |-
+          ParseError records why an NFO could not be read. A malformed sidecar is
+          reported here rather than failing the scan.
+        type: string
+      scope:
+        type: string
+      season_number:
+        type: integer
+      target_base_name:
+        type: string
+      tvshow:
+        $ref: '#/definitions/nfo.TVShow'
+    type: object
+  mediascan.RecordType:
+    enum:
+    - directory
+    - media_file
+    type: string
+    x-enum-varnames:
+    - RecordTypeDirectory
+    - RecordTypeMediaFile
+  mediascan.SeasonSummary:
+    properties:
+      episode_count:
+        type: integer
+      folder_name:
+        type: string
+      season_number:
+        type: integer
+    type: object
+  mediascan.SubtitleAttributes:
+    properties:
+      default:
+        type: boolean
+      forced:
+        type: boolean
+      hearing_impaired:
+        type: boolean
+      language:
+        type: string
+      target_base_name:
+        type: string
+      title:
+        type: string
+    type: object
+  mediascan.VideoAttributes:
+    properties:
+      air_date:
+        type: string
+      edition:
+        type: string
+      episode_numbers:
+        items:
+          type: integer
+        type: array
+      episode_title:
+        type: string
+      extra_source:
+        type: string
+      extra_type:
+        description: ExtraType and ExtraSource are set only on extra videos.
+        type: string
+      is_special:
+        type: boolean
+      season_number:
+        description: |-
+          SeasonNumber is nil when it could not be resolved, which is different
+          from season zero (specials).
+        type: integer
+      stack_number:
+        type: integer
+      stack_type:
+        type: string
+      three_d_format:
+        type: string
+      title:
+        type: string
+      version_label:
+        type: string
+      year:
+        type: integer
+    type: object
+  nfo.Actor:
+    properties:
+      name:
+        type: string
+      order:
+        type: string
+      role:
+        type: string
+      thumb:
+        type: string
+    type: object
+  nfo.AudioStream:
+    properties:
+      channels:
+        type: string
+      codec:
+        type: string
+      language:
+        type: string
+    type: object
+  nfo.Document:
+    properties:
+      episodes:
+        items:
+          $ref: '#/definitions/nfo.EpisodeDetails'
+        type: array
+      kind:
+        $ref: '#/definitions/nfo.DocumentKind'
+      movie:
+        $ref: '#/definitions/nfo.Movie'
+      musicvideo:
+        $ref: '#/definitions/nfo.MusicVideo'
+      tvshow:
+        $ref: '#/definitions/nfo.TVShow'
+    type: object
+  nfo.DocumentKind:
+    enum:
+    - movie
+    - tvshow
+    - episodedetails
+    - musicvideo
+    - url
+    - unknown
+    type: string
+    x-enum-varnames:
+    - KindMovie
+    - KindTVShow
+    - KindEpisode
+    - KindMusicVideo
+    - KindURL
+    - KindUnknown
+  nfo.EpisodeBookmark:
+    properties:
+      position:
+        type: string
+    type: object
+  nfo.EpisodeDetails:
+    properties:
+      actors:
+        items:
+          $ref: '#/definitions/nfo.Actor'
+        type: array
+      aired:
+        type: string
+      code:
+        type: string
+      credits:
+        items:
+          type: string
+        type: array
+      date_added:
+        type: string
+      directors:
+        items:
+          type: string
+        type: array
+      display_episode:
+        type: string
+      display_season:
+        type: string
+      episode:
+        type: string
+      episode_bookmark:
+        $ref: '#/definitions/nfo.EpisodeBookmark'
+      extra:
+        items:
+          $ref: '#/definitions/nfo.UnknownElement'
+        type: array
+      file_info:
+        $ref: '#/definitions/nfo.FileInfo'
+      genres:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      last_played:
+        type: string
+      mpaa:
+        type: string
+      original_title:
+        type: string
+      outline:
+        type: string
+      play_count:
+        type: string
+      plot:
+        type: string
+      premiered:
+        type: string
+      ratings:
+        $ref: '#/definitions/nfo.Ratings'
+      resume:
+        $ref: '#/definitions/nfo.Resume'
+      runtime:
+        type: string
+      season:
+        type: string
+      show_title:
+        type: string
+      status:
+        type: string
+      studios:
+        items:
+          type: string
+        type: array
+      tagline:
+        type: string
+      thumbs:
+        items:
+          $ref: '#/definitions/nfo.Thumb'
+        type: array
+      title:
+        type: string
+      top250:
+        type: string
+      trailer:
+        type: string
+      unique_ids:
+        items:
+          $ref: '#/definitions/nfo.UniqueID'
+        type: array
+      user_rating:
+        type: string
+      year:
+        type: string
+    type: object
+  nfo.Fanart:
+    properties:
+      thumbs:
+        items:
+          $ref: '#/definitions/nfo.Thumb'
+        type: array
+    type: object
+  nfo.FileInfo:
+    properties:
+      stream_details:
+        $ref: '#/definitions/nfo.StreamDetails'
+    type: object
+  nfo.Link:
+    properties:
+      key:
+        type: string
+      value:
+        type: string
+    type: object
+  nfo.Movie:
+    properties:
+      actors:
+        items:
+          $ref: '#/definitions/nfo.Actor'
+        type: array
+      countries:
+        items:
+          type: string
+        type: array
+      credits:
+        items:
+          type: string
+        type: array
+      date_added:
+        type: string
+      directors:
+        items:
+          type: string
+        type: array
+      extra:
+        items:
+          $ref: '#/definitions/nfo.UnknownElement'
+        type: array
+      fanart:
+        $ref: '#/definitions/nfo.Fanart'
+      file_info:
+        $ref: '#/definitions/nfo.FileInfo'
+      genres:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      last_played:
+        type: string
+      mpaa:
+        type: string
+      original_language:
+        type: string
+      original_title:
+        type: string
+      outline:
+        type: string
+      play_count:
+        type: string
+      plot:
+        type: string
+      premiered:
+        type: string
+      ratings:
+        $ref: '#/definitions/nfo.Ratings'
+      resume:
+        $ref: '#/definitions/nfo.Resume'
+      runtime:
+        type: string
+      set:
+        $ref: '#/definitions/nfo.MovieSet'
+      show_links:
+        items:
+          type: string
+        type: array
+      sort_title:
+        type: string
+      studios:
+        items:
+          type: string
+        type: array
+      tagline:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      thumbs:
+        items:
+          $ref: '#/definitions/nfo.Thumb'
+        type: array
+      title:
+        type: string
+      top250:
+        type: string
+      trailer:
+        type: string
+      unique_ids:
+        items:
+          $ref: '#/definitions/nfo.UniqueID'
+        type: array
+      user_rating:
+        type: string
+      year:
+        type: string
+    type: object
+  nfo.MovieSet:
+    properties:
+      name:
+        type: string
+      overview:
+        type: string
+    type: object
+  nfo.MusicVideo:
+    properties:
+      actors:
+        items:
+          $ref: '#/definitions/nfo.Actor'
+        type: array
+      aired:
+        type: string
+      album:
+        type: string
+      artists:
+        items:
+          type: string
+        type: array
+      code:
+        type: string
+      date_added:
+        type: string
+      directors:
+        items:
+          type: string
+        type: array
+      extra:
+        items:
+          $ref: '#/definitions/nfo.UnknownElement'
+        type: array
+      file_info:
+        $ref: '#/definitions/nfo.FileInfo'
+      genres:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      last_played:
+        type: string
+      mpaa:
+        type: string
+      outline:
+        type: string
+      play_count:
+        type: string
+      plot:
+        type: string
+      premiered:
+        type: string
+      resume:
+        $ref: '#/definitions/nfo.Resume'
+      runtime:
+        type: string
+      status:
+        type: string
+      studios:
+        items:
+          type: string
+        type: array
+      tagline:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      thumbs:
+        items:
+          $ref: '#/definitions/nfo.Thumb'
+        type: array
+      title:
+        type: string
+      top250:
+        type: string
+      track:
+        type: string
+      trailer:
+        type: string
+      unique_ids:
+        items:
+          $ref: '#/definitions/nfo.UniqueID'
+        type: array
+      user_rating:
+        type: string
+      year:
+        type: string
+    type: object
+  nfo.NamedSeason:
+    properties:
+      number:
+        type: string
+      value:
+        type: string
+    type: object
+  nfo.Rating:
+    properties:
+      default:
+        type: boolean
+      max:
+        type: string
+      name:
+        type: string
+      value:
+        type: string
+      votes:
+        type: string
+    type: object
+  nfo.Ratings:
+    properties:
+      rating:
+        items:
+          $ref: '#/definitions/nfo.Rating'
+        type: array
+    type: object
+  nfo.Resume:
+    properties:
+      position:
+        type: string
+      total:
+        type: string
+    type: object
+  nfo.SeasonPlot:
+    properties:
+      number:
+        type: string
+      value:
+        type: string
+    type: object
+  nfo.StreamDetails:
+    properties:
+      audio:
+        items:
+          $ref: '#/definitions/nfo.AudioStream'
+        type: array
+      subtitle:
+        items:
+          $ref: '#/definitions/nfo.SubtitleStream'
+        type: array
+      video:
+        items:
+          $ref: '#/definitions/nfo.VideoStream'
+        type: array
+    type: object
+  nfo.SubtitleStream:
+    properties:
+      language:
+        type: string
+    type: object
+  nfo.TVShow:
+    properties:
+      actors:
+        items:
+          $ref: '#/definitions/nfo.Actor'
+        type: array
+      aired:
+        type: string
+      code:
+        type: string
+      date_added:
+        type: string
+      display_episode:
+        type: string
+      display_season:
+        type: string
+      episode:
+        type: string
+      episode_guide:
+        type: string
+      extra:
+        items:
+          $ref: '#/definitions/nfo.UnknownElement'
+        type: array
+      fanart:
+        $ref: '#/definitions/nfo.Fanart'
+      genres:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      last_played:
+        type: string
+      mpaa:
+        type: string
+      named_seasons:
+        items:
+          $ref: '#/definitions/nfo.NamedSeason'
+        type: array
+      original_language:
+        type: string
+      original_title:
+        type: string
+      outline:
+        type: string
+      play_count:
+        type: string
+      plot:
+        type: string
+      premiered:
+        type: string
+      ratings:
+        $ref: '#/definitions/nfo.Ratings'
+      resume:
+        $ref: '#/definitions/nfo.Resume'
+      runtime:
+        type: string
+      season:
+        type: string
+      season_plots:
+        items:
+          $ref: '#/definitions/nfo.SeasonPlot'
+        type: array
+      show_title:
+        type: string
+      sort_title:
+        type: string
+      status:
+        type: string
+      studios:
+        items:
+          type: string
+        type: array
+      tagline:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      thumbs:
+        items:
+          $ref: '#/definitions/nfo.Thumb'
+        type: array
+      title:
+        type: string
+      top250:
+        type: string
+      trailer:
+        type: string
+      unique_ids:
+        items:
+          $ref: '#/definitions/nfo.UniqueID'
+        type: array
+      user_rating:
+        type: string
+      year:
+        type: string
+    type: object
+  nfo.Thumb:
+    properties:
+      aspect:
+        type: string
+      preview:
+        type: string
+      season:
+        type: string
+      type:
+        type: string
+      value:
+        type: string
+    type: object
+  nfo.UniqueID:
+    properties:
+      default:
+        type: boolean
+      type:
+        type: string
+      value:
+        type: string
+    type: object
+  nfo.UnknownElement:
+    properties:
+      attrs:
+        items:
+          $ref: '#/definitions/xml.Attr'
+        type: array
+      inner_xml:
+        type: string
+      name:
+        type: string
+    type: object
+  nfo.VideoStream:
+    properties:
+      aspect:
+        type: string
+      codec:
+        type: string
+      duration_in_seconds:
+        type: string
+      hdr_type:
+        type: string
+      height:
+        type: string
+      stereo_mode:
+        type: string
+      width:
+        type: string
+    type: object
+  xml.Attr:
+    properties:
+      name:
+        $ref: '#/definitions/xml.Name'
+      value:
+        type: string
+    type: object
+  xml.Name:
+    properties:
+      local:
+        type: string
+      space:
+        type: string
+    type: object
 info:
   contact: {}
   description: Event-driven Go API backed by MongoDB and Redis. Every request carries
@@ -370,7 +1198,7 @@ paths:
       consumes:
       - application/json
       description: Adds a new scan directory. scanner_slug is required and must be
-        unique.
+        unique, and scan_type must be one of "movie", "tv" or "music_video".
       parameters:
       - description: New scan directory
         in: body
@@ -386,7 +1214,7 @@ paths:
           schema:
             $ref: '#/definitions/handlers.AcceptedResponse'
         "400":
-          description: invalid request body or missing scanner_slug
+          description: invalid request body, missing scanner_slug, or unknown scan_type
           schema:
             type: string
         "409":
@@ -456,7 +1284,8 @@ paths:
       consumes:
       - application/json
       description: Replaces every field of the scan directory at the given scanner_slug
-        except scanner_slug itself, which cannot be changed once set.
+        except scanner_slug itself, which cannot be changed once set. scan_type must
+        be one of "movie", "tv" or "music_video".
       parameters:
       - description: scanner_slug
         in: path
@@ -477,7 +1306,8 @@ paths:
           schema:
             $ref: '#/definitions/handlers.AcceptedResponse'
         "400":
-          description: invalid request body, or attempted to change scanner_slug
+          description: invalid request body, attempted to change scanner_slug, or
+            unknown scan_type
           schema:
             type: string
         "404":
@@ -656,6 +1486,223 @@ paths:
       summary: Blocking heartbeat check
       tags:
       - Heartbeat
+  /api/local-directories:
+    get:
+      description: Returns the directory records in the local_directory collection,
+        optionally filtered by media type and scan root path.
+      parameters:
+      - description: 'Filter by media type: movie, tv or music_video'
+        in: query
+        name: type
+        type: string
+      - description: Filter by the configured scan directory these were found under
+        in: query
+        name: scan_root
+        type: string
+      - description: Maximum records to return (default 100, max 500)
+        in: query
+        name: limit
+        type: integer
+      - description: Records to skip
+        in: query
+        name: skip
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/mediascan.LocalDirectory'
+            type: array
+        "400":
+          description: invalid type, limit or skip
+          schema:
+            type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
+      summary: List scanned directories
+      tags:
+      - Media
+  /api/local-directories/{id}:
+    get:
+      description: Returns one directory record by its generated id.
+      parameters:
+      - description: Directory record id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/mediascan.LocalDirectory'
+        "400":
+          description: malformed id
+          schema:
+            type: string
+        "404":
+          description: no directory with that id
+          schema:
+            type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
+      summary: Fetch a scanned directory
+      tags:
+      - Media
+  /api/local-directories/{id}/media-files:
+    get:
+      description: Returns the media file records — the movie, episode or music video
+        files themselves — belonging to one scanned directory.
+      parameters:
+      - description: Directory record id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/mediascan.MediaFile'
+            type: array
+        "400":
+          description: malformed id
+          schema:
+            type: string
+        "404":
+          description: no directory with that id
+          schema:
+            type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
+      summary: List a directory's media files
+      tags:
+      - Media
+  /api/local-directories/{id}/nfo:
+    get:
+      description: Reads and parses one .nfo file inside a scanned directory, live
+        from disk rather than from the scan snapshot. The path is relative to the
+        directory and may not escape it.
+      parameters:
+      - description: Directory record id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Path to the .nfo file, relative to the directory
+        in: query
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/nfo.Document'
+        "400":
+          description: missing or unsafe path, or not an .nfo file
+          schema:
+            type: string
+        "404":
+          description: no directory with that id, or no such file
+          schema:
+            type: string
+        "422":
+          description: the file could not be parsed
+          schema:
+            type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
+      summary: Read an NFO file from disk
+      tags:
+      - Media
+  /api/media-files/{id}:
+    get:
+      description: Returns one media file record by its generated id, including its
+        own NFO metadata, subtitles, artwork and episode ids.
+      parameters:
+      - description: Media file record id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/mediascan.MediaFile'
+        "400":
+          description: malformed id
+          schema:
+            type: string
+        "404":
+          description: no media file with that id
+          schema:
+            type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
+      summary: Fetch a media file record
+      tags:
+      - Media
+  /api/tasks/directory-scan/{slug}:
+    post:
+      consumes:
+      - application/json
+      description: Scans the configured scan directory with the given scanner_slug,
+        storing one record per media item directory plus one per media file in the
+        local_directory collection. Fires the directory_scan event onto the durable
+        event stream and returns as soon as it has been queued.
+      parameters:
+      - description: scanner_slug of the scan directory to scan
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Command to run
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.TaskRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/handlers.AcceptedResponse'
+        "400":
+          description: invalid request body, unsupported command, or the entry has
+            an unusable scan_type
+          schema:
+            type: string
+        "404":
+          description: no scan directory with that slug
+          schema:
+            type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
+      summary: Trigger a directory scan
+      tags:
+      - Tasks
   /api/tasks/sonarr_cache_data:
     post:
       consumes:

@@ -30,6 +30,9 @@ targetDb.createUser({
   roles: [{ role: "read", db: dbName }],
 });
 
-// Seed an empty media collection so the readonly user has something to
-// query against out of the box.
-targetDb.createCollection("media");
+// Seed an empty local_directory collection so the readonly user has something
+// to query against out of the box. This is where the directory scanner stores
+// its results: one record per media item directory, plus one per media file
+// linked back to it (see internal/mediascan). Every other collection the
+// application uses is created implicitly on first write from Go.
+targetDb.createCollection("local_directory");
