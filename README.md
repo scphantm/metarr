@@ -15,6 +15,10 @@ by Jellyfin.  (Other outputs possible).
 Unlike other *arr's, the database in this project is more for caching data from external systems than
 metadata storage.  With Metarr, the final system of record for your metadata are the nfo files in the file system.  
 
+## What this does not do
+
+This does not look for missing media in your collection.  Other systems are designed to do that.  
+
 ## Local URI's
 
 * [Swagger API](http://localhost:8080/swagger/index.html)
@@ -32,6 +36,37 @@ sequentially like other systems you may be used to.  Metarr follows a model call
 hit save, the change you make may not be instantaneous.  Many things happen in parallel in the background and all have to finish
 before the write actually happens.  Not when you click the save button.  Eventually Consistent means it will get there and update
 just maybe not instantly
+
+## UI
+
+tailwind css with react frontend, all in typescript.
+
+2 themes, Solarized Dark, Solarized Light
+
+The UI will consist of 3 critical pieces.  
+* Searches
+* Workflows
+* Automations
+
+Searches will use [React Query Builder](https://react-querybuilder.js.org/docs/utils/import#custom-operators) to query the mongodb. 
+
+From there, you will be able to build out workflows using [React Workflow](https://reactflow.dev/ui/components/animated-svg-edge) that are basically what i 
+currently do with claude scripts
+
+Automations are mapping search results, workflows, and some kind of trigger.  cron, event bus hook, webhook, etc and what agent to run on
+
+Things like what i just wrote as a downloader will become workflows.  Thats going to be my first big task, taking my youtube downloader and making
+it a workflow in metarr.
+
+Workflows will be dry-run only to begin with.  There will be some kind of combination lock that puts the system into write mode that will
+allow workflows being worked on to write.
+
+metadata management itself will include a scraper system.  the one that grabs from all the different areas.
+
+## List manager
+Want a system that lets you compare my database with mdblists to group things, see what i already have, retag, request missing, etc.
+
+Lists could be an input to workflows.  That way you can build workflows that process lists.
 
 ## Future Roadmap
 
@@ -89,3 +124,21 @@ data will be used along side our data just like any other.
 
 ### Metadata update
 This should have a way to update the other metadata registries if its possible thru their api.
+
+### Poster manager
+Think Kometa poster manager, you can build one or more poster and image profiles for a media item.  those poster bundles
+will be stored somewhere and swapped in at will.  The different poster places will be huge for that.
+
+# References
+This system interfaces other systems.  These were the specifications that were used in building Metarr
+
+## Directory Structures
+* https://jellyfin.org/docs/general/server/media/shows/
+* https://jellyfin.org/docs/general/server/media/movies
+
+## Naming Conventions
+* https://support.plex.tv/articles/naming-and-organizing-your-movie-media-files/
+* https://support.plex.tv/articles/naming-and-organizing-your-tv-show-files/
+
+## NFO Format
+https://kodi.wiki/view/NFO_files/Templates

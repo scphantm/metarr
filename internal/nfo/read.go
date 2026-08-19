@@ -8,53 +8,42 @@ import (
 	"io"
 	"os"
 	"strings"
-)
 
-// DocumentKind names the root element a file actually turned out to contain.
-type DocumentKind string
-
-const (
-	KindMovie      DocumentKind = "movie"
-	KindTVShow     DocumentKind = "tvshow"
-	KindEpisode    DocumentKind = "episodedetails"
-	KindMusicVideo DocumentKind = "musicvideo"
-	// KindURL is an .nfo holding a bare scraper URL rather than XML, a form
-	// Kodi has historically accepted. There is nothing to parse, but the file
-	// is still recognized rather than reported as broken.
-	KindURL DocumentKind = "url"
-	// KindUnknown is well-formed XML whose root element isn't one of the four
-	// media document types.
-	KindUnknown DocumentKind = "unknown"
+	"Metarr/internal/metadata"
 )
 
 // utf8BOM is stripped before parsing; encoding/xml treats a leading BOM as
 // character data and fails on it.
 var utf8BOM = []byte{0xEF, 0xBB, 0xBF}
 
-// Document is a parsed NFO file. Exactly one of the typed fields is populated,
+// document is a parsed NFO file. Exactly one of the typed fields is populated,
 // according to Kind — except for Episodes, which holds more than one entry
 // when the file used the legacy multi-episode layout.
-type Document struct {
-	Kind       DocumentKind     `bson:"kind" json:"kind"`
-	Movie      *Movie           `bson:"movie,omitempty" json:"movie,omitempty"`
-	TVShow     *TVShow          `bson:"tvshow,omitempty" json:"tvshow,omitempty"`
-	Episodes   []EpisodeDetails `bson:"episodes,omitempty" json:"episodes,omitempty"`
-	MusicVideo *MusicVideo      `bson:"musicvideo,omitempty" json:"musicvideo,omitempty"`
+type document struct {
+	Kind       metadata.DocumentKind
+	Movie      *movie
+	TVShow     *tvShow
+	Episodes   []episodeDetails
+	MusicVideo *musicVideo
 }
 
-// ReadFile parses the NFO file at path. Errors are reported only for I/O
-// failures and genuinely malformed XML; a file whose shape simply isn't
-// recognized comes back as a Document with Kind set to KindURL or KindUnknown,
-// so callers scanning a library can record the oddity and carry on.
-func ReadFile(path string) (*Document, error) {
+// ReadFile reads the NFO file at path and returns it as a metadata.Metadata.
+// I/O failures and genuinely malformed XML are errors; a file whose shape isn't
+// recognized comes back as metadata with Kind KindURL or KindUnknown, so a
+// library scan can record the oddity and carry on.
+func ReadFile(path string) (*metadata.Metadata, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	return Parse(data)
+	doc, err := parse(data)
+	if err != nil {
+		return nil, err
+	}
+	return doc.toMetadata(), nil
 }
 
-// Parse reads an NFO document out of data.
+// parse reads an NFO document out of data.
 //
 // The decode is a token loop rather than a single xml.Unmarshal because Kodi
 // v21 and earlier wrote multi-episode NFOs as several <episodedetails> roots
@@ -62,7 +51,7 @@ func ReadFile(path string) (*Document, error) {
 // root element — and xml.Unmarshal rejects it outright, which would silently
 // lose the metadata for every episode in such a file. Walking tokens accepts
 // both that layout and ordinary single-root documents.
-func Parse(data []byte) (*Document, error) {
+func parse(data []byte) (*document, error) {
 	trimmed := bytes.TrimPrefix(data, utf8BOM)
 
 	// A file that doesn't open with a tag isn't XML at all. Kodi accepts an
@@ -70,9 +59,9 @@ func Parse(data []byte) (*Document, error) {
 	// failing to parse it.
 	if !bytes.HasPrefix(bytes.TrimLeft(trimmed, " \t\r\n"), []byte("<")) {
 		if len(bytes.TrimSpace(trimmed)) == 0 {
-			return &Document{Kind: KindUnknown}, nil
+			return &document{Kind: metadata.KindUnknown}, nil
 		}
-		return &Document{Kind: KindURL}, nil
+		return &document{Kind: metadata.KindURL}, nil
 	}
 
 	decoder := xml.NewDecoder(bytes.NewReader(trimmed))
@@ -82,7 +71,7 @@ func Parse(data []byte) (*Document, error) {
 	// nothing rather than discarding the whole document over a stray entity.
 	decoder.Strict = false
 
-	document := &Document{Kind: KindUnknown}
+	doc := &document{Kind: metadata.KindUnknown}
 	foundRoot := false
 
 	for {
@@ -101,36 +90,36 @@ func Parse(data []byte) (*Document, error) {
 
 		switch strings.ToLower(startElement.Name.Local) {
 		case "movie":
-			var movie Movie
-			if err := decoder.DecodeElement(&movie, &startElement); err != nil {
+			var parsed movie
+			if err := decoder.DecodeElement(&parsed, &startElement); err != nil {
 				return nil, fmt.Errorf("nfo: decoding <movie>: %w", err)
 			}
-			document.Movie = &movie
-			setKindOnce(document, KindMovie, &foundRoot)
+			doc.Movie = &parsed
+			setKindOnce(doc, metadata.KindMovie, &foundRoot)
 
 		case "tvshow":
-			var show TVShow
-			if err := decoder.DecodeElement(&show, &startElement); err != nil {
+			var parsed tvShow
+			if err := decoder.DecodeElement(&parsed, &startElement); err != nil {
 				return nil, fmt.Errorf("nfo: decoding <tvshow>: %w", err)
 			}
-			document.TVShow = &show
-			setKindOnce(document, KindTVShow, &foundRoot)
+			doc.TVShow = &parsed
+			setKindOnce(doc, metadata.KindTVShow, &foundRoot)
 
 		case "episodedetails":
-			var episode EpisodeDetails
-			if err := decoder.DecodeElement(&episode, &startElement); err != nil {
+			var parsed episodeDetails
+			if err := decoder.DecodeElement(&parsed, &startElement); err != nil {
 				return nil, fmt.Errorf("nfo: decoding <episodedetails>: %w", err)
 			}
-			document.Episodes = append(document.Episodes, episode)
-			setKindOnce(document, KindEpisode, &foundRoot)
+			doc.Episodes = append(doc.Episodes, parsed)
+			setKindOnce(doc, metadata.KindEpisode, &foundRoot)
 
 		case "musicvideo":
-			var musicVideo MusicVideo
-			if err := decoder.DecodeElement(&musicVideo, &startElement); err != nil {
+			var parsed musicVideo
+			if err := decoder.DecodeElement(&parsed, &startElement); err != nil {
 				return nil, fmt.Errorf("nfo: decoding <musicvideo>: %w", err)
 			}
-			document.MusicVideo = &musicVideo
-			setKindOnce(document, KindMusicVideo, &foundRoot)
+			doc.MusicVideo = &parsed
+			setKindOnce(doc, metadata.KindMusicVideo, &foundRoot)
 
 		default:
 			// Some unrelated root element. Skip its subtree so the loop can
@@ -145,25 +134,25 @@ func Parse(data []byte) (*Document, error) {
 	// tag still round-trips after the document has been through storage that
 	// doesn't keep an xml.Name.
 	switch {
-	case document.Movie != nil:
-		captureUnknownElementNames(document.Movie.Extra)
-	case document.TVShow != nil:
-		captureUnknownElementNames(document.TVShow.Extra)
-	case document.MusicVideo != nil:
-		captureUnknownElementNames(document.MusicVideo.Extra)
+	case doc.Movie != nil:
+		captureUnknownElementNames(doc.Movie.Extra)
+	case doc.TVShow != nil:
+		captureUnknownElementNames(doc.TVShow.Extra)
+	case doc.MusicVideo != nil:
+		captureUnknownElementNames(doc.MusicVideo.Extra)
 	}
-	for i := range document.Episodes {
-		captureUnknownElementNames(document.Episodes[i].Extra)
+	for i := range doc.Episodes {
+		captureUnknownElementNames(doc.Episodes[i].Extra)
 	}
 
-	return document, nil
+	return doc, nil
 }
 
 // setKindOnce records the document's kind from the first recognized root
 // element, so a file mixing types keeps the identity of what it led with.
-func setKindOnce(document *Document, kind DocumentKind, foundRoot *bool) {
+func setKindOnce(doc *document, kind metadata.DocumentKind, foundRoot *bool) {
 	if !*foundRoot {
-		document.Kind = kind
+		doc.Kind = kind
 		*foundRoot = true
 	}
 }

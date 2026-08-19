@@ -104,16 +104,18 @@ type StorageConfig struct {
 }
 
 // DirectoryScannerConfig controls the background filesystem scanner: how
-// many directories it scans concurrently, and which directories it scans.
+// many directories it scans concurrently, which directories it scans, and how
+// it classifies the sidecar files it finds inside them.
 type DirectoryScannerConfig struct {
-	ParallelCount   int             `bson:"parallel_count" json:"parallel_count"`
-	ScanDirectories []ScanDirectory `bson:"scan_directories" json:"scan_directories"`
+	ParallelCount   int                     `bson:"parallel_count" json:"parallel_count"`
+	ScanDirectories []ScanDirectory         `bson:"scan_directories" json:"scan_directories"`
+	SidecarTypes    []SidecarTypeDefinition `bson:"sidecar_types" json:"sidecar_types"`
 }
 
 // ScanDirectory is a single filesystem path the directory scanner watches,
 // tagged with the type of media expected under it. ScannerSlug identifies
-// the entry for the API and CLI, playing the same role instance_slug plays
-// for a SonarrInstance.
+// the entry for the API, playing the same role instance_slug plays for a
+// SonarrInstance.
 type ScanDirectory struct {
 	ScannerSlug string `bson:"scanner_slug" json:"scanner_slug"`
 	ScanType    string `bson:"scan_type" json:"scan_type"`
@@ -131,6 +133,19 @@ func (c DirectoryScannerConfig) FindScanDirectoryIndex(slug string) int {
 	return -1
 }
 
+// FindSidecarTypeIndexByID returns the index of the sidecar type entry with the
+// given id, or -1 if none matches. Sidecar types are keyed on a minted id rather
+// than on their type name, so an entry can be renamed without the API losing
+// track of it.
+func (c DirectoryScannerConfig) FindSidecarTypeIndexByID(id string) int {
+	for i, entry := range c.SidecarTypes {
+		if entry.ID == id {
+			return i
+		}
+	}
+	return -1
+}
+
 // Default returns the zero-value configuration (matching
 // app_config.default.yaml: no API keys or interfaces configured yet).
 func Default() *Config {
@@ -142,7 +157,10 @@ func Default() *Config {
 			Webhook:  []APIKeyEntry{},
 			ReadOnly: []APIKeyEntry{},
 		},
-		Interfaces:       InterfacesConfig{Sonarr: []SonarrInstance{}},
-		DirectoryScanner: DirectoryScannerConfig{ScanDirectories: []ScanDirectory{}},
+		Interfaces: InterfacesConfig{Sonarr: []SonarrInstance{}},
+		DirectoryScanner: DirectoryScannerConfig{
+			ScanDirectories: []ScanDirectory{},
+			SidecarTypes:    DefaultSidecarTypes(),
+		},
 	}
 }

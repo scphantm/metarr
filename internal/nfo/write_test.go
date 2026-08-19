@@ -1,11 +1,12 @@
 package nfo
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"Metarr/internal/metadata"
 )
 
 func writeTestFile(t *testing.T, path, content string) error {
@@ -13,14 +14,18 @@ func writeTestFile(t *testing.T, path, content string) error {
 	return os.WriteFile(path, []byte(content), 0o644)
 }
 
-func TestMarshalIncludesDeclaration(t *testing.T) {
-	doc := &Document{Kind: KindMovie, Movie: &Movie{Title: "The Matrix"}}
-
-	data, err := Marshal(doc)
+// render is the write half in isolation: metadata → on-disk bytes.
+func render(t *testing.T, md *metadata.Metadata) string {
+	t.Helper()
+	data, err := marshal(documentFromMetadata(md))
 	if err != nil {
-		t.Fatalf("Marshal() error = %v", err)
+		t.Fatalf("marshal() error = %v", err)
 	}
-	out := string(data)
+	return string(data)
+}
+
+func TestMarshalIncludesDeclaration(t *testing.T) {
+	out := render(t, &metadata.Metadata{Kind: metadata.KindMovie, Title: "The Matrix"})
 	if !strings.HasPrefix(out, `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>`) {
 		t.Errorf("output missing Kodi's XML declaration:\n%s", out)
 	}
@@ -33,10 +38,11 @@ func TestMarshalIncludesDeclaration(t *testing.T) {
 }
 
 // TestRoundTripPreservesUnknownTags is the most important test in this package.
-// NFO files are Metarr's system of record and other tools write tags Metarr
-// doesn't model; if a rewrite dropped them it would destroy user metadata.
+// NFO files are a system of record and other tools write tags Metarr doesn't
+// model; a rewrite that dropped them would destroy user metadata. They ride
+// through the metadata model in Extra.
 func TestRoundTripPreservesUnknownTags(t *testing.T) {
-	original := `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+	md := mustParse(t, `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <movie>
     <title>The Matrix</title>
     <runtime>136</runtime>
@@ -44,22 +50,13 @@ func TestRoundTripPreservesUnknownTags(t *testing.T) {
     <customblock attr="kept">
         <nested>deep value</nested>
     </customblock>
-</movie>`
+</movie>`).toMetadata()
 
-	doc, err := Parse([]byte(original))
-	if err != nil {
-		t.Fatalf("Parse() error = %v", err)
-	}
-	if len(doc.Movie.Extra) != 2 {
-		t.Fatalf("len(Extra) = %d, want 2; unknown tags were not captured: %+v", len(doc.Movie.Extra), doc.Movie.Extra)
+	if len(md.Extra) != 2 {
+		t.Fatalf("len(Extra) = %d, want 2; unknown tags were not captured: %+v", len(md.Extra), md.Extra)
 	}
 
-	data, err := Marshal(doc)
-	if err != nil {
-		t.Fatalf("Marshal() error = %v", err)
-	}
-	out := string(data)
-
+	out := render(t, md)
 	for _, want := range []string{
 		"<somethingmetarrdoesnotknow>preserve me</somethingmetarrdoesnotknow>",
 		"<nested>deep value</nested>",
@@ -72,86 +69,56 @@ func TestRoundTripPreservesUnknownTags(t *testing.T) {
 	}
 
 	// And it must survive a second trip, so repeated saves don't erode the file.
-	reparsed, err := Parse(data)
-	if err != nil {
-		t.Fatalf("re-Parse() error = %v", err)
-	}
-	if len(reparsed.Movie.Extra) != 2 {
-		t.Errorf("second round trip has len(Extra) = %d, want 2", len(reparsed.Movie.Extra))
+	reparsed := mustParse(t, out).toMetadata()
+	if len(reparsed.Extra) != 2 {
+		t.Errorf("second round trip has len(Extra) = %d, want 2", len(reparsed.Extra))
 	}
 }
 
-// TestMarshalAfterStorageRoundTrip covers the case where a document came back
-// from a store that doesn't persist xml.Name: the element name has to be
-// recovered from the plain Name field, or preserved tags would be emitted
-// unnamed.
+// TestMarshalAfterStorageRoundTrip covers a record that came back from a store
+// that doesn't persist xml.Name: the element name has to be recovered from the
+// plain Name field, or preserved tags would be emitted unnamed.
 func TestMarshalAfterStorageRoundTrip(t *testing.T) {
-	doc, err := Parse([]byte(`<movie><title>x</title><weirdtag>value</weirdtag></movie>`))
-	if err != nil {
-		t.Fatalf("Parse() error = %v", err)
-	}
-	if doc.Movie.Extra[0].Name != "weirdtag" {
-		t.Fatalf("Extra[0].Name = %q, want %q", doc.Movie.Extra[0].Name, "weirdtag")
+	md := mustParse(t, `<movie><title>x</title><weirdtag>value</weirdtag></movie>`).toMetadata()
+	if md.Extra[0].Name != "weirdtag" {
+		t.Fatalf("Extra[0].Name = %q, want %q", md.Extra[0].Name, "weirdtag")
 	}
 
 	// Simulate the loss of xml.Name that BSON storage causes.
-	doc.Movie.Extra[0].XMLName.Local = ""
+	md.Extra[0].XMLName.Local = ""
 
-	data, err := Marshal(doc)
-	if err != nil {
-		t.Fatalf("Marshal() error = %v", err)
-	}
-	if !strings.Contains(string(data), "<weirdtag>value</weirdtag>") {
-		t.Errorf("preserved tag lost after storage round trip:\n%s", data)
+	if out := render(t, md); !strings.Contains(out, "<weirdtag>value</weirdtag>") {
+		t.Errorf("preserved tag lost after storage round trip:\n%s", out)
 	}
 }
 
 func TestMarshalEachRootType(t *testing.T) {
 	tests := []struct {
 		name    string
-		doc     *Document
+		md      *metadata.Metadata
 		wantTag string
 	}{
-		{"movie", &Document{Kind: KindMovie, Movie: &Movie{Title: "m"}}, "<movie>"},
-		{"tvshow", &Document{Kind: KindTVShow, TVShow: &TVShow{Title: "s"}}, "<tvshow>"},
-		{"musicvideo", &Document{Kind: KindMusicVideo, MusicVideo: &MusicVideo{Title: "v"}}, "<musicvideo>"},
-		{"episode", &Document{Kind: KindEpisode, Episodes: []EpisodeDetails{{Title: "e"}}}, "<episodedetails>"},
+		{"movie", &metadata.Metadata{Kind: metadata.KindMovie, Title: "m"}, "<movie>"},
+		{"tvshow", &metadata.Metadata{Kind: metadata.KindTVShow, Title: "s"}, "<tvshow>"},
+		{"musicvideo", &metadata.Metadata{Kind: metadata.KindMusicVideo, Title: "v"}, "<musicvideo>"},
+		{"episode", &metadata.Metadata{Kind: metadata.KindEpisode, Title: "e"}, "<episodedetails>"},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			data, err := Marshal(test.doc)
-			if err != nil {
-				t.Fatalf("Marshal() error = %v", err)
-			}
-			if !strings.Contains(string(data), test.wantTag) {
-				t.Errorf("output missing %q:\n%s", test.wantTag, data)
+			if out := render(t, test.md); !strings.Contains(out, test.wantTag) {
+				t.Errorf("output missing %q:\n%s", test.wantTag, out)
 			}
 		})
 	}
 }
 
-// TestMarshalRejectsMultipleEpisodes covers the read-both/write-single rule:
-// Kodi v22 dropped multi-root episode files, so emitting one would produce a
-// file newer Kodi ignores.
-func TestMarshalRejectsMultipleEpisodes(t *testing.T) {
-	doc := &Document{
-		Kind:     KindEpisode,
-		Episodes: []EpisodeDetails{{Title: "one"}, {Title: "two"}},
-	}
-
-	_, err := Marshal(doc)
-	if !errors.Is(err, ErrMultipleEpisodes) {
-		t.Fatalf("Marshal() error = %v, want ErrMultipleEpisodes", err)
-	}
-}
-
 func TestMarshalRejectsEmptyDocuments(t *testing.T) {
-	if _, err := Marshal(nil); err == nil {
-		t.Error("Marshal(nil) succeeded")
+	if _, err := marshal(nil); err == nil {
+		t.Error("marshal(nil) succeeded")
 	}
-	if _, err := Marshal(&Document{Kind: KindURL}); err == nil {
-		t.Error("Marshal() succeeded on a document with no content")
+	if _, err := marshal(documentFromMetadata(&metadata.Metadata{Kind: metadata.KindURL})); err == nil {
+		t.Error("marshal() succeeded on a document with no content")
 	}
 }
 
@@ -159,8 +126,7 @@ func TestWriteFileCreatesAndLeavesNoTempFiles(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "movie.nfo")
 
-	doc := &Document{Kind: KindMovie, Movie: &Movie{Title: "Fresh"}}
-	if err := WriteFile(path, doc); err != nil {
+	if err := WriteFile(path, &metadata.Metadata{Kind: metadata.KindMovie, Title: "Fresh"}); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
 
@@ -196,8 +162,7 @@ func TestWriteFilePreservesExistingMode(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	doc := &Document{Kind: KindMovie, Movie: &Movie{Title: "new"}}
-	if err := WriteFile(path, doc); err != nil {
+	if err := WriteFile(path, &metadata.Metadata{Kind: metadata.KindMovie, Title: "new"}); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
 
@@ -217,7 +182,7 @@ func TestWriteFileReplacesContentEntirely(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := WriteFile(path, &Document{Kind: KindMovie, Movie: &Movie{Title: "short"}}); err != nil {
+	if err := WriteFile(path, &metadata.Metadata{Kind: metadata.KindMovie, Title: "short"}); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
 
@@ -230,15 +195,135 @@ func TestWriteFileReplacesContentEntirely(t *testing.T) {
 	}
 }
 
-func TestWriteFileErrorsOnBadDocument(t *testing.T) {
+func TestWriteFileErrorsOnEmptyDocument(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "movie.nfo")
 
-	doc := &Document{Kind: KindEpisode, Episodes: []EpisodeDetails{{Title: "a"}, {Title: "b"}}}
-	if err := WriteFile(path, doc); !errors.Is(err, ErrMultipleEpisodes) {
-		t.Fatalf("WriteFile() error = %v, want ErrMultipleEpisodes", err)
+	if err := WriteFile(path, &metadata.Metadata{Kind: metadata.KindUnknown}); err == nil {
+		t.Fatal("WriteFile() succeeded on a record with no writable content")
 	}
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		t.Error("WriteFile() created a file despite failing to marshal")
+	}
+}
+
+// TestRoundTripPreservesFileInfo covers a tag that used to be modelled and no
+// longer is. Dropping the typed field must not mean dropping the data: NFO
+// files are the system of record, so <fileinfo> has to come back out of a save
+// exactly as it went in, carried by the unknown-element mechanism.
+func TestRoundTripPreservesFileInfo(t *testing.T) {
+	md := mustParse(t, `<movie>
+    <title>The Matrix</title>
+    <fileinfo>
+        <streamdetails>
+            <video>
+                <codec>h264</codec>
+                <height>1080</height>
+            </video>
+        </streamdetails>
+    </fileinfo>
+</movie>`).toMetadata()
+
+	out := render(t, md)
+	for _, want := range []string{"<fileinfo>", "<codec>h264</codec>", "<height>1080</height>"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("round-tripped output lost %q:\n%s", want, out)
+		}
+	}
+
+	// A second save must not erode it either.
+	if reparsed := render(t, mustParse(t, out).toMetadata()); !strings.Contains(reparsed, "<codec>h264</codec>") {
+		t.Errorf("stream details lost on the second round trip:\n%s", reparsed)
+	}
+}
+
+// TestRoundTripDates pins what modelling the date tags as dates costs. A bare
+// date survives untouched; a tag written with a time of day comes back as the
+// day alone, because the model records a date rather than an instant.
+func TestRoundTripDates(t *testing.T) {
+	md := mustParse(t, `<movie>
+    <title>The Matrix</title>
+    <premiered>1999-03-31</premiered>
+    <dateadded>2008-01-20 10:35:00</dateadded>
+</movie>`).toMetadata()
+
+	if got := metadata.FormatDate(md.Premiered); got != "1999-03-31" {
+		t.Errorf("Premiered = %q, want %q", got, "1999-03-31")
+	}
+	if got := metadata.FormatDate(md.DateAdded); got != "2008-01-20" {
+		t.Errorf("DateAdded = %q, want %q — the time of day is not modelled", got, "2008-01-20")
+	}
+
+	out := render(t, md)
+	if !strings.Contains(out, "<premiered>1999-03-31</premiered>") {
+		t.Errorf("premiered did not survive the round trip:\n%s", out)
+	}
+	if !strings.Contains(out, "<dateadded>2008-01-20</dateadded>") {
+		t.Errorf("dateadded did not survive the round trip:\n%s", out)
+	}
+}
+
+// TestUnparseableDateIsDroppedNotFatal covers a real-world badly written tag:
+// it must not fail the read, and it must not be written back as junk.
+func TestUnparseableDateIsDroppedNotFatal(t *testing.T) {
+	md := mustParse(t, `<movie><title>x</title><premiered>not a date</premiered></movie>`).toMetadata()
+
+	if !md.Premiered.Time.IsZero() {
+		t.Errorf("Premiered = %v, want the zero date", md.Premiered)
+	}
+	if out := render(t, md); strings.Contains(out, "<premiered>") {
+		t.Errorf("an unparseable date was written back out:\n%s", out)
+	}
+}
+
+// TestRoundTripPreservesUniqueIDs covers the provider ids now that they live in
+// ExternalLinks rather than a field of their own: they have to come back out of
+// a save as the same <uniqueid> tags, default attribute included.
+func TestRoundTripPreservesUniqueIDs(t *testing.T) {
+	md := mustParse(t, `<movie>
+    <title>The Matrix</title>
+    <uniqueid type="tmdb" default="true">603</uniqueid>
+    <uniqueid type="imdb">tt0133093</uniqueid>
+</movie>`).toMetadata()
+
+	out := render(t, md)
+	for _, want := range []string{
+		`<uniqueid type="tmdb" default="true">603</uniqueid>`,
+		`<uniqueid type="imdb">tt0133093</uniqueid>`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("round-tripped output lost %q:\n%s", want, out)
+		}
+	}
+}
+
+// TestRoundTripDoesNotInventUniqueIDs is the guard on the one place the new
+// shape could corrupt a file. ExtractLinks folds ids out of <id> and <trailer>
+// into the same ExternalLinks list the uniqueid tags use, and the scanner
+// assigns that union back onto the record — so the writer has to know which of
+// those were never uniqueid tags to begin with.
+func TestRoundTripDoesNotInventUniqueIDs(t *testing.T) {
+	md := mustParse(t, `<movie>
+    <title>The Matrix</title>
+    <uniqueid type="tmdb">603</uniqueid>
+    <id>12345</id>
+    <trailer>plugin://plugin.video.youtube/?action=play_video&amp;videoid=HhesaQXLuRY</trailer>
+</movie>`).toMetadata()
+
+	// Stand in for what the scanner does: replace the links with the derived union.
+	md.ExternalLinks = metadata.ExtractLinks(md)
+
+	out := render(t, md)
+	if strings.Count(out, "<uniqueid") != 1 {
+		t.Errorf("expected exactly the one uniqueid the file carried:\n%s", out)
+	}
+	for _, unwanted := range []string{`type="youtube"`, `type="id"`} {
+		if strings.Contains(out, unwanted) {
+			t.Errorf("a derived id was written back as a uniqueid (%s):\n%s", unwanted, out)
+		}
+	}
+	// The tags those ids really came from are still there.
+	if !strings.Contains(out, "<id>12345</id>") || !strings.Contains(out, "videoid=HhesaQXLuRY") {
+		t.Errorf("the source tags were lost:\n%s", out)
 	}
 }

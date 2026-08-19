@@ -7,6 +7,12 @@ import (
 	"strings"
 )
 
+// seasonArtworkTokens is the alternation of artwork words a season-scoped file
+// may end in, e.g. the "poster" of "Season01-poster.jpg". It is a fragment
+// spliced into the season artwork patterns below rather than a pattern of its
+// own.
+const seasonArtworkTokens = `(?:poster|banner|thumbs?|thumbnail|fanart|backdrop|background|landscape|clearart|clearlogo|logo|discart|cdart|keyart|characterart|art|cover|folder)`
+
 // The order these patterns are applied in matters; see parseVideoName.
 var (
 	// threeDPattern matches the stereoscopic flag Jellyfin appends, e.g.
@@ -64,19 +70,19 @@ var (
 	// it still scans, with a warning attached.
 	abbreviatedSeasonFolderPattern = regexp.MustCompile(`(?i)^s(?:e|eason)?[ ._-]*(\d{1,4})$`)
 
-	// plexSeasonPosterPattern matches Plex's season artwork kept at the series
-	// root, e.g. "Season01.jpg" or "Season01-poster.jpg".
-	plexSeasonPosterPattern = regexp.MustCompile(`(?i)^season[ ._-]*(\d{1,4})(?:[ ._-]*poster)?$`)
+	// seasonArtworkPattern matches season artwork kept at the series root, the
+	// layout Plex documents: "Season01.jpg", "Season 02-poster.jpg",
+	// "season03_banner.jpg".
+	//
+	// The trailing token is optional but restricted to the artwork words the
+	// naming conventions actually use. Accepting any trailing word would sweep
+	// up things that merely mention a season — "Season 1 Trailer.mkv" is an
+	// extra belonging to the series, not artwork belonging to season one.
+	seasonArtworkPattern = regexp.MustCompile(`(?i)^season[ ._-]*(\d{1,4})(?:[ ._-]*` + seasonArtworkTokens + `)?$`)
 
-	// plexSpecialsPosterPattern matches the specials equivalent.
-	plexSpecialsPosterPattern = regexp.MustCompile(`(?i)^season[ ._-]*specials(?:[ ._-]*poster)?$`)
-
-	// imageTokenPattern splits an artwork filename into its token and an
-	// optional index, covering both "backdrop-1" and "backdrop2".
-	imageTokenPattern = regexp.MustCompile(`(?i)^([a-z]+?)[ ._-]?(\d*)$`)
-
-	// languageCodePattern matches a 2- or 3-letter ISO language code.
-	languageCodePattern = regexp.MustCompile(`(?i)^[a-z]{2,3}$`)
+	// seasonSpecialsArtworkPattern is the specials equivalent, which is season
+	// zero.
+	seasonSpecialsArtworkPattern = regexp.MustCompile(`(?i)^season[ ._-]*specials(?:[ ._-]*` + seasonArtworkTokens + `)?$`)
 
 	// whitespaceRun collapses the runs left behind by separator substitution.
 	whitespaceRun = regexp.MustCompile(`\s{2,}`)
@@ -365,6 +371,22 @@ func parseSeasonFolder(folderName string) (seasonNumber int, abbreviated, ok boo
 	return 0, false, false
 }
 
+// parseSeasonArtworkName reads the season a sidecar names in its own filename.
+//
+// Both servers accept season artwork kept beside the series rather than inside
+// the season folder, which means the file's position says nothing about which
+// season it belongs to — the name is the only thing that does.
+func parseSeasonArtworkName(baseName string) (seasonNumber int, ok bool) {
+	if seasonSpecialsArtworkPattern.MatchString(baseName) {
+		return 0, true
+	}
+	if match := seasonArtworkPattern.FindStringSubmatch(baseName); match != nil {
+		number, err := strconv.Atoi(match[1])
+		return number, err == nil
+	}
+	return 0, false
+}
+
 // extrasSuffixType reports whether a video's base name ends in one of the extras
 // suffixes, which keeps it out of the media file records.
 func extrasSuffixType(baseName string) (string, bool) {
@@ -380,78 +402,6 @@ func extrasSuffixType(baseName string) (string, bool) {
 		}
 	}
 	return "", false
-}
-
-// imageNameInfo is what an artwork filename yields when it uses one of the bare
-// artwork names rather than being a sidecar of a specific video.
-type imageNameInfo struct {
-	ImageType    string
-	Index        int
-	SeasonNumber *int
-}
-
-// parseImageName classifies a bare artwork filename. Plex's series-root season
-// posters are checked first, since "season01" would otherwise fall through to
-// the generic token match.
-func parseImageName(baseName string) (imageNameInfo, bool) {
-	if plexSpecialsPosterPattern.MatchString(baseName) {
-		specials := 0
-		return imageNameInfo{ImageType: ImagePoster, SeasonNumber: &specials}, true
-	}
-	if match := plexSeasonPosterPattern.FindStringSubmatch(baseName); match != nil {
-		if number, err := strconv.Atoi(match[1]); err == nil {
-			return imageNameInfo{ImageType: ImagePoster, SeasonNumber: &number}, true
-		}
-	}
-
-	match := imageTokenPattern.FindStringSubmatch(strings.ToLower(baseName))
-	if match == nil {
-		return imageNameInfo{}, false
-	}
-	imageType, ok := imageTypeTokens[match[1]]
-	if !ok {
-		return imageNameInfo{}, false
-	}
-
-	info := imageNameInfo{ImageType: imageType}
-	if match[2] != "" {
-		if index, err := strconv.Atoi(match[2]); err == nil {
-			info.Index = index
-		}
-	}
-	return info, true
-}
-
-// parseSidecarSuffix reads the dot-separated flags that follow a media file's
-// base name in a sidecar filename, e.g. the ".en.forced" of
-// "Film.en.forced.srt". It is shared by subtitles and per-video artwork.
-func parseSidecarSuffix(suffix string) SubtitleAttributes {
-	attributes := SubtitleAttributes{}
-	var titleParts []string
-
-	for _, token := range strings.Split(suffix, ".") {
-		token = strings.TrimSpace(token)
-		if token == "" {
-			continue
-		}
-		lowered := strings.ToLower(token)
-
-		switch {
-		case subtitleForcedTokens[lowered]:
-			attributes.Forced = true
-		case subtitleDefaultTokens[lowered]:
-			attributes.Default = true
-		case subtitleHearingTokens[lowered]:
-			attributes.HearingImpaired = true
-		case attributes.Language == "" && languageCodePattern.MatchString(lowered):
-			attributes.Language = lowered
-		default:
-			titleParts = append(titleParts, token)
-		}
-	}
-
-	attributes.Title = strings.Join(titleParts, " ")
-	return attributes
 }
 
 // parseArtistAndTitle splits the "Artist - Title" convention used for music

@@ -1,6 +1,10 @@
 package mediascan
 
-import "strings"
+import (
+	"regexp"
+	"strconv"
+	"strings"
+)
 
 // This file holds the naming vocabularies defined by the Jellyfin and Plex
 // media organization specifications:
@@ -102,6 +106,28 @@ func extrasFolderType(folderName string) (string, bool) {
 	return extraType, ok
 }
 
+// extraTypeToSidecarType maps the extras vocabulary onto sidecar types. Most
+// values are already the same string, but the mapping is written out because
+// the two vocabularies are not the same size: the extras vocabulary
+// distinguishes samples, clips and generic extras, which all classify as
+// other_extra, and it covers theme music and backdrops, which are not extra
+// videos at all.
+var extraTypeToSidecarType = map[string]SidecarType{
+	ExtraTrailer:         SidecarTrailer,
+	ExtraBehindTheScenes: SidecarBehindTheScenes,
+	ExtraDeletedScene:    SidecarDeletedScene,
+	ExtraInterview:       SidecarInterview,
+	ExtraScene:           SidecarScene,
+	ExtraShort:           SidecarShort,
+	ExtraFeaturette:      SidecarFeaturette,
+	ExtraSample:          SidecarOtherExtra,
+	ExtraClip:            SidecarOtherExtra,
+	ExtraOther:           SidecarOtherExtra,
+	ExtraExtra:           SidecarOtherExtra,
+	ExtraThemeMusic:      SidecarTheme,
+	ExtraBackdrop:        SidecarFanart,
+}
+
 // extrasSuffixTypes maps the filename suffix stems Jellyfin recognizes to the
 // same extra type vocabulary.
 var extrasSuffixTypes = map[string]string{
@@ -146,6 +172,54 @@ func isDiscStructureFolder(folderName string) bool {
 	return discStructureFolders[strings.ToLower(folderName)]
 }
 
+// trickplayFolderSuffix ends the folder Jellyfin writes its scrubbing previews
+// into when it is configured to keep them beside the media. The video's
+// extension is replaced rather than appended, so "Movie (2019).mkv" is
+// previewed by "Movie (2019).trickplay".
+const trickplayFolderSuffix = ".trickplay"
+
+// trickplayFolderBaseName reports whether a folder holds trickplay previews,
+// returning the base name of the media file they belong to.
+func trickplayFolderBaseName(folderName string) (string, bool) {
+	if len(folderName) <= len(trickplayFolderSuffix) {
+		return "", false
+	}
+	if !strings.HasSuffix(strings.ToLower(folderName), trickplayFolderSuffix) {
+		return "", false
+	}
+	return folderName[:len(folderName)-len(trickplayFolderSuffix)], true
+}
+
+// trickplayResolutionPattern matches the subfolder Jellyfin generates inside a
+// trickplay folder, one per resolution: the image width, then the tile grid each
+// sheet is packed in. It is the same expression Jellyfin reads these folders
+// back with, spaces around the dash included.
+var trickplayResolutionPattern = regexp.MustCompile(`^(\d+) - (\d+)x(\d+)$`)
+
+// parseTrickplayResolutionFolder reads the width and tile grid out of a
+// trickplay resolution folder name, such as "320 - 10x10".
+func parseTrickplayResolutionFolder(folderName string) (width, tileWidth, tileHeight int, ok bool) {
+	match := trickplayResolutionPattern.FindStringSubmatch(folderName)
+	if match == nil {
+		return 0, 0, 0, false
+	}
+	// Every group is \d+ and so parses, except for a number too large to hold —
+	// which is not a resolution, and is treated as an unrecognized folder.
+	width, err := strconv.Atoi(match[1])
+	if err != nil {
+		return 0, 0, 0, false
+	}
+	tileWidth, err = strconv.Atoi(match[2])
+	if err != nil {
+		return 0, 0, 0, false
+	}
+	tileHeight, err = strconv.Atoi(match[3])
+	if err != nil {
+		return 0, 0, 0, false
+	}
+	return width, tileWidth, tileHeight, true
+}
+
 // ignoredFolders are scraper and platform caches that describe nothing about
 // the media itself.
 var ignoredFolders = map[string]bool{
@@ -157,14 +231,12 @@ var ignoredFolders = map[string]bool{
 	"lost+found":   true,
 }
 
-// isIgnoredFolder reports folders skipped outright, including any hidden folder
-// and Jellyfin's generated .trickplay directories.
+// isIgnoredFolder reports folders skipped outright, including any hidden
+// folder. Jellyfin's .trickplay folders used to be skipped here too; they are
+// now walked and their tiles recorded, which is what trickplayFolderBaseName
+// above exists for.
 func isIgnoredFolder(folderName string) bool {
-	lowered := strings.ToLower(folderName)
-	if ignoredFolders[lowered] {
-		return true
-	}
-	if strings.HasSuffix(lowered, ".trickplay") {
+	if ignoredFolders[strings.ToLower(folderName)] {
 		return true
 	}
 	return strings.HasPrefix(folderName, ".")
@@ -186,47 +258,9 @@ func isIgnoredFile(fileName string) bool {
 	return strings.HasPrefix(fileName, ".")
 }
 
-// Image type names recorded on artwork files.
-const (
-	ImagePoster   = "poster"
-	ImageBackdrop = "backdrop"
-	ImageBanner   = "banner"
-	ImageLogo     = "logo"
-	ImageThumb    = "thumb"
-	ImageDisc     = "disc"
-	ImageClearArt = "clearart"
-)
-
-// imageTypeTokens maps the bare artwork filenames both servers recognize onto
-// one image type each.
-var imageTypeTokens = map[string]string{
-	"poster":     ImagePoster,
-	"folder":     ImagePoster,
-	"cover":      ImagePoster,
-	"default":    ImagePoster,
-	"movie":      ImagePoster,
-	"show":       ImagePoster,
-	"backdrop":   ImageBackdrop,
-	"fanart":     ImageBackdrop,
-	"background": ImageBackdrop,
-	"art":        ImageBackdrop,
-	"banner":     ImageBanner,
-	"logo":       ImageLogo,
-	"clearlogo":  ImageLogo,
-	"thumb":      ImageThumb,
-	"landscape":  ImageThumb,
-	"disc":       ImageDisc,
-	"discart":    ImageDisc,
-	"cdart":      ImageDisc,
-	"clearart":   ImageClearArt,
-}
-
-// Subtitle flag tokens, per the Jellyfin external-subtitle naming rules.
-var (
-	subtitleForcedTokens  = map[string]bool{"forced": true, "foreign": true}
-	subtitleDefaultTokens = map[string]bool{"default": true}
-	subtitleHearingTokens = map[string]bool{"sdh": true, "cc": true, "hi": true}
-)
+// Artwork names and external-subtitle flag tokens used to live here. They are
+// now expressed as regular expressions in the sidecar classification table,
+// which is configuration rather than Go — see appconfig.DefaultSidecarTypes.
 
 // The stereoscopic layout flags (hsbs, fsbs, htab, ftab, mvc) and the
 // multi-part tokens (cd, dvd, part, pt, disc, disk) are enumerated directly in
