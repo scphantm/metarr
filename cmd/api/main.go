@@ -24,6 +24,7 @@ import (
 	"Metarr/internal/httpserver"
 	"Metarr/internal/listeners"
 	"Metarr/internal/logging"
+	"Metarr/internal/mediascan"
 	"Metarr/internal/mongostore"
 	"Metarr/internal/passwordhash"
 	"Metarr/internal/redisclient"
@@ -204,6 +205,27 @@ func run() error {
 		bootstrapped = true
 	}
 
+	// Seed the sidecar classification table the first time the app starts
+	// against this database, on the same "fresh install, or a database
+	// predating this section" reasoning as the block above. An empty table
+	// would classify nothing, so this is what makes the built-in rules the
+	// starting point a user then edits.
+	if len(startupCfg.DirectoryScanner.SidecarTypes) == 0 {
+		startupCfg.DirectoryScanner.SidecarTypes = appconfig.DefaultSidecarTypes()
+		bootstrapped = true
+	}
+
+	// A built-in type added after this database was seeded would otherwise never
+	// reach it, since the seed above only fires on an empty table. Note this
+	// also means a built-in deleted through the API comes back on the next
+	// restart: a deletion leaves nothing behind to tell it apart from a type the
+	// table has simply never seen.
+	if merged, added := appconfig.MergeMissingSidecarTypes(startupCfg.DirectoryScanner.SidecarTypes); added > 0 {
+		startupCfg.DirectoryScanner.SidecarTypes = merged
+		bootstrapped = true
+		logger.Info("added built-in sidecar types missing from the stored table", "count", added)
+	}
+
 	if bootstrapped {
 		if err := appConfigRepo.Upsert(connectCtx, startupCfg); err != nil {
 			return err
@@ -214,6 +236,17 @@ func run() error {
 	}
 
 	appconfig.Set(startupCfg)
+
+	// Compile the stored sidecar table into the registry the scanner reads.
+	// A bad pattern here is a stored-configuration problem, not a reason to
+	// refuse to boot: log it and carry on with the built-in defaults the
+	// package installed at init, which at least leaves the scanner working
+	// while someone fixes the document.
+	if registry, err := mediascan.NewSidecarRegistry(startupCfg.DirectoryScanner.SidecarTypes); err != nil {
+		logger.Error("stored sidecar type table is invalid; using built-in defaults", "error", err)
+	} else {
+		mediascan.SetSidecarRegistry(registry)
+	}
 
 	// Listeners run for the lifetime of the process, independent of any
 	// single HTTP request.

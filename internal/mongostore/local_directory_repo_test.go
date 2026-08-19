@@ -19,8 +19,8 @@ func TestReplacementDocumentOmitsID(t *testing.T) {
 	}{
 		{
 			name: "freshly scanned directory",
-			record: mediascan.LocalDirectory{
-				RecordType: mediascan.RecordTypeDirectory,
+			record: mediascan.TVSeries{
+				RecordType: mediascan.RecordTypeTVSeries,
 				Path:       "/media/Movies/The Matrix (1999)",
 				Type:       mediascan.TypeMovie,
 			},
@@ -29,9 +29,9 @@ func TestReplacementDocumentOmitsID(t *testing.T) {
 			// A record that has already been through storage carries a real id;
 			// it must still be stripped before the update is sent.
 			name: "directory already carrying an id",
-			record: mediascan.LocalDirectory{
+			record: mediascan.TVSeries{
 				ID:         bson.NewObjectID(),
-				RecordType: mediascan.RecordTypeDirectory,
+				RecordType: mediascan.RecordTypeTVSeries,
 				Path:       "/media/Movies/The Matrix (1999)",
 			},
 		},
@@ -75,11 +75,11 @@ func TestReplacementDocumentOmitsID(t *testing.T) {
 func TestReplacementIsNotAPartialUpdate(t *testing.T) {
 	// A record whose omitempty fields are all empty, standing in for a rescan of
 	// a directory whose warnings have been resolved.
-	cleaned := mediascan.LocalDirectory{
-		RecordType: mediascan.RecordTypeDirectory,
+	cleaned := mediascan.TVSeries{
+		RecordType: mediascan.RecordTypeTVSeries,
 		Path:       "/media/Shows/Fixed Show (2010)",
 		Type:       mediascan.TypeTV,
-		Files:      []mediascan.DirectoryFile{},
+		Sidecars:   []mediascan.SidecarFile{},
 	}
 
 	fields, err := replacementDocumentFrom(cleaned)

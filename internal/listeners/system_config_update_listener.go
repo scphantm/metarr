@@ -7,6 +7,7 @@ import (
 
 	"Metarr/internal/appconfig"
 	"Metarr/internal/eventbus"
+	"Metarr/internal/mediascan"
 )
 
 // RunSystemConfigUpdateListener consumes system_config_update events. For
@@ -29,6 +30,19 @@ func RunSystemConfigUpdateListener(ctx context.Context, bus *eventbus.StreamBus,
 		}
 
 		appconfig.Set(&appConfig)
+
+		// Recompile the sidecar classification table so a change takes effect
+		// on the next scan without a restart. A table that fails to compile
+		// leaves the previous registry in place: the scanner must never be
+		// left without one, and the previous table is a far better answer than
+		// nothing.
+		if registry, err := mediascan.NewSidecarRegistry(appConfig.DirectoryScanner.SidecarTypes); err != nil {
+			logger.Error("updated sidecar type table is invalid; keeping the previous one",
+				"correlation_id", event.CorrelationID, "error", err)
+		} else {
+			mediascan.SetSidecarRegistry(registry)
+		}
+
 		logger.Info("system config updated", "correlation_id", event.CorrelationID)
 		return nil
 	})

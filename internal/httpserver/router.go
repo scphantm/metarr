@@ -44,19 +44,28 @@ func NewRouter(h *handlers.Handlers, sessions *session.Store, logger *slog.Logge
 	mux.Handle("PUT /api/config/admin", protect(auth.GroupConfig, h.UpdateAdmin))
 
 	mux.Handle("GET /api/config/interfaces/sonarr", protect(auth.GroupConfig, h.ListSonarrInterfaces))
-	mux.Handle("POST /api/config/interfaces/sonarr", protect(auth.GroupConfig, h.CreateSonarrInterface))
+	mux.Handle("POST /api/config/interfaces/sonarr", protect(auth.GroupConfig, h.UpsertSonarrInterface))
 	mux.Handle("GET /api/config/interfaces/sonarr/{slug}", protect(auth.GroupConfig, h.GetSonarrInterface))
-	mux.Handle("PUT /api/config/interfaces/sonarr/{slug}", protect(auth.GroupConfig, h.UpdateSonarrInterface))
 	mux.Handle("DELETE /api/config/interfaces/sonarr/{slug}", protect(auth.GroupConfig, h.DeleteSonarrInterface))
 
 	mux.Handle("GET /api/config/directory-scanner", protect(auth.GroupConfig, h.GetDirectoryScannerConfig))
 	mux.Handle("PUT /api/config/directory-scanner", protect(auth.GroupConfig, h.UpdateDirectoryScannerConfig))
 
 	mux.Handle("GET /api/config/directory-scanner/directories", protect(auth.GroupConfig, h.ListScanDirectories))
-	mux.Handle("POST /api/config/directory-scanner/directories", protect(auth.GroupConfig, h.CreateScanDirectory))
+	mux.Handle("POST /api/config/directory-scanner/directories", protect(auth.GroupConfig, h.UpsertScanDirectory))
 	mux.Handle("GET /api/config/directory-scanner/directories/{slug}", protect(auth.GroupConfig, h.GetScanDirectory))
-	mux.Handle("PUT /api/config/directory-scanner/directories/{slug}", protect(auth.GroupConfig, h.UpdateScanDirectory))
 	mux.Handle("DELETE /api/config/directory-scanner/directories/{slug}", protect(auth.GroupConfig, h.DeleteScanDirectory))
+
+	// The sidecar classification table: the rules deciding what a non-media
+	// file found next to a movie or episode is.
+	mux.Handle("GET /api/config/directory-scanner/sidecar-types", protect(auth.GroupConfig, h.ListSidecarTypes))
+	mux.Handle("POST /api/config/directory-scanner/sidecar-types", protect(auth.GroupConfig, h.UpsertSidecarType))
+	// Evaluation order is its own transaction: it covers the whole table at once
+	// and is the only place an entry can be enabled or disabled.
+	mux.Handle("POST /api/config/directory-scanner/sidecar-types/order", protect(auth.GroupConfig, h.ReorderSidecarTypes))
+	mux.Handle("POST /api/config/directory-scanner/sidecar-types/reset", protect(auth.GroupConfig, h.ResetSidecarTypes))
+	mux.Handle("GET /api/config/directory-scanner/sidecar-types/{id}", protect(auth.GroupConfig, h.GetSidecarType))
+	mux.Handle("DELETE /api/config/directory-scanner/sidecar-types/{id}", protect(auth.GroupConfig, h.DeleteSidecarType))
 
 	// Scan results. These are data reads rather than configuration, so they sit
 	// in the tasks group alongside the scan trigger that produces them, which

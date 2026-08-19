@@ -35,7 +35,7 @@ const (
 // @Param			scan_root	query		string	false	"Filter by the configured scan directory these were found under"
 // @Param			limit		query		int		false	"Maximum records to return (default 100, max 500)"
 // @Param			skip		query		int		false	"Records to skip"
-// @Success		200			{array}		mediascan.LocalDirectory
+// @Success		200			{array}		mediascan.TVSeries
 // @Failure		400			{string}	string	"invalid type, limit or skip"
 // @Security		ApiKeyHeaderAuth
 // @Security		ApiKeyQueryAuth
@@ -96,7 +96,7 @@ func (h *Handlers) ListLocalDirectories(w http.ResponseWriter, r *http.Request) 
 // @Tags			Media
 // @Produce		json
 // @Param			id	path		string	true	"Directory record id"
-// @Success		200	{object}	mediascan.LocalDirectory
+// @Success		200	{object}	mediascan.TVSeries
 // @Failure		400	{string}	string	"malformed id"
 // @Failure		404	{string}	string	"no directory with that id"
 // @Security		ApiKeyHeaderAuth
@@ -207,7 +207,7 @@ func (h *Handlers) GetMediaFile(w http.ResponseWriter, r *http.Request) {
 // @Produce		json
 // @Param			id		path		string	true	"Directory record id"
 // @Param			path	query		string	true	"Path to the .nfo file, relative to the directory"
-// @Success		200		{object}	nfo.Document
+// @Success		200		{object}	metadata.Metadata
 // @Failure		400		{string}	string	"missing or unsafe path, or not an .nfo file"
 // @Failure		404		{string}	string	"no directory with that id, or no such file"
 // @Failure		422		{string}	string	"the file could not be parsed"
@@ -246,7 +246,7 @@ func (h *Handlers) GetLocalDirectoryNFO(w http.ResponseWriter, r *http.Request) 
 			http.Error(w, "no such file in this directory", http.StatusNotFound)
 			return
 		}
-		http.Error(w, "could not parse that NFO file: "+err.Error(), http.StatusUnprocessableEntity)
+		http.Error(w, "could not read that NFO file: "+err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 

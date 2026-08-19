@@ -8,7 +8,7 @@ ifeq (purge-git-history,$(firstword $(MAKECMDGOALS)))
   $(eval $(PURGE_FILES):;@:)
 endif
 
-.PHONY: generate build run test tidy install-cli purge-git-history
+.PHONY: generate build run test tidy purge-git-history
 
 generate:
 	go generate ./...
@@ -24,9 +24,6 @@ test: generate
 
 tidy:
 	go mod tidy
-
-install-cli:
-	go install ./cmd/metarrctl
 
 # Permanently removes one or more paths from every commit on every branch,
 # using git-filter-repo (brew install git-filter-repo). This rewrites commit

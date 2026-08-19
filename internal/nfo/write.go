@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"Metarr/internal/metadata"
 )
 
 // xmlDeclaration matches what Kodi itself writes at the top of an NFO file.
@@ -16,59 +18,13 @@ const xmlDeclaration = `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 // rewrites doesn't show up as reformatted noise in a diff.
 const xmlIndent = "    "
 
-// ErrMultipleEpisodes is returned when asked to marshal a Document holding
-// more than one episode. Kodi v22 dropped support for several
-// <episodedetails> roots in one file, so writing that layout back out would
-// produce a file newer Kodi versions ignore. Callers should write one file per
-// episode, named with the -SxxEyy suffix.
-var ErrMultipleEpisodes = errors.New("nfo: cannot marshal more than one episode into a single document; write one file per episode")
-
-// Marshal renders doc as a Kodi NFO file, always with a single root element.
-func Marshal(doc *Document) ([]byte, error) {
-	if doc == nil {
-		return nil, errors.New("nfo: cannot marshal a nil document")
-	}
-
-	var root any
-	switch {
-	case doc.Movie != nil:
-		restoreUnknownElementNames(doc.Movie.Extra)
-		root = doc.Movie
-	case doc.TVShow != nil:
-		restoreUnknownElementNames(doc.TVShow.Extra)
-		root = doc.TVShow
-	case doc.MusicVideo != nil:
-		restoreUnknownElementNames(doc.MusicVideo.Extra)
-		root = doc.MusicVideo
-	case len(doc.Episodes) > 1:
-		return nil, ErrMultipleEpisodes
-	case len(doc.Episodes) == 1:
-		restoreUnknownElementNames(doc.Episodes[0].Extra)
-		root = &doc.Episodes[0]
-	default:
-		return nil, fmt.Errorf("nfo: document of kind %q has no content to marshal", doc.Kind)
-	}
-
-	body, err := xml.MarshalIndent(root, "", xmlIndent)
-	if err != nil {
-		return nil, fmt.Errorf("nfo: encoding document: %w", err)
-	}
-
-	var out bytes.Buffer
-	out.Grow(len(xmlDeclaration) + len(body) + 1)
-	out.WriteString(xmlDeclaration)
-	out.Write(body)
-	out.WriteByte('\n')
-	return out.Bytes(), nil
-}
-
-// WriteFile renders doc and replaces the file at path with it atomically: the
-// content is written to a temporary file in the same directory and then
-// renamed over the destination. NFO files are Metarr's system of record, so a
-// crash or full disk partway through must never be able to leave a truncated
-// file where valid metadata used to be.
-func WriteFile(path string, doc *Document) error {
-	data, err := Marshal(doc)
+// WriteFile derives a standard .nfo file from m and replaces the file at path
+// with it atomically: the content is written to a temporary file in the same
+// directory and then renamed over the destination. NFO files are a system of
+// record, so a crash or full disk partway through must never be able to leave a
+// truncated file where valid metadata used to be.
+func WriteFile(path string, m *metadata.Metadata) error {
+	data, err := marshal(documentFromMetadata(m))
 	if err != nil {
 		return err
 	}
@@ -119,4 +75,41 @@ func WriteFile(path string, doc *Document) error {
 		return fmt.Errorf("nfo: replacing %s: %w", path, err)
 	}
 	return nil
+}
+
+// marshal renders a document as a Kodi NFO file with a single root element.
+func marshal(doc *document) ([]byte, error) {
+	if doc == nil {
+		return nil, errors.New("nfo: cannot marshal a nil document")
+	}
+
+	var root any
+	switch {
+	case doc.Movie != nil:
+		restoreUnknownElementNames(doc.Movie.Extra)
+		root = doc.Movie
+	case doc.TVShow != nil:
+		restoreUnknownElementNames(doc.TVShow.Extra)
+		root = doc.TVShow
+	case doc.MusicVideo != nil:
+		restoreUnknownElementNames(doc.MusicVideo.Extra)
+		root = doc.MusicVideo
+	case len(doc.Episodes) == 1:
+		restoreUnknownElementNames(doc.Episodes[0].Extra)
+		root = &doc.Episodes[0]
+	default:
+		return nil, fmt.Errorf("nfo: document of kind %q has no content to marshal", doc.Kind)
+	}
+
+	body, err := xml.MarshalIndent(root, "", xmlIndent)
+	if err != nil {
+		return nil, fmt.Errorf("nfo: encoding document: %w", err)
+	}
+
+	var out bytes.Buffer
+	out.Grow(len(xmlDeclaration) + len(body) + 1)
+	out.WriteString(xmlDeclaration)
+	out.Write(body)
+	out.WriteByte('\n')
+	return out.Bytes(), nil
 }

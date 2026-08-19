@@ -69,13 +69,12 @@ func (r *LocalDirectoryRepo) EnsureIndexes(ctx context.Context) error {
 		},
 		{
 			// Provider-id lookups, which is how reconciliation against Sonarr
-			// and the metadata databases will find a local item.
-			Keys:    bson.D{{Key: "external_links.key", Value: 1}, {Key: "external_links.value", Value: 1}},
-			Options: options.Index().SetName("external_links"),
-		},
-		{
-			Keys:    bson.D{{Key: "episode_ids.key", Value: 1}, {Key: "episode_ids.value", Value: 1}},
-			Options: options.Index().SetName("episode_ids"),
+			// and the metadata databases will find a local item. Both record
+			// kinds keep their ids on their own metadata record — the series'
+			// own on the directory, an episode's on its media file — so one
+			// index serves FindByExternalLink and FindByEpisodeID alike.
+			Keys:    bson.D{{Key: "metadata.external_links.key", Value: 1}, {Key: "metadata.external_links.value", Value: 1}},
+			Options: options.Index().SetName("metadata_external_links"),
 		},
 	}
 
@@ -153,7 +152,7 @@ func (r *LocalDirectoryRepo) ReplaceScanResults(
 // FindOneAndReplace is used rather than a plain replace because it reports the
 // _id in the same round trip whether the document was just inserted or already
 // existed, which the media file records need before they can be written.
-func (r *LocalDirectoryRepo) upsertDirectory(ctx context.Context, directory *mediascan.LocalDirectory) (bson.ObjectID, error) {
+func (r *LocalDirectoryRepo) upsertDirectory(ctx context.Context, directory *mediascan.TVSeries) (bson.ObjectID, error) {
 	replacement, err := replacementDocumentFrom(*directory)
 	if err != nil {
 		return bson.NilObjectID, fmt.Errorf("mongostore: encoding directory %s: %w", directory.Path, err)
@@ -232,8 +231,8 @@ type ListFilter struct {
 }
 
 // ListDirectories returns directory records matching filter, newest scan first.
-func (r *LocalDirectoryRepo) ListDirectories(ctx context.Context, filter ListFilter) ([]mediascan.LocalDirectory, error) {
-	query := bson.M{"record_type": mediascan.RecordTypeDirectory}
+func (r *LocalDirectoryRepo) ListDirectories(ctx context.Context, filter ListFilter) ([]mediascan.TVSeries, error) {
+	query := bson.M{"record_type": mediascan.RecordTypeTVSeries}
 	if filter.ScanRootPath != "" {
 		query["scan_root_path"] = filter.ScanRootPath
 	}
@@ -254,7 +253,7 @@ func (r *LocalDirectoryRepo) ListDirectories(ctx context.Context, filter ListFil
 		return nil, fmt.Errorf("mongostore: listing directories: %w", err)
 	}
 
-	directories := []mediascan.LocalDirectory{}
+	directories := []mediascan.TVSeries{}
 	if err := cursor.All(ctx, &directories); err != nil {
 		return nil, fmt.Errorf("mongostore: decoding directories: %w", err)
 	}
@@ -262,10 +261,10 @@ func (r *LocalDirectoryRepo) ListDirectories(ctx context.Context, filter ListFil
 }
 
 // GetDirectory fetches one directory record by id.
-func (r *LocalDirectoryRepo) GetDirectory(ctx context.Context, id bson.ObjectID) (*mediascan.LocalDirectory, error) {
-	query := bson.M{"_id": id, "record_type": mediascan.RecordTypeDirectory}
+func (r *LocalDirectoryRepo) GetDirectory(ctx context.Context, id bson.ObjectID) (*mediascan.TVSeries, error) {
+	query := bson.M{"_id": id, "record_type": mediascan.RecordTypeTVSeries}
 
-	var directory mediascan.LocalDirectory
+	var directory mediascan.TVSeries
 	err := r.collection.FindOne(ctx, query).Decode(&directory)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, ErrNotFound
@@ -313,10 +312,10 @@ func (r *LocalDirectoryRepo) GetMediaFile(ctx context.Context, id bson.ObjectID)
 
 // FindByExternalLink returns the directories carrying a given provider id, e.g.
 // key "tvdb" and value "81189".
-func (r *LocalDirectoryRepo) FindByExternalLink(ctx context.Context, key, value string) ([]mediascan.LocalDirectory, error) {
+func (r *LocalDirectoryRepo) FindByExternalLink(ctx context.Context, key, value string) ([]mediascan.TVSeries, error) {
 	query := bson.M{
-		"record_type": mediascan.RecordTypeDirectory,
-		"external_links": bson.M{
+		"record_type": mediascan.RecordTypeTVSeries,
+		"metadata.external_links": bson.M{
 			"$elemMatch": bson.M{"key": key, "value": value},
 		},
 	}
@@ -326,7 +325,7 @@ func (r *LocalDirectoryRepo) FindByExternalLink(ctx context.Context, key, value 
 		return nil, fmt.Errorf("mongostore: finding directories by external link: %w", err)
 	}
 
-	directories := []mediascan.LocalDirectory{}
+	directories := []mediascan.TVSeries{}
 	if err := cursor.All(ctx, &directories); err != nil {
 		return nil, fmt.Errorf("mongostore: decoding directories: %w", err)
 	}
@@ -335,10 +334,15 @@ func (r *LocalDirectoryRepo) FindByExternalLink(ctx context.Context, key, value 
 
 // FindByEpisodeID returns the media files carrying a given episode-level
 // provider id.
+//
+// It reads the same metadata.external_links field FindByExternalLink does; the
+// record type is what separates them. An episode's ids come from its own NFO and
+// describe the episode, so restricting to media file records is what makes this
+// an episode lookup rather than a series one.
 func (r *LocalDirectoryRepo) FindByEpisodeID(ctx context.Context, key, value string) ([]mediascan.MediaFile, error) {
 	query := bson.M{
 		"record_type": mediascan.RecordTypeMediaFile,
-		"episode_ids": bson.M{
+		"metadata.external_links": bson.M{
 			"$elemMatch": bson.M{"key": key, "value": value},
 		},
 	}

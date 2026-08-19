@@ -6,7 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"Metarr/internal/nfo"
+	"Metarr/internal/appconfig"
+	"Metarr/internal/metadata"
 )
 
 // buildTree materializes a directory tree from a map of relative path to
@@ -67,21 +68,71 @@ func mediaFileNames(result *ScanResult) string {
 	return "[" + strings.Join(names, ", ") + "]"
 }
 
-func directoryFileByName(t *testing.T, result *ScanResult, fileName string) DirectoryFile {
+// directorySidecarByName finds a sidecar on the directory record itself,
+// excluding the ones filed under a season.
+func directorySidecarByName(t *testing.T, result *ScanResult, fileName string) SidecarFile {
 	t.Helper()
-	for _, file := range result.Directory.Files {
-		if file.FileName == fileName {
-			return file
+	for _, sidecar := range result.Directory.Sidecars {
+		if sidecar.FileName == fileName {
+			return sidecar
 		}
 	}
-	t.Fatalf("no directory file named %q; got %s", fileName, directoryFileNames(result))
-	return DirectoryFile{}
+	t.Fatalf("no directory sidecar named %q; got %s", fileName, sidecarNames(result.Directory.Sidecars))
+	return SidecarFile{}
 }
 
-func directoryFileNames(result *ScanResult) string {
-	names := make([]string, 0, len(result.Directory.Files))
-	for _, file := range result.Directory.Files {
-		names = append(names, file.FileName+"("+string(file.Role)+")")
+// seasonSidecarByName finds a sidecar filed under one season.
+func seasonSidecarByName(t *testing.T, result *ScanResult, seasonNumber int, fileName string) SidecarFile {
+	t.Helper()
+	season := seasonByNumber(t, result, seasonNumber)
+	for _, sidecar := range season.Sidecars {
+		if sidecar.FileName == fileName {
+			return sidecar
+		}
+	}
+	t.Fatalf("no sidecar named %q on season %d; got %s", fileName, seasonNumber, sidecarNames(season.Sidecars))
+	return SidecarFile{}
+}
+
+func seasonByNumber(t *testing.T, result *ScanResult, seasonNumber int) TVSeason {
+	t.Helper()
+	for _, season := range result.Directory.Seasons {
+		if season.SeasonNumber == seasonNumber {
+			return season
+		}
+	}
+	t.Fatalf("no season record numbered %d; got %+v", seasonNumber, result.Directory.Seasons)
+	return TVSeason{}
+}
+
+// mediaSidecarByName finds a sidecar attached to one media file record.
+func mediaSidecarByName(t *testing.T, mediaFile MediaFile, fileName string) SidecarFile {
+	t.Helper()
+	for _, sidecar := range mediaFile.Sidecars {
+		if sidecar.FileName == fileName {
+			return sidecar
+		}
+	}
+	t.Fatalf("no sidecar named %q on %q; got %s", fileName, mediaFile.FileName, sidecarNames(mediaFile.Sidecars))
+	return SidecarFile{}
+}
+
+// sidecarsInCategory filters a sidecar list down to one category, which is the
+// query the categories exist to serve.
+func sidecarsInCategory(sidecars []SidecarFile, category SidecarCategory) []SidecarFile {
+	matching := make([]SidecarFile, 0, len(sidecars))
+	for _, sidecar := range sidecars {
+		if sidecar.Category == category {
+			matching = append(matching, sidecar)
+		}
+	}
+	return matching
+}
+
+func sidecarNames(sidecars []SidecarFile) string {
+	names := make([]string, 0, len(sidecars))
+	for _, sidecar := range sidecars {
+		names = append(names, sidecar.FileName+"("+string(sidecar.Type)+")")
 	}
 	return "[" + strings.Join(names, ", ") + "]"
 }
@@ -116,40 +167,46 @@ func TestScanMovieRecordSplit(t *testing.T) {
 		t.Errorf("Video = %+v", feature.Video)
 	}
 
-	// The feature's own sidecars ride with it.
-	if len(feature.Subtitles) != 1 || feature.Subtitles[0].Subtitle.Language != "en" {
-		t.Errorf("Subtitles = %+v", feature.Subtitles)
+	// The feature's own sidecars ride with it: anything whose name begins with
+	// the feature's base name belongs to the feature.
+	subtitles := sidecarsInCategory(feature.Sidecars, SidecarCategorySubtitle)
+	if len(subtitles) != 1 || subtitles[0].FileName != "The Matrix (1999).en.srt" {
+		t.Errorf("feature subtitles = %s", sidecarNames(feature.Sidecars))
 	}
-	if feature.NFO == nil || feature.NFO.Scope != ScopeVideo || feature.NFO.Movie == nil {
-		t.Errorf("NFO = %+v", feature.NFO)
+	if trailer := mediaSidecarByName(t, feature, "The Matrix (1999)-trailer.mkv"); trailer.Type != SidecarTrailer {
+		t.Errorf("suffix trailer type = %q, want %q", trailer.Type, SidecarTrailer)
 	}
-
-	// Extras, artwork and theme music stay on the directory and must not appear
-	// as media files.
-	for _, name := range []string{
-		"poster.jpg", "fanart.jpg", "backdrop-1.jpg", "theme.mp3",
-		"The Matrix (1999)-trailer.mkv", "Making Of.mkv", "Teaser.mkv",
-	} {
-		directoryFileByName(t, result, name)
+	if feature.Metadata == nil || feature.Metadata.Scope != metadata.ScopeVideo || feature.Metadata.Movie == nil {
+		t.Errorf("NFO = %+v", feature.Metadata)
 	}
-
-	if role := directoryFileByName(t, result, "theme.mp3").Role; role != RoleThemeMusic {
-		t.Errorf("theme.mp3 role = %q, want %q", role, RoleThemeMusic)
+	if feature.Metadata.Title != "The Matrix" {
+		t.Errorf("NFO title = %q", feature.Metadata.Title)
 	}
 
-	trailer := directoryFileByName(t, result, "The Matrix (1999)-trailer.mkv")
-	if trailer.Role != RoleExtraVideo || trailer.Video.ExtraType != ExtraTrailer || trailer.Video.ExtraSource != ExtraSourceSuffix {
-		t.Errorf("suffix trailer = %+v / %+v", trailer.Role, trailer.Video)
+	// Artwork, theme music and extras that name no media file stay on the
+	// directory, and none of them may appear as a media file.
+	for _, name := range []string{"poster.jpg", "fanart.jpg", "backdrop-1.jpg", "theme.mp3", "Making Of.mkv", "Teaser.mkv"} {
+		directorySidecarByName(t, result, name)
 	}
 
-	makingOf := directoryFileByName(t, result, "Making Of.mkv")
-	if makingOf.Role != RoleExtraVideo || makingOf.Video.ExtraType != ExtraBehindTheScenes || makingOf.Video.ExtraSource != ExtraSourceFolder {
-		t.Errorf("folder extra = %+v / %+v", makingOf.Role, makingOf.Video)
+	wantTypes := map[string]SidecarType{
+		"poster.jpg":     SidecarPoster,
+		"fanart.jpg":     SidecarFanart,
+		"backdrop-1.jpg": SidecarFanart,
+		"theme.mp3":      SidecarTheme,
+		"Making Of.mkv":  SidecarBehindTheScenes,
+		"Teaser.mkv":     SidecarTrailer,
+	}
+	for name, want := range wantTypes {
+		if got := directorySidecarByName(t, result, name).Type; got != want {
+			t.Errorf("%s type = %q, want %q", name, got, want)
+		}
 	}
 
-	backdrop := directoryFileByName(t, result, "backdrop-1.jpg")
-	if backdrop.Image == nil || backdrop.Image.ImageType != ImageBackdrop || backdrop.Image.Index != 1 {
-		t.Errorf("backdrop = %+v", backdrop.Image)
+	// "return all images" is the query the category axis exists for.
+	images := sidecarsInCategory(result.Directory.Sidecars, SidecarCategoryImage)
+	if len(images) != 3 {
+		t.Errorf("directory images = %s, want 3", sidecarNames(images))
 	}
 }
 
@@ -206,28 +263,51 @@ func TestScanSeriesRecordSplit(t *testing.T) {
 	}
 
 	// Series-level files stay on the directory record.
-	for _, name := range []string{"tvshow.nfo", "poster.jpg", "Season01-poster.jpg", "theme.mp3", "season.nfo", "Season 1 Trailer.mkv"} {
-		directoryFileByName(t, result, name)
+	for _, name := range []string{"tvshow.nfo", "poster.jpg", "theme.mp3", "Season 1 Trailer.mkv"} {
+		directorySidecarByName(t, result, name)
+	}
+
+	// A file inside a season folder that names no episode belongs to the season.
+	if seasonNFO := seasonSidecarByName(t, result, 1, "season.nfo"); seasonNFO.Type != SidecarNFO {
+		t.Errorf("season.nfo type = %q, want %q", seasonNFO.Type, SidecarNFO)
+	}
+
+	// And so does artwork kept at the series root that names a season, which is
+	// where Plex puts it.
+	if seasonPoster := seasonSidecarByName(t, result, 1, "Season01-poster.jpg"); seasonPoster.Type != SidecarPoster {
+		t.Errorf("Season01-poster.jpg type = %q, want %q", seasonPoster.Type, SidecarPoster)
+	}
+
+	// The series' own tvshow.nfo is promoted onto the directory record, but the
+	// season.nfo — which shares the same <tvshow> root element — must not leak
+	// its own title into it.
+	if result.Directory.Metadata == nil || result.Directory.Metadata.Title != "Breaking Bad" {
+		t.Errorf("Directory.NFO = %+v, want title %q", result.Directory.Metadata, "Breaking Bad")
 	}
 
 	// The episode's own sidecars attach to the episode, not to the directory.
 	episode := mediaFileByName(t, result, "Breaking Bad S01E01.mkv")
-	if len(episode.Subtitles) != 1 || episode.Subtitles[0].FileName != "Breaking Bad S01E01.en.srt" {
-		t.Errorf("Subtitles = %+v", episode.Subtitles)
+	if subtitle := mediaSidecarByName(t, episode, "Breaking Bad S01E01.en.srt"); subtitle.Type != SidecarSubtitle {
+		t.Errorf("episode subtitle type = %q, want %q", subtitle.Type, SidecarSubtitle)
 	}
-	if len(episode.Images) != 1 || episode.Images[0].FileName != "Breaking Bad S01E01-thumb.jpg" {
-		t.Errorf("Images = %+v", episode.Images)
+	if thumb := mediaSidecarByName(t, episode, "Breaking Bad S01E01-thumb.jpg"); thumb.Type != SidecarThumb {
+		t.Errorf("episode thumb type = %q, want %q", thumb.Type, SidecarThumb)
 	}
-	if episode.Images[0].Image.ImageType != ImageThumb || episode.Images[0].Image.Scope != ScopeVideo {
-		t.Errorf("episode image = %+v", episode.Images[0].Image)
+	if episode.Metadata == nil || episode.Metadata.Episode == nil || episode.Metadata.Title != "Pilot" {
+		t.Errorf("NFO = %+v", episode.Metadata)
 	}
-	if episode.NFO == nil || len(episode.NFO.Episodes) != 1 || episode.NFO.Episodes[0].Title != "Pilot" {
-		t.Errorf("NFO = %+v", episode.NFO)
-	}
+	// An episode's own sidecars belong to it and must not also show up on the
+	// directory or on its season.
+	seasonOne := seasonByNumber(t, result, 1)
 	for _, name := range []string{"Breaking Bad S01E01.en.srt", "Breaking Bad S01E01-thumb.jpg", "Breaking Bad S01E01.nfo"} {
-		for _, file := range result.Directory.Files {
-			if file.FileName == name {
+		for _, sidecar := range result.Directory.Sidecars {
+			if sidecar.FileName == name {
 				t.Errorf("%q should belong to its episode record, not the directory", name)
+			}
+		}
+		for _, sidecar := range seasonOne.Sidecars {
+			if sidecar.FileName == name {
+				t.Errorf("%q should belong to its episode record, not its season", name)
 			}
 		}
 	}
@@ -241,18 +321,59 @@ func TestScanSeriesRecordSplit(t *testing.T) {
 		t.Errorf("season zero episode should be marked special: %+v", special.Video)
 	}
 
-	// The season index counts episodes without duplicating them.
-	wantSeasons := map[int]int{0: 1, 1: 2, 2: 1}
-	if len(result.Directory.Seasons) != len(wantSeasons) {
-		t.Fatalf("Seasons = %+v", result.Directory.Seasons)
+	// The season index records the seasons present on disk, ordered by number.
+	if result.Directory.Metadata.TVShow == nil {
+		t.Fatalf("Directory.Metadata.TVShow = nil, want season index")
 	}
-	for _, season := range result.Directory.Seasons {
-		if want := wantSeasons[season.SeasonNumber]; season.EpisodeCount != want {
-			t.Errorf("season %d count = %d, want %d", season.SeasonNumber, season.EpisodeCount, want)
+	seasons := result.Directory.Metadata.TVShow.Seasons
+	wantSeasonNumbers := []int{0, 1, 2}
+	if len(seasons) != len(wantSeasonNumbers) {
+		t.Fatalf("Seasons = %+v, want numbers %v", seasons, wantSeasonNumbers)
+	}
+	for i, want := range wantSeasonNumbers {
+		if seasons[i].SeasonNumber != want {
+			t.Errorf("Seasons[%d].SeasonNumber = %d, want %d", i, seasons[i].SeasonNumber, want)
 		}
 	}
-	if result.Directory.Seasons[0].SeasonNumber != 0 {
-		t.Errorf("Seasons should be ordered by number: %+v", result.Directory.Seasons)
+
+	// The season records carry the same numbering, plus the folder each was
+	// found in.
+	if len(result.Directory.Seasons) != len(wantSeasonNumbers) {
+		t.Fatalf("Directory.Seasons = %+v, want numbers %v", result.Directory.Seasons, wantSeasonNumbers)
+	}
+	for i, want := range wantSeasonNumbers {
+		if result.Directory.Seasons[i].SeasonNumber != want {
+			t.Errorf("Directory.Seasons[%d].SeasonNumber = %d, want %d", i, result.Directory.Seasons[i].SeasonNumber, want)
+		}
+	}
+	if folder := seasonByNumber(t, result, 1).FolderName; folder != "Season 01" {
+		t.Errorf("season 1 folder = %q, want %q", folder, "Season 01")
+	}
+	if folder := seasonByNumber(t, result, 0).FolderName; folder != "Specials" {
+		t.Errorf("specials folder = %q, want %q", folder, "Specials")
+	}
+
+	// A season whose folder holds nothing but episodes is still a season.
+	if sidecars := seasonByNumber(t, result, 2).Sidecars; len(sidecars) != 0 {
+		t.Errorf("season 2 sidecars = %s, want none", sidecarNames(sidecars))
+	}
+}
+
+// TestScanSeriesNFOFirstWins covers the "already initialized" guard: once a
+// directory-scoped tvshow-rooted NFO has set Directory.NFO, nothing else can
+// overwrite it — not a second directory-level file sharing the same root
+// element, and not a season.nfo (WalkDir visits files in lexical order, so
+// tvshow.nfo is seen before zzz-duplicate.nfo here).
+func TestScanSeriesNFOFirstWins(t *testing.T) {
+	result := scanTree(t, "Breaking Bad (2008)", TypeTV, map[string]string{
+		"tvshow.nfo":                        `<tvshow><title>Breaking Bad</title></tvshow>`,
+		"zzz-duplicate.nfo":                 `<tvshow><title>Duplicate Show</title></tvshow>`,
+		"Season 01/season.nfo":              `<tvshow><title>Season 1</title></tvshow>`,
+		"Season 01/Breaking Bad S01E01.mkv": "",
+	})
+
+	if result.Directory.Metadata == nil || result.Directory.Metadata.Title != "Breaking Bad" {
+		t.Fatalf("Directory.NFO = %+v, want the first tvshow.nfo's title", result.Directory.Metadata)
 	}
 }
 
@@ -271,38 +392,51 @@ func TestScanSeriesLinkSeparation(t *testing.T) {
 			`<uniqueid type="tvdb">349233</uniqueid></episodedetails>`,
 	})
 
-	links := result.Directory.ExternalLinks
-	if !hasLink(links, nfo.Link{Key: "tvdb", Value: "81189"}) {
+	if result.Directory.Metadata == nil {
+		t.Fatal("Directory.Metadata = nil, want the series metadata carrying its links")
+	}
+	links := result.Directory.Metadata.ExternalLinks
+	if !hasLink(links, metadata.Link{Key: "tvdb", Value: "81189"}) {
 		t.Errorf("directory external_links missing the series tvdb id: %+v", links)
 	}
-	if !hasLink(links, nfo.Link{Key: "imdb", Value: "tt0903747"}) {
+	if !hasLink(links, metadata.Link{Key: "imdb", Value: "tt0903747"}) {
 		t.Errorf("directory external_links missing the imdb id: %+v", links)
 	}
-	if !hasLink(links, nfo.Link{Key: "youtube", Value: "HhesaQXLuRY"}) {
+	if !hasLink(links, metadata.Link{Key: "youtube", Value: "HhesaQXLuRY"}) {
 		t.Errorf("directory external_links missing the youtube trailer id: %+v", links)
 	}
 
 	// Episode ids are deliberately kept out of the directory's links.
 	for _, episodeID := range []string{"349232", "349233"} {
-		if hasLink(links, nfo.Link{Key: "tvdb", Value: episodeID}) {
+		if hasLink(links, metadata.Link{Key: "tvdb", Value: episodeID}) {
 			t.Errorf("episode id %s leaked into the directory's external_links: %+v", episodeID, links)
 		}
 	}
 
-	first := mediaFileByName(t, result, "Breaking Bad S01E01.mkv")
-	if !hasLink(first.EpisodeIDs, nfo.Link{Key: "tvdb", Value: "349232"}) {
-		t.Errorf("episode 1 episode_ids = %+v", first.EpisodeIDs)
+	firstLinks := mediaFileLinks(t, mediaFileByName(t, result, "Breaking Bad S01E01.mkv"))
+	if !hasLink(firstLinks, metadata.Link{Key: "tvdb", Value: "349232"}) {
+		t.Errorf("episode 1 external_links = %+v", firstLinks)
 	}
-	second := mediaFileByName(t, result, "Breaking Bad S01E02.mkv")
-	if !hasLink(second.EpisodeIDs, nfo.Link{Key: "tvdb", Value: "349233"}) {
-		t.Errorf("episode 2 episode_ids = %+v", second.EpisodeIDs)
+	secondLinks := mediaFileLinks(t, mediaFileByName(t, result, "Breaking Bad S01E02.mkv"))
+	if !hasLink(secondLinks, metadata.Link{Key: "tvdb", Value: "349233"}) {
+		t.Errorf("episode 2 external_links = %+v", secondLinks)
 	}
-	if hasLink(first.EpisodeIDs, nfo.Link{Key: "tvdb", Value: "349233"}) {
+	if hasLink(firstLinks, metadata.Link{Key: "tvdb", Value: "349233"}) {
 		t.Error("episode ids bled between episodes")
 	}
 }
 
-func hasLink(links []nfo.Link, want nfo.Link) bool {
+// mediaFileLinks reads a media file's provider ids, which live on its own
+// metadata record rather than beside it.
+func mediaFileLinks(t *testing.T, mediaFile MediaFile) []metadata.Link {
+	t.Helper()
+	if mediaFile.Metadata == nil {
+		t.Fatalf("%q has no metadata record, so no external links", mediaFile.FileName)
+	}
+	return mediaFile.Metadata.ExternalLinks
+}
+
+func hasLink(links []metadata.Link, want metadata.Link) bool {
 	for _, link := range links {
 		if link == want {
 			return true
@@ -312,7 +446,8 @@ func hasLink(links []nfo.Link, want nfo.Link) bool {
 }
 
 // TestScanLegacyMultiEpisodeNFO covers a v21-era sidecar holding several
-// episodes, which the NFO reader accepts and whose ids must all be captured.
+// episodes. The NFO reader accepts the concatenated layout; the metadata model
+// represents the file by its first episode.
 func TestScanLegacyMultiEpisodeNFO(t *testing.T) {
 	result := scanTree(t, "Show (2010)", TypeTV, map[string]string{
 		"Season 01/Show S01E01-E02.mkv": "",
@@ -323,16 +458,16 @@ func TestScanLegacyMultiEpisodeNFO(t *testing.T) {
 	})
 
 	episode := mediaFileByName(t, result, "Show S01E01-E02.mkv")
+	// Both episode numbers still come from the file name.
 	if got := episode.Video.EpisodeNumbers; len(got) != 2 || got[0] != 1 || got[1] != 2 {
 		t.Errorf("EpisodeNumbers = %v, want [1 2]", got)
 	}
-	if episode.NFO == nil || len(episode.NFO.Episodes) != 2 {
-		t.Fatalf("NFO episodes = %+v", episode.NFO)
+	// The sidecar is represented by its first episode.
+	if episode.Metadata == nil || episode.Metadata.Episode == nil || episode.Metadata.Title != "Part 1" {
+		t.Fatalf("NFO = %+v", episode.Metadata)
 	}
-	for _, id := range []string{"1", "2"} {
-		if !hasLink(episode.EpisodeIDs, nfo.Link{Key: "tvdb", Value: id}) {
-			t.Errorf("episode_ids missing tvdb=%s: %+v", id, episode.EpisodeIDs)
-		}
+	if links := mediaFileLinks(t, episode); !hasLink(links, metadata.Link{Key: "tvdb", Value: "1"}) {
+		t.Errorf("external_links missing tvdb=1: %+v", links)
 	}
 }
 
@@ -352,8 +487,9 @@ func TestScanDiscStructure(t *testing.T) {
 			len(result.MediaFiles), mediaFileNames(result))
 	}
 	for _, name := range []string{"VIDEO_TS.IFO", "VTS_01_0.VOB", "VTS_01_1.VOB", "VTS_01_2.VOB"} {
-		if role := directoryFileByName(t, result, name).Role; role != RoleDiscStructure {
-			t.Errorf("%s role = %q, want %q", name, role, RoleDiscStructure)
+		sidecar := directorySidecarByName(t, result, name)
+		if sidecar.Type != SidecarDiscStructure || sidecar.Category != SidecarCategoryDiscStructure {
+			t.Errorf("%s = %q/%q, want %q/%q", name, sidecar.Type, sidecar.Category, SidecarDiscStructure, SidecarCategoryDiscStructure)
 		}
 	}
 }
@@ -367,9 +503,6 @@ func TestScanMusicVideos(t *testing.T) {
 
 	if len(result.MediaFiles) != 2 {
 		t.Fatalf("len(MediaFiles) = %d, want 2; got %s", len(result.MediaFiles), mediaFileNames(result))
-	}
-	if result.Directory.Artist != "a-ha" {
-		t.Errorf("Artist = %q, want %q", result.Directory.Artist, "a-ha")
 	}
 
 	video := mediaFileByName(t, result, "a-ha - Take On Me.mp4")
@@ -407,8 +540,8 @@ func TestScanIgnoresJunk(t *testing.T) {
 	if len(result.MediaFiles) != 1 {
 		t.Fatalf("len(MediaFiles) = %d, want 1; got %s", len(result.MediaFiles), mediaFileNames(result))
 	}
-	if len(result.Directory.Files) != 0 {
-		t.Errorf("junk reached the directory record: %s", directoryFileNames(result))
+	if len(result.Directory.Sidecars) != 0 {
+		t.Errorf("junk reached the directory record: %s", sidecarNames(result.Directory.Sidecars))
 	}
 }
 
@@ -423,8 +556,8 @@ func TestScanCorruptNFO(t *testing.T) {
 		t.Fatalf("len(MediaFiles) = %d, want 1", len(result.MediaFiles))
 	}
 	feature := result.MediaFiles[0]
-	if feature.NFO == nil || feature.NFO.ParseError == "" {
-		t.Fatalf("expected a recorded ParseError, got %+v", feature.NFO)
+	if feature.Metadata == nil || feature.Metadata.ParseError == "" {
+		t.Fatalf("expected a recorded ParseError, got %+v", feature.Metadata)
 	}
 	if len(result.Directory.Warnings) == 0 {
 		t.Error("expected a warning about the unreadable sidecar")
@@ -479,32 +612,99 @@ func TestScanAbbreviatedSeasonFolderWarns(t *testing.T) {
 	}
 }
 
+// TestScanSeasonScopedArtwork covers the two ways artwork says which season it
+// belongs to: by sitting in the season's folder, or — the layout Plex documents
+// — by naming the season while sitting beside the series.
 func TestScanSeasonScopedArtwork(t *testing.T) {
 	result := scanTree(t, "Show (2010)", TypeTV, map[string]string{
 		"Season 01/Show S01E01.mkv":  "",
+		"Season 02/Show S02E01.mkv":  "",
 		"Season 01/poster.jpg":       "",
 		"poster.jpg":                 "",
+		"fanart.jpg":                 "",
+		"Season01-poster.jpg":        "",
+		"Season01.jpg":               "",
+		"Season 02-poster.jpg":       "",
+		"season02-banner.jpg":        "",
+		"Season01-thumb.jpg":         "",
 		"season-specials-poster.jpg": "",
 	})
 
-	var seasonScoped, directoryScoped, specials int
-	for _, file := range result.Directory.Files {
-		if file.Image == nil {
-			continue
-		}
-		switch {
-		case file.Image.Scope == ScopeSeason && file.Image.SeasonNumber != nil && *file.Image.SeasonNumber == 0:
-			specials++
-		case file.Image.Scope == ScopeSeason:
-			seasonScoped++
-		case file.Image.Scope == ScopeDirectory:
-			directoryScoped++
+	// Artwork inside a season folder belongs to that season.
+	if seasonPoster := seasonSidecarByName(t, result, 1, "poster.jpg"); seasonPoster.Type != SidecarPoster {
+		t.Errorf("season poster type = %q, want %q", seasonPoster.Type, SidecarPoster)
+	}
+
+	// Artwork at the series root that names a season belongs to that season, in
+	// every spelling both servers accept.
+	wantSeasonArtwork := []struct {
+		fileName     string
+		seasonNumber int
+		wantType     SidecarType
+	}{
+		{"Season01-poster.jpg", 1, SidecarPoster},
+		{"Season01.jpg", 1, SidecarPoster},
+		{"Season01-thumb.jpg", 1, SidecarThumb},
+		{"Season 02-poster.jpg", 2, SidecarPoster},
+		{"season02-banner.jpg", 2, SidecarBanner},
+		{"season-specials-poster.jpg", 0, SidecarPoster},
+	}
+	for _, want := range wantSeasonArtwork {
+		got := seasonSidecarByName(t, result, want.seasonNumber, want.fileName)
+		if got.Type != want.wantType {
+			t.Errorf("%s type = %q, want %q", want.fileName, got.Type, want.wantType)
 		}
 	}
-	if seasonScoped != 1 || directoryScoped != 1 || specials != 1 {
-		t.Errorf("artwork scoping: season=%d directory=%d specials=%d; files=%s",
-			seasonScoped, directoryScoped, specials, directoryFileNames(result))
+
+	// The series' own artwork stays put: naming a season is what moves a file,
+	// not merely sitting at the root.
+	for _, name := range []string{"poster.jpg", "fanart.jpg"} {
+		directorySidecarByName(t, result, name)
 	}
+	if images := sidecarsInCategory(result.Directory.Sidecars, SidecarCategoryImage); len(images) != 2 {
+		t.Errorf("directory images = %s, want just the series' own two", sidecarNames(images))
+	}
+}
+
+// TestScanSeasonKnownOnlyFromArtwork covers a season with no folder of its own.
+// The artwork asserts the season exists, so a record is created for it rather
+// than the file being filed under the series and effectively lost.
+func TestScanSeasonKnownOnlyFromArtwork(t *testing.T) {
+	result := scanTree(t, "Show (2010)", TypeTV, map[string]string{
+		"Season 01/Show S01E01.mkv": "",
+		"Season03-poster.jpg":       "",
+	})
+
+	third := seasonByNumber(t, result, 3)
+	if third.FolderName != "" {
+		t.Errorf("season 3 folder = %q, want empty — it has no directory on disk", third.FolderName)
+	}
+	if len(third.Sidecars) != 1 || third.Sidecars[0].FileName != "Season03-poster.jpg" {
+		t.Errorf("season 3 sidecars = %s", sidecarNames(third.Sidecars))
+	}
+
+	// And it is indexed alongside the season that does have a folder.
+	if result.Directory.Metadata == nil || result.Directory.Metadata.TVShow == nil {
+		t.Fatal("Directory.Metadata.TVShow = nil, want the season index")
+	}
+	if seasons := result.Directory.Metadata.TVShow.Seasons; len(seasons) != 2 {
+		t.Errorf("season index = %+v, want seasons 1 and 3", seasons)
+	}
+}
+
+// TestScanSeasonArtworkNamesOnlyApplyToSeries guards the gate on the rule: a
+// movie has no seasons, so a stray "season01.jpg" beside a film must not conjure
+// one for it to belong to.
+func TestScanSeasonArtworkNamesOnlyApplyToSeries(t *testing.T) {
+	result := scanTree(t, "Movie (2000)", TypeMovie, map[string]string{
+		"Movie (2000).mkv":    "",
+		"Season01-poster.jpg": "",
+	})
+
+	if len(result.Directory.Seasons) != 0 {
+		t.Errorf("a movie grew seasons: %+v", result.Directory.Seasons)
+	}
+	directorySidecarByName(t, result, "Season01-poster.jpg")
 }
 
 // TestScanDottedNamesMatchSidecars covers why sidecar matching is longest-prefix
@@ -521,22 +721,16 @@ func TestScanDottedNamesMatchSidecars(t *testing.T) {
 		t.Fatalf("len(MediaFiles) = %d, want 1; got %s", len(result.MediaFiles), mediaFileNames(result))
 	}
 	feature := result.MediaFiles[0]
-	if len(feature.Subtitles) != 2 {
-		t.Fatalf("Subtitles = %+v", feature.Subtitles)
+	subtitles := sidecarsInCategory(feature.Sidecars, SidecarCategorySubtitle)
+	if len(subtitles) != 2 {
+		t.Fatalf("subtitles = %s, want 2", sidecarNames(feature.Sidecars))
 	}
-	if feature.NFO == nil || feature.NFO.Movie == nil {
-		t.Errorf("NFO = %+v", feature.NFO)
+	if feature.Metadata == nil || feature.Metadata.Movie == nil {
+		t.Errorf("NFO = %+v", feature.Metadata)
 	}
 
-	byLanguage := map[string]SubtitleAttributes{}
-	for _, subtitle := range feature.Subtitles {
-		byLanguage[subtitle.Subtitle.Language] = *subtitle.Subtitle
-	}
-	if english, ok := byLanguage["en"]; !ok || !english.Forced {
-		t.Errorf("english subtitle = %+v", english)
-	}
-	if french, ok := byLanguage["fr"]; !ok || french.Forced {
-		t.Errorf("french subtitle = %+v", french)
+	for _, name := range []string{"Movie.Name.2019.1080p.en.forced.srt", "Movie.Name.2019.1080p.fr.srt", "Movie.Name.2019.1080p.nfo"} {
+		mediaSidecarByName(t, feature, name)
 	}
 }
 
@@ -546,12 +740,12 @@ func TestScanOrphanSubtitleStaysOnDirectory(t *testing.T) {
 		"Something Unrelated.en.srt": "",
 	})
 
-	orphan := directoryFileByName(t, result, "Something Unrelated.en.srt")
-	if orphan.Role != RoleSubtitle {
-		t.Errorf("role = %q, want %q", orphan.Role, RoleSubtitle)
+	orphan := directorySidecarByName(t, result, "Something Unrelated.en.srt")
+	if orphan.Type != SidecarSubtitle || orphan.Category != SidecarCategorySubtitle {
+		t.Errorf("orphan = %q/%q, want %q/%q", orphan.Type, orphan.Category, SidecarSubtitle, SidecarCategorySubtitle)
 	}
-	if len(result.MediaFiles[0].Subtitles) != 0 {
-		t.Errorf("orphan subtitle was wrongly attached: %+v", result.MediaFiles[0].Subtitles)
+	if sidecars := result.MediaFiles[0].Sidecars; len(sidecars) != 0 {
+		t.Errorf("orphan subtitle was wrongly attached: %s", sidecarNames(sidecars))
 	}
 }
 
@@ -561,14 +755,14 @@ func TestScanRecordsPathsAndMetadata(t *testing.T) {
 	})
 
 	directory := result.Directory
-	if directory.RecordType != RecordTypeDirectory {
+	if directory.RecordType != RecordTypeTVSeries {
 		t.Errorf("RecordType = %q", directory.RecordType)
 	}
 	if directory.FolderName != "Movie (2000)" {
 		t.Errorf("FolderName = %q", directory.FolderName)
 	}
-	if directory.Title != "Movie" || directory.Year != 2000 {
-		t.Errorf("Title/Year = %q/%d", directory.Title, directory.Year)
+	if directory.Metadata == nil || directory.Metadata.Title != "Movie" || directory.Metadata.Year != 2000 {
+		t.Errorf("Title/Year = %+v", directory.Metadata)
 	}
 	if !filepath.IsAbs(directory.Path) {
 		t.Errorf("Path = %q, want absolute", directory.Path)
@@ -675,16 +869,158 @@ func TestScanErrors(t *testing.T) {
 }
 
 // TestScanEmptyCollectionsAreNotNil keeps the stored documents predictable:
-// a caller reading external_links or files should get an array, not null.
+// a caller reading external_links or sidecars should get an array, not null.
 func TestScanEmptyCollectionsAreNotNil(t *testing.T) {
 	result := scanTree(t, "Movie (2000)", TypeMovie, map[string]string{
 		"Movie (2000).mkv": "",
+		"Movie (2000).nfo": `<movie><title>Movie</title></movie>`,
 	})
 
-	if result.Directory.ExternalLinks == nil {
-		t.Error("ExternalLinks is nil, want an empty slice")
+	if result.Directory.Metadata == nil {
+		t.Fatal("Directory.Metadata is nil")
 	}
-	if result.Directory.Files == nil {
-		t.Error("Files is nil, want an empty slice")
+	if result.Directory.Metadata.ExternalLinks == nil {
+		t.Error("Directory.Metadata.ExternalLinks is nil, want an empty slice")
 	}
+	if result.Directory.Sidecars == nil {
+		t.Error("Directory.Sidecars is nil, want an empty slice")
+	}
+	if result.MediaFiles[0].Sidecars == nil {
+		t.Error("MediaFile.Sidecars is nil, want an empty slice")
+	}
+	// The NFO here carries no provider ids at all, which is exactly the case
+	// that must still encode as an array rather than null.
+	if result.MediaFiles[0].Metadata == nil {
+		t.Fatal("MediaFile.Metadata is nil")
+	}
+	if result.MediaFiles[0].Metadata.ExternalLinks == nil {
+		t.Error("MediaFile.Metadata.ExternalLinks is nil, want an empty slice")
+	}
+}
+
+// TestScanExtraAttachesToTheFileItNames covers the routing rule that decides
+// which of the three owners a sidecar lands on. A trailer named for an episode
+// belongs to that episode; one sitting in a Trailers folder names nothing, so it
+// belongs to the series.
+func TestScanExtraAttachesToTheFileItNames(t *testing.T) {
+	result := scanTree(t, "Show (2010)", TypeTV, map[string]string{
+		"Season 01/Show S01E01.mkv":         "",
+		"Season 01/Show S01E01-trailer.mkv": "",
+		"Season 01/season-banner.jpg":       "",
+		"Trailers/Teaser.mkv":               "",
+	})
+
+	episode := mediaFileByName(t, result, "Show S01E01.mkv")
+	if trailer := mediaSidecarByName(t, episode, "Show S01E01-trailer.mkv"); trailer.Type != SidecarTrailer {
+		t.Errorf("episode trailer type = %q, want %q", trailer.Type, SidecarTrailer)
+	}
+
+	// Named for no media file, but inside a season folder: the season owns it.
+	seasonSidecarByName(t, result, 1, "season-banner.jpg")
+
+	// Named for no media file and in no season folder: the directory owns it.
+	if teaser := directorySidecarByName(t, result, "Teaser.mkv"); teaser.Type != SidecarTrailer {
+		t.Errorf("folder trailer type = %q, want %q", teaser.Type, SidecarTrailer)
+	}
+}
+
+// TestScanUnrecognizedFileIsRecordedAsUnknown covers the fallback: a file the
+// table cannot name is still recorded, because losing it silently would be
+// worse than admitting we don't know what it is.
+func TestScanUnrecognizedFileIsRecordedAsUnknown(t *testing.T) {
+	result := scanTree(t, "Movie (2000)", TypeMovie, map[string]string{
+		"Movie (2000).mkv": "",
+		"readme.txt":       "",
+	})
+
+	unknown := directorySidecarByName(t, result, "readme.txt")
+	if unknown.Type != SidecarUnknown || unknown.Category != SidecarCategoryUnknown {
+		t.Errorf("readme.txt = %q/%q, want %q/%q", unknown.Type, unknown.Category, SidecarUnknown, SidecarCategoryUnknown)
+	}
+}
+
+// TestScanRecordsSidecarFileFacts checks the plain file metadata on a sidecar
+// record, which is what makes it usable without going back to disk.
+func TestScanRecordsSidecarFileFacts(t *testing.T) {
+	result := scanTree(t, "Movie (2000)", TypeMovie, map[string]string{
+		"Movie (2000).mkv": "",
+		"poster.jpg":       "some bytes",
+	})
+
+	poster := directorySidecarByName(t, result, "poster.jpg")
+	if poster.RelativePath != "poster.jpg" {
+		t.Errorf("RelativePath = %q", poster.RelativePath)
+	}
+	if poster.Extension != "jpg" {
+		t.Errorf("Extension = %q, want %q", poster.Extension, "jpg")
+	}
+	if poster.SizeBytes != int64(len("some bytes")) {
+		t.Errorf("SizeBytes = %d, want %d", poster.SizeBytes, len("some bytes"))
+	}
+	if poster.ModifiedAt.IsZero() {
+		t.Error("ModifiedAt not set")
+	}
+}
+
+// TestScanDisabledTypeIsNotAssignedFromFolderContext covers the path that would
+// otherwise make "disabled" a half-truth. A video inside a Trailers folder is
+// named a trailer by its position, without the classification table ever being
+// consulted — so switching the trailer type off has to be checked on that path
+// too, not just on the pattern-matching one.
+func TestScanDisabledTypeIsNotAssignedFromFolderContext(t *testing.T) {
+	files := map[string]string{
+		"Movie (2000).mkv":    "",
+		"Trailers/Teaser.mkv": "",
+		"poster.jpg":          "",
+	}
+
+	// With the built-in table, position alone names it a trailer.
+	result := scanTree(t, "Movie (2000)", TypeMovie, files)
+	if teaser := directorySidecarByName(t, result, "Teaser.mkv"); teaser.Type != SidecarTrailer {
+		t.Fatalf("Teaser.mkv = %q, want %q before the type is disabled", teaser.Type, SidecarTrailer)
+	}
+
+	withSidecarRegistry(t, registryWithTrailerDisabled(t))
+
+	result = scanTree(t, "Movie (2000)", TypeMovie, files)
+	teaser := directorySidecarByName(t, result, "Teaser.mkv")
+	if teaser.Type == SidecarTrailer {
+		t.Error("a video in Trailers/ was still classified as a trailer after the type was disabled")
+	}
+	if teaser.Type != SidecarUnknown || teaser.Category != SidecarCategoryUnknown {
+		t.Errorf("Teaser.mkv = %q/%q, want %q/%q", teaser.Type, teaser.Category, SidecarUnknown, SidecarCategoryUnknown)
+	}
+
+	// Only the disabled type changed; everything else classifies as before.
+	if poster := directorySidecarByName(t, result, "poster.jpg"); poster.Type != SidecarPoster {
+		t.Errorf("poster.jpg = %q, want %q — disabling trailer should not touch it", poster.Type, SidecarPoster)
+	}
+	if len(result.MediaFiles) != 1 {
+		t.Errorf("len(MediaFiles) = %d, want 1", len(result.MediaFiles))
+	}
+}
+
+// registryWithTrailerDisabled returns the built-in table with the trailer entry
+// switched off, which is exactly what the ordering endpoint does when it is
+// given order 0 for that id.
+func registryWithTrailerDisabled(t *testing.T) *SidecarRegistry {
+	t.Helper()
+
+	definitions := appconfig.DefaultSidecarTypes()
+	disabled := false
+	for i := range definitions {
+		if definitions[i].Type == string(SidecarTrailer) {
+			definitions[i].Order = 0
+			disabled = true
+		}
+	}
+	if !disabled {
+		t.Fatal("the default table no longer carries a trailer type")
+	}
+
+	registry, err := NewSidecarRegistry(definitions)
+	if err != nil {
+		t.Fatalf("NewSidecarRegistry() error = %v", err)
+	}
+	return registry
 }
