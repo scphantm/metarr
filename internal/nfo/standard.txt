@@ -1,0 +1,858 @@
+{{NFO_content}}
+{{mininav|[[NFO files]]}}
+
+__TOC__
+
+
+= Introduction =
+<section begin="intro" />Basic templates as a starting point to create your own NFO files.<section end="intro" />
+
+These are simple NFO templates with the following changes from a full nfo file.
+*System generated tags are removed
+*Assumes local artwork is being used
+*Assumes no online information is available, so items like Ratings have no relevance
+*This will be the first time scanned into library so watched status and play counts are not required.
+If any of these removed tags are required, simply add back the appropriate tags. If unsure, refer to the appropriate sample nfo file in each section.
+
+
+
+= album.nfo Template =
+<syntaxhighlight lang="xml">
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<album>
+    <title></title>
+    <genre></genre>
+    <style></style>
+    <mood></mood>
+    <theme></theme>
+    <compilation></compilation> <!-- true / false -->
+    <boxset>false</boxset> <!-- true / false -->
+    <review></review>
+    <type></type>
+    <releasedate></releasedate> <!-- yyyy-mm-dd -->
+    <label></label>
+    <rating max="10"></rating>
+    <userrating max="10"></userrating>
+    <votes></votes>
+    <year></year>
+    <albumArtistCredits>
+        <artist></artist>
+        <musicBrainzArtistID></musicBrainzArtistID>
+    </albumArtistCredits>
+</album>
+</syntaxhighlight>
+
+
+{{collapse top| SAMPLE - album.nfo file     }}
+<syntaxhighlight lang="xml">
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<album>
+    <title>Greatest Hits, Volume I &amp; Volume II</title>
+    <musicbrainzalbumid>8bd9c465-28bb-37e4-bab5-aad725246bd7</musicbrainzalbumid>
+    <musicbrainzreleasegroupid>4a8f66b9-2ebf-3ebf-bd5e-ad19386e76c0</musicbrainzreleasegroupid>
+    <scrapedmbid>false</scrapedmbid>
+    <artistdesc>Billy Joel</artistdesc>
+    <genre>Rock</genre>
+    <style>Rock/Pop</style>
+    <mood>Happy</mood>
+    <theme>Affection/Fondness</theme>
+    <theme>At the Office</theme>
+    <theme>Cool &amp; Cocky</theme>
+    <theme>Drinking</theme>
+    <theme>Guys Night Out</theme>
+    <theme>Hanging Out</theme>
+    <theme>Open Road</theme>
+    <theme>Partying</theme>
+    <theme>TGIF</theme>
+    <compilation>false</compilation>
+    <boxset>false</boxset>
+    <review>Billy Joel&apos;s Greatest Hits is a collection released in two sets, 12 years apart. The first set, consisting of two discs, titled Volume I and Volume II, was released in 1985. The second, single disc titled Volume III was released in 1997. All songs but the last three on Volume III, &quot;To Make You Feel My Love&quot;, &quot;Hey Girl&quot; and &quot;Light as the Breeze&quot; were written by Joel. &quot;You&apos;re Only Human (Second Wind)&quot; and &quot;The Night Is Still Young&quot; are only available on the first set. The other songs appear mostly in order of their release dates and generally represent Joel&apos;s most successful singles.</review>
+    <type>album / compilation</type>
+    <releasestatus>official</releasestatus>
+    <releasedate>1985</releasedate>
+    <originalreleasedate>1985-07-27</originalreleasedate>
+    <label>Columbia</label>
+    <duration>3948</duration>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://assets.fanart.tv/preview/music/64b94289-9474-4d43-8c93-918ccc1920d1/albumcover/greatest-hits-volume-i--volume-ii-4e80240798fa9.jpg">https://assets.fanart.tv/fanart/music/64b94289-9474-4d43-8c93-918ccc1920d1/albumcover/greatest-hits-volume-i--volume-ii-4e80240798fa9.jpg</thumb>
+    <thumb spoof="" cache="" aspect="thumb" preview="http://coverartarchive.org/release/0a77a705-1bd5-4e54-80d1-eee6a8980ce9/7763963170-250.jpg">http://coverartarchive.org/release/0a77a705-1bd5-4e54-80d1-eee6a8980ce9/7763963170.jpg</thumb>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://www.theaudiodb.com/images/media/album/thumb/greatest-hits-volume-i--volume-ii-4e80240798fa9.jpg/preview">https://www.theaudiodb.com/images/media/album/thumb/greatest-hits-volume-i--volume-ii-4e80240798fa9.jpg</thumb>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://cdn-s3.allmusic.com/release-covers/500/0003/348/0003348267.jpg">https://cdn-s3.allmusic.com/release-covers/500/0003/348/0003348267.jpg</thumb>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://img.discogs.com/THNtJtov2SR6mruul2yDUpWGzsU=/fit-in/150x150/filters:strip_icc():format(jpeg):mode_rgb():quality(40)/discogs-images/R-1326435-1352488890-1806.jpeg.jpg">https://img.discogs.com/JXeaiKEB7I8iMnO71HN2fTEVXXw=/fit-in/600x149/filters:strip_icc():format(jpeg):mode_rgb():quality(90)/discogs-images/R-1326435-1352488890-1806.jpeg.jpg</thumb>
+    <thumb spoof="" cache="" aspect="back" preview="https://www.theaudiodb.com/images/media/album/thumbback/syytpt1541038474.jpg/preview">https://www.theaudiodb.com/images/media/album/thumbback/syytpt1541038474.jpg</thumb>
+    <thumb spoof="" cache="" aspect="spine" preview="https://www.theaudiodb.com/images/media/album/spine/wyrprx1541038408.jpg/preview">https://www.theaudiodb.com/images/media/album/spine/wyrprx1541038408.jpg</thumb>
+    <thumb spoof="" cache="" aspect="discart" preview="https://www.theaudiodb.com/images/media/album/cdart/greatest-hits-volume-i--volume-ii-4f7a6021d770c.png/preview">https://www.theaudiodb.com/images/media/album/cdart/greatest-hits-volume-i--volume-ii-4f7a6021d770c.png</thumb>
+    <thumb spoof="" cache="" aspect="discart" preview="http://coverartarchive.org/release/0a77a705-1bd5-4e54-80d1-eee6a8980ce9/9466580411-250.jpg">http://coverartarchive.org/release/0a77a705-1bd5-4e54-80d1-eee6a8980ce9/9466580411.jpg</thumb>
+    <thumb spoof="" cache="" aspect="discart" preview="https://assets.fanart.tv/preview/music/64b94289-9474-4d43-8c93-918ccc1920d1/cdart/greatest-hits-volume-i--volume-ii-5ed1a7b2be7ce.png">https://assets.fanart.tv/fanart/music/64b94289-9474-4d43-8c93-918ccc1920d1/cdart/greatest-hits-volume-i--volume-ii-5ed1a7b2be7ce.png</thumb>
+    <thumb spoof="" cache="" aspect="discart1" preview="https://assets.fanart.tv/preview/music/64b94289-9474-4d43-8c93-918ccc1920d1/cdart/greatest-hits-volume-i--volume-ii-5ed1a7b2be7ce.png">https://assets.fanart.tv/fanart/music/64b94289-9474-4d43-8c93-918ccc1920d1/cdart/greatest-hits-volume-i--volume-ii-5ed1a7b2be7ce.png</thumb>
+    <thumb spoof="" cache="" aspect="discart2" preview="https://assets.fanart.tv/preview/music/64b94289-9474-4d43-8c93-918ccc1920d1/cdart/greatest-hits-volume-i--volume-ii-4f7a6049cb238.png">https://assets.fanart.tv/fanart/music/64b94289-9474-4d43-8c93-918ccc1920d1/cdart/greatest-hits-volume-i--volume-ii-4f7a6049cb238.png</thumb>
+    <path>F:\Music\FLAC\Artist Albums\Billy Joel\Greatest Hits Vol I &amp; II\</path>
+    <rating max="10">7.000000</rating>
+    <userrating max="10">0</userrating>
+    <votes>4</votes>
+    <albumArtistCredits>
+        <artist>Billy Joel</artist>
+        <musicBrainzArtistID>64b94289-9474-4d43-8c93-918ccc1920d1</musicBrainzArtistID>
+    </albumArtistCredits>
+    <releasetype>album</releasetype>
+</album>
+
+</syntaxhighlight>
+{{collapse bottom}}
+
+
+
+= artist.nfo Template =
+<syntaxhighlight lang="xml">
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<artist>
+    <name></name>
+    <sortname></sortname>
+    <type></type>
+    <gender></gender>
+    <disambiguation></disambiguation>
+    <genre></genre>
+    <style></style>
+    <mood></mood>
+    <yearsactive></yearsactive>
+    <born></born>
+    <formed></formed>
+    <biography></biography>
+    <died></died>
+    <disbanded></disbanded>
+</artist>
+</syntaxhighlight>
+
+
+{{collapse top| SAMPLE - artist.nfo file     }}
+<syntaxhighlight lang="xml">
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<artist>
+    <name>Billy Joel</name>
+    <musicBrainzArtistID>64b94289-9474-4d43-8c93-918ccc1920d1</musicBrainzArtistID>
+    <sortname>Joel, Billy</sortname>
+    <type>Person</type>
+    <gender>Male</gender>
+    <disambiguation></disambiguation>
+    <genre>Pop/Rock</genre>
+    <style>Album Rock</style>
+    <style>Contemporary Pop/Rock</style>
+    <style>Singer/Songwriter</style>
+    <style>Soft Rock</style>
+    <style>Keyboard</style>
+    <mood>Amiable/Good-Natured</mood>
+    <mood>Autumnal</mood>
+    <mood>Nostalgic</mood>
+    <mood>Refined</mood>
+    <mood>Acerbic</mood>
+    <mood>Bittersweet</mood>
+    <mood>Brash</mood>
+    <mood>Cynical/Sarcastic</mood>
+    <mood>Earnest</mood>
+    <yearsactive>1960s - 2010s</yearsactive>
+    <born>1949-05-09</born>
+    <formed>1964</formed>
+    <biography>William Martin &quot;Billy&quot; Joel (born May 9, 1949, New York, USA) is an American pianist, singer-songwriter, and composer. Since releasing his first hit song, &quot;Piano Man&quot;, in 1973, Joel has become the sixth-best-selling recording artist and the third-best-selling solo artist in the United States, according to the RIAA. His compilation album Greatest Hits Vol. 1 &amp; 2 is the third-best-selling album in the United States by discs shipped.&#x0A;Joel had Top 40 hits in the 1970s, 1980s, and 1990s, achieving 33 Top 40 hits in the United States, all of which he wrote himself. He is also a six-time Grammy Award winner, a 23-time Grammy nominee and one of the world&apos;s best-selling artists of all time, having sold over 150 million records worldwide. He was inducted into the Songwriter&apos;s Hall of Fame (1992), the Rock and Roll Hall of Fame (1999), and the Long Island Music Hall of Fame (2006). In 2008, Billboard magazine released a list of the Hot 100 All-Time Top Artists to celebrate the US singles chart&apos;s 50th anniversary, with Billy Joel positioned at No. 23. With the exception of the 2007 songs &quot;All My Life&quot; and &quot;Christmas in Fallujah&quot;, Joel stopped writing and recording popular music after 1993&apos;s River of Dreams, but he continued to tour extensively until 2010. Joel was born in the Bronx, May 9, 1949 and raised in Hicksville, New York in a Levitt home. His father, Howard (born Helmuth), was born in Germany, the son of German merchant and manufacturer Karl Amson Joel, who, after the advent of the Nazi regime, emigrated to Switzerland and later to the United States. Billy Joel&apos;s mother, Rosalind Nyman, was born in England to Philip and Rebecca Nyman. Both of Joel&apos;s parents were Jewish. They divorced in 1960, and his father moved to Vienna, Austria. Billy has a sister, Judith Joel, and a half-brother, Alexander Joel, who is an acclaimed classical conductor in Europe and currently chief musical director of the Staatstheater Braunschweig.&#x0A;Joel&apos;s father was an accomplished classical pianist. Billy reluctantly began piano lessons at an early age, at his mother&apos;s insistence; his teachers included the noted American pianist Morton Estrin and musician/songwriter Timothy Ford. His interest in music, rather than sports, was a source of teasing and bullying in his early years. (He has said in interviews that his piano instructor also taught ballet. Her name was Frances Neiman, and she was a Juilliard trained musician. She gave both classical piano and ballet lessons in the studio attached to the rear of her house, leading neighborhood bullies to mistakenly assume that he was learning to dance.) As a teenager, Joel took up boxing so that he would be able to defend himself. He boxed successfully on the amateur Golden Gloves circuit for a short time, winning twenty-two bouts, but abandoned the sport shortly after breaking his nose in his twenty-fourth boxing match.&#x0A;Joel attended Hicksville High School in 1967, but he did not graduate with his class. He had been helping his single mother make ends meet by playing at a piano bar, which interfered with his school attendance. At the end of his senior year, Joel did not have enough credits to graduate. Rather than attend summer school to earn his diploma, however, Joel decided to immediately begin a career in music. Joel recounted, &quot;I told them, &apos;To hell with it. If I&apos;m not going to Columbia University, I&apos;m going to Columbia Records, and you don&apos;t need a high school diploma over there&apos;.&quot; Columbia did, in fact, become the label that eventually signed him. In 1992, he submitted essays to the school board and was awarded his diploma at Hicksville High&apos;s annual graduation ceremony, 25 years after he had left.</biography>
+    <died></died>
+    <disbanded></disbanded>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://assets.fanart.tv/preview/music/64b94289-9474-4d43-8c93-918ccc1920d1/artistthumb/joel-billy-541603848114c.jpg">https://assets.fanart.tv/fanart/music/64b94289-9474-4d43-8c93-918ccc1920d1/artistthumb/joel-billy-541603848114c.jpg</thumb>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://www.theaudiodb.com/images/media/artist/thumb/ttsxwr1425765041.jpg/preview">https://www.theaudiodb.com/images/media/artist/thumb/ttsxwr1425765041.jpg</thumb>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://rovimusic.rovicorp.com/image.jpg?c=73pC-Gp0OovlmiQL7Wp5Yd_M69_UI9rrJSVvWL2-yAg=&amp;f=2">https://rovimusic.rovicorp.com/image.jpg?c=73pC-Gp0OovlmiQL7Wp5Yd_M69_UI9rrJSVvWL2-yAg=&amp;f=0</thumb>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://img.discogs.com/J3bqAiLmdr2gXsetNgSQF2W-f6M=/150x150/smart/filters:strip_icc():format(jpeg):mode_rgb():quality(40)/discogs-images/A-137418-1143052539.jpeg.jpg">https://img.discogs.com/u7cfC3lZo9JGRdukSttJTZKr9Go=/350x255/smart/filters:strip_icc():format(jpeg):mode_rgb():quality(90)/discogs-images/A-137418-1143052539.jpeg.jpg</thumb>
+    <thumb spoof="" cache="" aspect="clearlogo" preview="https://www.theaudiodb.com/images/media/artist/logo/tvqpys1367246337.png/preview">https://www.theaudiodb.com/images/media/artist/logo/tvqpys1367246337.png</thumb>
+    <thumb spoof="" cache="" aspect="clearart" preview="https://www.theaudiodb.com/images/media/artist/clearart/yqpsuq1523892204.png/preview">https://www.theaudiodb.com/images/media/artist/clearart/yqpsuq1523892204.png</thumb>
+    <thumb spoof="" cache="" aspect="landscape" preview="https://www.theaudiodb.com/images/media/artist/widethumb/tywpqx1530815867.jpg/preview">https://www.theaudiodb.com/images/media/artist/widethumb/tywpqx1530815867.jpg</thumb>
+    <thumb spoof="" cache="" aspect="banner" preview="https://assets.fanart.tv/preview/music/64b94289-9474-4d43-8c93-918ccc1920d1/musicbanner/joel-billy-5914e7759bfcd.jpg">https://assets.fanart.tv/fanart/music/64b94289-9474-4d43-8c93-918ccc1920d1/musicbanner/joel-billy-5914e7759bfcd.jpg</thumb>
+    <thumb spoof="" cache="" aspect="clearlogo" preview="https://assets.fanart.tv/preview/music/64b94289-9474-4d43-8c93-918ccc1920d1/hdmusiclogo/joel-billy-550b259604412.png">https://assets.fanart.tv/fanart/music/64b94289-9474-4d43-8c93-918ccc1920d1/hdmusiclogo/joel-billy-550b259604412.png</thumb>
+    <thumb spoof="" cache="" aspect="fanart" preview="https://assets.fanart.tv/preview/music/64b94289-9474-4d43-8c93-918ccc1920d1/artistbackground/joel-billy-4fc0c2dad9ab7.jpg">https://assets.fanart.tv/fanart/music/64b94289-9474-4d43-8c93-918ccc1920d1/artistbackground/joel-billy-4fc0c2dad9ab7.jpg</thumb>
+    <thumb spoof="" cache="" aspect="fanart" preview="https://www.theaudiodb.com/images/media/artist/fanart/uwqtup1521206367.jpg/preview">https://www.theaudiodb.com/images/media/artist/fanart/uwqtup1521206367.jpg</thumb>
+    <path>F:\Music\ArtistInfoKodi\Billy Joel</path>
+</artist>
+
+</syntaxhighlight>
+{{collapse bottom}}
+
+
+
+= Movie Template =
+<syntaxhighlight lang="xml" line='line'>
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<movie>
+    <title></title>
+    <originaltitle></originaltitle>
+    <userrating>0</userrating>
+    <plot></plot>
+    <mpaa></mpaa>
+    <uniqueid type="" default="true"></uniqueid> <!-- add a value to type="" eg imdb, tmdb, home, sport, docu, see sample below -->
+    <genre></genre>
+    <tag></tag>
+    <country></country>
+    <set>
+        <name></name>
+        <overview></overview>
+    </set>
+    <credits></credits>
+    <director></director>
+    <premiered></premiered> <!-- yyyy-mm-dd -->
+    <studio></studio>
+    <actor>
+        <name></name>
+        <role></role>
+        <order></order>
+    </actor>
+</movie>
+</syntaxhighlight>
+
+
+{{collapse top| SAMPLE - Movie nfo file     }}
+<syntaxhighlight lang="xml">
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<movie>
+    <title>The King&apos;s Man</title>
+    <originaltitle>The King&apos;s Man</originaltitle>
+    <sorttitle>Kingsman 01</sorttitle>
+    <ratings>
+        <rating name="imdb" max="10" default="true">
+            <value>6.300000</value>
+            <votes>140619</votes>
+        </rating>
+        <rating name="themoviedb" max="10">
+            <value>6.869000</value>
+            <votes>3122</votes>
+        </rating>
+        <rating name="trakt" max="10">
+            <value>6.688550</value>
+            <votes>8059</votes>
+        </rating>
+    </ratings>
+    <userrating>8</userrating>
+    <top250>0</top250>
+    <outline></outline>
+    <plot>As a collection of history&apos;s worst tyrants and criminal masterminds gather to plot a war to wipe out millions, one man must race against time to stop them.</plot>
+    <tagline>Witness the bloody origin.</tagline>
+    <runtime>130</runtime>
+    <thumb spoof="" cache="" aspect="poster" preview="">https://image.tmdb.org/t/p/original/nEVjOpekbcdBqAexiWu7zXuFlYU.jpg</thumb>
+    <thumb spoof="" cache="" aspect="landscape" preview="">https://image.tmdb.org/t/p/original/iBXBqas9DMzesltQEBNM6BH3akt.jpg</thumb>
+    <thumb spoof="" cache="" aspect="set.poster" preview="">https://image.tmdb.org/t/p/original/xMsRZIkUGUuHsNHCQBDyZH7l53M.jpg</thumb>
+    <thumb spoof="" cache="" aspect="set.landscape" preview="">https://image.tmdb.org/t/p/original/mkusMBRJyXJCcJ5RKlrKK2SC0Qv.jpg</thumb>
+    <thumb spoof="" cache="" aspect="set.fanart" preview="">https://image.tmdb.org/t/p/original/3Odw3MJymLLbFuOnmQjmvndKhOr.jpg</thumb>
+    <thumb spoof="" cache="" aspect="clearlogo" preview="">https://assets.fanart.tv/fanart/movies/476669/hdmovielogo/the-kings-man-601651c77c528.png</thumb>
+    <thumb spoof="" cache="" aspect="discart" preview="">https://assets.fanart.tv/fanart/movies/476669/moviedisc/the-kings-man-617786bba9b7f.png</thumb>
+    <thumb spoof="" cache="" aspect="clearart" preview="">https://assets.fanart.tv/fanart/movies/476669/hdmovieclearart/the-kings-man-61c1bf1b46f3b.png</thumb>
+    <thumb spoof="" cache="" aspect="keyart" preview="">https://assets.fanart.tv/fanart/movies/476669/movieposter/the-kings-man-5f468bd247c3b.jpg</thumb>
+    <thumb spoof="" cache="" aspect="banner" preview="">https://assets.fanart.tv/fanart/movies/476669/moviebanner/the-kings-man-5e86bd6f81322.jpg</thumb>
+    <thumb spoof="" cache="" aspect="set.clearlogo" preview="">https://assets.fanart.tv/fanart/movies/391860/hdmovielogo/kingsman-collection-5a69d2e6eaa21.png</thumb>
+    <thumb spoof="" cache="" aspect="set.keyart" preview="">https://assets.fanart.tv/fanart/movies/391860/movieposter/kingsman-collection-5add0aa47e577.jpg</thumb>
+    <thumb spoof="" cache="" aspect="set.banner" preview="">https://assets.fanart.tv/fanart/movies/391860/moviebanner/kingsman-collection-5a691aee3c1e1.jpg</thumb>
+    <fanart>
+        <thumb colors="" preview="https://image.tmdb.org/t/p/w780/A49NScAT4ZcgeC6HeSvkUPVNJaF.jpg">https://image.tmdb.org/t/p/original/A49NScAT4ZcgeC6HeSvkUPVNJaF.jpg</thumb>
+    </fanart>
+    <mpaa>Australia:MA</mpaa>
+    <playcount>2</playcount>
+    <lastplayed>2023-06-03</lastplayed>
+    <id>476669</id>
+    <uniqueid type="imdb">tt6856242</uniqueid>
+    <uniqueid type="tmdb" default="true">476669</uniqueid>
+    <genre>Action</genre>
+    <country>United Kingdom</country>
+    <country>USA</country>
+    <set>
+        <name>Kingsman Collection</name>
+        <overview>The story of a super-secret spy organization that recruits an unrefined but promising street kid into the agency&apos;s ultra-competitive training program.</overview>
+    </set>
+    <tag>BluRay</tag>
+    <tag>duringcreditsstinger</tag>
+    <videoassettitle>Standard Edition</videoassettitle>
+    <videoassetid>40400</videoassetid>
+    <videoassettype>0</videoassettype>
+    <hasvideoversions>false</hasvideoversions>
+    <hasvideoextras>false</hasvideoextras>
+    <isdefaultvideoversion>true</isdefaultvideoversion>
+    <credits>Matthew Vaughn</credits>
+    <credits>Karl Gajdusek</credits>
+    <director>Matthew Vaughn</director>
+    <premiered>2021-12-22</premiered>
+    <year>2021</year>
+    <status></status>
+    <code></code>
+    <aired></aired>
+    <studio>Marv Films</studio>
+    <trailer>King&apos;s Man (2021)-trailer.mkv</trailer>
+    <fileinfo>
+        <streamdetails>
+            <video>
+                <codec>h264</codec>
+                <aspect>1.777778</aspect>
+                <width>1920</width>
+                <height>1080</height>
+                <durationinseconds>7838</durationinseconds>
+                <stereomode></stereomode>
+                <hdrtype></hdrtype>
+            </video>
+            <audio>
+                <codec>dtshd_ma</codec>
+                <language>eng</language>
+                <channels>8</channels>
+            </audio>
+            <subtitle>
+                <language>eng</language>
+            </subtitle>
+        </streamdetails>
+    </fileinfo>
+    <actor>
+        <name>Ralph Fiennes</name>
+        <role>Orlando Oxford</role>
+        <order>0</order>
+        <thumb>https://image.tmdb.org/t/p/original/tJr9GcmGNHhLVVEH3i7QYbj6hBi.jpg</thumb>
+    </actor>
+    <actor>
+        <name>Harris Dickinson</name>
+        <role>Conrad Oxford</role>
+        <order>1</order>
+        <thumb>https://image.tmdb.org/t/p/original/grbjZDzxBHqHYc0V0ic0Y1M38s.jpg</thumb>
+    </actor>
+    <actor>
+        <name>Gemma Arterton</name>
+        <role>Polly</role>
+        <order>2</order>
+        <thumb>https://image.tmdb.org/t/p/original/Alfm28oyHNiYweNCUaMmrVjVMAT.jpg</thumb>
+    </actor>
+    <actor>
+        <name>Rhys Ifans</name>
+        <role>Grigori Rasputin</role>
+        <order>3</order>
+        <thumb>https://image.tmdb.org/t/p/original/AfXRP33ncRunR83JPehZ06Kgh8e.jpg</thumb>
+    </actor>
+    <actor>
+        <name>Djimon Hounsou</name>
+        <role>Shola</role>
+        <order>4</order>
+        <thumb>https://image.tmdb.org/t/p/original/mVJmaJyo6oDGUI9rS7gUJN203Vw.jpg</thumb>
+    </actor>
+    <resume>
+        <position>0.000000</position>
+        <total>0.000000</total>
+    </resume>
+    <dateadded>2022-02-24 17:59:36</dateadded>
+</movie>
+
+</syntaxhighlight>
+{{collapse bottom}}
+
+
+; Naming the movie NFO file
+:{{#lst:NFO_files/Movies|MovieNFONaming}}
+
+
+
+= Music Video Template =
+<syntaxhighlight lang="xml" line='line'>
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<musicvideo>
+    <title></title>
+    <userrating></userrating>
+    <track></track>
+    <album></album>
+    <plot></plot>
+    <genre></genre>
+    <director></director>
+    <premiered></premiered>
+    <studio></studio>
+    <artist></artist>
+</musicvideo>
+</syntaxhighlight>
+
+
+{{collapse top| SAMPLE - Music Video nfo file     }}
+<syntaxhighlight lang="xml">
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<musicvideo>
+    <title>Dancing Queen</title>
+    <userrating>0</userrating>
+    <top250>0</top250>
+    <track>-1</track>
+    <album>Arrival</album>
+    <outline></outline>
+    <plot>Dancing Queen est un des tubes emblématiques de l&apos;ère disco produits par le groupe suédois ABBA en 1976. Ce tube connaît un regain de popularité en 1994 lors de la sortie de Priscilla, folle du désert, et fait « presque » partie de la distribution du film Muriel.&#x0A;Le groupe a également enregistré une version espagnole de ce titre, La reina del baile, pour le marché d&apos;Amérique latine. On peut retrouver ces versions en espagnol des succès de ABBA sur l&apos;abum Oro. Le 18 juin 1976, ABBA a interprété cette chanson lors d&apos;un spectacle télévisé organisé en l&apos;honneur du roi Charles XVI Gustave de Suède, qui venait de se marier. Le titre sera repris en 2011 par Glee dans la saison 2, épisode 20.</plot>
+    <tagline></tagline>
+    <runtime>2</runtime>
+    <thumb preview="https://www.theaudiodb.com/images/media/album/thumb/arrival-4ee244732bbde.jpg/preview">https://www.theaudiodb.com/images/media/album/thumb/arrival-4ee244732bbde.jpg</thumb>
+    <thumb preview="https://assets.fanart.tv/preview/music/d87e52c5-bb8d-4da8-b941-9f4928627dc8/albumcover/arrival-548ab7a698b49.jpg">https://assets.fanart.tv/fanart/music/d87e52c5-bb8d-4da8-b941-9f4928627dc8/albumcover/arrival-548ab7a698b49.jpg</thumb>
+    <mpaa></mpaa>
+    <playcount>0</playcount>
+    <lastplayed></lastplayed>
+    <id></id>
+    <genre>Pop</genre>
+    <year>1976</year>
+    <status></status>
+	<director>Director 1</director>
+	<director>Director 2</director>
+	<director>Director 3</director>
+	<director>Director 4</director>
+    <code></code>
+    <aired></aired>
+    <trailer></trailer>
+    <fileinfo>
+        <streamdetails>
+            <video>
+                <codec>hevc</codec>
+                <aspect>1.792230</aspect>
+                <width>716</width>
+                <height>568</height>
+                <durationinseconds>143</durationinseconds>
+                <stereomode></stereomode>
+            </video>
+            <audio>
+                <codec>ac3</codec>
+                <language>eng</language>
+                <channels>2</channels>
+            </audio>
+        </streamdetails>
+    </fileinfo>
+    <artist>ABBA</artist>
+    <resume>
+        <position>0.000000</position>
+        <total>0.000000</total>
+    </resume>
+    <dateadded>2018-09-10 09:46:06</dateadded>
+</musicvideo>
+
+</syntaxhighlight>
+{{collapse bottom}}
+
+
+
+= tvshow.nfo Template =
+<syntaxhighlight lang="xml">
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tvshow>
+    <title></title>
+    <plot></plot>
+    <userrating></userrating>
+    <mpaa></mpaa>
+    <uniqueid type="" default="true"></uniqueid>  <!-- add a value to type="" eg imdb, tmdb, home, sport, docu, see sample below -->
+    <genre></genre>
+    <premiered></premiered> <!-- yyyy-mm-dd -->
+    <status></status>
+    <studio></studio>
+    <actor>
+        <name></name>
+        <role></role>
+        <order></order>
+    </actor>
+    <namedseason number="1"></namedseason>
+</tvshow>
+</syntaxhighlight>
+
+
+{{collapse top| SAMPLE - tvshow.nfo file     }}
+<syntaxhighlight lang="xml">
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tvshow>
+    <title>Star Trek: Discovery</title>
+    <originaltitle>Star Trek: Discovery</originaltitle>
+    <showtitle>Star Trek: Discovery</showtitle>
+    <ratings>
+        <rating name="imdb" max="10" default="true">
+            <value>7.100000</value>
+            <votes>111025</votes>
+        </rating>
+        <rating name="tmdb" max="10">
+            <value>7.200000</value>
+            <votes>1201</votes>
+        </rating>
+        <rating name="trakt" max="10">
+            <value>7.727961</value>
+            <votes>6830</votes>
+        </rating>
+    </ratings>
+    <userrating>6</userrating>
+    <top250>0</top250>
+    <season>4</season>
+    <episode>55</episode>
+    <displayseason>-1</displayseason>
+    <displayepisode>-1</displayepisode>
+    <outline></outline>
+    <plot>Follow the voyages of Starfleet on their missions to discover new worlds and new life forms, and one Starfleet officer who must learn that to truly understand all things alien, you must first understand yourself.</plot>
+    <tagline></tagline>
+    <runtime>0</runtime>
+    <thumb spoof="" cache="" aspect="landscape" preview="https://image.tmdb.org/t/p/w780/4TNklRSMAUTCf7g9XGMHxGSeRqR.jpg">https://image.tmdb.org/t/p/original/4TNklRSMAUTCf7g9XGMHxGSeRqR.jpg</thumb>
+    <thumb spoof="" cache="" aspect="logos" preview="https://image.tmdb.org/t/p/w780/nYlsrSp5c2d7NbEtMgsc3lJUrGx.png">https://image.tmdb.org/t/p/original/nYlsrSp5c2d7NbEtMgsc3lJUrGx.png</thumb>
+    <thumb spoof="" cache="" aspect="poster" preview="https://image.tmdb.org/t/p/w780/zh7GLsorxecv0D8d7QAVkQUe1ju.jpg">https://image.tmdb.org/t/p/original/zh7GLsorxecv0D8d7QAVkQUe1ju.jpg</thumb>
+    <thumb spoof="" cache="" aspect="banner" preview="https://assets.fanart.tv/... deleted">https://assets.fanart.tv/fanart/tv/328711/tvbanner/star-trek-discovery-5b0db4d349720.jpg</thumb>
+    <thumb spoof="" cache="" aspect="clearlogo" preview="https://assets.fanart.tv/... deleted">https://assets.fanart.tv/fanart/tv/328711/hdtvlogo/star-trek-discovery-59cb169256e4e.png</thumb>
+    <thumb spoof="" cache="" aspect="clearart" preview="https://assets.fanart.tv/... deleted">https://assets.fanart.tv/fanart/tv/328711/hdclearart/star-trek-discovery-5bcd2af85c610.png</thumb>
+    <thumb spoof="" cache="" aspect="landscape" preview="https://assets.fanart.tv/... deleted">https://assets.fanart.tv/fanart/tv/328711/tvthumb/star-trek-discovery-59541dab33126.jpg</thumb>
+    <thumb spoof="" cache="" aspect="characterart" preview="https://assets.fanart.tv/... deleted">https://assets.fanart.tv/fanart/tv/328711/characterart/star-trek-discovery-59cc59092af97.png</thumb>
+    <thumb spoof="" cache="" season="0" type="season" aspect="poster" preview="https://image.tmdb.org/t/p... deleted">https://image.tmdb.org/t/p/original/pZxMTBheuGwNBQxF5JzLp2hHdDs.jpg</thumb>
+    <thumb spoof="" cache="" season="1" type="season" aspect="poster" preview="https://image.tmdb.org/t/p... deleted">https://image.tmdb.org/t/p/original/eD0gvrU9pyicetxBJ1YLf557XeW.jpg</thumb>
+    <thumb spoof="" cache="" season="2" type="season" aspect="poster" preview="https://image.tmdb.org/t/p... deleted">https://image.tmdb.org/t/p/original/yLG5DFbf4nv6Cm8GRwwWREET2VA.jpg</thumb>
+    <thumb spoof="" cache="" season="3" type="season" aspect="poster" preview="https://image.tmdb.org/t/p... deleted">https://image.tmdb.org/t/p/original/izoaRR70PCvF1c1amaRpgkEfWXp.jpg</thumb>
+    <thumb spoof="" cache="" season="4" type="season" aspect="poster" preview="https://image.tmdb.org/t/p... deleted">https://image.tmdb.org/t/p/original/zh7GLsorxecv0D8d7QAVkQUe1ju.jpg</thumb>
+    <fanart>
+        <thumb colors="" preview="">https://image.tmdb.org/t/p/original/kHwMIXsYNAg8eoJvj97F0LSlyDP.jpg</thumb>
+        <thumb colors="" preview="">https://image.tmdb.org/t/p/original/p3McpsDNTNmpbkNBKdNxOFZJeKX.jpg</thumb>
+    </fanart>
+    <mpaa>Australia:M</mpaa>
+    <playcount>0</playcount>
+    <lastplayed>2021-08-27</lastplayed>
+    <id>67198</id>
+    <uniqueid type="imdb">tt5171438</uniqueid>
+    <uniqueid type="tmdb" default="true">67198</uniqueid>
+    <uniqueid type="tvdb">328711</uniqueid>
+    <genre>Science Fiction</genre>
+    <premiered>2017-09-24</premiered>
+    <year>2017</year>
+    <status>Continuing</status>
+    <code></code>
+    <aired></aired>
+    <studio>CBS All Access</studio>
+    <trailer>J:\TV Complete LZ\Star Trek Discovery (2017)\Star Trek Discovery (2017)-trailer.m2ts</trailer> <!--Requires full path-->
+    <actor>
+        <name>Sonequa Martin-Green</name>
+        <role>Michael Burnham</role>
+        <order>0</order>
+        <thumb>https://image.tmdb.org/t/p/original/anz0LIPc0KarbDwLOyGt21eolvK.jpg</thumb>
+    </actor>
+    <actor>
+        <name>Doug Jones</name>
+        <role>Saru</role>
+        <order>1</order>
+        <thumb>https://image.tmdb.org/t/p/original/rpvvWATYWHGjedJea0G97XufOwU.jpg</thumb>
+    </actor>
+    <actor>
+        <name>Jason Isaacs</name>
+        <role>Gabriel Lorca</role>
+        <order>3</order>
+        <thumb>https://image.tmdb.org/t/p/original/nlim5RpNgpNcN0BWhhOCWmaMEHI.jpg</thumb>
+    </actor>
+    <namedseason number="1">Season 1</namedseason>
+    <namedseason number="2">Season 2</namedseason>
+    <namedseason number="3">Season 3</namedseason>
+    <namedseason number="4">Season 4</namedseason>
+    <resume>
+        <position>0.000000</position>
+        <total>0.000000</total>
+    </resume>
+    <dateadded>2022-03-18 14:14:36</dateadded>
+</tvshow>
+
+</syntaxhighlight>
+{{collapse bottom}}
+
+
+
+= Episode Template =
+<syntaxhighlight lang="xml">
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<episodedetails>
+    <title></title>
+    <season></season>    <!-- Required for multi-episode files only -->
+    <episode></episode>  <!-- Required for multi-episode files only -->
+    <userrating></userrating>
+    <plot></plot>
+    <uniqueid type="" default="true"></uniqueid>  <!-- add a value to type="" eg imdb, tmdb, home, sport, docu, see sample below -->
+    <credits></credits>
+    <director></director>
+    <aired></aired>       <!-- yyyy-mm-dd -->
+    <actor>
+        <name></name>
+        <role></role>
+        <order></order>
+    </actor>
+</episodedetails>
+</syntaxhighlight>
+
+
+{{collapse top| SAMPLE - episode.nfo file     }}
+<syntaxhighlight lang="xml">
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<episodedetails>
+    <title>Filmed Before a Live Studio Audience</title>
+    <showtitle>WandaVision</showtitle>
+    <ratings>
+        <rating name="imdb" max="10" default="true">
+            <value>7.500000</value>
+            <votes>18766</votes>
+        </rating>
+        <rating name="tmdb" max="10">
+            <value>7.500000</value>
+            <votes>42</votes>
+        </rating>
+        <rating name="trakt" max="10">
+            <value>6.952780</value>
+            <votes>3621</votes>
+        </rating>
+    </ratings>
+    <userrating>0</userrating>
+    <top250>0</top250>
+    <season>1</season>
+    <episode>1</episode>
+    <displayseason>-1</displayseason>
+    <displayepisode>-1</displayepisode>
+    <outline></outline>
+    <plot>Wanda and Vision struggle to conceal their powers during dinner with Vision’s boss and his wife.</plot>
+    <tagline></tagline>
+    <runtime>26</runtime>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://image.tmdb.org/t/p/w780/cbe8l0Hnbvu07ePgoOopyWYrcdL.jpg">https://image.tmdb.org/t/p/original/cbe8l0Hnbvu07ePgoOopyWYrcdL.jpg</thumb>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://image.tmdb.org/t/p/w780/oNCzeCXFanVEWNpzRzyffhLLfZs.jpg">https://image.tmdb.org/t/p/original/oNCzeCXFanVEWNpzRzyffhLLfZs.jpg</thumb>
+    <mpaa>Australia:TV-14</mpaa>
+    <playcount>1</playcount>
+    <lastplayed>2021-03-27</lastplayed>
+    <id>1830976</id>
+    <uniqueid type="imdb">tt9601584</uniqueid>
+    <uniqueid type="tmdb" default="true">1830976</uniqueid>
+    <uniqueid type="tvdb">8042515</uniqueid>
+    <genre>Sci-Fi &amp; Fantasy</genre>
+    <genre>Mystery</genre>
+    <genre>Drama</genre>
+    <credits>Jac Schaeffer</credits>
+    <director>Matt Shakman</director>
+    <premiered>2021-01-15</premiered>
+    <year>2021</year>
+    <status></status>
+    <code></code>
+    <aired>2021-01-15</aired>
+    <studio>Disney+ (US)</studio>
+    <trailer></trailer>
+    <fileinfo>
+        <streamdetails>
+            <video>
+                <codec>h264</codec>
+                <aspect>1.777778</aspect>
+                <width>1280</width>
+                <height>720</height>
+                <durationinseconds>1593</durationinseconds>
+                <stereomode></stereomode>
+            </video>
+            <audio>
+                <codec>aac</codec>
+                <language>eng</language>
+                <channels>2</channels>
+            </audio>
+        </streamdetails>
+    </fileinfo>
+    <actor>
+        <name>Randall Park</name>
+        <role>Jimmy Woo</role>
+        <order>4</order>
+        <thumb>https://image.tmdb.org/t/p/original/1QJ4cBQZoOaLR8Hc3V2NgBLvB0f.jpg</thumb>
+    </actor>
+    <actor>
+        <name>Kat Dennings</name>
+        <role>Darcy Lewis / The Escape Artist</role>
+        <order>5</order>
+        <thumb>https://image.tmdb.org/t/p/original/rrfyo9z1wW5nY9ZsFlj1Ozfj9g2.jpg</thumb>
+    </actor>
+    <resume>
+        <position>0.000000</position>
+        <total>0.000000</total>
+    </resume>
+    <dateadded>2021-02-02 11:57:44</dateadded>
+</episodedetails>
+
+</syntaxhighlight>
+{{collapse bottom}}
+
+
+{{collapse top| SAMPLE - multi-episode.nfo file     }}
+
+<syntaxhighlight lang="xml">
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<episodedetails>                                          <!--First Episode -->
+    <title>Grieve No More</title>
+    <showtitle>Carnival Row</showtitle>
+    <ratings>
+        <rating name="imdb" max="10" default="true">
+            <value>7.800000</value>
+            <votes>1746</votes>
+        </rating>
+        <rating name="tmdb" max="10">
+            <value>7.700000</value>
+            <votes>15</votes>
+        </rating>
+    </ratings>
+    <userrating>0</userrating>
+    <top250>0</top250>
+    <season>1</season>
+    <episode>5</episode>
+    <displayseason>-1</displayseason>
+    <displayepisode>-1</displayepisode>
+    <outline></outline>
+    <plot>Philo consults a Haruspex in an effort to find clues about the killer. Vignette grows closer with her newfound family. Upon Jonah’s return home, his parents cast a more watchful eye over him as a new player makes a splash in Parliament. Imogen brings Agreus into her circle.</plot>
+    <tagline></tagline>
+    <runtime>0</runtime>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://image.tmdb.org/t/p/w780/mcVI7yQjXmreUQcyxRJ3dFTFszI.jpg">https://image.tmdb.org/t/p/original/mcVI7yQjXmreUQcyxRJ3dFTFszI.jpg</thumb>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://image.tmdb.org/t/p/w780/6Mf23JoPQsj2deyvrKMCZEvgyB4.jpg">https://image.tmdb.org/t/p/original/6Mf23JoPQsj2deyvrKMCZEvgyB4.jpg</thumb>
+    <mpaa>Australia:TV-MA</mpaa>
+    <playcount>0</playcount>
+    <lastplayed></lastplayed>
+    <id>1906721</id>
+    <uniqueid type="imdb">tt6599052</uniqueid>
+    <uniqueid type="tmdb" default="true">1906721</uniqueid>
+    <uniqueid type="tvdb">7221242</uniqueid>
+    <genre>Sci-Fi &amp; Fantasy</genre>
+    <credits>Ian Deitchman</credits>
+    <credits>Kristin Rusk Robinson</credits>
+    <director>Andy Goddard</director>
+    <premiered>2019-08-29</premiered>
+    <year>2019</year>
+    <status></status>
+    <code></code>
+    <aired>2019-08-29</aired>
+    <studio>Amazon</studio>
+    <trailer></trailer>
+    <actor>
+        <name>Orlando Bloom</name>
+        <role>Rycroft &quot;Philo&quot; Philostrate</role>
+        <order>0</order>
+        <thumb>https://image.tmdb.org/t/p/original/pulwUR0lZ8IWwXUCRXCnyWfYvNL.jpg</thumb>
+    </actor>
+    <actor>
+        <name>Cara Delevingne</name>
+        <role>Vignette Stonemoss</role>
+        <order>1</order>
+        <thumb>https://image.tmdb.org/t/p/original/izZ8IbsIjNpjZ5S0HIYreVwVRzn.jpg</thumb>
+    </actor>
+    <resume>
+        <position>0.000000</position>
+        <total>0.000000</total>
+    </resume>
+    <dateadded>2021-12-30 15:41:30</dateadded>
+</episodedetails>
+<episodedetails>                                          <!--Second Episode -->
+    <title>Unaccompanied Fae</title>
+    <showtitle>Carnival Row</showtitle>
+    <ratings>
+        <rating name="imdb" max="10" default="true">
+            <value>7.900000</value>
+            <votes>1627</votes>
+        </rating>
+        <rating name="tmdb" max="10">
+            <value>7.500000</value>
+            <votes>15</votes>
+        </rating>
+    </ratings>
+    <userrating>0</userrating>
+    <top250>0</top250>
+    <season>1</season>
+    <episode>6</episode>
+    <displayseason>-1</displayseason>
+    <displayepisode>-1</displayepisode>
+    <outline></outline>
+    <plot>The pieces of the puzzle start to come together for Philo. Vignette finds home in a place she never expected. Jonah sneaks off to see someone he shouldn’t. Imogen and Agreus step out together in public.</plot>
+    <tagline></tagline>
+    <runtime>0</runtime>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://image.tmdb.org/t/p/w780/y6A3ZXbSBoc3HwBj1J3KWWvrrzW.jpg">https://image.tmdb.org/t/p/original/y6A3ZXbSBoc3HwBj1J3KWWvrrzW.jpg</thumb>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://image.tmdb.org/t/p/w780/7gZBOfmfAxkUpd4jL9WS6p78EoH.jpg">https://image.tmdb.org/t/p/original/7gZBOfmfAxkUpd4jL9WS6p78EoH.jpg</thumb>
+    <mpaa>Australia:TV-MA</mpaa>
+    <playcount>0</playcount>
+    <lastplayed></lastplayed>
+    <id>1906722</id>
+    <uniqueid type="imdb">tt6599058</uniqueid>
+    <uniqueid type="tmdb" default="true">1906722</uniqueid>
+    <uniqueid type="tvdb">7221243</uniqueid>
+    <genre>Sci-Fi &amp; Fantasy</genre>
+    <credits>Stephanie K. Smith</credits>
+    <director>Andy Goddard</director>
+    <premiered>2019-08-29</premiered>
+    <year>2019</year>
+    <status></status>
+    <code></code>
+    <aired>2019-08-29</aired>
+    <studio>Amazon</studio>
+    <trailer></trailer>
+    <actor>
+        <name>Leanne Best</name>
+        <role>Madame Moira</role>
+        <order>4</order>
+        <thumb>https://image.tmdb.org/t/p/original/3GJSWDGuINZjQEgz06wlBELoJCK.jpg</thumb>
+    </actor>
+    <actor>
+        <name>Issy Stewart</name>
+        <role>Louisa Pembroke</role>
+        <order>6</order>
+        <thumb>https://image.tmdb.org/t/p/original/2Ektp4uatPA6gZj32xjjPWKZBKm.jpg</thumb>
+    </actor>
+    <resume>
+        <position>0.000000</position>
+        <total>0.000000</total>
+    </resume>
+    <dateadded>2021-12-30 15:41:30</dateadded>
+</episodedetails>
+<episodedetails>                                          <!--Third Episode -->
+    <title>The World to Come</title>
+    <showtitle>Carnival Row</showtitle>
+    <ratings>
+        <rating name="imdb" max="10" default="true">
+            <value>8.000000</value>
+            <votes>1659</votes>
+        </rating>
+        <rating name="tmdb" max="10">
+            <value>7.700000</value>
+            <votes>15</votes>
+        </rating>
+    </ratings>
+    <userrating>0</userrating>
+    <top250>0</top250>
+    <season>1</season>
+    <episode>7</episode>
+    <displayseason>-1</displayseason>
+    <displayepisode>-1</displayepisode>
+    <outline></outline>
+    <plot>Because he withheld evidence from his fellow detectives, Philo is accused of being the man behind the string of murders and is thrown in jail. There, he finds some unexpected help from Vignette. Elsewhere, Ezra takes exception to Imogen’s relationship with Agreus. Sophie offers Jonah a deal.</plot>
+    <tagline></tagline>
+    <runtime>0</runtime>
+    <thumb spoof="" cache="" aspect="thumb" preview="https://image.tmdb.org/t/p/w780/ov05qVU8JVZ66BQK457MLMg7Wfu.jpg">https://image.tmdb.org/t/p/original/ov05qVU8JVZ66BQK457MLMg7Wfu.jpg</thumb>
+    <mpaa>Australia:TV-MA</mpaa>
+    <playcount>0</playcount>
+    <lastplayed></lastplayed>
+    <id>1906725</id>
+    <uniqueid type="imdb">tt7435152</uniqueid>
+    <uniqueid type="tmdb" default="true">1906725</uniqueid>
+    <uniqueid type="tvdb">7221244</uniqueid>
+    <genre>Sci-Fi &amp; Fantasy</genre>
+    <credits>Peter Cameron</credits>
+    <credits>René Echevarria</credits>
+    <director>Jon Amiel</director>
+    <premiered>2019-08-29</premiered>
+    <year>2019</year>
+    <status></status>
+    <code></code>
+    <aired>2019-08-29</aired>
+    <studio>Amazon</studio>
+    <trailer></trailer>
+    <actor>
+        <name>Jonathan Daniel Brown</name>
+        <role>Ticket Clerk</role>
+        <order>48</order>
+        <thumb>https://image.tmdb.org/t/p/original/xDsPJNDnrn3N0jelVrxdOchzhoo.jpg</thumb>
+    </actor>
+    <actor>
+        <name>John Poston</name>
+        <role>Cell Block Guard</role>
+        <order>49</order>
+        <thumb></thumb>
+    </actor>
+    <resume>
+        <position>0.000000</position>
+        <total>0.000000</total>
+    </resume>
+    <dateadded>2021-12-30 15:41:30</dateadded>
+</episodedetails>
+
+</syntaxhighlight>
+{{collapse bottom}}
+
+
+
+
+
+{{top}}
+{{updated|20}}
+
+[[Category:Karellen]]
+[[Category:Music library]]
+[[Category:Video library]]
