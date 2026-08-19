@@ -21,3 +21,7 @@ create a single POST that upserts
 
 All http calls to external api's should be done with the cached http client.  This ensures that all calls are cached
 and reusable based on the configuration settings.
+
+# Unit Testing
+When doing validations after making changes.  Generate regression unit tests that will allow for less number of tokens to be 
+required in subsequent changes.

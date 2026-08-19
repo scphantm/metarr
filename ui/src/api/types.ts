@@ -1,0 +1,219 @@
+/*
+ * These mirror the Go structs field-for-field, taken from their JSON tags in
+ * internal/appconfig and internal/handlers. Where a Go field is a pointer with
+ * `omitempty` — a partial-update request — the property here is optional, and
+ * carries the same meaning: absent means "leave alone", which is not the same
+ * as an empty string.
+ */
+
+// AdminUser is the single administrative account. The password salt and hash
+// are redacted by GetConfig before they reach a client, so they are absent
+// here by design rather than by omission.
+export type AdminUser = {
+  username: string
+  email: string
+}
+
+export type APIKeyEntry = {
+  name: string
+  api_key: string
+}
+
+export type APIKeysConfig = {
+  admin: APIKeyEntry[]
+  user: APIKeyEntry[]
+  webhook: APIKeyEntry[]
+  read_only: APIKeyEntry[]
+}
+
+export type APIKeyGroup = keyof APIKeysConfig
+
+export const apiKeyGroups: { key: APIKeyGroup; label: string; hint: string }[] =
+  [
+    { key: 'admin', label: 'Admin', hint: 'Full access to every endpoint' },
+    { key: 'user', label: 'User', hint: 'Tasks and library reads' },
+    { key: 'webhook', label: 'Webhook', hint: 'For inbound automation' },
+    { key: 'read_only', label: 'Read only', hint: 'Library reads only' },
+  ]
+
+export type RootDirMapping = {
+  sonarr_path: string
+  local_path: string
+}
+
+// StorageConfig controls retention: "cache" expires after ttl, "versioned"
+// keeps up to max_count revisions. Only the field belonging to the active mode
+// is meaningful.
+export type StorageConfig = {
+  mode: string
+  ttl?: string
+  max_count?: number
+}
+
+export const storageModes = ['cache', 'versioned'] as const
+
+export type SonarrInstance = {
+  instance_name: string
+  instance_slug: string
+  sonarr_url: string
+  sonarr_api_key: string
+  root_dir_map: RootDirMapping[]
+  storage: StorageConfig
+}
+
+export type InterfacesConfig = {
+  sonarr: SonarrInstance[]
+}
+
+// DirectoryType is the closed vocabulary from mediascan.ParseDirectoryType.
+export const directoryTypes = ['movie', 'tv', 'music_video'] as const
+export type DirectoryType = (typeof directoryTypes)[number]
+
+export type ScanDirectory = {
+  scanner_slug: string
+  scan_type: string
+  directory: string
+}
+
+// SidecarCategory is closed on the Go side (mediascan.ParseSidecarCategory), so
+// the editor offers exactly these and nothing else.
+export const sidecarCategories = [
+  'image',
+  'video_extra',
+  'subtitle',
+  'metadata',
+  'audio',
+  'disc_structure',
+  'trickplay',
+  'unknown',
+] as const
+export type SidecarCategory = (typeof sidecarCategories)[number]
+
+// SidecarTypeDefinition is one row of the classification table.
+//
+// `order` is the evaluation sequence and zero means disabled — the entry stays
+// in the table, still editable, but is never evaluated. It is changed only
+// through the dedicated ordering endpoint, never by editing a row, because
+// uniqueness is a property of the whole table.
+export type SidecarTypeDefinition = {
+  id: string
+  type: string
+  category: string
+  order: number
+  patterns: string[]
+  extensions: string[]
+}
+
+export type DirectoryScannerConfig = {
+  parallel_count: number
+  scan_directories: ScanDirectory[]
+  sidecar_types: SidecarTypeDefinition[]
+}
+
+export type Config = {
+  api_keys: APIKeysConfig
+  admin: AdminUser
+  interfaces: InterfacesConfig
+  directory_scanner: DirectoryScannerConfig
+}
+
+// UpdateAdminRequest sends only what changed: an omitted field is left alone,
+// and an explicitly empty one is rejected rather than silently clearing.
+export type UpdateAdminRequest = {
+  username?: string
+  email?: string
+  password?: string
+}
+
+export type UpdateDirectoryScannerRequest = {
+  parallel_count?: number
+}
+
+// ReorderSidecarTypesRequest maps every sidecar type id to its order, covering
+// the whole table in one transaction.
+export type ReorderSidecarTypesRequest = Record<string, number>
+
+// AcceptedResponse is what every mutation returns. The status is 202 and the
+// write has only been queued at that point — see the note in api/client.ts.
+export type AcceptedResponse = {
+  status: string
+  event: string
+  correlation_id: string
+}
+
+export type LoginRequest = {
+  username: string
+  password: string
+}
+
+export type LoginResponse = {
+  api_key: string
+  expires_in_seconds: number
+}
+
+export type HeartbeatResponse = {
+  time: string
+  correlation_id: string
+}
+
+/*
+ * Redis statistics, streamed over the stats.redis topic and also readable at
+ * GET /api/stats/redis.
+ *
+ * The two collections here are not two flavours of the same thing. Streams are
+ * durable — messages sit on them until acknowledged — so their depth and
+ * pending counts are real numbers. Pub/Sub holds nothing at all, which is why
+ * PubSubChannelStat has a subscriber count and no depth: there is none to
+ * report.
+ */
+
+export type RedisServerInfo = {
+  version: string
+  uptime_seconds: number
+  connected_clients: number
+  used_memory: number
+  used_memory_human: string
+  ops_per_second: number
+  total_keys: number
+}
+
+export type RedisConsumerStat = {
+  name: string
+  pending: number
+  idle_seconds: number
+}
+
+export type RedisGroupStat = {
+  name: string
+  consumers: number
+  pending: number
+  lag: number
+  last_delivered_id: string
+  consumer_detail: RedisConsumerStat[]
+}
+
+export type RedisStreamStat = {
+  stream: string
+  event_name: string
+  length: number
+  // Streams are created lazily, when a listener first subscribes, so a length
+  // of zero on its own cannot tell "empty" from "never created".
+  exists: boolean
+  groups: RedisGroupStat[]
+  error?: string
+}
+
+export type PubSubChannelStat = {
+  channel: string
+  subscribers: number
+  // false for the per-correlation-id reply channels, which exist only while a
+  // request is in flight.
+  known: boolean
+}
+
+export type RedisStats = {
+  collected_at: string
+  server: RedisServerInfo
+  streams: RedisStreamStat[]
+  pubsub: PubSubChannelStat[]
+}

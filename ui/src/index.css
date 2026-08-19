@@ -1,0 +1,102 @@
+@import 'tailwindcss';
+
+/*
+ * Solarized, by Ethan Schoonover (https://ethanschoonover.com/solarized/).
+ *
+ * The palette is one set of eight monotones plus eight accents. Dark and light
+ * are the same colours: light reverses the monotone ramp and nothing else,
+ * which is the whole trick behind the scheme and the reason both themes stay
+ * balanced without a second set of values.
+ *
+ * Components never name a raw colour. They use the semantic tokens below —
+ * --surface, --ink, --edge and so on — so a theme swap is a change of eight
+ * variables rather than a sweep through the components.
+ */
+@theme {
+  --color-base03: #002b36;
+  --color-base02: #073642;
+  --color-base01: #586e75;
+  --color-base00: #657b83;
+  --color-base0: #839496;
+  --color-base1: #93a1a1;
+  --color-base2: #eee8d5;
+  --color-base3: #fdf6e3;
+
+  --color-yellow: #b58900;
+  --color-orange: #cb4b16;
+  --color-red: #dc322f;
+  --color-magenta: #d33682;
+  --color-violet: #6c71c4;
+  --color-blue: #268bd2;
+  --color-cyan: #2aa198;
+  --color-green: #859900;
+
+  /* Semantic tokens, resolved per theme by the two blocks below. */
+  --color-canvas: var(--surface-canvas);
+  --color-surface: var(--surface-raised);
+  --color-surface-hover: var(--surface-hover);
+  --color-edge: var(--surface-edge);
+  --color-edge-strong: var(--surface-edge-strong);
+  --color-ink: var(--ink-body);
+  --color-ink-strong: var(--ink-strong);
+  --color-ink-muted: var(--ink-muted);
+}
+
+.theme-dark {
+  --surface-canvas: #002b36; /* base03 */
+  --surface-raised: #073642; /* base02 */
+  --surface-hover: #0b4351;
+  --surface-edge: #0d4b5a;
+  --surface-edge-strong: #586e75; /* base01 */
+  --ink-body: #839496; /* base0  */
+  --ink-strong: #93a1a1; /* base1  */
+  --ink-muted: #586e75; /* base01 */
+  color-scheme: dark;
+}
+
+.theme-light {
+  --surface-canvas: #fdf6e3; /* base3  */
+  --surface-raised: #eee8d5; /* base2  */
+  --surface-hover: #e4dcc4;
+  --surface-edge: #ddd6c1;
+  --surface-edge-strong: #93a1a1; /* base1  */
+  --ink-body: #657b83; /* base00 */
+  --ink-strong: #586e75; /* base01 */
+  --ink-muted: #93a1a1; /* base1  */
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--surface-canvas);
+  color: var(--ink-body);
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Each column scrolls on its own, so scrollbars are a permanent part of the
+   furniture rather than an occasional visitor. Left at the browser default they
+   render as a pale band straight through the dark theme. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-edge-strong) transparent;
+}
+
+/* One focus treatment everywhere, since edit-in-place lives or dies on the
+   user being able to see what has keyboard focus. */
+:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 1px;
+}
+
+::selection {
+  background-color: var(--color-blue);
+  color: var(--surface-canvas);
+}

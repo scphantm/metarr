@@ -63,7 +63,9 @@ func requireAPIKey(sessions *session.Store, group auth.Group, next http.Handler)
 			return
 		}
 
-		next.ServeHTTP(w, r.WithContext(auth.WithAPIKey(r.Context(), apiKey)))
+		ctx := auth.WithAPIKey(r.Context(), apiKey)
+		ctx = auth.WithRole(ctx, role)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 

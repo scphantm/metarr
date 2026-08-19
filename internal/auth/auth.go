@@ -97,3 +97,20 @@ func APIKeyFromContext(ctx context.Context) string {
 	apiKey, _ := ctx.Value(apiKeyContextKey{}).(string)
 	return apiKey
 }
+
+type roleContextKey struct{}
+
+// WithRole returns a new context carrying the role the current request's API
+// key resolved to. Route authorization is settled by the middleware before a
+// handler runs, so this exists for the handler that has to authorize
+// something finer-grained than a route — a WebSocket connection, where each
+// topic subscribed to over the one connection carries its own requirement.
+func WithRole(ctx context.Context, role Role) context.Context {
+	return context.WithValue(ctx, roleContextKey{}, role)
+}
+
+// RoleFromContext returns the role stored in ctx, and whether one was set.
+func RoleFromContext(ctx context.Context) (Role, bool) {
+	role, ok := ctx.Value(roleContextKey{}).(Role)
+	return role, ok
+}
