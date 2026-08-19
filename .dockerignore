@@ -1,0 +1,18 @@
+# Build outputs and local state — never wanted in an image, and copying them in
+# would bust the layer cache on every rebuild.
+bin/
+dist/
+logs/
+data/
+ui/node_modules/
+ui/dist/
+ui/.vite/
+
+# Secrets. .env carries live credentials and is consumed by docker-compose on
+# the host, not by anything inside an image.
+.env
+http-client.private.env.json
+
+.git/
+.github/
+*.md

@@ -25,6 +25,35 @@ This does not look for missing media in your collection.  Other systems are desi
 * [Mongo Express](http://10.0.0.22:6969/)
 * [Redis Insights](http://localhost:5540/)
 
+## Architecture
+
+Metarr is two binaries.
+
+**metarr-server** owns the API, MongoDB, and orchestration. It never touches the
+media library — it has no filesystem access to it at all.
+
+**metarr-agent** is a small static binary deployed next to the storage, on the
+NAS itself where possible. It does every filesystem operation: walking
+libraries, reading NFO files, inspecting artwork. It connects to Redis and
+nothing else, holds no database credentials, and cannot open a database
+connection — a test walks the build graph on every run to keep that true.
+
+An agent is configured locally with two things: how to reach Redis, and its own
+name. Everything else is published to it over Redis by the server. Start one and
+it appears under **System > Agents** as connected but unconfigured; configuring
+it means mapping the libraries the server knows about onto the paths that
+machine knows them by. Records are always stored under the server's paths, so
+the library reads the same however many agents produced it.
+
+Agents run on Windows, Linux or macOS. Build one for a target with
+`make dist`, which emits static binaries for each.
+
+```
+make run-server                                    # the API
+make run-agent METARR_AGENT_SLUG=nas-01            # an agent alongside it
+docker compose up                                  # both, plus Mongo and Redis
+```
+
 ## Architectural features
 Extensive use of caching.  I/O operations are the slowest operations in all of computer science.  And this application
 does thousands of them.  To prevent you from rate limiting your API keys, and to cut back on compilation times, this system
@@ -98,20 +127,10 @@ I want to snapshot the metadata library.  That way i can compare what changed ov
 I want to backup the metadata library.  all of it, everything except the video files themselves.
 
 ### Agents
-I want to have a read/write agent that can be run on remote machines.  This agent can connect to the server via the Redis caches
 
-But the idea is that reading drives over the network is I/O expensive.  If I had a small as possible agent that could be run
-on the physical nas machine, it can do all the file read/write operations locally and simply send the results over the event system
-instead of reading the file system over the network, like NFS or whatever.  
-
-In theory, this should give a big boost in speed to read/write operations.
-
-The agent can be used for download operations as well, basically the equivalent of running wget from your machine over 
-a network drive or locally on that server.  I'm thinking this for operations like image downloads.  That agent will 
-be written in Go or Rust because we want them tiny and as fast as possible.  These languages are binary languages and are far faster than interpreted
-languages like python, Java, C#, etc.
-
-https://towardsdev.com/file-writing-speed-battle-node-python-go-rust-php-and-c-8a1c35ad870e
+Done — see Architecture above. The remaining work is to move download operations
+(artwork fetching, and the wget-equivalent for external assets) onto the agent
+as well, so those also happen next to the storage rather than across the network.
 
 ### Metadata proxy.
 everything here is cached and versioned.  I want to build this so all other systems can point to it and

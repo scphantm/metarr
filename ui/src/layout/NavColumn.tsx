@@ -40,6 +40,7 @@ const sections: NavSection[] = [
           { label: 'Security', to: '/system/security' },
         ],
       },
+      { label: 'Agents', to: '/system/agents' },
     ],
   },
   { label: 'Searches', items: [], comingSoon: true },

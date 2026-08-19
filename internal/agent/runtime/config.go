@@ -1,0 +1,137 @@
+package runtime
+
+import (
+	"context"
+	"encoding/json"
+	"log/slog"
+	"sync/atomic"
+	"time"
+
+	"github.com/redis/go-redis/v9"
+
+	"Metarr/internal/shared/agentproto"
+	"Metarr/internal/shared/scanmodel"
+)
+
+// configPollInterval is the safety net behind the change notification.
+//
+// Pub/Sub delivers to whoever is connected at that instant, so a notification
+// sent while the agent was reconnecting is gone. Re-reading on a slow timer
+// turns that from "wrong configuration until someone notices" into "wrong
+// configuration for up to a minute".
+const configPollInterval = time.Minute
+
+// ConfigStore holds the agent's current configuration projection and keeps it
+// in step with the copy the server publishes to Redis.
+//
+// A nil projection is a normal state, not an error: an agent that has
+// connected but has not been configured yet has nothing to do, and says so in
+// the UI rather than failing.
+type ConfigStore struct {
+	client  redis.UniversalClient
+	logger  *slog.Logger
+	slug    string
+	current atomic.Pointer[agentproto.AgentConfigProjection]
+}
+
+// NewConfigStore returns an empty store for the given agent slug.
+func NewConfigStore(client redis.UniversalClient, logger *slog.Logger, slug string) *ConfigStore {
+	return &ConfigStore{client: client, logger: logger, slug: slug}
+}
+
+// Current returns the latest projection, or nil when the agent has not been
+// configured yet.
+func (s *ConfigStore) Current() *agentproto.AgentConfigProjection {
+	return s.current.Load()
+}
+
+// Refresh re-reads the projection from Redis and installs it.
+func (s *ConfigStore) Refresh(ctx context.Context) error {
+	raw, err := s.client.Get(ctx, agentproto.ConfigKey(s.slug)).Result()
+	if err == redis.Nil {
+		// Not configured yet. Keep whatever we had rather than dropping a
+		// working configuration because one read came back empty.
+		if s.current.Load() == nil {
+			s.logger.Info("no configuration published for this agent yet; waiting")
+		}
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	var projection agentproto.AgentConfigProjection
+	if err := json.Unmarshal([]byte(raw), &projection); err != nil {
+		return err
+	}
+
+	previous := s.current.Swap(&projection)
+	s.applySidecarTypes(projection)
+
+	if previous == nil {
+		s.logger.Info("configuration received",
+			"directories", len(projection.Directories),
+			"parallel_count", projection.ParallelCount,
+			"updated_at", projection.UpdatedAt,
+		)
+	} else if !previous.UpdatedAt.Equal(projection.UpdatedAt) {
+		s.logger.Info("configuration updated",
+			"directories", len(projection.Directories),
+			"updated_at", projection.UpdatedAt,
+		)
+	}
+	return nil
+}
+
+// applySidecarTypes recompiles the sidecar classification table.
+//
+// The scanner reads this through a package global, so it has to be installed
+// rather than passed. A table that fails to compile leaves the previous one
+// in place: classifying with the last known-good rules beats refusing to scan.
+func (s *ConfigStore) applySidecarTypes(projection agentproto.AgentConfigProjection) {
+	if len(projection.SidecarTypes) == 0 {
+		return
+	}
+
+	registry, err := scanmodel.NewSidecarRegistry(projection.SidecarTypes)
+	if err != nil {
+		s.logger.Error("published sidecar table did not compile; keeping the previous one", "error", err)
+		return
+	}
+	scanmodel.SetSidecarRegistry(registry)
+}
+
+// Watch keeps the projection current until ctx is cancelled, reacting to the
+// server's change notifications and re-reading periodically regardless.
+func (s *ConfigStore) Watch(ctx context.Context) {
+	if err := s.Refresh(ctx); err != nil && ctx.Err() == nil {
+		s.logger.Warn("failed to read configuration", "error", err)
+	}
+
+	subscription := s.client.Subscribe(ctx, agentproto.ConfigChangedChannel(s.slug))
+	defer subscription.Close()
+	notifications := subscription.Channel()
+
+	ticker := time.NewTicker(configPollInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+
+		case _, ok := <-notifications:
+			if !ok {
+				return
+			}
+			if err := s.Refresh(ctx); err != nil && ctx.Err() == nil {
+				s.logger.Warn("failed to re-read configuration after a change", "error", err)
+			}
+
+		case <-ticker.C:
+			if err := s.Refresh(ctx); err != nil && ctx.Err() == nil {
+				s.logger.Warn("failed to re-read configuration", "error", err)
+			}
+		}
+	}
+}

@@ -5,7 +5,7 @@
 # provisioned by mongo/init/init-mongo.js. For local (non-docker)
 # development, point the host at "localhost" instead of "mongodb".
 #
-# The path to this file can be overridden with the METARR_CONFIG_PATH
+# The path to this file can be overridden with the METARR_CONFIG_FILE
 # environment variable; otherwise the app looks for it at the project root.
 
 mongodb:
@@ -23,7 +23,10 @@ mongodb:
 redis:
   # Backs the job queue: job state is stored here and new work is
   # announced over a Redis Pub/Sub channel (see app/jobs/queue.py).
-  uri: "redis://redis:6379/0"
+  # The password must match REDIS_PASSWORD in .env, which is what
+  # docker-compose passes to redis-server. This file is parsed as plain YAML —
+  # no shell substitution happens here — so the two are kept in step by hand.
+  uri: "redis://:metarr@redis:6379/0"
 
 server:
   host: "0.0.0.0"

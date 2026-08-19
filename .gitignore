@@ -418,3 +418,5 @@ $RECYCLE.BIN/
 /http-client.env.json
 /metarr.http
 /data/
+/ui/.vite/
+/agent.local.yaml

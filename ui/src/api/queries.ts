@@ -9,6 +9,8 @@ import { request } from './client'
 import { useTopic } from './useTopic'
 import type {
   AcceptedResponse,
+  AgentConfig,
+  AgentView,
   Config,
   DirectoryScannerConfig,
   RedisStats,
@@ -29,6 +31,7 @@ export const queryKeys = {
   // Deliberately outside the config tree: this one is fed by a socket, and
   // the config-wide invalidations should not reach it.
   redisStats: ['stats', 'redis'] as const,
+  agents: ['stats', 'agents'] as const,
 }
 
 /*
@@ -84,6 +87,37 @@ export function useSonarrInstances() {
 // writes each frame straight into this query's cache entry. The queryFn still
 // runs once, so the page has something to paint before the socket is up and
 // something to fall back on if it never connects.
+// Agents stream over the socket for the same reason the Redis stats do: the
+// telemetry is live and the presence half changes on its own, with no user
+// action to hang a refetch off. The queryFn covers the first paint.
+export function useAgents() {
+  useTopic('agents.presence', queryKeys.agents)
+
+  return useQuery({
+    queryKey: queryKeys.agents,
+    queryFn: () => request<AgentView[]>('/api/config/agents'),
+    staleTime: Infinity,
+  })
+}
+
+// Agents are upserted by slug, like every other config collection here.
+export function useUpsertAgent() {
+  return useConfigMutation<AgentConfig>(
+    (body) => request<Accepted>('/api/config/agents', { method: 'POST', body }),
+    [queryKeys.config, queryKeys.agents],
+  )
+}
+
+export function useDeleteAgent() {
+  return useConfigMutation<string>(
+    (slug) =>
+      request<Accepted>(`/api/config/agents/${encodeURIComponent(slug)}`, {
+        method: 'DELETE',
+      }),
+    [queryKeys.config, queryKeys.agents],
+  )
+}
+
 export function useRedisStats() {
   useTopic('stats.redis', queryKeys.redisStats)
 

@@ -5,5 +5,5 @@ package generate
 
 // Regenerates docs/docs.go, docs/swagger.json, and docs/swagger.yaml from
 // the swaggo annotations on the handlers in internal/handlers and the
-// @title/@description block on cmd/api/main.go.
-//go:generate go tool swag init -g cmd/api/main.go --output docs --parseInternal --parseDependency
+// @title/@description block on cmd/metarr-server/main.go.
+//go:generate go tool swag init -g cmd/metarr-server/main.go --output docs --parseInternal --parseDependency

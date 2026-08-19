@@ -1,0 +1,37 @@
+# metarr-server is the API, the database and the orchestration. It mounts no
+# media: every filesystem operation happens on an agent, which is the point of
+# the split.
+
+FROM golang:1.26-alpine AS build
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+ARG VERSION=dev
+ARG TARGETOS
+ARG TARGETARCH
+
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
+    go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" \
+    -o /out/metarr-server ./cmd/metarr-server
+
+FROM alpine:3.21
+
+# The server talks to MongoDB and Redis over TLS in any real deployment, and
+# unlike the agent it is worth keeping a shell here for diagnosing a live
+# system.
+RUN apk add --no-cache ca-certificates tzdata \
+    && adduser -D -u 10001 metarr
+
+COPY --from=build /out/metarr-server /usr/local/bin/metarr-server
+
+USER metarr
+WORKDIR /app
+
+EXPOSE 8080
+
+ENTRYPOINT ["/usr/local/bin/metarr-server"]
