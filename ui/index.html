@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en" class="theme-dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Metarr</title>
+    <script>
+      // Applied before first paint so a light-theme user never sees a dark
+      // flash. Dark is the default when nothing has been stored.
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('metarr.theme')
+          document.documentElement.className =
+            stored === 'light' ? 'theme-light' : 'theme-dark'
+        } catch (e) {
+          document.documentElement.className = 'theme-dark'
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

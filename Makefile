@@ -8,7 +8,7 @@ ifeq (purge-git-history,$(firstword $(MAKECMDGOALS)))
   $(eval $(PURGE_FILES):;@:)
 endif
 
-.PHONY: generate build run test tidy purge-git-history
+.PHONY: generate build run test tidy ui-install ui-dev ui-build purge-git-history
 
 generate:
 	go generate ./...
@@ -24,6 +24,17 @@ test: generate
 
 tidy:
 	go mod tidy
+
+ui-install:
+	cd ui && npm install
+
+# The dev server proxies /api to localhost:8080, so the API needs to be running
+# alongside it (make run). Point the proxy elsewhere with METARR_API_URL.
+ui-dev:
+	cd ui && npm run dev
+
+ui-build:
+	cd ui && npm run build
 
 # Permanently removes one or more paths from every commit on every branch,
 # using git-filter-repo (brew install git-filter-repo). This rewrites commit

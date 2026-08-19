@@ -18,6 +18,7 @@ import (
 	"github.com/google/uuid"
 
 	"Metarr/internal/appconfig"
+	"Metarr/internal/auth"
 	"Metarr/internal/config"
 	"Metarr/internal/eventbus"
 	"Metarr/internal/handlers"
@@ -28,7 +29,9 @@ import (
 	"Metarr/internal/mongostore"
 	"Metarr/internal/passwordhash"
 	"Metarr/internal/redisclient"
+	"Metarr/internal/redisstats"
 	"Metarr/internal/session"
+	"Metarr/internal/wsbus"
 )
 
 const (
@@ -267,8 +270,18 @@ func run() error {
 		}
 	}()
 
-	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, sessions, logger, cfg.HeartbeatTimeout)
-	router := httpserver.NewRouter(apiHandlers, sessions, logger)
+	statsCollector := redisstats.New(redisClient)
+
+	// The streaming layer. Topics are registered here rather than inside the
+	// hub so what the server can stream is visible in one place; each
+	// producer only runs while a client is subscribed to it.
+	hub := wsbus.New(ctx, logger)
+	hub.Register("stats.redis", auth.GroupConfig, time.Second, func(ctx context.Context) (any, error) {
+		return statsCollector.Collect(ctx)
+	})
+
+	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, sessions, statsCollector, logger, cfg.HeartbeatTimeout)
+	router := httpserver.NewRouter(apiHandlers, hub, sessions, logger)
 	server := httpserver.New(cfg.Host, cfg.Port, router)
 
 	serverErr := make(chan error, 1)

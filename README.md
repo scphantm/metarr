@@ -39,10 +39,6 @@ just maybe not instantly
 
 ## UI
 
-tailwind css with react frontend, all in typescript.
-
-2 themes, Solarized Dark, Solarized Light
-
 The UI will consist of 3 critical pieces.  
 * Searches
 * Workflows

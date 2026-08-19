@@ -11,6 +11,7 @@ import (
 	"Metarr/internal/auth"
 	"Metarr/internal/handlers"
 	"Metarr/internal/session"
+	"Metarr/internal/wsbus"
 )
 
 // throttledInterval caps the heartbeat and auth (login/logout) endpoints at
@@ -20,7 +21,7 @@ const throttledInterval = 500 * time.Millisecond
 // NewRouter builds the application's HTTP route table, wrapped with
 // correlation ID and request logging middleware. Every route requires an
 // API key except the heartbeat, login, and the Swagger UI.
-func NewRouter(h *handlers.Handlers, sessions *session.Store, logger *slog.Logger) http.Handler {
+func NewRouter(h *handlers.Handlers, hub *wsbus.Hub, sessions *session.Store, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	protect := func(group auth.Group, handler http.HandlerFunc) http.Handler {
@@ -38,6 +39,16 @@ func NewRouter(h *handlers.Handlers, sessions *session.Store, logger *slog.Logge
 
 	mux.Handle("POST /api/tasks/sonarr_cache_data", protect(auth.GroupTasks, h.SonarrCacheData))
 	mux.Handle("POST /api/tasks/directory-scan/{slug}", protect(auth.GroupTasks, h.DirectoryScan))
+
+	// Statistics. The REST form is what a dashboard paints before its socket
+	// is up; the streaming form is the same data over the topic below.
+	mux.Handle("GET /api/stats/redis", protect(auth.GroupConfig, h.GetRedisStats))
+
+	// The streaming layer. One connection carries every topic a client asks
+	// for, so this is gated on the least restrictive group and each topic
+	// re-checks the caller's role against its own requirement at subscribe
+	// time — see wsbus.Hub.Register.
+	mux.Handle("GET /api/ws", protect(auth.GroupTasks, hub.ServeHTTP))
 
 	mux.Handle("GET /api/config", protect(auth.GroupConfig, h.GetConfig))
 	mux.Handle("PUT /api/config", protect(auth.GroupConfig, h.UpdateConfig))

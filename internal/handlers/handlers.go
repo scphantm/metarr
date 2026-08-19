@@ -10,6 +10,7 @@ import (
 	"Metarr/internal/appconfig"
 	"Metarr/internal/eventbus"
 	"Metarr/internal/mongostore"
+	"Metarr/internal/redisstats"
 	"Metarr/internal/session"
 )
 
@@ -20,6 +21,7 @@ type Handlers struct {
 	AppConfigRepo      *appconfig.Repo
 	LocalDirectoryRepo *mongostore.LocalDirectoryRepo
 	Sessions           *session.Store
+	Stats              *redisstats.Collector
 	Logger             *slog.Logger
 	HeartbeatTimeout   time.Duration
 }
@@ -31,6 +33,7 @@ func New(
 	appConfigRepo *appconfig.Repo,
 	localDirectoryRepo *mongostore.LocalDirectoryRepo,
 	sessions *session.Store,
+	stats *redisstats.Collector,
 	logger *slog.Logger,
 	heartbeatTimeout time.Duration,
 ) *Handlers {
@@ -40,6 +43,7 @@ func New(
 		AppConfigRepo:      appConfigRepo,
 		LocalDirectoryRepo: localDirectoryRepo,
 		Sessions:           sessions,
+		Stats:              stats,
 		Logger:             logger,
 		HeartbeatTimeout:   heartbeatTimeout,
 	}

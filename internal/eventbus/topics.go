@@ -38,3 +38,40 @@ const (
 	// for a directory_scan event.
 	DirectoryScanEventName = "directory_scan"
 )
+
+// StreamTopic describes one Redis Stream and the consumer group that reads
+// it, pairing the constants above so callers that need to walk every stream
+// — the statistics collector, for one — don't have to restate the names.
+type StreamTopic struct {
+	Stream    string
+	Group     string
+	EventName string
+}
+
+// KnownStreams returns every Redis Stream the application publishes to.
+func KnownStreams() []StreamTopic {
+	return []StreamTopic{
+		{
+			Stream:    SonarrCacheDataStream,
+			Group:     SonarrCacheDataGroup,
+			EventName: SonarrCacheDataEventName,
+		},
+		{
+			Stream:    SystemConfigUpdateStream,
+			Group:     SystemConfigUpdateGroup,
+			EventName: SystemConfigUpdateEventName,
+		},
+		{
+			Stream:    DirectoryScanStream,
+			Group:     DirectoryScanGroup,
+			EventName: DirectoryScanEventName,
+		},
+	}
+}
+
+// KnownPubSubChannels returns the fixed Pub/Sub channels. The per-request
+// reply channels are deliberately absent: they are named for a correlation
+// ID and exist only for the duration of one request.
+func KnownPubSubChannels() []string {
+	return []string{HeartbeatRequestChannel}
+}
