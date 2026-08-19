@@ -59,7 +59,7 @@ Extensive use of caching.  I/O operations are the slowest operations in all of c
 does thousands of them.  To prevent you from rate limiting your API keys, and to cut back on compilation times, this system
 caches virtually everything.  All the time to lives are configurable in the configuration system
 
-Event driven backend.  Because I/O is so time expensive, Metarr takes advantage of an Event Driven Backend to spread jobs across
+Event driven backend.  Because I/O is so time e[README.md](README.md)xpensive, Metarr takes advantage of an Event Driven Backend to spread jobs across
 several cores in parallel.  This means many things happen at once, instead of
 sequentially like other systems you may be used to.  Metarr follows a model called Eventually Consistent.  Meaning when you
 hit save, the change you make may not be instantaneous.  Many things happen in parallel in the background and all have to finish

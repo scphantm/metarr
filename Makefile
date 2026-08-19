@@ -11,7 +11,8 @@ endif
 .PHONY: generate build build-server build-agent run run-server run-agent test tidy \
 	dist dist-agent-linux-amd64 dist-agent-linux-arm64 \
 	dist-agent-windows-amd64 dist-agent-darwin-arm64 \
-	ui-install ui-dev ui-build docker-build purge-git-history
+	ui-install ui-dev ui-build docker-build purge-git-history \
+	lint lint-go lint-ui
 
 generate:
 	go generate ./...
@@ -72,6 +73,14 @@ test: generate
 
 tidy:
 	go mod tidy
+
+lint: lint-go lint-ui
+
+lint-go:
+	go tool golangci-lint run ./...
+
+lint-ui:
+	cd ui && npm run lint
 
 ui-install:
 	cd ui && npm install
