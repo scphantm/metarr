@@ -216,6 +216,132 @@
                 }
             }
         },
+        "/api/config/agents": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Returns configured agents merged with the agents currently connected to Redis, including live host telemetry for those that are online.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "List agents",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/agentregistry.AgentView"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Creates a new agent configuration if the slug does not exist, or replaces every field of the existing entry otherwise. Each mapping ties one scan directory to the path that agent knows it by; a scan directory the agent cannot see is simply left out.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Create or replace an agent",
+                "parameters": [
+                    {
+                        "description": "Agent to create or replace",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/appconfig.AgentConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body, bad slug, or an unusable mapping",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "a scan directory is already mapped to a different agent",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/config/agents/{slug}": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Removes an agent's configuration and the copy it reads from Redis, so a machine that reconnects later does not resume scanning a library it is no longer meant to touch. The agent process itself is unaffected and will reappear as unconfigured while it keeps running.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Delete an agent",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Agent slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "no agent with that slug",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/config/directory-scanner": {
             "get": {
                 "security": [
@@ -943,7 +1069,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/mediascan.TVSeries"
+                                "$ref": "#/definitions/scanmodel.TVSeries"
                             }
                         }
                     },
@@ -987,7 +1113,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/mediascan.TVSeries"
+                            "$ref": "#/definitions/scanmodel.TVSeries"
                         }
                     },
                     "400": {
@@ -1038,7 +1164,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/mediascan.MediaFile"
+                                "$ref": "#/definitions/scanmodel.MediaFile"
                             }
                         }
                     },
@@ -1150,7 +1276,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/mediascan.MediaFile"
+                            "$ref": "#/definitions/scanmodel.MediaFile"
                         }
                     },
                     "400": {
@@ -1161,6 +1287,40 @@
                     },
                     "404": {
                         "description": "no media file with that id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/stats/redis": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Returns the depth and consumer-group state of every event stream, the subscriber count of every Pub/Sub channel, and server-wide counters. The same data streams over the stats.redis WebSocket topic.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stats"
+                ],
+                "summary": "Fetch Redis statistics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/redisstats.Snapshot"
+                        }
+                    },
+                    "500": {
+                        "description": "failed to collect redis statistics",
                         "schema": {
                             "type": "string"
                         }
@@ -1279,6 +1439,133 @@
         }
     },
     "definitions": {
+        "agentproto.AgentIdentity": {
+            "type": "object",
+            "properties": {
+                "arch": {
+                    "type": "string"
+                },
+                "hostname": {
+                    "type": "string"
+                },
+                "instance_id": {
+                    "description": "InstanceID distinguishes one run of an agent from the next. It is what\nmakes a restart visible as a restart rather than as continuous uptime.",
+                    "type": "string"
+                },
+                "ip": {
+                    "type": "string"
+                },
+                "os": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "started": {
+                    "type": "string"
+                },
+                "uid": {
+                    "description": "UID and Username are the account the service runs as — the thing that\ndecides whether it can actually read the library it was pointed at.",
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "agentproto.AgentTelemetry": {
+            "type": "object",
+            "properties": {
+                "cpu_percent": {
+                    "type": "number"
+                },
+                "gpus": {
+                    "description": "GPUs is empty on a host without one, which is the common case and not a\nfailure. A host whose GPU cannot be queried also reports none rather\nthan failing the heartbeat around it.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/agentproto.GPUTelemetry"
+                    }
+                },
+                "memory_total_bytes": {
+                    "type": "integer"
+                },
+                "memory_used_bytes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "agentproto.GPUTelemetry": {
+            "type": "object",
+            "properties": {
+                "memory_total_bytes": {
+                    "type": "integer"
+                },
+                "memory_used_bytes": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "utilization_percent": {
+                    "type": "number"
+                }
+            }
+        },
+        "agentregistry.AgentView": {
+            "type": "object",
+            "properties": {
+                "configured": {
+                    "description": "Configured separates an agent that has announced itself from one someone\nhas actually set up. An agent that is online but not configured is the\nstate every new agent starts in, and the one the UI has to surface.",
+                    "type": "boolean"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "identity": {
+                    "$ref": "#/definitions/agentproto.AgentIdentity"
+                },
+                "mappings": {
+                    "description": "Mappings is what this agent has been told it can see, in the server's own\nterms as well as the agent's, since the UI shows both.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/agentregistry.MappingView"
+                    }
+                },
+                "online": {
+                    "description": "Online is presence, not health. It is true while the agent is still\nrefreshing its key, which is the only thing the server can actually know\nabout a machine it does not control.",
+                    "type": "boolean"
+                },
+                "reported_at": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "telemetry": {
+                    "$ref": "#/definitions/agentproto.AgentTelemetry"
+                }
+            }
+        },
+        "agentregistry.MappingView": {
+            "type": "object",
+            "properties": {
+                "agent_path": {
+                    "type": "string"
+                },
+                "scan_type": {
+                    "type": "string"
+                },
+                "scanner_slug": {
+                    "type": "string"
+                },
+                "server_path": {
+                    "type": "string"
+                }
+            }
+        },
         "appconfig.APIKeyEntry": {
             "type": "object",
             "properties": {
@@ -1336,11 +1623,47 @@
                 }
             }
         },
+        "appconfig.AgentConfig": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "type": "string"
+                },
+                "mappings": {
+                    "description": "Mappings say which libraries this agent can see and where. A scan\ndirectory absent from this list is one the agent has no access to,\nwhich is normal: agents sit on different machines holding different\nstorage.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/appconfig.AgentDirectoryMapping"
+                    }
+                },
+                "slug": {
+                    "description": "Slug matches the slug the agent is configured with locally, and is the\nonly link between the two. It has to be unique, which the API enforces.",
+                    "type": "string"
+                }
+            }
+        },
+        "appconfig.AgentDirectoryMapping": {
+            "type": "object",
+            "properties": {
+                "agent_path": {
+                    "type": "string"
+                },
+                "scanner_slug": {
+                    "type": "string"
+                }
+            }
+        },
         "appconfig.Config": {
             "type": "object",
             "properties": {
                 "admin": {
                     "$ref": "#/definitions/appconfig.AdminUser"
+                },
+                "agents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/appconfig.AgentConfig"
+                    }
                 },
                 "api_keys": {
                     "$ref": "#/definitions/appconfig.APIKeysConfig"
@@ -1569,465 +1892,6 @@
             "properties": {
                 "parallel_count": {
                     "type": "integer"
-                }
-            }
-        },
-        "mediascan.AudioStream": {
-            "type": "object",
-            "properties": {
-                "channels": {
-                    "type": "string"
-                },
-                "codec": {
-                    "type": "string"
-                },
-                "language": {
-                    "type": "string"
-                }
-            }
-        },
-        "mediascan.DirectoryType": {
-            "type": "string",
-            "enum": [
-                "movie",
-                "tv",
-                "music_video"
-            ],
-            "x-enum-varnames": [
-                "TypeMovie",
-                "TypeTV",
-                "TypeMusicVideo"
-            ]
-        },
-        "mediascan.FileInfo": {
-            "type": "object",
-            "properties": {
-                "stream_details": {
-                    "$ref": "#/definitions/mediascan.StreamDetails"
-                }
-            }
-        },
-        "mediascan.FileStat": {
-            "type": "object",
-            "properties": {
-                "accessed_at": {
-                    "type": "string"
-                },
-                "block_size": {
-                    "type": "integer"
-                },
-                "blocks": {
-                    "type": "integer"
-                },
-                "changed_at": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "description": "CreatedAt is the file's birth time. It stays zero on Linux, which does\nnot expose one through stat(2).",
-                    "type": "string"
-                },
-                "device_id": {
-                    "type": "integer"
-                },
-                "gid": {
-                    "type": "integer"
-                },
-                "group_name": {
-                    "type": "string"
-                },
-                "inode": {
-                    "type": "integer"
-                },
-                "is_symlink": {
-                    "description": "IsSymlink reports that this record describes a symbolic link rather than\nthe file it points at. The scan walks with lstat, so a symlinked sidecar\nreports the link's own stat and says so here instead of quietly reporting\nits target's.",
-                    "type": "boolean"
-                },
-                "link_count": {
-                    "type": "integer"
-                },
-                "mode": {
-                    "description": "Mode is the symbolic rendering, \"-rw-r--r--\", and ModeBits the numeric\npermission bits alongside setuid, setgid and sticky — which is why the\nraw stat mode is masked rather than read through fs.FileMode.Perm, since\nthat drops the three special bits.",
-                    "type": "string"
-                },
-                "mode_bits": {
-                    "type": "integer"
-                },
-                "modified_at": {
-                    "type": "string"
-                },
-                "owner_name": {
-                    "type": "string"
-                },
-                "size_bytes": {
-                    "type": "integer"
-                },
-                "uid": {
-                    "type": "integer"
-                }
-            }
-        },
-        "mediascan.ImageInfo": {
-            "type": "object",
-            "properties": {
-                "codec": {
-                    "type": "string"
-                },
-                "error": {
-                    "description": "Error records why the header could not be read, for a file named like\nartwork that cannot be decoded. It is the only field set when it is set,\nso a corrupt poster stays distinguishable from one never examined.",
-                    "type": "string"
-                },
-                "height": {
-                    "type": "integer"
-                },
-                "width": {
-                    "type": "integer"
-                }
-            }
-        },
-        "mediascan.MediaFile": {
-            "type": "object",
-            "properties": {
-                "directory_id": {
-                    "type": "string"
-                },
-                "directory_path": {
-                    "type": "string"
-                },
-                "extension": {
-                    "type": "string"
-                },
-                "file_info": {
-                    "$ref": "#/definitions/mediascan.FileInfo"
-                },
-                "file_name": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "metadata": {
-                    "$ref": "#/definitions/metadata.Metadata"
-                },
-                "modified_at": {
-                    "type": "string"
-                },
-                "path": {
-                    "type": "string"
-                },
-                "record_type": {
-                    "$ref": "#/definitions/mediascan.RecordType"
-                },
-                "relative_path": {
-                    "type": "string"
-                },
-                "scan_root_path": {
-                    "type": "string"
-                },
-                "scanned_at": {
-                    "type": "string"
-                },
-                "sidecars": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/mediascan.SidecarFile"
-                    }
-                },
-                "size_bytes": {
-                    "type": "integer"
-                },
-                "stat": {
-                    "description": "Stat is the filesystem's view of the file — ownership, permissions, inode,\ntimestamps — as recorded at scan time. FileInfo below is the codec's view;\nthe two describe different things despite the similar names.",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/mediascan.FileStat"
-                        }
-                    ]
-                },
-                "type": {
-                    "$ref": "#/definitions/mediascan.DirectoryType"
-                },
-                "video": {
-                    "$ref": "#/definitions/metadata.VideoAttributes"
-                },
-                "warnings": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "mediascan.RecordType": {
-            "type": "string",
-            "enum": [
-                "tvseries",
-                "media_file"
-            ],
-            "x-enum-varnames": [
-                "RecordTypeTVSeries",
-                "RecordTypeMediaFile"
-            ]
-        },
-        "mediascan.SidecarCategory": {
-            "type": "string",
-            "enum": [
-                "image",
-                "video_extra",
-                "subtitle",
-                "metadata",
-                "audio",
-                "disc_structure",
-                "trickplay",
-                "unknown"
-            ],
-            "x-enum-varnames": [
-                "SidecarCategoryImage",
-                "SidecarCategoryVideoExtra",
-                "SidecarCategorySubtitle",
-                "SidecarCategoryMetadata",
-                "SidecarCategoryAudio",
-                "SidecarCategoryDiscStructure",
-                "SidecarCategoryTrickplay",
-                "SidecarCategoryUnknown"
-            ]
-        },
-        "mediascan.SidecarFile": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "$ref": "#/definitions/mediascan.SidecarCategory"
-                },
-                "extension": {
-                    "type": "string"
-                },
-                "file_name": {
-                    "type": "string"
-                },
-                "image": {
-                    "description": "Image is the codec and dimensions read from the file's header, present\nonly on sidecars whose extension marks them as artwork.",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/mediascan.ImageInfo"
-                        }
-                    ]
-                },
-                "modified_at": {
-                    "type": "string"
-                },
-                "relative_path": {
-                    "type": "string"
-                },
-                "sidecar_type": {
-                    "$ref": "#/definitions/mediascan.SidecarType"
-                },
-                "size_bytes": {
-                    "type": "integer"
-                },
-                "stat": {
-                    "description": "Stat is what the filesystem reports about the file itself: ownership,\npermissions, inode and the full set of timestamps.",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/mediascan.FileStat"
-                        }
-                    ]
-                },
-                "trickplay": {
-                    "description": "Trickplay places a scrubbing preview tile within its media file's\npreviews, and is present only on those.",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/mediascan.TrickplayInfo"
-                        }
-                    ]
-                }
-            }
-        },
-        "mediascan.SidecarType": {
-            "type": "string",
-            "enum": [
-                "poster",
-                "fanart",
-                "banner",
-                "clearlogo",
-                "clearart",
-                "discart",
-                "thumb",
-                "landscape",
-                "trailer",
-                "behind_the_scenes",
-                "deleted_scene",
-                "featurette",
-                "interview",
-                "scene",
-                "short",
-                "other_extra",
-                "subtitle",
-                "nfo",
-                "theme",
-                "disc_structure",
-                "trickplay",
-                "unknown"
-            ],
-            "x-enum-varnames": [
-                "SidecarPoster",
-                "SidecarFanart",
-                "SidecarBanner",
-                "SidecarClearLogo",
-                "SidecarClearArt",
-                "SidecarDiscArt",
-                "SidecarThumb",
-                "SidecarLandscape",
-                "SidecarTrailer",
-                "SidecarBehindTheScenes",
-                "SidecarDeletedScene",
-                "SidecarFeaturette",
-                "SidecarInterview",
-                "SidecarScene",
-                "SidecarShort",
-                "SidecarOtherExtra",
-                "SidecarSubtitle",
-                "SidecarNFO",
-                "SidecarTheme",
-                "SidecarDiscStructure",
-                "SidecarTrickplay",
-                "SidecarUnknown"
-            ]
-        },
-        "mediascan.StreamDetails": {
-            "type": "object",
-            "properties": {
-                "audio": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/mediascan.AudioStream"
-                    }
-                },
-                "subtitle": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/mediascan.SubtitleStream"
-                    }
-                },
-                "video": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/mediascan.VideoStream"
-                    }
-                }
-            }
-        },
-        "mediascan.SubtitleStream": {
-            "type": "object",
-            "properties": {
-                "language": {
-                    "type": "string"
-                }
-            }
-        },
-        "mediascan.TVSeason": {
-            "type": "object",
-            "properties": {
-                "folder_name": {
-                    "type": "string"
-                },
-                "season_number": {
-                    "type": "integer"
-                },
-                "sidecars": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/mediascan.SidecarFile"
-                    }
-                }
-            }
-        },
-        "mediascan.TVSeries": {
-            "type": "object",
-            "properties": {
-                "folder_name": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "metadata": {
-                    "$ref": "#/definitions/metadata.Metadata"
-                },
-                "path": {
-                    "type": "string"
-                },
-                "record_type": {
-                    "$ref": "#/definitions/mediascan.RecordType"
-                },
-                "scan_root_path": {
-                    "type": "string"
-                },
-                "scanned_at": {
-                    "type": "string"
-                },
-                "seasons": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/mediascan.TVSeason"
-                    }
-                },
-                "sidecars": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/mediascan.SidecarFile"
-                    }
-                },
-                "type": {
-                    "$ref": "#/definitions/mediascan.DirectoryType"
-                },
-                "warnings": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "mediascan.TrickplayInfo": {
-            "type": "object",
-            "properties": {
-                "tile_height": {
-                    "type": "integer"
-                },
-                "tile_index": {
-                    "description": "TileIndex is nil for a file inside a resolution folder that is not a\nnumbered tile, which is different from being the first one.",
-                    "type": "integer"
-                },
-                "tile_width": {
-                    "type": "integer"
-                },
-                "width": {
-                    "type": "integer"
-                }
-            }
-        },
-        "mediascan.VideoStream": {
-            "type": "object",
-            "properties": {
-                "aspect": {
-                    "type": "string"
-                },
-                "codec": {
-                    "type": "string"
-                },
-                "duration_in_seconds": {
-                    "type": "string"
-                },
-                "hdr_type": {
-                    "type": "string"
-                },
-                "height": {
-                    "type": "string"
-                },
-                "stereo_mode": {
-                    "type": "string"
-                },
-                "width": {
-                    "type": "string"
                 }
             }
         },
@@ -2492,6 +2356,597 @@
                 },
                 "year": {
                     "type": "integer"
+                }
+            }
+        },
+        "redisstats.ChannelStat": {
+            "type": "object",
+            "properties": {
+                "channel": {
+                    "type": "string"
+                },
+                "known": {
+                    "description": "Known marks the application's declared channels. Channels discovered\nat runtime — the per-correlation-id reply channels — come back false,\nsince they exist only while a request is in flight.",
+                    "type": "boolean"
+                },
+                "subscribers": {
+                    "type": "integer"
+                }
+            }
+        },
+        "redisstats.ConsumerStat": {
+            "type": "object",
+            "properties": {
+                "idle_seconds": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pending": {
+                    "type": "integer"
+                }
+            }
+        },
+        "redisstats.GroupStat": {
+            "type": "object",
+            "properties": {
+                "consumer_detail": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/redisstats.ConsumerStat"
+                    }
+                },
+                "consumers": {
+                    "type": "integer"
+                },
+                "lag": {
+                    "type": "integer"
+                },
+                "last_delivered_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pending": {
+                    "type": "integer"
+                }
+            }
+        },
+        "redisstats.ServerInfo": {
+            "type": "object",
+            "properties": {
+                "connected_clients": {
+                    "type": "integer"
+                },
+                "ops_per_second": {
+                    "type": "integer"
+                },
+                "total_keys": {
+                    "type": "integer"
+                },
+                "uptime_seconds": {
+                    "type": "integer"
+                },
+                "used_memory": {
+                    "type": "integer"
+                },
+                "used_memory_human": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "redisstats.Snapshot": {
+            "type": "object",
+            "properties": {
+                "collected_at": {
+                    "type": "string"
+                },
+                "pubsub": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/redisstats.ChannelStat"
+                    }
+                },
+                "server": {
+                    "$ref": "#/definitions/redisstats.ServerInfo"
+                },
+                "streams": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/redisstats.StreamStat"
+                    }
+                }
+            }
+        },
+        "redisstats.StreamStat": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "description": "Error records a per-stream failure. One unreadable stream should not\ncost the caller the rest of the snapshot.",
+                    "type": "string"
+                },
+                "event_name": {
+                    "type": "string"
+                },
+                "exists": {
+                    "description": "Exists distinguishes an empty stream from one that has never been\ncreated. Streams are created lazily, when a listener first subscribes,\nso a length of zero on its own is ambiguous.",
+                    "type": "boolean"
+                },
+                "groups": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/redisstats.GroupStat"
+                    }
+                },
+                "length": {
+                    "type": "integer"
+                },
+                "stream": {
+                    "type": "string"
+                }
+            }
+        },
+        "scanmodel.AudioStream": {
+            "type": "object",
+            "properties": {
+                "channels": {
+                    "type": "string"
+                },
+                "codec": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string"
+                }
+            }
+        },
+        "scanmodel.DirectoryType": {
+            "type": "string",
+            "enum": [
+                "movie",
+                "tv",
+                "music_video"
+            ],
+            "x-enum-varnames": [
+                "TypeMovie",
+                "TypeTV",
+                "TypeMusicVideo"
+            ]
+        },
+        "scanmodel.FileInfo": {
+            "type": "object",
+            "properties": {
+                "stream_details": {
+                    "$ref": "#/definitions/scanmodel.StreamDetails"
+                }
+            }
+        },
+        "scanmodel.FileStat": {
+            "type": "object",
+            "properties": {
+                "accessed_at": {
+                    "type": "string"
+                },
+                "block_size": {
+                    "type": "integer"
+                },
+                "blocks": {
+                    "type": "integer"
+                },
+                "changed_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "description": "CreatedAt is the file's birth time. It stays zero on Linux, which does\nnot expose one through stat(2).",
+                    "type": "string"
+                },
+                "device_id": {
+                    "type": "integer"
+                },
+                "gid": {
+                    "type": "integer"
+                },
+                "group_name": {
+                    "type": "string"
+                },
+                "inode": {
+                    "type": "integer"
+                },
+                "is_symlink": {
+                    "description": "IsSymlink reports that this record describes a symbolic link rather than\nthe file it points at. The scan walks with lstat, so a symlinked sidecar\nreports the link's own stat and says so here instead of quietly reporting\nits target's.",
+                    "type": "boolean"
+                },
+                "link_count": {
+                    "type": "integer"
+                },
+                "mode": {
+                    "description": "Mode is the symbolic rendering, \"-rw-r--r--\", and ModeBits the numeric\npermission bits alongside setuid, setgid and sticky — which is why the\nraw stat mode is masked rather than read through fs.FileMode.Perm, since\nthat drops the three special bits.",
+                    "type": "string"
+                },
+                "mode_bits": {
+                    "type": "integer"
+                },
+                "modified_at": {
+                    "type": "string"
+                },
+                "owner_name": {
+                    "type": "string"
+                },
+                "size_bytes": {
+                    "type": "integer"
+                },
+                "uid": {
+                    "type": "integer"
+                }
+            }
+        },
+        "scanmodel.ImageInfo": {
+            "type": "object",
+            "properties": {
+                "codec": {
+                    "type": "string"
+                },
+                "error": {
+                    "description": "Error records why the header could not be read, for a file named like\nartwork that cannot be decoded. It is the only field set when it is set,\nso a corrupt poster stays distinguishable from one never examined.",
+                    "type": "string"
+                },
+                "height": {
+                    "type": "integer"
+                },
+                "width": {
+                    "type": "integer"
+                }
+            }
+        },
+        "scanmodel.MediaFile": {
+            "type": "object",
+            "properties": {
+                "directory_id": {
+                    "type": "string"
+                },
+                "directory_path": {
+                    "type": "string"
+                },
+                "extension": {
+                    "type": "string"
+                },
+                "file_info": {
+                    "$ref": "#/definitions/scanmodel.FileInfo"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "$ref": "#/definitions/metadata.Metadata"
+                },
+                "modified_at": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "record_type": {
+                    "$ref": "#/definitions/scanmodel.RecordType"
+                },
+                "relative_path": {
+                    "type": "string"
+                },
+                "scan_root_path": {
+                    "type": "string"
+                },
+                "scanned_at": {
+                    "type": "string"
+                },
+                "sidecars": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/scanmodel.SidecarFile"
+                    }
+                },
+                "size_bytes": {
+                    "type": "integer"
+                },
+                "stat": {
+                    "description": "Stat is the filesystem's view of the file — ownership, permissions, inode,\ntimestamps — as recorded at scan time. FileInfo below is the codec's view;\nthe two describe different things despite the similar names.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/scanmodel.FileStat"
+                        }
+                    ]
+                },
+                "type": {
+                    "$ref": "#/definitions/scanmodel.DirectoryType"
+                },
+                "video": {
+                    "$ref": "#/definitions/metadata.VideoAttributes"
+                },
+                "warnings": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "scanmodel.RecordType": {
+            "type": "string",
+            "enum": [
+                "tvseries",
+                "media_file"
+            ],
+            "x-enum-varnames": [
+                "RecordTypeTVSeries",
+                "RecordTypeMediaFile"
+            ]
+        },
+        "scanmodel.SidecarCategory": {
+            "type": "string",
+            "enum": [
+                "image",
+                "video_extra",
+                "subtitle",
+                "metadata",
+                "audio",
+                "disc_structure",
+                "trickplay",
+                "unknown"
+            ],
+            "x-enum-varnames": [
+                "SidecarCategoryImage",
+                "SidecarCategoryVideoExtra",
+                "SidecarCategorySubtitle",
+                "SidecarCategoryMetadata",
+                "SidecarCategoryAudio",
+                "SidecarCategoryDiscStructure",
+                "SidecarCategoryTrickplay",
+                "SidecarCategoryUnknown"
+            ]
+        },
+        "scanmodel.SidecarFile": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "$ref": "#/definitions/scanmodel.SidecarCategory"
+                },
+                "extension": {
+                    "type": "string"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "image": {
+                    "description": "Image is the codec and dimensions read from the file's header, present\nonly on sidecars whose extension marks them as artwork.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/scanmodel.ImageInfo"
+                        }
+                    ]
+                },
+                "modified_at": {
+                    "type": "string"
+                },
+                "relative_path": {
+                    "type": "string"
+                },
+                "sidecar_type": {
+                    "$ref": "#/definitions/scanmodel.SidecarType"
+                },
+                "size_bytes": {
+                    "type": "integer"
+                },
+                "stat": {
+                    "description": "Stat is what the filesystem reports about the file itself: ownership,\npermissions, inode and the full set of timestamps.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/scanmodel.FileStat"
+                        }
+                    ]
+                },
+                "trickplay": {
+                    "description": "Trickplay places a scrubbing preview tile within its media file's\npreviews, and is present only on those.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/scanmodel.TrickplayInfo"
+                        }
+                    ]
+                }
+            }
+        },
+        "scanmodel.SidecarType": {
+            "type": "string",
+            "enum": [
+                "poster",
+                "fanart",
+                "banner",
+                "clearlogo",
+                "clearart",
+                "discart",
+                "thumb",
+                "landscape",
+                "trailer",
+                "behind_the_scenes",
+                "deleted_scene",
+                "featurette",
+                "interview",
+                "scene",
+                "short",
+                "other_extra",
+                "subtitle",
+                "nfo",
+                "theme",
+                "disc_structure",
+                "trickplay",
+                "unknown"
+            ],
+            "x-enum-varnames": [
+                "SidecarPoster",
+                "SidecarFanart",
+                "SidecarBanner",
+                "SidecarClearLogo",
+                "SidecarClearArt",
+                "SidecarDiscArt",
+                "SidecarThumb",
+                "SidecarLandscape",
+                "SidecarTrailer",
+                "SidecarBehindTheScenes",
+                "SidecarDeletedScene",
+                "SidecarFeaturette",
+                "SidecarInterview",
+                "SidecarScene",
+                "SidecarShort",
+                "SidecarOtherExtra",
+                "SidecarSubtitle",
+                "SidecarNFO",
+                "SidecarTheme",
+                "SidecarDiscStructure",
+                "SidecarTrickplay",
+                "SidecarUnknown"
+            ]
+        },
+        "scanmodel.StreamDetails": {
+            "type": "object",
+            "properties": {
+                "audio": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/scanmodel.AudioStream"
+                    }
+                },
+                "subtitle": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/scanmodel.SubtitleStream"
+                    }
+                },
+                "video": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/scanmodel.VideoStream"
+                    }
+                }
+            }
+        },
+        "scanmodel.SubtitleStream": {
+            "type": "object",
+            "properties": {
+                "language": {
+                    "type": "string"
+                }
+            }
+        },
+        "scanmodel.TVSeason": {
+            "type": "object",
+            "properties": {
+                "folder_name": {
+                    "type": "string"
+                },
+                "season_number": {
+                    "type": "integer"
+                },
+                "sidecars": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/scanmodel.SidecarFile"
+                    }
+                }
+            }
+        },
+        "scanmodel.TVSeries": {
+            "type": "object",
+            "properties": {
+                "folder_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "$ref": "#/definitions/metadata.Metadata"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "record_type": {
+                    "$ref": "#/definitions/scanmodel.RecordType"
+                },
+                "scan_root_path": {
+                    "type": "string"
+                },
+                "scanned_at": {
+                    "type": "string"
+                },
+                "seasons": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/scanmodel.TVSeason"
+                    }
+                },
+                "sidecars": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/scanmodel.SidecarFile"
+                    }
+                },
+                "type": {
+                    "$ref": "#/definitions/scanmodel.DirectoryType"
+                },
+                "warnings": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "scanmodel.TrickplayInfo": {
+            "type": "object",
+            "properties": {
+                "tile_height": {
+                    "type": "integer"
+                },
+                "tile_index": {
+                    "description": "TileIndex is nil for a file inside a resolution folder that is not a\nnumbered tile, which is different from being the first one.",
+                    "type": "integer"
+                },
+                "tile_width": {
+                    "type": "integer"
+                },
+                "width": {
+                    "type": "integer"
+                }
+            }
+        },
+        "scanmodel.VideoStream": {
+            "type": "object",
+            "properties": {
+                "aspect": {
+                    "type": "string"
+                },
+                "codec": {
+                    "type": "string"
+                },
+                "duration_in_seconds": {
+                    "type": "string"
+                },
+                "hdr_type": {
+                    "type": "string"
+                },
+                "height": {
+                    "type": "string"
+                },
+                "stereo_mode": {
+                    "type": "string"
+                },
+                "width": {
+                    "type": "string"
                 }
             }
         },

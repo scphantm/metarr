@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './auth/AuthContext'
 import { LoginScreen } from './auth/LoginScreen'
 import { AppShell } from './layout/AppShell'
+import { AgentsPage, AgentsSidebar } from './pages/system/AgentsPage'
 import { ConfigurationPage } from './pages/system/ConfigurationPage'
 import {
   DirectoryScannerPage,
@@ -62,6 +63,14 @@ export function App() {
         element={
           <AppShell sidebar={<InterfacesSidebar />}>
             <InterfacesPage />
+          </AppShell>
+        }
+      />
+      <Route
+        path="/system/agents"
+        element={
+          <AppShell sidebar={<AgentsSidebar />}>
+            <AgentsPage />
           </AppShell>
         }
       />

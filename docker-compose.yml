@@ -23,6 +23,11 @@ services:
     image: redis:7-alpine
     container_name: metarr-redis
     restart: always
+    # Agents connect to Redis from other machines, so this port is genuinely
+    # reachable rather than a convenience for local tooling. A password is the
+    # minimum that makes that safe; for anything crossing an untrusted network,
+    # terminate TLS in front of it as well.
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-metarr}"]
     ports:
       - "6379:6379"
     volumes:

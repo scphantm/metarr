@@ -1,0 +1,43 @@
+# metarr-agent runs next to the media it scans — frequently on a NAS rather
+# than a server — so the image is built for size and portability above all
+# else. It is a static binary on scratch: no shell, no package manager, and
+# nothing to keep patched.
+#
+# The one thing it deliberately cannot do is reach a database. The agent talks
+# to Redis and nothing else; see internal/agent/boundary_test.go, which fails
+# the build if that ever stops being true.
+
+FROM golang:1.26-alpine AS build
+
+WORKDIR /src
+
+# Dependencies first, so a source-only change does not re-download the module
+# cache on every build.
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+ARG VERSION=dev
+ARG TARGETOS
+ARG TARGETARCH
+
+# CGO off is what makes the result static and therefore runnable on scratch.
+# The agent's own dependencies are pure Go, so nothing is lost by it.
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
+    go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" \
+    -o /out/metarr-agent ./cmd/metarr-agent
+
+FROM scratch
+
+# The agent connects to Redis, which may be TLS in a real deployment, so it
+# needs a trust store even though it has no other userland.
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=build /out/metarr-agent /metarr-agent
+
+# Configuration is environment-only by default: an agent needs a slug and a way
+# to reach Redis, and requiring a mounted YAML file to set two values would be a
+# poor trade. METARR_AGENT_CONFIG_FILE still points at one if you prefer.
+ENV METARR_AGENT_LOG_FILE=/dev/stdout
+
+ENTRYPOINT ["/metarr-agent"]

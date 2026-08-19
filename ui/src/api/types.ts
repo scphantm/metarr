@@ -217,3 +217,77 @@ export type RedisStats = {
   streams: RedisStreamStat[]
   pubsub: PubSubChannelStat[]
 }
+
+/*
+ * Agents.
+ *
+ * An agent is a small binary deployed next to the media it scans. It connects
+ * to Redis and nothing else, and carries only a slug and a Redis connection
+ * locally — everything else it knows is published to it by the server.
+ *
+ * The two halves of an agent's state come from different places and mean
+ * different things. `configured` is what an operator has said about it and
+ * lives in the config document; `online` is whether it is currently refreshing
+ * its presence key in Redis, which is volatile and stored nowhere else. A card
+ * can be configured and offline (a machine that is switched off), or online and
+ * unconfigured (a machine that has just appeared and needs setting up).
+ */
+
+export type AgentIdentity = {
+  slug: string
+  instance_id: string
+  hostname: string
+  ip: string
+  uid: number
+  username: string
+  os: string
+  arch: string
+  version: string
+  started: string
+}
+
+export type GPUTelemetry = {
+  name: string
+  utilization_percent: number
+  memory_used_bytes: number
+  memory_total_bytes: number
+}
+
+export type AgentTelemetry = {
+  cpu_percent: number
+  memory_used_bytes: number
+  memory_total_bytes: number
+  gpus?: GPUTelemetry[]
+}
+
+export type AgentMappingView = {
+  scanner_slug: string
+  scan_type: string
+  server_path: string
+  agent_path: string
+}
+
+export type AgentView = {
+  slug: string
+  display_name?: string
+  online: boolean
+  configured: boolean
+  identity?: AgentIdentity
+  telemetry?: AgentTelemetry
+  reported_at?: string
+  mappings: AgentMappingView[]
+}
+
+// AgentDirectoryMapping is the write shape: only the two fields the operator
+// actually sets. The server path and scan type are looked up from the scan
+// directory, so sending them back would be a second source of truth.
+export type AgentDirectoryMapping = {
+  scanner_slug: string
+  agent_path: string
+}
+
+export type AgentConfig = {
+  slug: string
+  display_name?: string
+  mappings: AgentDirectoryMapping[]
+}

@@ -1,0 +1,34 @@
+# Metarr agent configuration.
+#
+# This is the whole of what an agent needs locally: a name, and how to reach
+# Redis. Everything else it acts on — which libraries it can see, how they map
+# onto this machine's paths, how the scanner is tuned — is published to it by
+# the server over Redis; see internal/shared/agentproto and
+# internal/agent/runtime/config.go.
+#
+# The path to this file can be overridden with the METARR_AGENT_CONFIG_FILE
+# environment variable; otherwise the agent looks for it at the project root.
+# The file itself is optional — every value below can also be set by
+# environment variable (METARR_AGENT_SLUG, METARR_REDIS_HOST,
+# METARR_REDIS_PORT, METARR_REDIS_USERNAME, METARR_REDIS_PASSWORD,
+# METARR_REDIS_DB, METARR_AGENT_LOG_FILE), which is how the Docker image is
+# configured.
+
+agent:
+  # This agent's name. It has to be unique across every agent talking to this
+  # Redis — the server rejects a duplicate slug — and is how work gets
+  # addressed to this machine specifically, since a scan of one library only
+  # makes sense on the machine that actually has it mounted.
+  slug: local
+
+redis:
+  # The password must match REDIS_PASSWORD in .env, which is what
+  # docker-compose passes to redis-server. This file is parsed as plain YAML —
+  # no shell substitution happens here — so the two are kept in step by hand.
+  host: redis
+  port: 6379
+  password: metarr
+  db: 0
+
+logging:
+  file: logs/agent.log
