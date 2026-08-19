@@ -4,11 +4,16 @@ import { useAuth } from './auth/AuthContext'
 import { LoginScreen } from './auth/LoginScreen'
 import { AppShell } from './layout/AppShell'
 import { AgentsPage, AgentsSidebar } from './pages/system/AgentsPage'
+import { LoggingPage, LoggingSidebar } from './pages/system/LoggingPage'
 import { ConfigurationPage } from './pages/system/ConfigurationPage'
 import {
   DirectoryScannerPage,
   DirectoryScannerSidebar,
 } from './pages/system/DirectoryScannerPage'
+import {
+  ExternalToolsPage,
+  ExternalToolsSidebar,
+} from './pages/system/ExternalToolsPage'
 import { InterfacesPage, InterfacesSidebar } from './pages/system/InterfacesPage'
 import { SecurityPage, SecuritySidebar } from './pages/system/SecurityPage'
 import { SidecarsPage, SidecarsSidebar } from './pages/system/SidecarsPage'
@@ -71,6 +76,22 @@ export function App() {
         element={
           <AppShell sidebar={<AgentsSidebar />}>
             <AgentsPage />
+          </AppShell>
+        }
+      />
+      <Route
+        path="/system/logging"
+        element={
+          <AppShell sidebar={<LoggingSidebar />}>
+            <LoggingPage />
+          </AppShell>
+        }
+      />
+      <Route
+        path="/system/external-tools"
+        element={
+          <AppShell sidebar={<ExternalToolsSidebar />}>
+            <ExternalToolsPage />
           </AppShell>
         }
       />

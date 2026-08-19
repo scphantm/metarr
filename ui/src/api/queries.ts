@@ -13,6 +13,8 @@ import type {
   AgentView,
   Config,
   DirectoryScannerConfig,
+  LoggingConfig,
+  LogTailEntry,
   RedisStats,
   ReorderSidecarTypesRequest,
   ScanDirectory,
@@ -28,10 +30,12 @@ export const queryKeys = {
   scanDirectories: ['config', 'scan-directories'] as const,
   sidecarTypes: ['config', 'sidecar-types'] as const,
   sonarr: ['config', 'interfaces', 'sonarr'] as const,
-  // Deliberately outside the config tree: this one is fed by a socket, and
-  // the config-wide invalidations should not reach it.
+  // Deliberately outside the config tree: these are fed by a socket, and the
+  // config-wide invalidations should not reach them.
   redisStats: ['stats', 'redis'] as const,
   agents: ['stats', 'agents'] as const,
+  logging: ['config', 'logging'] as const,
+  logTail: ['stats', 'log-tail'] as const,
 }
 
 /*
@@ -128,6 +132,40 @@ export function useRedisStats() {
   })
 }
 
+export function useLoggingConfig() {
+  return useQuery({
+    queryKey: queryKeys.logging,
+    queryFn: () => request<LoggingConfig>('/api/config/logging'),
+  })
+}
+
+// The live tail streams over the socket, same shape as useRedisStats/useAgents:
+// the queryFn covers first paint and a down socket, the topic keeps it fresh.
+export function useLogTail() {
+  useTopic('logging.tail', queryKeys.logTail)
+
+  return useQuery({
+    queryKey: queryKeys.logTail,
+    queryFn: () => request<LogTailEntry[]>('/api/logging/tail'),
+    staleTime: Infinity,
+  })
+}
+
+// A dedicated sub-resource rather than a full AgentConfig upsert: setting a
+// level should never risk touching an agent's mappings, and it works even for
+// an agent that isn't configured with any yet (the server creates a bare
+// entry) — see SetAgentLogLevel's doc comment on the Go side.
+export function useSetAgentLogLevel() {
+  return useConfigMutation<{ slug: string; log_level: string }>(
+    ({ slug, log_level }) =>
+      request<Accepted>(
+        `/api/config/agents/${encodeURIComponent(slug)}/log-level`,
+        { method: 'POST', body: { log_level } },
+      ),
+    [queryKeys.config, queryKeys.agents],
+  )
+}
+
 /*
  * Writes. Each invalidates every query that could show the change: the config
  * document overlaps the scoped endpoints, so a scan directory edit has to
@@ -165,6 +203,16 @@ export function useUpdateConfig() {
   return useConfigMutation<Config>(
     (body) => request<Accepted>('/api/config', { method: 'PUT', body }),
     [queryKeys.config, queryKeys.sonarr, queryKeys.directoryScanner],
+  )
+}
+
+// A single upsert POST, like the other newer config sections — see the
+// upsert-not-PUT convention in CLAUDE.md.
+export function useUpdateLoggingConfig() {
+  return useConfigMutation<LoggingConfig>(
+    (body) =>
+      request<Accepted>('/api/config/logging', { method: 'POST', body }),
+    [queryKeys.logging, queryKeys.config],
   )
 }
 

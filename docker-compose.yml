@@ -56,6 +56,45 @@ services:
     networks:
       - metarr-net
 
+  openobserve:
+    image: public.ecr.aws/zinclabs/openobserve:latest
+    container_name: metarr-openobserve
+    restart: unless-stopped
+    environment:
+      ZO_ROOT_USER_EMAIL: ${OPENOBSERVE_ROOT_EMAIL:-admin@example.com}
+      # OpenObserve enforces a real password policy at startup (8-128 chars,
+      # upper+lower+digit+special) and refuses to boot otherwise — the
+      # default below satisfies it, but change it for anything beyond local
+      # dev.
+      ZO_ROOT_USER_PASSWORD: ${OPENOBSERVE_ROOT_PASSWORD:-Metarr123!}
+    ports:
+      - "5080:5080"
+    volumes:
+      - openobserve_data:/data
+    networks:
+      - metarr-net
+
+  fluent-bit:
+    image: fluent/fluent-bit:latest
+    container_name: metarr-fluent-bit
+    restart: unless-stopped
+    depends_on:
+      - openobserve
+    environment:
+      OPENOBSERVE_ORG: ${OPENOBSERVE_ORG:-default}
+      OPENOBSERVE_STREAM: ${OPENOBSERVE_STREAM:-metarr_app}
+      OPENOBSERVE_ROOT_EMAIL: ${OPENOBSERVE_ROOT_EMAIL:-admin@example.com}
+      OPENOBSERVE_ROOT_PASSWORD: ${OPENOBSERVE_ROOT_PASSWORD:-Metarr123!}
+    ports:
+      # metarr-server runs directly on the host for now (not yet packaged
+      # into this compose file) and forwards here. Publishing the port is
+      # what lets config.local.yaml's forward_url reach it via localhost.
+      - "8888:8888"
+    volumes:
+      - ./fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+    networks:
+      - metarr-net
+
   redis-insight:
     image: redis/redisinsight:latest
     container_name: redis-insight
@@ -68,6 +107,10 @@ services:
       RI_REDIS_HOST: redis
       RI_REDIS_PORT: 6379
       RI_REDIS_ALIAS: metarr-redis
+      # Redis requires auth (see the redis service's --requirepass above);
+      # without this the pre-configured connection above fails silently and
+      # has to be re-entered by hand on first load.
+      RI_REDIS_PASSWORD: ${REDIS_PASSWORD:-metarr}
       RI_ACCEPT_TERMS_AND_CONDITIONS: "true"
     ports:
       - "5540:5540"
@@ -82,6 +125,7 @@ volumes:
   mongodb_data:
   redis_data:
   redis-insight-data:
+  openobserve_data:
 
 networks:
   metarr-net:

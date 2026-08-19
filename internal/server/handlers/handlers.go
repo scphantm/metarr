@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"Metarr/internal/server/agentregistry"
+	"Metarr/internal/server/logtail"
 	"Metarr/internal/server/mongostore"
 	"Metarr/internal/server/redisstats"
 	"Metarr/internal/server/session"
@@ -23,6 +24,7 @@ type Handlers struct {
 	Sessions           *session.Store
 	Stats              *redisstats.Collector
 	Agents             *agentregistry.Registry
+	LogTail            *logtail.Buffer
 	Logger             *slog.Logger
 	HeartbeatTimeout   time.Duration
 }
@@ -36,6 +38,7 @@ func New(
 	sessions *session.Store,
 	stats *redisstats.Collector,
 	agents *agentregistry.Registry,
+	logTail *logtail.Buffer,
 	logger *slog.Logger,
 	heartbeatTimeout time.Duration,
 ) *Handlers {
@@ -47,6 +50,7 @@ func New(
 		Sessions:           sessions,
 		Stats:              stats,
 		Agents:             agents,
+		LogTail:            logTail,
 		Logger:             logger,
 		HeartbeatTimeout:   heartbeatTimeout,
 	}

@@ -10,6 +10,8 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"Metarr/internal/shared/agentproto"
+	"Metarr/internal/shared/appconfig"
+	"Metarr/internal/shared/logging"
 	"Metarr/internal/shared/scanmodel"
 )
 
@@ -31,12 +33,16 @@ type ConfigStore struct {
 	client  redis.UniversalClient
 	logger  *slog.Logger
 	slug    string
+	shipper *logging.Shipper
 	current atomic.Pointer[agentproto.AgentConfigProjection]
 }
 
-// NewConfigStore returns an empty store for the given agent slug.
-func NewConfigStore(client redis.UniversalClient, logger *slog.Logger, slug string) *ConfigStore {
-	return &ConfigStore{client: client, logger: logger, slug: slug}
+// NewConfigStore returns an empty store for the given agent slug. shipper is
+// this agent's own logging.Shipper — Refresh calls its SetLevel whenever a
+// projection arrives, so the System > Logging screen's per-agent level
+// toggle takes effect without a restart.
+func NewConfigStore(client redis.UniversalClient, logger *slog.Logger, slug string, shipper *logging.Shipper) *ConfigStore {
+	return &ConfigStore{client: client, logger: logger, slug: slug, shipper: shipper}
 }
 
 // Current returns the latest projection, or nil when the agent has not been
@@ -67,6 +73,7 @@ func (s *ConfigStore) Refresh(ctx context.Context) error {
 
 	previous := s.current.Swap(&projection)
 	s.applySidecarTypes(projection)
+	s.applyLogLevel(projection)
 
 	if previous == nil {
 		s.logger.Info("configuration received",
@@ -99,6 +106,22 @@ func (s *ConfigStore) applySidecarTypes(projection agentproto.AgentConfigProject
 		return
 	}
 	scanmodel.SetSidecarRegistry(registry)
+}
+
+// applyLogLevel sets this agent's live log level from the published
+// projection. An unrecognized value is treated as info rather than rejected
+// outright — an agent must never end up with no threshold at all just
+// because a future level name it doesn't know about arrived.
+func (s *ConfigStore) applyLogLevel(projection agentproto.AgentConfigProjection) {
+	if s.shipper == nil {
+		return
+	}
+
+	level := slog.LevelInfo
+	if projection.LogLevel == appconfig.LogLevelDebug {
+		level = slog.LevelDebug
+	}
+	s.shipper.SetLevel(level)
 }
 
 // Watch keeps the projection current until ctx is cancelled, reacting to the

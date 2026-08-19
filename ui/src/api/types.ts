@@ -276,6 +276,7 @@ export type AgentView = {
   telemetry?: AgentTelemetry
   reported_at?: string
   mappings: AgentMappingView[]
+  log_level: string
 }
 
 // AgentDirectoryMapping is the write shape: only the two fields the operator
@@ -290,4 +291,32 @@ export type AgentConfig = {
   slug: string
   display_name?: string
   mappings: AgentDirectoryMapping[]
+}
+
+/*
+ * Logging.
+ *
+ * The server's own level, plus a per-agent level set on each AgentView above.
+ * sink/endpoint/stream are informational only — they describe what Fluent Bit
+ * is currently configured to ship to, and drive the "Open in OpenObserve"
+ * link, but changing them here does not reconfigure the pipeline. Actually
+ * repointing it at a different vendor is a Fluent Bit config change.
+ */
+
+export const logLevels = ['info', 'debug'] as const
+export type LogLevel = (typeof logLevels)[number]
+
+export type LoggingConfig = {
+  server_level: string
+  sink: string
+  endpoint: string
+  stream: string
+}
+
+export type LogTailEntry = {
+  time: string
+  level: string
+  message: string
+  source: string
+  attrs?: Record<string, unknown>
 }

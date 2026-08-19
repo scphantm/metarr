@@ -54,10 +54,10 @@ func run() error {
 		return err
 	}
 
-	logger, err := logging.New(cfg.LogFilePath)
-	if err != nil {
-		return err
-	}
+	// The source tag every log record carries — "metarr-agent-<slug>" — is
+	// what lets logs from many agents share one OpenObserve stream and still
+	// be filtered down to just this machine.
+	logger, logShipper := logging.New("metarr-agent-" + cfg.Slug)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -70,6 +70,8 @@ func run() error {
 		return err
 	}
 	defer redisClient.Close()
+
+	logShipper.Attach(redisClient)
 
 	identity := hostinfo.Identity(cfg.Slug, uuid.NewString(), version, time.Now().UTC())
 
@@ -103,7 +105,7 @@ func run() error {
 	}
 	pubsubBus := eventbus.NewPubSubBus(redisClient)
 
-	configStore := runtime.NewConfigStore(redisClient, logger, cfg.Slug)
+	configStore := runtime.NewConfigStore(redisClient, logger, cfg.Slug, logShipper)
 	if err := configStore.Refresh(connectCtx); err != nil {
 		// Not fatal: an unreachable config key is a reason to keep heartbeating
 		// and retry, not a reason to exit. The agent is visible in the UI either

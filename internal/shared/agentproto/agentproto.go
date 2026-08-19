@@ -180,6 +180,13 @@ type AgentConfigProjection struct {
 	// nothing about libraries it cannot see.
 	Directories []MappedDirectory `json:"directories"`
 
+	// LogLevel is this agent's own verbosity ("info" or "debug"), set from the
+	// System > Logging screen. Unlike everything else in this type it isn't a
+	// secret-boundary concern — a log level is safe for any agent to hold —
+	// but it lives here because it's still per-agent state delivered the same
+	// way as everything else the agent needs.
+	LogLevel string `json:"log_level"`
+
 	// UpdatedAt lets the agent log which revision it is running on, which is
 	// the difference between "the mapping is wrong" and "the agent never got
 	// the new mapping".

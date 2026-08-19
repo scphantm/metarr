@@ -9,6 +9,7 @@ import (
 	"Metarr/internal/server/mongostore"
 	"Metarr/internal/shared/appconfig"
 	"Metarr/internal/shared/eventbus"
+	"Metarr/internal/shared/logging"
 	"Metarr/internal/shared/scanmodel"
 )
 
@@ -27,6 +28,7 @@ func RunSystemConfigUpdateListener(
 	bus *eventbus.StreamBus,
 	repo *mongostore.AppConfigRepo,
 	agents *agentregistry.Registry,
+	logShipper *logging.Shipper,
 	logger *slog.Logger,
 ) error {
 	logger.Info("system_config_update listener started", "stream", eventbus.SystemConfigUpdateStream)
@@ -44,6 +46,15 @@ func RunSystemConfigUpdateListener(
 		}
 
 		appconfig.Set(&appConfig)
+
+		// The server's own verbosity, applied live — the same SetLevel an
+		// agent's ConfigStore calls, just driven by the local config swap
+		// above instead of a Redis-delivered projection.
+		level := slog.LevelInfo
+		if appConfig.Logging.ServerLevel == appconfig.LogLevelDebug {
+			level = slog.LevelDebug
+		}
+		logShipper.SetLevel(level)
 
 		// Recompile the sidecar classification table so a change takes effect
 		// on the next scan without a restart. A table that fails to compile

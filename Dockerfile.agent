@@ -38,6 +38,8 @@ COPY --from=build /out/metarr-agent /metarr-agent
 # Configuration is environment-only by default: an agent needs a slug and a way
 # to reach Redis, and requiring a mounted YAML file to set two values would be a
 # poor trade. METARR_AGENT_CONFIG_FILE still points at one if you prefer.
-ENV METARR_AGENT_LOG_FILE=/dev/stdout
+#
+# Logs always go to stdout (captured by `docker logs`) and are shipped to the
+# central pipeline over Redis — there is no file-based log config to set here.
 
 ENTRYPOINT ["/metarr-agent"]

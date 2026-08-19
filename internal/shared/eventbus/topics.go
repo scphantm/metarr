@@ -7,6 +7,15 @@ const (
 	// publishes to, and the heartbeat listener subscribes to.
 	HeartbeatRequestChannel = "heartbeat.request"
 
+	// LogChannel is the Pub/Sub channel every process publishes its structured
+	// log records to. Pub/Sub rather than a Stream is deliberate: logs are
+	// high-volume and loss-tolerant (missing a few lines during a shipper
+	// restart is fine), which is exactly the trade-off Pub/Sub makes and a
+	// durable Stream would not. Fluent Bit subscribes here to ship to
+	// OpenObserve; the server also subscribes here to feed the live-tail pane
+	// in the UI.
+	LogChannel = "logs.app"
+
 	// SonarrCacheDataStream is the Redis Stream the sonarr_cache_data task
 	// event is fired on.
 	SonarrCacheDataStream = "events.sonarr_cache_data"
@@ -78,5 +87,5 @@ func KnownStreamPatterns() []string {
 // reply channels are deliberately absent: they are named for a correlation
 // ID and exist only for the duration of one request.
 func KnownPubSubChannels() []string {
-	return []string{HeartbeatRequestChannel}
+	return []string{HeartbeatRequestChannel, LogChannel}
 }
