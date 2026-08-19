@@ -166,3 +166,40 @@ func TestProjectionCarriesScanTypeFromTheScanDirectory(t *testing.T) {
 		t.Errorf("scan type = %q, want movie", got)
 	}
 }
+
+// A log level is not a secret — every agent may hold it — but it is still
+// per-agent state, so it has to travel through the same projection as
+// everything else the agent needs.
+func TestProjectionDefaultsLogLevelToInfo(t *testing.T) {
+	config := configWithEverySecret()
+	config.Agents[0].LogLevel = "" // not yet touched from the Logging screen
+
+	projection := BuildProjection(config, "nas-01", time.Now())
+
+	if got := projection.LogLevel; got != appconfig.LogLevelInfo {
+		t.Errorf("log level = %q, want %q", got, appconfig.LogLevelInfo)
+	}
+}
+
+func TestProjectionCarriesAnExplicitLogLevel(t *testing.T) {
+	config := configWithEverySecret()
+	config.Agents[0].LogLevel = appconfig.LogLevelDebug
+
+	projection := BuildProjection(config, "nas-01", time.Now())
+
+	if got := projection.LogLevel; got != appconfig.LogLevelDebug {
+		t.Errorf("log level = %q, want %q", got, appconfig.LogLevelDebug)
+	}
+}
+
+// A brand-new agent nobody has mapped any libraries to yet must still get a
+// usable log level — bumping an unconfigured agent to debug is one of the
+// more useful things to do with one, e.g. while diagnosing why it won't
+// configure.
+func TestProjectionForUnconfiguredAgentStillDefaultsLogLevel(t *testing.T) {
+	projection := BuildProjection(configWithEverySecret(), "brand-new", time.Now())
+
+	if got := projection.LogLevel; got != appconfig.LogLevelInfo {
+		t.Errorf("log level = %q, want %q", got, appconfig.LogLevelInfo)
+	}
+}

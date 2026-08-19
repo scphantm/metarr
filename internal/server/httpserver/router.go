@@ -64,6 +64,18 @@ func NewRouter(h *handlers.Handlers, hub *wsbus.Hub, sessions *session.Store, lo
 	mux.Handle("GET /api/config/agents", protect(auth.GroupConfig, h.ListAgents))
 	mux.Handle("POST /api/config/agents", protect(auth.GroupConfig, h.UpsertAgent))
 	mux.Handle("DELETE /api/config/agents/{slug}", protect(auth.GroupConfig, h.DeleteAgent))
+	mux.Handle("POST /api/config/agents/{slug}/log-level", protect(auth.GroupConfig, h.SetAgentLogLevel))
+
+	// Logging: the server's own level, plus the informational fields the
+	// System > Logging screen shows about the Fluent Bit -> OpenObserve
+	// pipeline. See appconfig.LoggingConfig for what these fields do and
+	// don't control.
+	mux.Handle("GET /api/config/logging", protect(auth.GroupConfig, h.GetLoggingConfig))
+	mux.Handle("POST /api/config/logging", protect(auth.GroupConfig, h.UpsertLoggingConfig))
+
+	// The live log tail on the Logging screen. GET is the first-paint
+	// fallback; logging.tail is the same buffer streamed over the socket.
+	mux.Handle("GET /api/logging/tail", protect(auth.GroupConfig, h.GetLogTail))
 
 	mux.Handle("GET /api/config/directory-scanner", protect(auth.GroupConfig, h.GetDirectoryScannerConfig))
 	mux.Handle("PUT /api/config/directory-scanner", protect(auth.GroupConfig, h.UpdateDirectoryScannerConfig))

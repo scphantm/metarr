@@ -22,6 +22,8 @@ import (
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/server/httpserver"
 	"Metarr/internal/server/listeners"
+	"Metarr/internal/server/logforward"
+	"Metarr/internal/server/logtail"
 	"Metarr/internal/server/mongostore"
 	"Metarr/internal/server/passwordhash"
 	"Metarr/internal/server/redisstats"
@@ -78,10 +80,7 @@ func run() error {
 		return err
 	}
 
-	logger, err := logging.New(cfg.LogFilePath)
-	if err != nil {
-		return err
-	}
+	logger, logShipper := logging.New("metarr-server")
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -100,6 +99,12 @@ func run() error {
 		return err
 	}
 	defer redisClient.Close()
+
+	// Only now does a Redis connection exist to ship to. Everything logged
+	// before this point, and anything logged if Redis later becomes
+	// unreachable, still goes to stdout — Attach only adds the second
+	// destination, never gates the first.
+	logShipper.Attach(redisClient)
 
 	pubsubBus := eventbus.NewPubSubBus(redisClient)
 	streamBus, err := eventbus.NewStreamBus(redisClient, eventbus.NewSlogAdapter(logger))
@@ -229,6 +234,15 @@ func run() error {
 		bootstrapped = true
 	}
 
+	// A database predating the logging pipeline has no server_level at all,
+	// which would leave the level threshold unset (zero value, meaning every
+	// level including Debug — the opposite of the quiet default a fresh
+	// install gets from appconfig.Default()).
+	if startupCfg.Logging.ServerLevel == "" {
+		startupCfg.Logging = appconfig.Default().Logging
+		bootstrapped = true
+	}
+
 	// A built-in type added after this database was seeded would otherwise never
 	// reach it, since the seed above only fires on an empty table. Note this
 	// also means a built-in deleted through the API comes back on the next
@@ -280,7 +294,7 @@ func run() error {
 		}
 	}()
 	go func() {
-		if err := listeners.RunSystemConfigUpdateListener(ctx, streamBus, appConfigRepo, agentRegistry, logger); err != nil && ctx.Err() == nil {
+		if err := listeners.RunSystemConfigUpdateListener(ctx, streamBus, appConfigRepo, agentRegistry, logShipper, logger); err != nil && ctx.Err() == nil {
 			logger.Error("system_config_update listener stopped unexpectedly", "error", err)
 		}
 	}()
@@ -294,6 +308,22 @@ func run() error {
 
 	statsCollector := redisstats.New(redisClient)
 
+	// The live tail on the Logging screen. The buffer holds records from
+	// every process publishing to eventbus.LogChannel — this server included
+	// — regardless of which one is running the listener that fills it.
+	logTailBuffer := logtail.NewBuffer(200)
+	go listeners.RunLogTailListener(ctx, pubsubBus, logTailBuffer, logger)
+
+	// The one hop that leaves Metarr's own infrastructure: forwarding to
+	// Fluent Bit, which ships on to OpenObserve (or whatever it's configured
+	// for). Optional — a deployment with no Fluent Bit set in config.yaml
+	// simply skips this, and logging still works everywhere else.
+	if cfg.LogForwardURL != "" {
+		forwarder := logforward.New(cfg.LogForwardURL)
+		go forwarder.Run(ctx)
+		go listeners.RunLogForwardListener(ctx, pubsubBus, forwarder, logger)
+	}
+
 	// The streaming layer. Topics are registered here rather than inside the
 	// hub so what the server can stream is visible in one place; each
 	// producer only runs while a client is subscribed to it.
@@ -304,8 +334,11 @@ func run() error {
 	hub.Register("agents.presence", auth.GroupConfig, 2*time.Second, func(ctx context.Context) (any, error) {
 		return agentRegistry.List(ctx, appconfig.Get())
 	})
+	hub.Register("logging.tail", auth.GroupConfig, 2*time.Second, func(ctx context.Context) (any, error) {
+		return logTailBuffer.Recent(), nil
+	})
 
-	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, sessions, statsCollector, agentRegistry, logger, cfg.HeartbeatTimeout)
+	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
 	router := httpserver.NewRouter(apiHandlers, hub, sessions, logger)
 	server := httpserver.New(cfg.Host, cfg.Port, router)
 

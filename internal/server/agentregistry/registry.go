@@ -48,6 +48,12 @@ type AgentView struct {
 	// Mappings is what this agent has been told it can see, in the server's own
 	// terms as well as the agent's, since the UI shows both.
 	Mappings []MappingView `json:"mappings"`
+
+	// LogLevel is this agent's current verbosity, defaulted the same way
+	// BuildProjection defaults it — so the Logging screen's toggle always has
+	// a real value to show, never an empty string, even for an agent nobody
+	// has touched yet.
+	LogLevel string `json:"log_level"`
 }
 
 // MappingView is one library mapping, showing both machines' names for it.
@@ -74,18 +80,23 @@ func (r *Registry) List(ctx context.Context, config *appconfig.Config) ([]AgentV
 	views := make(map[string]*AgentView, len(presence)+len(config.Agents))
 
 	for _, agent := range config.Agents {
+		logLevel := agent.LogLevel
+		if logLevel == "" {
+			logLevel = appconfig.LogLevelInfo
+		}
 		views[agent.Slug] = &AgentView{
 			Slug:        agent.Slug,
 			DisplayName: agent.DisplayName,
 			Configured:  true,
 			Mappings:    mappingViews(config, agent),
+			LogLevel:    logLevel,
 		}
 	}
 
 	for slug, reported := range presence {
 		view, known := views[slug]
 		if !known {
-			view = &AgentView{Slug: slug, Mappings: []MappingView{}}
+			view = &AgentView{Slug: slug, Mappings: []MappingView{}, LogLevel: appconfig.LogLevelInfo}
 			views[slug] = view
 		}
 

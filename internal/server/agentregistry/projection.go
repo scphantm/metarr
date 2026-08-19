@@ -29,18 +29,25 @@ func BuildProjection(config *appconfig.Config, slug string, updatedAt time.Time)
 		ParallelCount: config.DirectoryScanner.ParallelCount,
 		SidecarTypes:  config.DirectoryScanner.SidecarTypes,
 		Directories:   []agentproto.MappedDirectory{},
+		LogLevel:      appconfig.LogLevelInfo,
 		UpdatedAt:     updatedAt,
 	}
 
 	index := config.FindAgentIndex(slug)
 	if index < 0 {
-		// A connected but unconfigured agent gets a projection with no
-		// libraries in it. That is what tells it to idle rather than guess.
+		// A connected but unconfigured agent still gets a real log level
+		// (defaulted above) rather than an empty string — being able to bump an
+		// agent to debug is one of the more useful things to do with one before
+		// it has any libraries mapped, e.g. while diagnosing why it isn't
+		// configuring. Everything else about it stays idle until it is.
 		return projection
 	}
 
 	agent := config.Agents[index]
 	projection.DisplayName = agent.DisplayName
+	if agent.LogLevel != "" {
+		projection.LogLevel = agent.LogLevel
+	}
 
 	for _, mapping := range agent.Mappings {
 		// A mapping naming a scan directory that no longer exists is skipped

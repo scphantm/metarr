@@ -11,8 +11,12 @@
 # The file itself is optional — every value below can also be set by
 # environment variable (METARR_AGENT_SLUG, METARR_REDIS_HOST,
 # METARR_REDIS_PORT, METARR_REDIS_USERNAME, METARR_REDIS_PASSWORD,
-# METARR_REDIS_DB, METARR_AGENT_LOG_FILE), which is how the Docker image is
-# configured.
+# METARR_REDIS_DB), which is how the Docker image is configured.
+#
+# There is no logging section here: the agent always logs structured JSON to
+# stdout, and ships the same records to the central logging pipeline over
+# Redis (see internal/shared/logging). Log level is controlled live from the
+# System > Logging screen, not from this file.
 
 agent:
   # This agent's name. It has to be unique across every agent talking to this
@@ -29,6 +33,3 @@ redis:
   port: 6379
   password: metarr
   db: 0
-
-logging:
-  file: logs/agent.log

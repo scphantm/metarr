@@ -22,10 +22,9 @@ import (
 )
 
 const (
-	defaultAgentConfigPath  = "agent.yaml"
-	agentConfigFileEnvVar   = "METARR_AGENT_CONFIG_FILE"
-	defaultAgentLogFilePath = "logs/agent.log"
-	defaultRedisPort        = 6379
+	defaultAgentConfigPath = "agent.yaml"
+	agentConfigFileEnvVar  = "METARR_AGENT_CONFIG_FILE"
+	defaultRedisPort       = 6379
 )
 
 // AgentConfig is everything metarr-agent is configured with locally.
@@ -35,8 +34,7 @@ type AgentConfig struct {
 	// stable across restarts and unique across agents.
 	Slug string
 
-	RedisURI    string
-	LogFilePath string
+	RedisURI string
 }
 
 type agentFileConfig struct {
@@ -54,9 +52,6 @@ type agentFileConfig struct {
 		Password string `yaml:"password"`
 		DB       int    `yaml:"db"`
 	} `yaml:"redis"`
-	Logging struct {
-		File string `yaml:"file"`
-	} `yaml:"logging"`
 }
 
 // LoadAgent reads the agent's configuration from agent.yaml (or the file named
@@ -101,15 +96,9 @@ func LoadAgent() (AgentConfig, error) {
 		return AgentConfig{}, fmt.Errorf("config: %s: %w", path, err)
 	}
 
-	logFilePath := parsed.Logging.File
-	if logFilePath == "" {
-		logFilePath = defaultAgentLogFilePath
-	}
-
 	return AgentConfig{
-		Slug:        slug,
-		RedisURI:    redisURI,
-		LogFilePath: logFilePath,
+		Slug:     slug,
+		RedisURI: redisURI,
 	}, nil
 }
 
@@ -138,9 +127,6 @@ func applyEnv(parsed *agentFileConfig) {
 		if db, err := strconv.Atoi(value); err == nil {
 			parsed.Redis.DB = db
 		}
-	}
-	if value := os.Getenv("METARR_AGENT_LOG_FILE"); value != "" {
-		parsed.Logging.File = value
 	}
 }
 

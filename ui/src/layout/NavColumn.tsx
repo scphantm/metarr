@@ -41,6 +41,8 @@ const sections: NavSection[] = [
         ],
       },
       { label: 'Agents', to: '/system/agents' },
+      { label: 'Logging', to: '/system/logging' },
+      { label: 'External Tools', to: '/system/external-tools' },
     ],
   },
   { label: 'Searches', items: [], comingSoon: true },

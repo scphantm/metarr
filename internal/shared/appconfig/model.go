@@ -17,6 +17,35 @@ type Config struct {
 	Interfaces       InterfacesConfig       `bson:"interfaces" json:"interfaces"`
 	DirectoryScanner DirectoryScannerConfig `bson:"directory_scanner" json:"directory_scanner"`
 	Agents           []AgentConfig          `bson:"agents" json:"agents"`
+	Logging          LoggingConfig          `bson:"logging" json:"logging"`
+}
+
+// LogLevelInfo and LogLevelDebug are the two levels the System > Logging
+// screen switches between. Warn and Error always come through regardless of
+// this setting — it is a verbosity floor, not a filter on severity.
+const (
+	LogLevelInfo  = "info"
+	LogLevelDebug = "debug"
+)
+
+// LoggingConfig controls the centralized logging pipeline: the server's own
+// log level, and informational fields describing where Fluent Bit is
+// currently configured to ship logs.
+//
+// Sink/Endpoint/Stream are informational only — changing them here updates
+// what the "Open in OpenObserve" link on the Logging screen points at and
+// what it displays, but does not reconfigure Fluent Bit. Repointing the
+// pipeline at a different vendor is a Fluent Bit config change
+// (fluent-bit/fluent-bit.conf), deliberately kept out of this document so
+// that swapping vendors is never a Go code change. Each agent's own level
+// lives on its AgentConfig entry instead, since it applies to one machine,
+// not the whole system.
+type LoggingConfig struct {
+	ServerLevel string `bson:"server_level" json:"server_level"`
+
+	Sink     string `bson:"sink" json:"sink"`
+	Endpoint string `bson:"endpoint" json:"endpoint"`
+	Stream   string `bson:"stream" json:"stream"`
 }
 
 // AgentConfig is one filesystem agent's configuration.
@@ -36,6 +65,12 @@ type AgentConfig struct {
 	// which is normal: agents sit on different machines holding different
 	// storage.
 	Mappings []AgentDirectoryMapping `bson:"mappings" json:"mappings"`
+
+	// LogLevel is this agent's own verbosity, set from the System > Logging
+	// screen. Empty means LogLevelInfo — most agents never need touching, so
+	// storing a default rather than requiring every entry to set it keeps a
+	// bare {slug, mappings} entry valid.
+	LogLevel string `bson:"log_level,omitempty" json:"log_level,omitempty"`
 }
 
 // AgentDirectoryMapping ties one configured scan directory to the path the
@@ -232,5 +267,10 @@ func Default() *Config {
 			SidecarTypes:    DefaultSidecarTypes(),
 		},
 		Agents: []AgentConfig{},
+		Logging: LoggingConfig{
+			ServerLevel: LogLevelInfo,
+			Sink:        "openobserve",
+			Stream:      "metarr_app",
+		},
 	}
 }

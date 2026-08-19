@@ -342,6 +342,61 @@
                 }
             }
         },
+        "/api/config/agents/{slug}/log-level": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Switches a single agent between info and debug. If the agent isn't configured with any libraries yet, this creates a minimal entry for it rather than requiring it be configured first.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Set one agent's log level",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Agent slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Log level",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.setAgentLogLevelRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body or log_level",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/config/directory-scanner": {
             "get": {
                 "security": [
@@ -987,6 +1042,80 @@
                 }
             }
         },
+        "/api/config/logging": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Returns the server's own log level and the informational pipeline fields shown on the System \u003e Logging screen. Endpoint/sink/stream are informational only — the actual pipeline is Fluent Bit, configured independently of this document.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Fetch the logging configuration",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/appconfig.LoggingConfig"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Replaces the logging section: the server's own log level, and the informational sink/endpoint/stream fields. Changing the informational fields does not reconfigure Fluent Bit — see the LoggingConfig doc comment.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Update the logging configuration",
+                "parameters": [
+                    {
+                        "description": "Logging configuration",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/appconfig.LoggingConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body or server_level",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/heartbeat": {
             "get": {
                 "description": "Publishes a heartbeat request on the Redis Pub/Sub queue and blocks until the heartbeat listener replies with the current time and the request's correlation ID.",
@@ -1240,6 +1369,37 @@
                         "description": "the file could not be parsed",
                         "schema": {
                             "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/logging/tail": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Returns the most recent log records seen on the centralized logging channel, from every process (server and every agent) that has published to it.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Fetch the recent log tail",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/logging.Record"
+                            }
                         }
                     }
                 }
@@ -1527,6 +1687,10 @@
                 "identity": {
                     "$ref": "#/definitions/agentproto.AgentIdentity"
                 },
+                "log_level": {
+                    "description": "LogLevel is this agent's current verbosity, defaulted the same way\nBuildProjection defaults it — so the Logging screen's toggle always has\na real value to show, never an empty string, even for an agent nobody\nhas touched yet.",
+                    "type": "string"
+                },
                 "mappings": {
                     "description": "Mappings is what this agent has been told it can see, in the server's own\nterms as well as the agent's, since the UI shows both.",
                     "type": "array",
@@ -1629,6 +1793,10 @@
                 "display_name": {
                     "type": "string"
                 },
+                "log_level": {
+                    "description": "LogLevel is this agent's own verbosity, set from the System \u003e Logging\nscreen. Empty means LogLevelInfo — most agents never need touching, so\nstoring a default rather than requiring every entry to set it keeps a\nbare {slug, mappings} entry valid.",
+                    "type": "string"
+                },
                 "mappings": {
                     "description": "Mappings say which libraries this agent can see and where. A scan\ndirectory absent from this list is one the agent has no access to,\nwhich is normal: agents sit on different machines holding different\nstorage.",
                     "type": "array",
@@ -1673,6 +1841,9 @@
                 },
                 "interfaces": {
                     "$ref": "#/definitions/appconfig.InterfacesConfig"
+                },
+                "logging": {
+                    "$ref": "#/definitions/appconfig.LoggingConfig"
                 }
             }
         },
@@ -1704,6 +1875,23 @@
                     "items": {
                         "$ref": "#/definitions/appconfig.SonarrInstance"
                     }
+                }
+            }
+        },
+        "appconfig.LoggingConfig": {
+            "type": "object",
+            "properties": {
+                "endpoint": {
+                    "type": "string"
+                },
+                "server_level": {
+                    "type": "string"
+                },
+                "sink": {
+                    "type": "string"
+                },
+                "stream": {
+                    "type": "string"
                 }
             }
         },
@@ -1892,6 +2080,35 @@
             "properties": {
                 "parallel_count": {
                     "type": "integer"
+                }
+            }
+        },
+        "handlers.setAgentLogLevelRequest": {
+            "type": "object",
+            "properties": {
+                "log_level": {
+                    "type": "string"
+                }
+            }
+        },
+        "logging.Record": {
+            "type": "object",
+            "properties": {
+                "attrs": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "level": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "time": {
+                    "type": "string"
                 }
             }
         },

@@ -31,3 +31,11 @@ redis:
 server:
   host: "0.0.0.0"
   port: 8080
+
+logging:
+  # Where the server forwards centralized log records for shipping to
+  # OpenObserve — Fluent Bit's HTTP input (see fluent-bit/fluent-bit.conf).
+  # Optional: leave blank and the server still logs to stdout and Redis, it
+  # just won't forward anywhere. Swapping OpenObserve for Splunk or ELK is a
+  # change to fluent-bit.conf, not to this URL.
+  forward_url: "http://fluent-bit:8888/app_logs"

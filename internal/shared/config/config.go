@@ -16,7 +16,6 @@ const (
 	defaultConfigPath = "config.yaml"
 	configFileEnvVar  = "METARR_CONFIG_FILE"
 
-	defaultLogFilePath      = "logs/app.log"
 	defaultHeartbeatTimeout = 5 * time.Second
 )
 
@@ -34,8 +33,15 @@ type Config struct {
 	// Redis
 	RedisURI string
 
-	// Logging
-	LogFilePath string
+	// LogForwardURL is where the server forwards every log record it sees on
+	// eventbus.LogChannel — Fluent Bit's HTTP input, e.g.
+	// "http://fluent-bit:8888/app_logs". Optional: a deployment with no
+	// Fluent Bit simply doesn't set it, and the server logs to stdout and the
+	// Redis channel only, same as an agent does. This is infrastructure
+	// wiring (which host, which port), not application config, which is why
+	// it lives here rather than in the Mongo-stored appconfig.LoggingConfig —
+	// the same reasoning that keeps MongoURI/RedisURI out of that document.
+	LogForwardURL string
 
 	// HeartbeatTimeout bounds how long the blocking heartbeat call will
 	// wait for the listener's reply before failing the request.
@@ -55,6 +61,9 @@ type fileConfig struct {
 		Host string `yaml:"host"`
 		Port int    `yaml:"port"`
 	} `yaml:"server"`
+	Logging struct {
+		ForwardURL string `yaml:"forward_url"`
+	} `yaml:"logging"`
 }
 
 // Load reads and validates the config file, failing fast with a
@@ -92,7 +101,7 @@ func Load() (Config, error) {
 		MongoURI:         parsedConfig.MongoDB.AppURI,
 		MongoDatabase:    parsedConfig.MongoDB.Database,
 		RedisURI:         parsedConfig.Redis.URI,
-		LogFilePath:      defaultLogFilePath,
+		LogForwardURL:    parsedConfig.Logging.ForwardURL,
 		HeartbeatTimeout: defaultHeartbeatTimeout,
 	}, nil
 }
