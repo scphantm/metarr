@@ -3,7 +3,7 @@ import { Handle, Position, useReactFlow, type Node, type NodeProps } from '@xyfl
 import { dataHandleClass } from '../../../../lib/typeColors'
 import { useCatalogEntry } from '../../useCatalogEntry'
 import type { CatalogNodeData } from '../../catalogTypes'
-import { handleOffset, useNodeHandles } from '../shared/useNodeHandles'
+import { errorHandleTitle, handleOffset, useNodeHandles } from '../shared/useNodeHandles'
 
 const TYPE_KEY = 'core/checkFlowVariable'
 
@@ -48,7 +48,7 @@ export function CheckFlowVariableNode({ id, data }: NodeProps<Node<CatalogNodeDa
           position={Position.Top}
           style={{ left: handleOffset(index, handles.top.length) }}
           className={handle.kind === 'control' ? controlHandleClass : dataHandleClass(handle.type ?? 'any')}
-          title={handle.type ? `${handle.label}: ${handle.type}` : handle.label}
+          title={handle.title}
         />
       ))}
       {handles.bottom.map((handle, index) => (
@@ -59,11 +59,17 @@ export function CheckFlowVariableNode({ id, data }: NodeProps<Node<CatalogNodeDa
           position={Position.Bottom}
           style={{ left: handleOffset(index, handles.bottom.length) }}
           className={handle.kind === 'control' ? controlHandleClass : dataHandleClass(handle.type ?? 'any')}
-          title={handle.type ? `${handle.label}: ${handle.type}` : handle.label}
+          title={handle.title}
         />
       ))}
       {handles.hasError ? (
-        <Handle id="c:error" type="source" position={Position.Right} className="!border-red !bg-red" title="error" />
+        <Handle
+          id="c:error"
+          type="source"
+          position={Position.Right}
+          className="!border-red !bg-red"
+          title={errorHandleTitle}
+        />
       ) : null}
 
       <div className="text-sm font-semibold text-ink-strong">{data.label ?? nodeType?.name ?? 'Check flow variable'}</div>

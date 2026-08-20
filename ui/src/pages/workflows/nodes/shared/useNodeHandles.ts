@@ -16,6 +16,9 @@ export type ArrangedHandle = {
   label: string
   kind: 'control' | 'data'
   type?: Type
+  // Full hover text for the handle — built once here so every node file
+  // renders the same wording instead of re-deriving it per component.
+  title: string
 }
 
 export type ArrangedHandles = {
@@ -26,27 +29,55 @@ export type ArrangedHandles = {
 
 const emptyHandles: ArrangedHandles = { top: [], bottom: [], hasError: false }
 
+// Hover text for the error handle is identical on every node type — it's
+// not sourced from the catalog — so it's a constant rather than something
+// useNodeHandles computes per call.
+export const errorHandleTitle = 'Error — control flow taken when this node fails'
+
+function controlTitle(direction: 'in' | 'out', port: string): string {
+  return direction === 'in' ? `Control in — ${port}` : `Control out — ${port}`
+}
+
+function dataTitle(direction: 'in' | 'out', socket: { label?: string; name: string; type: Type; required?: boolean; description?: string }): string {
+  const label = socket.label ?? socket.name
+  const parts = [`Data ${direction} — ${label}: ${socket.type}${socket.required ? ' (required)' : ''}`]
+  if (socket.description) parts.push(socket.description)
+  return parts.join(' — ')
+}
+
 export function useNodeHandles(nodeType: NodeType | undefined): ArrangedHandles {
   return useMemo(() => {
     if (!nodeType) return emptyHandles
 
     const top: ArrangedHandle[] = [
-      ...nodeType.control.in.map((port) => ({ id: controlHandleId(port), label: port, kind: 'control' as const })),
+      ...nodeType.control.in.map((port) => ({
+        id: controlHandleId(port),
+        label: port,
+        kind: 'control' as const,
+        title: controlTitle('in', port),
+      })),
       ...(nodeType.dataIn ?? []).map((socket) => ({
         id: dataHandleId(socket.name),
         label: socket.label ?? socket.name,
         kind: 'data' as const,
         type: socket.type,
+        title: dataTitle('in', socket),
       })),
     ]
 
     const bottom: ArrangedHandle[] = [
-      ...nodeType.control.out.map((port) => ({ id: controlHandleId(port), label: port, kind: 'control' as const })),
+      ...nodeType.control.out.map((port) => ({
+        id: controlHandleId(port),
+        label: port,
+        kind: 'control' as const,
+        title: controlTitle('out', port),
+      })),
       ...(nodeType.dataOut ?? []).map((socket) => ({
         id: dataHandleId(socket.name),
         label: socket.label ?? socket.name,
         kind: 'data' as const,
         type: socket.type,
+        title: dataTitle('out', socket),
       })),
     ]
 

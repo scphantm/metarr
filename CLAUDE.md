@@ -1,4 +1,6 @@
-# Planning
+# Post processing cleanup
+
+Claude has a habit of leaving node or metarr running after a prompt is processed.  always kill any spawned processes after the prompt is processed.
 
 # Code Quality
 * All code should have descriptive variable names and follow standard accepted clean code practices.

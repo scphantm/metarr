@@ -7,7 +7,7 @@ import { useCatalogEntry } from '../../useCatalogEntry'
 import { nodeTypeKey, type CatalogNodeData } from '../../catalogTypes'
 import { EditIcon } from './EditIcon'
 import { NodeSettingsEditor } from './NodeSettingsEditor'
-import { handleOffset, useNodeHandles } from './useNodeHandles'
+import { errorHandleTitle, handleOffset, useNodeHandles, type ArrangedHandles } from './useNodeHandles'
 
 /*
  * The common chrome every catalog-driven node is built on: accent border,
@@ -29,6 +29,7 @@ export function NodeShell({
   data,
   typeKey,
   children,
+  handles: handlesOverride,
 }: {
   id: string
   data: CatalogNodeData
@@ -38,11 +39,17 @@ export function NodeShell({
   // (Start's trigger, Trickplay's dimensions) without needing a fully
   // custom body.
   children?: ReactNode
+  // Pre-arranged handles to render instead of the catalog's full set — used
+  // by node types whose visible port count depends on their own settings
+  // rather than being fixed by the catalog alone (Parallel, Join; see
+  // nodes/shared/branchPorts.ts).
+  handles?: ArrangedHandles
 }) {
   const { updateNodeData } = useReactFlow()
   const [editing, setEditing] = useState(false)
   const nodeType = useCatalogEntry(typeKey)
-  const handles = useNodeHandles(nodeType)
+  const catalogHandles = useNodeHandles(nodeType)
+  const handles = handlesOverride ?? catalogHandles
 
   if (!nodeType) {
     // The catalog hasn't loaded yet, or (should not happen if
@@ -72,7 +79,7 @@ export function NodeShell({
           position={Position.Top}
           style={{ left: handleOffset(index, handles.top.length) }}
           className={handle.kind === 'control' ? controlHandleClass : dataHandleClass(handle.type ?? 'any')}
-          title={handle.type ? `${handle.label}: ${handle.type}` : handle.label}
+          title={handle.title}
         />
       ))}
       {handles.bottom.map((handle, index) => (
@@ -83,7 +90,7 @@ export function NodeShell({
           position={Position.Bottom}
           style={{ left: handleOffset(index, handles.bottom.length) }}
           className={handle.kind === 'control' ? controlHandleClass : dataHandleClass(handle.type ?? 'any')}
-          title={handle.type ? `${handle.label}: ${handle.type}` : handle.label}
+          title={handle.title}
         />
       ))}
       {handles.hasError ? (
@@ -92,7 +99,7 @@ export function NodeShell({
           type="source"
           position={Position.Right}
           className="!border-red !bg-red"
-          title="error"
+          title={errorHandleTitle}
         />
       ) : null}
 
