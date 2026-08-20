@@ -28,7 +28,9 @@ func (h *Handlers) GetLoggingConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(appConfig.Logging)
+	if err := json.NewEncoder(w).Encode(appConfig.Logging); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // UpsertLoggingConfig handles POST /api/config/logging. It replaces the whole
@@ -159,7 +161,9 @@ func (h *Handlers) SetAgentLogLevel(w http.ResponseWriter, r *http.Request) {
 // @Router			/api/logging/tail [get]
 func (h *Handlers) GetLogTail(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(h.LogTail.Recent())
+	if err := json.NewEncoder(w).Encode(h.LogTail.Recent()); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 func validateLogLevel(level string) error {

@@ -55,5 +55,7 @@ func (h *Handlers) Heartbeat(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(reply.Payload)
+	if _, err := w.Write(reply.Payload); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }

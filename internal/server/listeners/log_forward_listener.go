@@ -15,7 +15,7 @@ import (
 // listeners see identical traffic without coordinating.
 func RunLogForwardListener(ctx context.Context, bus *eventbus.PubSubBus, forwarder *logforward.Forwarder, logger *slog.Logger) {
 	subscription := bus.Subscribe(ctx, eventbus.LogChannel)
-	defer subscription.Close()
+	defer func() { _ = subscription.Close() }()
 
 	logger.Info("log forward listener started", "channel", eventbus.LogChannel)
 

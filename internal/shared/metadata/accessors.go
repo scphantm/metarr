@@ -43,10 +43,10 @@ func ParseDate(raw string) types.Date {
 // usually does — comes back as a bare date, since Date models a day rather than
 // an instant.
 func FormatDate(date types.Date) string {
-	if date.Time.IsZero() {
+	if date.IsZero() {
 		return ""
 	}
-	return date.Time.Format("2006-01-02")
+	return date.Format("2006-01-02")
 }
 
 // The numeric-looking tags from an NFO file are modelled as strings, because

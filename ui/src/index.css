@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '@xyflow/react/dist/style.css' layer(base);
 
 /*
  * Solarized, by Ethan Schoonover (https://ethanschoonover.com/solarized/).
@@ -21,7 +22,6 @@
   --color-base1: #93a1a1;
   --color-base2: #eee8d5;
   --color-base3: #fdf6e3;
-
   --color-yellow: #b58900;
   --color-orange: #cb4b16;
   --color-red: #dc322f;
@@ -51,6 +51,7 @@
   --ink-body: #839496; /* base0  */
   --ink-strong: #93a1a1; /* base1  */
   --ink-muted: #586e75; /* base01 */
+
   color-scheme: dark;
 }
 
@@ -63,6 +64,7 @@
   --ink-body: #657b83; /* base00 */
   --ink-strong: #586e75; /* base01 */
   --ink-muted: #93a1a1; /* base1  */
+
   color-scheme: light;
 }
 

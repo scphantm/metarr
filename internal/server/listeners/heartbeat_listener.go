@@ -20,7 +20,7 @@ type heartbeatReply struct {
 // heartbeat handler is blocked waiting on.
 func RunHeartbeatListener(ctx context.Context, bus *eventbus.PubSubBus, logger *slog.Logger) {
 	sub := bus.Subscribe(ctx, eventbus.HeartbeatRequestChannel)
-	defer sub.Close()
+	defer func() { _ = sub.Close() }()
 
 	logger.Info("heartbeat listener started", "channel", eventbus.HeartbeatRequestChannel)
 

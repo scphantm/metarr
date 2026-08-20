@@ -33,7 +33,7 @@ func readImageInfo(path string) (*scanmodel.ImageInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// DecodeConfig reads only as far as the header, buffering internally, so
 	// this does not pull a multi-megabyte poster into memory.

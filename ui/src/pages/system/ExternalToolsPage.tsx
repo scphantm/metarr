@@ -191,12 +191,12 @@ export function ExternalToolsSidebar() {
       <div className="rounded border border-edge bg-surface px-3 py-2.5 text-xs leading-relaxed text-ink-muted">
         <p>
           Each panel links to infrastructure Metarr runs alongside itself —
-          the database, the cache, the log pipeline, and the API's own docs.
+          the database, the cache, the log pipeline, and the API&apos;s own docs.
           None of them check your Metarr login; each has its own credential,
           noted on its card.
         </p>
         <p className="mt-2">
-          These addresses assume the tool is reachable on the same host you're
+          These addresses assume the tool is reachable on the same host you&apos;re
           viewing Metarr from, at the port docker-compose publishes it on.
         </p>
       </div>

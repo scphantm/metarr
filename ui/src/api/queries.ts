@@ -1,4 +1,5 @@
 import {
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
@@ -22,6 +23,9 @@ import type {
   SonarrInstance,
   UpdateAdminRequest,
   UpdateDirectoryScannerRequest,
+  UpsertWorkflowRequest,
+  Workflow,
+  WorkflowListResponse,
 } from './types'
 
 export const queryKeys = {
@@ -36,6 +40,11 @@ export const queryKeys = {
   agents: ['stats', 'agents'] as const,
   logging: ['config', 'logging'] as const,
   logTail: ['stats', 'log-tail'] as const,
+  // Also outside the config tree: workflows are a server-only, single-
+  // collection concern with no config-mutation event behind them at all.
+  workflows: ['workflows'] as const,
+  workflow: (id: string) => ['workflows', id] as const,
+  workflowVersions: (id: string) => ['workflows', id, 'versions'] as const,
 }
 
 /*
@@ -314,4 +323,66 @@ export function useDeleteSonarrInstance() {
       ),
     [queryKeys.sonarr, queryKeys.config],
   )
+}
+
+/*
+ * Workflows. Unlike everything above, these are a direct, synchronous Mongo
+ * read/write with no config_update event behind them — see the Go handler's
+ * doc comment on UpsertWorkflow — so they get their own mutation hook rather
+ * than useConfigMutation, whose return type is hardwired to AcceptedResponse.
+ */
+
+export function useWorkflow(id: string) {
+  return useQuery({
+    queryKey: queryKeys.workflow(id),
+    queryFn: () => request<Workflow>(`/api/workflows/${id}`),
+    enabled: id !== '',
+  })
+}
+
+export function useWorkflowVersions(id: string) {
+  return useQuery({
+    queryKey: queryKeys.workflowVersions(id),
+    queryFn: () => request<Workflow[]>(`/api/workflows/${id}/versions`),
+    enabled: id !== '',
+  })
+}
+
+export function useWorkflowVersion(id: string, version: number | null) {
+  return useQuery({
+    queryKey: [...queryKeys.workflow(id), 'v', version],
+    queryFn: () => request<Workflow>(`/api/workflows/${id}/versions/${version}`),
+    enabled: id !== '' && version != null,
+  })
+}
+
+// Infinite-scroll list, paginated by the opaque cursor ListWorkflows returns.
+export function useWorkflowList() {
+  return useInfiniteQuery({
+    queryKey: queryKeys.workflows,
+    queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
+      request<WorkflowListResponse>(
+        `/api/workflows?limit=20${pageParam ? `&cursor=${encodeURIComponent(pageParam)}` : ''}`,
+      ),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.has_more ? lastPage.next_cursor : undefined,
+  })
+}
+
+export function useSaveWorkflow() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: UpsertWorkflowRequest) =>
+      request<Workflow>('/api/workflows', { method: 'POST', body }),
+    onSuccess: (saved) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.workflows })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.workflow(saved.document_id),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.workflowVersions(saved.document_id),
+      })
+    },
+  })
 }

@@ -35,7 +35,9 @@ func (h *Handlers) GetDirectoryScannerConfig(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(appConfig.DirectoryScanner)
+	if err := json.NewEncoder(w).Encode(appConfig.DirectoryScanner); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // UpdateDirectoryScannerRequest is a partial update: only ParallelCount, if
@@ -94,11 +96,13 @@ func (h *Handlers) UpdateDirectoryScannerConfig(w http.ResponseWriter, r *http.R
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(AcceptedResponse{
+	if err := json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // ListScanDirectories handles GET /api/config/directory-scanner/directories.
@@ -122,7 +126,9 @@ func (h *Handlers) ListScanDirectories(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(appConfig.DirectoryScanner.ScanDirectories)
+	if err := json.NewEncoder(w).Encode(appConfig.DirectoryScanner.ScanDirectories); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // GetScanDirectory handles
@@ -155,7 +161,9 @@ func (h *Handlers) GetScanDirectory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(appConfig.DirectoryScanner.ScanDirectories[index])
+	if err := json.NewEncoder(w).Encode(appConfig.DirectoryScanner.ScanDirectories[index]); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // UpsertScanDirectory handles
@@ -216,11 +224,13 @@ func (h *Handlers) UpsertScanDirectory(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(AcceptedResponse{
+	if err := json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // ListSidecarTypes handles
@@ -243,7 +253,9 @@ func (h *Handlers) ListSidecarTypes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(appConfig.DirectoryScanner.SidecarTypes)
+	if err := json.NewEncoder(w).Encode(appConfig.DirectoryScanner.SidecarTypes); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // GetSidecarType handles
@@ -276,7 +288,9 @@ func (h *Handlers) GetSidecarType(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(appConfig.DirectoryScanner.SidecarTypes[index])
+	if err := json.NewEncoder(w).Encode(appConfig.DirectoryScanner.SidecarTypes[index]); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // UpsertSidecarType handles
@@ -369,11 +383,13 @@ func (h *Handlers) UpsertSidecarType(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(AcceptedResponse{
+	if err := json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // DeleteSidecarType handles
@@ -417,11 +433,13 @@ func (h *Handlers) DeleteSidecarType(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(AcceptedResponse{
+	if err := json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // ReorderSidecarTypesRequest maps every sidecar type id to its evaluation order.
@@ -509,11 +527,13 @@ func (h *Handlers) ReorderSidecarTypes(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(AcceptedResponse{
+	if err := json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // ResetSidecarTypes handles
@@ -552,11 +572,13 @@ func (h *Handlers) ResetSidecarTypes(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(AcceptedResponse{
+	if err := json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // DeleteScanDirectory handles
@@ -600,9 +622,11 @@ func (h *Handlers) DeleteScanDirectory(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(AcceptedResponse{
+	if err := json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }

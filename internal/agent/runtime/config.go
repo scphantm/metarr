@@ -132,7 +132,7 @@ func (s *ConfigStore) Watch(ctx context.Context) {
 	}
 
 	subscription := s.client.Subscribe(ctx, agentproto.ConfigChangedChannel(s.slug))
-	defer subscription.Close()
+	defer func() { _ = subscription.Close() }()
 	notifications := subscription.Channel()
 
 	ticker := time.NewTicker(configPollInterval)

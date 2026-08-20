@@ -75,8 +75,7 @@ The UI will consist of 3 critical pieces.
 
 Searches will use [React Query Builder](https://react-querybuilder.js.org/docs/utils/import#custom-operators) to query the mongodb. 
 
-From there, you will be able to build out workflows using [React Workflow](https://reactflow.dev/ui/components/animated-svg-edge) that are basically what i 
-currently do with claude scripts
+
 
 Automations are mapping search results, workflows, and some kind of trigger.  cron, event bus hook, webhook, etc and what agent to run on
 
@@ -97,17 +96,7 @@ Lists could be an input to workflows.  That way you can build workflows that pro
 
 These are features I want to put into the system.
 
-### Versioned save
 
-When documents are saved they can be saved with cache time to live or permanent versioned typed
-
-If the cached_ttl field is set it just sits there.  A scheduled job scans the documents and deletes
-any documents from the database that exceed the ttl.
-ioned save is different.
-* Save the initial document
-* On update, it does a compare with the existing document and records the difference somehow.
-* the get will have an overload, if you request a previous version, the service will use the history to reconstruct
-    that old version of the file
 
 ### Safe rename
 I want a system where you can run reports on different naming conventions to see what would change.  When you come up

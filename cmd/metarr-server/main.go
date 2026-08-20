@@ -92,13 +92,13 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	defer mongoClient.Disconnect(context.Background())
+	defer func() { _ = mongoClient.Disconnect(context.Background()) }()
 
 	redisClient, err := redisclient.New(connectCtx, cfg.RedisURI)
 	if err != nil {
 		return err
 	}
-	defer redisClient.Close()
+	defer func() { _ = redisClient.Close() }()
 
 	// Only now does a Redis connection exist to ship to. Everything logged
 	// before this point, and anything logged if Redis later becomes
@@ -114,12 +114,16 @@ func run() error {
 	taskEventRepo := mongostore.NewTaskEventRepo(mongoClient, cfg.MongoDatabase)
 	appConfigRepo := mongostore.NewAppConfigRepo(mongoClient, cfg.MongoDatabase)
 	localDirectoryRepo := mongostore.NewLocalDirectoryRepo(mongoClient, cfg.MongoDatabase)
+	workflowRepo := mongostore.NewWorkflowRepo(mongoClient, cfg.MongoDatabase)
 	sessions := session.NewStore(redisClient)
 
 	// The local_directory indexes include the unique index on path that makes a
 	// rescan replace records rather than duplicate them, so a failure here is
 	// fatal rather than merely slow.
 	if err := localDirectoryRepo.EnsureIndexes(connectCtx); err != nil {
+		return err
+	}
+	if err := workflowRepo.EnsureIndexes(connectCtx); err != nil {
 		return err
 	}
 
@@ -338,7 +342,7 @@ func run() error {
 		return logTailBuffer.Recent(), nil
 	})
 
-	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
+	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, workflowRepo, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
 	router := httpserver.NewRouter(apiHandlers, hub, sessions, logger)
 	server := httpserver.New(cfg.Host, cfg.Port, router)
 

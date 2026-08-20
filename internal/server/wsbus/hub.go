@@ -135,13 +135,13 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.unsubscribeAll(connection)
 
 	switch {
-	case err == nil, errors.Is(err, context.Canceled):
-		ws.Close(websocket.StatusNormalClosure, "")
+	case errors.Is(err, context.Canceled):
+		_ = ws.Close(websocket.StatusNormalClosure, "")
 	case websocket.CloseStatus(err) != -1:
 		// The client closed; that is not an error worth logging.
 	default:
 		h.logger.Debug("websocket closed", "error", err)
-		ws.Close(websocket.StatusInternalError, "read failed")
+		_ = ws.Close(websocket.StatusInternalError, "read failed")
 	}
 }
 

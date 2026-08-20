@@ -342,7 +342,7 @@ export function AgentsSidebar() {
         </p>
         <p className="mt-2">
           It never connects to the database. Scan results travel back over the
-          event bus and are stored under this server's paths, so the library
+          event bus and are stored under this server&apos;s paths, so the library
           reads the same however many agents produced it.
         </p>
       </div>
@@ -359,7 +359,7 @@ export function AgentsSidebar() {
         </p>
         <p className="mt-2">
           Each library belongs to one agent. Two agents scanning the same files
-          would each overwrite the other's records.
+          would each overwrite the other&apos;s records.
         </p>
       </div>
     </section>

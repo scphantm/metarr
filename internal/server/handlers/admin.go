@@ -89,9 +89,11 @@ func (h *Handlers) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(AcceptedResponse{
+	if err := json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }

@@ -91,7 +91,9 @@ func (h *Handlers) ListLocalDirectories(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(directories)
+	if err := json.NewEncoder(w).Encode(directories); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // GetLocalDirectory handles GET /api/local-directories/{id}.
@@ -125,7 +127,9 @@ func (h *Handlers) GetLocalDirectory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(directory)
+	if err := json.NewEncoder(w).Encode(directory); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // ListDirectoryMediaFiles handles
@@ -163,7 +167,9 @@ func (h *Handlers) ListDirectoryMediaFiles(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(mediaFiles)
+	if err := json.NewEncoder(w).Encode(mediaFiles); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // GetMediaFile handles GET /api/media-files/{id}.
@@ -197,7 +203,9 @@ func (h *Handlers) GetMediaFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(mediaFile)
+	if err := json.NewEncoder(w).Encode(mediaFile); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // GetLocalDirectoryNFO handles
@@ -298,7 +306,9 @@ func (h *Handlers) GetLocalDirectoryNFO(w http.ResponseWriter, r *http.Request) 
 	document := body.Metadata
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(document)
+	if err := json.NewEncoder(w).Encode(document); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // parseRecordID converts a path parameter into a record id, writing a 400 when

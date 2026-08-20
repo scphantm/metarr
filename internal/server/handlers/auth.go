@@ -67,10 +67,12 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(LoginResponse{
+	if err := json.NewEncoder(w).Encode(LoginResponse{
 		APIKey:           apiKey,
 		ExpiresInSeconds: int(session.TTL.Seconds()),
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // Logout handles POST /api/auth/logout. It revokes the session API key
@@ -97,5 +99,7 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(LogoutResponse{Status: "logged_out"})
+	if err := json.NewEncoder(w).Encode(LogoutResponse{Status: "logged_out"}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }

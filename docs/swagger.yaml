@@ -305,6 +305,9 @@ definitions:
       ttl:
         type: string
     type: object
+  bson.M:
+    additionalProperties: {}
+    type: object
   handlers.AcceptedResponse:
     properties:
       correlation_id:
@@ -362,6 +365,17 @@ definitions:
     properties:
       parallel_count:
         type: integer
+    type: object
+  handlers.WorkflowListResponse:
+    properties:
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+      workflows:
+        items:
+          $ref: '#/definitions/mongostore.Workflow'
+        type: array
     type: object
   handlers.setAgentLogLevelRequest:
     properties:
@@ -696,6 +710,42 @@ definitions:
         type: string
       year:
         type: integer
+    type: object
+  mongostore.Workflow:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      document_id:
+        type: string
+      edges:
+        items:
+          $ref: '#/definitions/bson.M'
+        type: array
+      id:
+        type: string
+      name:
+        type: string
+      nodes:
+        description: |-
+          React Flow's own toObject() shape, stored as-is and re-rendered with
+          whatever the current node/edge components are. Deliberately untyped
+          (bson.M, not a Go struct): the node/edge schema is still being
+          designed on the frontend and is expected to keep changing without a
+          backend release in lockstep — see the no-migration-logic note on
+          reading old versions.
+        items:
+          $ref: '#/definitions/bson.M'
+        type: array
+      tags:
+        items:
+          type: string
+        type: array
+      version:
+        type: integer
+      viewport:
+        $ref: '#/definitions/bson.M'
     type: object
   redisstats.ChannelStat:
     properties:
@@ -2197,6 +2247,161 @@ paths:
       summary: Trigger the sonarr_cache_data background job
       tags:
       - Tasks
+  /api/workflows:
+    get:
+      description: Returns the latest version of every saved workflow, newest first,
+        paginated by an opaque cursor.
+      parameters:
+      - description: Maximum records to return (default 20, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Opaque cursor from a previous page's next_cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.WorkflowListResponse'
+        "400":
+          description: invalid limit or cursor
+          schema:
+            type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
+      summary: List workflows
+      tags:
+      - Workflows
+    post:
+      consumes:
+      - application/json
+      description: Creates a new workflow, or appends a new version to an existing
+        one if document_id is set. Every save is a new version — nothing is overwritten
+        in place.
+      parameters:
+      - description: Workflow to save
+        in: body
+        name: workflow
+        required: true
+        schema:
+          $ref: '#/definitions/mongostore.Workflow'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/mongostore.Workflow'
+        "400":
+          description: malformed body, or missing name/description/tags
+          schema:
+            type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
+      summary: Save a workflow
+      tags:
+      - Workflows
+  /api/workflows/{id}:
+    get:
+      description: Returns the latest version of one workflow.
+      parameters:
+      - description: Workflow id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/mongostore.Workflow'
+        "400":
+          description: malformed id
+          schema:
+            type: string
+        "404":
+          description: no workflow with that id
+          schema:
+            type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
+      summary: Fetch a workflow
+      tags:
+      - Workflows
+  /api/workflows/{id}/versions:
+    get:
+      description: Returns every saved version of one workflow, newest first, for
+        the version-history strip.
+      parameters:
+      - description: Workflow id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/mongostore.Workflow'
+            type: array
+        "400":
+          description: malformed id
+          schema:
+            type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
+      summary: List a workflow's versions
+      tags:
+      - Workflows
+  /api/workflows/{id}/versions/{version}:
+    get:
+      description: Returns one specific past version of a workflow, exactly as it
+        was saved.
+      parameters:
+      - description: Workflow id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Version number
+        in: path
+        name: version
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/mongostore.Workflow'
+        "400":
+          description: malformed id or version
+          schema:
+            type: string
+        "404":
+          description: no such workflow or version
+          schema:
+            type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
+      summary: Fetch one workflow version
+      tags:
+      - Workflows
 securityDefinitions:
   ApiKeyHeaderAuth:
     description: API key via the X-Api-Key header.

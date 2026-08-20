@@ -61,11 +61,13 @@ func (h *Handlers) SonarrCacheData(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(AcceptedResponse{
+	if err := json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SonarrCacheDataEventName,
 		CorrelationID: correlationID,
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // DirectoryScan handles POST /api/tasks/directory-scan/{slug}. It resolves the
@@ -176,9 +178,11 @@ func (h *Handlers) DirectoryScan(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(AcceptedResponse{
+	if err := json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         agentproto.ScanCommandEventName,
 		CorrelationID: correlationID,
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
