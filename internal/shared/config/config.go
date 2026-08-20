@@ -43,6 +43,13 @@ type Config struct {
 	// the same reasoning that keeps MongoURI/RedisURI out of that document.
 	LogForwardURL string
 
+	// WorkflowCatalogPath is the hand-edited node type catalog the server
+	// reads at startup and serves to the editor. Like LogForwardURL this is
+	// infrastructure wiring — where the file lives on disk — rather than an
+	// application setting, so it belongs here rather than in the
+	// Mongo-stored appconfig.
+	WorkflowCatalogPath string
+
 	// HeartbeatTimeout bounds how long the blocking heartbeat call will
 	// wait for the listener's reply before failing the request.
 	HeartbeatTimeout time.Duration
@@ -64,7 +71,14 @@ type fileConfig struct {
 	Logging struct {
 		ForwardURL string `yaml:"forward_url"`
 	} `yaml:"logging"`
+	Workflow struct {
+		CatalogPath string `yaml:"catalog_path"`
+	} `yaml:"workflow"`
 }
+
+// defaultWorkflowCatalogPath is where the catalog lives when the config file
+// does not say otherwise — the repo root, alongside config.yaml.
+const defaultWorkflowCatalogPath = "catalog.json"
 
 // Load reads and validates the config file, failing fast with a
 // path-naming error if it's missing, unparseable, or missing required
@@ -95,13 +109,19 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("config: %s: redis.uri is required", path)
 	}
 
+	catalogPath := parsedConfig.Workflow.CatalogPath
+	if catalogPath == "" {
+		catalogPath = defaultWorkflowCatalogPath
+	}
+
 	return Config{
-		Host:             parsedConfig.Server.Host,
-		Port:             parsedConfig.Server.Port,
-		MongoURI:         parsedConfig.MongoDB.AppURI,
-		MongoDatabase:    parsedConfig.MongoDB.Database,
-		RedisURI:         parsedConfig.Redis.URI,
-		LogForwardURL:    parsedConfig.Logging.ForwardURL,
-		HeartbeatTimeout: defaultHeartbeatTimeout,
+		Host:                parsedConfig.Server.Host,
+		Port:                parsedConfig.Server.Port,
+		MongoURI:            parsedConfig.MongoDB.AppURI,
+		MongoDatabase:       parsedConfig.MongoDB.Database,
+		RedisURI:            parsedConfig.Redis.URI,
+		LogForwardURL:       parsedConfig.Logging.ForwardURL,
+		WorkflowCatalogPath: catalogPath,
+		HeartbeatTimeout:    defaultHeartbeatTimeout,
 	}, nil
 }

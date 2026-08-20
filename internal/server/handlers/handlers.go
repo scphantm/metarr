@@ -13,6 +13,7 @@ import (
 	"Metarr/internal/server/redisstats"
 	"Metarr/internal/server/session"
 	"Metarr/internal/shared/eventbus"
+	"Metarr/internal/shared/workflow"
 )
 
 // Handlers bundles the dependencies shared by every HTTP handler.
@@ -22,6 +23,7 @@ type Handlers struct {
 	AppConfigRepo      *mongostore.AppConfigRepo
 	LocalDirectoryRepo *mongostore.LocalDirectoryRepo
 	WorkflowRepo       *mongostore.WorkflowRepo
+	WorkflowCatalog    *workflow.Catalog
 	Sessions           *session.Store
 	Stats              *redisstats.Collector
 	Agents             *agentregistry.Registry
@@ -37,6 +39,7 @@ func New(
 	appConfigRepo *mongostore.AppConfigRepo,
 	localDirectoryRepo *mongostore.LocalDirectoryRepo,
 	workflowRepo *mongostore.WorkflowRepo,
+	workflowCatalog *workflow.Catalog,
 	sessions *session.Store,
 	stats *redisstats.Collector,
 	agents *agentregistry.Registry,
@@ -50,6 +53,7 @@ func New(
 		AppConfigRepo:      appConfigRepo,
 		LocalDirectoryRepo: localDirectoryRepo,
 		WorkflowRepo:       workflowRepo,
+		WorkflowCatalog:    workflowCatalog,
 		Sessions:           sessions,
 		Stats:              stats,
 		Agents:             agents,

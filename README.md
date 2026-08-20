@@ -75,7 +75,8 @@ The UI will consist of 3 critical pieces.
 
 Searches will use [React Query Builder](https://react-querybuilder.js.org/docs/utils/import#custom-operators) to query the mongodb. 
 
-
+going to use
+https://tunarr.com/misc/search/ for the compare operators.  pretty good list
 
 Automations are mapping search results, workflows, and some kind of trigger.  cron, event bus hook, webhook, etc and what agent to run on
 

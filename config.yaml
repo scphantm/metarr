@@ -39,3 +39,10 @@ logging:
   # just won't forward anywhere. Swapping OpenObserve for Splunk or ELK is a
   # change to fluent-bit.conf, not to this URL.
   forward_url: "http://fluent-bit:8888/app_logs"
+
+workflow:
+  # The hand-edited node type catalog the server reads at startup and serves
+  # to the editor. This is where the file lives on disk — infrastructure
+  # wiring, not an application setting — which is why it is here rather than
+  # in the Mongo-stored app config. Defaults to catalog.json when blank.
+  catalog_path: "catalog.json"

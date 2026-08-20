@@ -110,6 +110,13 @@ func NewRouter(h *handlers.Handlers, hub *wsbus.Hub, sessions *session.Store, lo
 	// than overwriting one in place — see mongostore.WorkflowRepo. Data reads and
 	// writes, not admin configuration, so this sits in the tasks group like
 	// local-directories above.
+	// The catalog and the validator sit above the stored-workflow routes
+	// because they are what the editor needs before it can draw anything.
+	// Note the catalog route is registered before /api/workflows/{id} so the
+	// literal path wins over the wildcard.
+	mux.Handle("GET /api/workflows/catalog", protect(auth.GroupTasks, h.GetWorkflowCatalog))
+	mux.Handle("POST /api/workflows/validate", protect(auth.GroupTasks, h.ValidateWorkflow))
+
 	mux.Handle("GET /api/workflows", protect(auth.GroupTasks, h.ListWorkflows))
 	mux.Handle("POST /api/workflows", protect(auth.GroupTasks, h.UpsertWorkflow))
 	mux.Handle("GET /api/workflows/{id}", protect(auth.GroupTasks, h.GetWorkflow))

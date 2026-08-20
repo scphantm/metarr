@@ -27,6 +27,7 @@ import type {
   Workflow,
   WorkflowListResponse,
 } from './types'
+import type { CatalogResponse } from '../pages/workflows/catalogTypes'
 
 export const queryKeys = {
   config: ['config'] as const,
@@ -45,6 +46,7 @@ export const queryKeys = {
   workflows: ['workflows'] as const,
   workflow: (id: string) => ['workflows', id] as const,
   workflowVersions: (id: string) => ['workflows', id, 'versions'] as const,
+  workflowCatalog: ['workflows', 'catalog'] as const,
 }
 
 /*
@@ -367,6 +369,18 @@ export function useWorkflowList() {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
       lastPage.has_more ? lastPage.next_cursor : undefined,
+  })
+}
+
+// The node/socket/transform catalog the palette, the node renderers, and
+// isValidConnection all read from. staleTime: Infinity like useAgents/
+// useConfig: it only changes on a server redeploy, never mid-session, so
+// there's no socket topic behind it — just a plain fetch-once query.
+export function useWorkflowCatalog() {
+  return useQuery({
+    queryKey: queryKeys.workflowCatalog,
+    queryFn: () => request<CatalogResponse>('/api/workflows/catalog'),
+    staleTime: Infinity,
   })
 }
 

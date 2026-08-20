@@ -20,12 +20,17 @@ type Workflow struct {
 	Description string   `bson:"description" json:"description"`
 	Tags        []string `bson:"tags"         json:"tags"`
 
-	// React Flow's own toObject() shape, stored as-is and re-rendered with
-	// whatever the current node/edge components are. Deliberately untyped
-	// (bson.M, not a Go struct): the node/edge schema is still being
-	// designed on the frontend and is expected to keep changing without a
-	// backend release in lockstep — see the no-migration-logic note on
-	// reading old versions.
+	// SchemaVersion identifies which shape Nodes/Edges are in — see
+	// workflow.SchemaVersion. A document without one (the zero value) predates
+	// the control/data-edge redesign and is opened read-only in the editor
+	// rather than guessed at.
+	SchemaVersion int `bson:"schema_version" json:"schema_version"`
+
+	// The canonical graph shape (workflow.Node / workflow.Edge), stored
+	// loosely as bson.M rather than the typed Go structs: Mongo doesn't need
+	// it typed, and keeping it loose here means a catalog-driven schema
+	// change on the frontend never needs a backend release in lockstep — see
+	// the no-migration-logic note on reading old-SchemaVersion documents.
 	Nodes    []bson.M `bson:"nodes"    json:"nodes"`
 	Edges    []bson.M `bson:"edges"    json:"edges"`
 	Viewport bson.M   `bson:"viewport" json:"viewport"`
