@@ -1,29 +1,46 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { ReactFlowProvider, type Edge, type Node, type ReactFlowInstance, type Viewport } from '@xyflow/react'
+import { ReactFlowProvider, type ReactFlowInstance, type Viewport } from '@xyflow/react'
 
 import type { Workflow } from '../../api/types'
 import { queryKeys, useSaveWorkflow, useWorkflow, useWorkflowVersion, useWorkflowVersions } from '../../api/queries'
 import { Button } from '../../components/Card'
 import { DnDProvider } from './DnDContext'
+import { fromRFGraph, toRFGraph } from './graphAdapter'
 import { NodePalette } from './NodePalette'
+import { registeredTypes } from './nodes/registry'
 import { TagsInput } from './TagsInput'
 import { VersionHistory } from './VersionHistory'
 import { WorkflowCanvas } from './WorkflowCanvas'
 import { clearStashedDraft, readStashedDraft, stashDraft, type StashedDraft } from './draftStorage'
+import { SchemaVersion } from './catalogTypes'
 
 const emptyViewport: Viewport = { x: 0, y: 0, zoom: 1 }
 const emptySnapshot: StashedDraft = { name: '', description: '', tags: [], nodes: [], edges: [], viewport: emptyViewport }
 
+// A document whose schema_version doesn't match predates the control/data-
+// edge redesign (design.md §11) — its nodes/edges are the old React-Flow-
+// native shape, not the canonical Graph one, and rendering them through
+// toRFGraph would silently produce garbage rather than a clear error. There
+// is no migration path, per the project's still-in-development stance: it's
+// opened read-only with an explanation instead.
+function isCurrentSchema(workflow: Workflow): boolean {
+  return workflow.schema_version === SchemaVersion
+}
+
 function snapshotFromWorkflow(workflow: Workflow): StashedDraft {
+  const { nodes, edges } = toRFGraph(
+    { schema_version: workflow.schema_version, nodes: workflow.nodes, edges: workflow.edges },
+    registeredTypes,
+  )
   return {
     name: workflow.name,
     description: workflow.description,
     tags: workflow.tags,
-    nodes: workflow.nodes as Node[],
-    edges: workflow.edges as Edge[],
-    viewport: workflow.viewport as Viewport,
+    nodes,
+    edges,
+    viewport: (workflow.viewport as Viewport | undefined) ?? emptyViewport,
   }
 }
 
@@ -114,10 +131,14 @@ export function WorkflowEditorPage() {
   let editorKey: string
   let initialSnapshot: StashedDraft
   let ready = true
+  let outdatedSchema = false
   if (readOnly) {
     editorKey = `v-${viewingVersion}`
     if (!viewingVersionQuery.data) {
       ready = false
+      initialSnapshot = emptySnapshot
+    } else if (!isCurrentSchema(viewingVersionQuery.data)) {
+      outdatedSchema = true
       initialSnapshot = emptySnapshot
     } else {
       initialSnapshot = snapshotFromWorkflow(viewingVersionQuery.data)
@@ -127,7 +148,11 @@ export function WorkflowEditorPage() {
     if (restoredDraft) {
       initialSnapshot = restoredDraft
     } else if (!baseline) {
-      ready = false
+      if (workflowQuery.data && !isCurrentSchema(workflowQuery.data)) {
+        outdatedSchema = true
+      } else {
+        ready = false
+      }
       initialSnapshot = emptySnapshot
     } else {
       initialSnapshot = baseline
@@ -140,7 +165,15 @@ export function WorkflowEditorPage() {
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {ready ? (
+        {outdatedSchema ? (
+          <div className="p-6 text-sm text-ink-muted">
+            <p>
+              This workflow was saved in an older format that predates control/data edges and can&rsquo;t be opened in
+              this editor.
+            </p>
+            <p className="mt-2">Delete it and rebuild it from scratch — this project makes no promise to migrate saved workflows yet.</p>
+          </div>
+        ) : ready ? (
           <EditorBody
             key={editorKey}
             ref={editorRef}
@@ -207,15 +240,16 @@ const EditorBody = forwardRef<
     setSaving(true)
     setError(null)
     try {
-      const graph = instance.toObject()
+      const graph = fromRFGraph(instance.getNodes(), instance.getEdges(), instance.getViewport())
       const saved = await saveWorkflow.mutateAsync({
         document_id: documentId,
         name: name.trim(),
         description: description.trim(),
         tags,
-        nodes: graph.nodes as unknown as Record<string, unknown>[],
-        edges: graph.edges as unknown as Record<string, unknown>[],
-        viewport: graph.viewport as unknown as Record<string, unknown>,
+        schema_version: graph.schema_version,
+        nodes: graph.nodes,
+        edges: graph.edges,
+        viewport: graph.viewport ?? {},
       })
       onSaved(saved)
     } catch (cause) {
@@ -279,6 +313,7 @@ const EditorBody = forwardRef<
               <WorkflowCanvas
                 initialNodes={initial.nodes}
                 initialEdges={initial.edges}
+                initialViewport={initial.nodes.length > 0 || initial.edges.length > 0 ? initial.viewport : undefined}
                 readOnly={readOnly}
                 onInit={(instance) => {
                   rfInstanceRef.current = instance

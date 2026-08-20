@@ -317,6 +317,22 @@ definitions:
       status:
         type: string
     type: object
+  handlers.CatalogResponse:
+    properties:
+      node_types:
+        items:
+          $ref: '#/definitions/workflow.NodeType'
+        type: array
+      schema_version:
+        description: |-
+          SchemaVersion is the graph format this server reads and writes, so the
+          editor can refuse to save a document it would downgrade.
+        type: integer
+      transforms:
+        items:
+          $ref: '#/definitions/workflow.Transform'
+        type: array
+    type: object
   handlers.HeartbeatResponse:
     properties:
       correlation_id:
@@ -365,6 +381,24 @@ definitions:
     properties:
       parallel_count:
         type: integer
+    type: object
+  handlers.ValidateWorkflowRequest:
+    properties:
+      graph:
+        $ref: '#/definitions/workflow.Graph'
+    type: object
+  handlers.ValidateWorkflowResponse:
+    properties:
+      diagnostics:
+        items:
+          $ref: '#/definitions/validate.Diagnostic'
+        type: array
+      runnable:
+        description: |-
+          Runnable is false when any diagnostic is an error. Note that an
+          unrunnable graph is still perfectly saveable — people save half-built
+          flows, and refusing to store one would lose work.
+        type: boolean
     type: object
   handlers.WorkflowListResponse:
     properties:
@@ -1190,6 +1224,335 @@ definitions:
       time.Time:
         type: string
     type: object
+  validate.Diagnostic:
+    properties:
+      code:
+        type: string
+      edge_ids:
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+      node_ids:
+        items:
+          type: string
+        type: array
+      severity:
+        $ref: '#/definitions/validate.Severity'
+      witness_path:
+        description: |-
+          WitnessPath is a concrete control path demonstrating the problem — for
+          a MustHaveRun failure, a route from the start to the target that skips
+          the source. A bare "dominance violation" is useless to a user; a
+          highlighted path is not.
+        items:
+          type: string
+        type: array
+    type: object
+  validate.Severity:
+    enum:
+    - error
+    - warning
+    type: string
+    x-enum-varnames:
+    - SeverityError
+    - SeverityWarning
+  workflow.ControlPorts:
+    properties:
+      error:
+        description: |-
+          Error adds the red error out-port. It is an ordinary control branch;
+          the only thing special about it is how it is drawn and that leaving it
+          unwired aborts the run.
+        type: boolean
+      in:
+        items:
+          type: string
+        type: array
+      out:
+        items:
+          type: string
+        type: array
+    type: object
+  workflow.Edge:
+    properties:
+      from:
+        $ref: '#/definitions/workflow.Endpoint'
+      id:
+        type: string
+      kind:
+        $ref: '#/definitions/workflow.EdgeKind'
+      to:
+        $ref: '#/definitions/workflow.Endpoint'
+      transform:
+        description: |-
+          Transform names an explicit conversion applied to the value in flight.
+          Only meaningful on data edges, and always a single registered name
+          rather than a chain.
+        type: string
+    type: object
+  workflow.EdgeKind:
+    enum:
+    - control
+    - data
+    type: string
+    x-enum-varnames:
+    - EdgeControl
+    - EdgeData
+  workflow.Effects:
+    enum:
+    - read
+    - write
+    - destructive
+    type: string
+    x-enum-varnames:
+    - EffectsRead
+    - EffectsWrite
+    - EffectsDestructive
+  workflow.Endpoint:
+    properties:
+      node:
+        type: string
+      port:
+        type: string
+    type: object
+  workflow.ExecSpec:
+    properties:
+      agentSelector:
+        type: string
+      cancellable:
+        type: boolean
+      effects:
+        allOf:
+        - $ref: '#/definitions/workflow.Effects'
+        description: Effects is mandatory. It is what dry-run keys off.
+      retry:
+        $ref: '#/definitions/workflow.RetrySpec'
+      runsOn:
+        description: |-
+          RunsOn defaults to the server; a node declares "agent" when its work
+          can only happen where the files are.
+        type: string
+      timeout:
+        type: string
+    type: object
+  workflow.Graph:
+    properties:
+      edges:
+        items:
+          $ref: '#/definitions/workflow.Edge'
+        type: array
+      nodes:
+        items:
+          $ref: '#/definitions/workflow.Node'
+        type: array
+      schema_version:
+        type: integer
+      viewport:
+        additionalProperties: {}
+        type: object
+    type: object
+  workflow.Node:
+    properties:
+      id:
+        type: string
+      label:
+        description: Label overrides the catalog's display name for this instance.
+        type: string
+      position:
+        $ref: '#/definitions/workflow.Position'
+      promoted:
+        description: |-
+          Promoted lists settings turned into wired data-in sockets on this
+          instance.
+        items:
+          type: string
+        type: array
+      settings:
+        additionalProperties: {}
+        description: |-
+          Settings holds the literal values the user entered, keyed by the
+          catalog's setting names.
+        type: object
+      type:
+        type: string
+      typeVersion:
+        type: string
+    type: object
+  workflow.NodeKind:
+    enum:
+    - ""
+    - start
+    - end
+    - fail
+    - source
+    - branch
+    - forEach
+    - collect
+    - parallel
+    - join
+    - break
+    - note
+    type: string
+    x-enum-varnames:
+    - KindTask
+    - KindStart
+    - KindEnd
+    - KindFail
+    - KindSource
+    - KindBranch
+    - KindForEach
+    - KindCollect
+    - KindParallel
+    - KindJoin
+    - KindBreak
+    - KindNote
+  workflow.NodeType:
+    properties:
+      category:
+        type: string
+      control:
+        $ref: '#/definitions/workflow.ControlPorts'
+      dataIn:
+        items:
+          $ref: '#/definitions/workflow.Socket'
+        type: array
+      dataOut:
+        items:
+          $ref: '#/definitions/workflow.Socket'
+        type: array
+      description:
+        type: string
+      exec:
+        $ref: '#/definitions/workflow.ExecSpec'
+      kind:
+        $ref: '#/definitions/workflow.NodeKind'
+      name:
+        type: string
+      settings:
+        items:
+          $ref: '#/definitions/workflow.Setting'
+        type: array
+      type:
+        type: string
+      typeVersion:
+        type: string
+    type: object
+  workflow.Position:
+    properties:
+      x:
+        type: number
+      "y":
+        type: number
+    type: object
+  workflow.RetrySpec:
+    properties:
+      attempts:
+        type: integer
+      backoff:
+        type: string
+    type: object
+  workflow.Setting:
+    properties:
+      default: {}
+      description:
+        type: string
+      label:
+        type: string
+      name:
+        type: string
+      type:
+        $ref: '#/definitions/workflow.Type'
+      ui:
+        additionalProperties: {}
+        type: object
+    type: object
+  workflow.Socket:
+    properties:
+      description:
+        type: string
+      label:
+        type: string
+      name:
+        description: |-
+          Name is a permanent identifier that stored edges reference. Renaming
+          one silently breaks every saved workflow — change Label instead.
+        type: string
+      required:
+        type: boolean
+      type:
+        $ref: '#/definitions/workflow.Type'
+    type: object
+  workflow.Transform:
+    properties:
+      ambiguous:
+        description: |-
+          Ambiguous marks a transform that must never be applied automatically
+          even when it is the only candidate, because more than one answer is
+          defensible and guessing wrong is silent. The UI always prompts.
+        type: boolean
+      from:
+        $ref: '#/definitions/workflow.Type'
+      name:
+        type: string
+      summary:
+        type: string
+      to:
+        $ref: '#/definitions/workflow.Type'
+    type: object
+  workflow.Type:
+    enum:
+    - any
+    - bool
+    - number
+    - number.int
+    - string
+    - string.enum
+    - duration
+    - bytes
+    - timestamp
+    - path
+    - path.dir
+    - path.file
+    - path.file.video
+    - path.file.image
+    - path.file.subtitle
+    - path.file.nfo
+    - media.item
+    - media.file
+    - media.sidecar
+    - metadata.nfo
+    - metadata.stream
+    - agent.slug
+    - scanner.slug
+    - error
+    type: string
+    x-enum-varnames:
+    - TypeAny
+    - TypeBool
+    - TypeNumber
+    - TypeNumberInt
+    - TypeString
+    - TypeStringEnum
+    - TypeDuration
+    - TypeBytes
+    - TypeTimestamp
+    - TypePath
+    - TypePathDir
+    - TypePathFile
+    - TypePathFileVideo
+    - TypePathFileImage
+    - TypePathFileSubtitle
+    - TypePathFileNFO
+    - TypeMediaItem
+    - TypeMediaFile
+    - TypeMediaSidecar
+    - TypeMetadataNFO
+    - TypeMetadataStream
+    - TypeAgentSlug
+    - TypeScannerSlug
+    - TypeError
   xml.Attr:
     properties:
       name:
@@ -2400,6 +2763,54 @@ paths:
       - ApiKeyHeaderAuth: []
       - ApiKeyQueryAuth: []
       summary: Fetch one workflow version
+      tags:
+      - Workflows
+  /api/workflows/catalog:
+    get:
+      description: Returns every installed node type plus the registry of explicit
+        type conversions. The editor palette, server-side validation and the engine
+        all read this same source.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.CatalogResponse'
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
+      summary: Fetch the workflow node catalog
+      tags:
+      - Workflows
+  /api/workflows/validate:
+    post:
+      consumes:
+      - application/json
+      description: Statically checks a drawn graph and returns diagnostics. Errors
+        block running, not saving.
+      parameters:
+      - description: Graph to validate
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ValidateWorkflowRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ValidateWorkflowResponse'
+        "400":
+          description: malformed graph
+          schema:
+            type: string
+      security:
+      - ApiKeyHeaderAuth: []
+      - ApiKeyQueryAuth: []
+      summary: Validate a workflow graph
       tags:
       - Workflows
 securityDefinitions:

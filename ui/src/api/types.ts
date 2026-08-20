@@ -6,6 +6,8 @@
  * as an empty string.
  */
 
+import type { GraphEdge, GraphNode } from '../pages/workflows/catalogTypes'
+
 // AdminUser is the single administrative account. The password salt and hash
 // are redacted by GetConfig before they reach a client, so they are absent
 // here by design rather than by omission.
@@ -328,10 +330,11 @@ export type LogTailEntry = {
  * internal/server/mongostore/versioned): document_id groups every version of
  * the same logical workflow, id is this specific version's own identity, and
  * every save produces a brand new version rather than overwriting one in
- * place. nodes/edges/viewport are React Flow's own toObject() shape, stored
- * and read back as-is — deliberately untyped here too, for the same reason
- * the Go side leaves them as bson.M: the node/edge schema is still being
- * designed and is expected to keep changing.
+ * place. nodes/edges/viewport are the canonical graph shape from
+ * internal/shared/workflow/graph.go (see ../pages/workflows/catalogTypes.ts
+ * for the field-for-field mirror) — schema_version says which shape they're
+ * in; a document without a matching one predates the control/data-edge
+ * redesign and is opened read-only rather than guessed at.
  */
 
 export type Workflow = {
@@ -342,8 +345,9 @@ export type Workflow = {
   name: string
   description: string
   tags: string[]
-  nodes: Record<string, unknown>[]
-  edges: Record<string, unknown>[]
+  schema_version: number
+  nodes: GraphNode[]
+  edges: GraphEdge[]
   viewport: Record<string, unknown>
 }
 
@@ -358,7 +362,8 @@ export type UpsertWorkflowRequest = {
   name: string
   description: string
   tags: string[]
-  nodes: Record<string, unknown>[]
-  edges: Record<string, unknown>[]
+  schema_version: number
+  nodes: GraphNode[]
+  edges: GraphEdge[]
   viewport: Record<string, unknown>
 }

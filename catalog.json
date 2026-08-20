@@ -1,0 +1,608 @@
+[
+  {
+    "type": "core/start",
+    "typeVersion": "1.0.0",
+    "name": "Start",
+    "category": "input",
+    "kind": "start",
+    "description": "Where the run begins. Exactly one per workflow.",
+    "control": { "in": [], "out": ["next"] },
+    "dataOut": [
+      { "name": "item", "label": "Triggering item", "type": "media.item", "description": "The item the run was started for. Empty for a bare manual run." }
+    ],
+    "settings": [
+      {
+        "name": "trigger",
+        "label": "Trigger",
+        "type": "string.enum",
+        "default": "manual",
+        "ui": { "widget": "dropdown", "options": ["manual", "schedule", "scanComplete"] },
+        "description": "What starts this workflow. Only manual is honoured today; the rest are reserved."
+      }
+    ],
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "core/inputPath",
+    "typeVersion": "1.0.0",
+    "name": "Input Path",
+    "category": "input",
+    "kind": "source",
+    "description": "A literal path typed by the author. A pure data source with no control ports — it is not an execution step, so its value is always available.",
+    "control": { "in": [], "out": [] },
+    "dataOut": [
+      { "name": "path", "label": "Path", "type": "path", "description": "The configured path." }
+    ],
+    "settings": [
+      { "name": "path", "label": "Path", "type": "path", "default": "", "ui": { "widget": "directory" } }
+    ],
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "core/writeChanges",
+    "typeVersion": "1.0.0",
+    "name": "Write changes",
+    "category": "output",
+    "kind": "end",
+    "description": "Commits pending changes and ends this path of the run.",
+    "control": { "in": ["in"], "out": [], "error": true },
+    "exec": { "runsOn": "server", "effects": "write" }
+  },
+
+  {
+    "type": "core/errorOutput",
+    "typeVersion": "1.0.0",
+    "name": "Error Output",
+    "category": "output",
+    "kind": "end",
+    "description": "Ends this path of the run, recording the incoming error.",
+    "control": { "in": ["in"], "out": [] },
+    "dataIn": [
+      { "name": "error", "label": "Error", "type": "error", "required": false }
+    ],
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "core/note",
+    "typeVersion": "1.0.0",
+    "name": "Notes",
+    "category": "note",
+    "kind": "note",
+    "description": "An annotation. Has no ports, is stripped before compilation, and is excluded from validation.",
+    "control": { "in": [], "out": [] },
+    "settings": [
+      { "name": "notes", "label": "Note", "type": "string", "default": "", "ui": { "widget": "textarea" } }
+    ],
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "core/checkFlowVariable",
+    "typeVersion": "1.0.0",
+    "name": "Check flow variable",
+    "category": "check",
+    "kind": "branch",
+    "description": "Compares two values and takes the yes or no branch. The branches are control flow, not booleans — nothing downstream consumes them as data.",
+    "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
+    "dataIn": [
+      { "name": "input", "label": "Input", "type": "any", "required": false, "description": "Optional value under test, when the comparison operands reference it." }
+    ],
+    "settings": [
+      { "name": "data1", "label": "Left", "type": "string", "default": "" },
+      {
+        "name": "operator",
+        "label": "Operator",
+        "type": "string.enum",
+        "default": "==",
+        "ui": { "widget": "dropdown", "options": ["==", "!=", "contains", ">", "<", ">=", "<="] }
+      },
+      { "name": "data2", "label": "Right", "type": "string", "default": "" }
+    ],
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "core/trickplay",
+    "typeVersion": "1.0.0",
+    "name": "Generate Trickplay",
+    "category": "function",
+    "description": "Generates Jellyfin-compatible trickplay tiles beside the source video.",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "source", "label": "Source file", "type": "path.file.video", "required": true }
+    ],
+    "dataOut": [
+      { "name": "trickplayDir", "label": "Trickplay folder", "type": "path.dir" }
+    ],
+    "settings": [
+      { "name": "width", "label": "Tile width", "type": "number.int", "default": 320 },
+      { "name": "tileWidth", "label": "Tiles across", "type": "number.int", "default": 10 },
+      { "name": "tileHeight", "label": "Tiles down", "type": "number.int", "default": 10 }
+    ],
+    "exec": {
+      "runsOn": "agent",
+      "agentSelector": "path",
+      "timeout": "2h",
+      "cancellable": true,
+      "effects": "write",
+      "retry": { "attempts": 3, "backoff": "30s" }
+    }
+  },
+
+  {
+    "type": "core/forEach",
+    "typeVersion": "1.0.0",
+    "name": "For Each",
+    "category": "control",
+    "kind": "forEach",
+    "description": "Runs the body once per item, then fires done. Both body and done come from this node, so the zero-iteration path exists in the graph.",
+    "control": { "in": ["in"], "out": ["body", "done"], "error": true },
+    "dataIn": [
+      { "name": "collection", "label": "Collection", "type": "list<any>", "required": true }
+    ],
+    "dataOut": [
+      { "name": "item", "label": "Item", "type": "any", "description": "The current item. Readable only inside the body. Its concrete type is inferred from the wired collection." },
+      { "name": "index", "label": "Index", "type": "number.int", "description": "Zero-based position. Body-scoped." },
+      { "name": "count", "label": "Count", "type": "number.int", "description": "Size of the whole collection." },
+      { "name": "failedCount", "label": "Failed count", "type": "number.int", "description": "Items that failed under skip. Readable after done." }
+    ],
+    "settings": [
+      { "name": "parallelism", "label": "Run at once", "type": "number.int", "default": 1 },
+      {
+        "name": "onItemError",
+        "label": "On item error",
+        "type": "string.enum",
+        "default": "abort",
+        "ui": { "widget": "dropdown", "options": ["abort", "skip"] }
+      }
+    ],
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "core/collect",
+    "typeVersion": "1.0.0",
+    "name": "Collect",
+    "category": "control",
+    "kind": "collect",
+    "description": "Accumulates one value per iteration. Placed inside a loop body; its collected output is readable after the loop's done, in collection order.",
+    "control": { "in": ["in"], "out": ["next"] },
+    "dataIn": [
+      { "name": "value", "label": "Value", "type": "any", "required": true }
+    ],
+    "dataOut": [
+      { "name": "collected", "label": "Collected", "type": "list<any>", "description": "All collected values, in collection order. Element type is inferred from the wired value." }
+    ],
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "core/parallel",
+    "typeVersion": "1.0.0",
+    "name": "Parallel",
+    "category": "control",
+    "kind": "parallel",
+    "description": "Runs its branches concurrently. Parallelism is always explicit — a second wire on one out-port is a validation error, never an implicit fork.",
+    "control": {
+      "in": ["in"],
+      "out": ["branch1", "branch2", "branch3", "branch4", "branch5", "branch6", "branch7", "branch8"],
+      "error": true
+    },
+    "settings": [
+      { "name": "branches", "label": "Branches", "type": "number.int", "default": 2 },
+      {
+        "name": "onBranchError",
+        "label": "On branch error",
+        "type": "string.enum",
+        "default": "cancelSiblings",
+        "ui": { "widget": "dropdown", "options": ["cancelSiblings", "waitForSiblings"] }
+      }
+    ],
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "core/join",
+    "typeVersion": "1.0.0",
+    "name": "Join",
+    "category": "control",
+    "kind": "join",
+    "description": "Waits for every branch of its paired Parallel. Fires error instead of next if any branch failed.",
+    "control": {
+      "in": ["branch1", "branch2", "branch3", "branch4", "branch5", "branch6", "branch7", "branch8"],
+      "out": ["next"],
+      "error": true
+    },
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "core/break",
+    "typeVersion": "1.0.0",
+    "name": "Break",
+    "category": "control",
+    "kind": "break",
+    "description": "Ends the enclosing loop early and fires its done port. Legal only inside a loop body.",
+    "control": { "in": ["in"], "out": [] },
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "core/end",
+    "typeVersion": "1.0.0",
+    "name": "End",
+    "category": "output",
+    "kind": "end",
+    "description": "Ends the run successfully. Forbidden inside parallel branches and loop bodies.",
+    "control": { "in": ["in"], "out": [] },
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "core/fail",
+    "typeVersion": "1.0.0",
+    "name": "Fail",
+    "category": "output",
+    "kind": "fail",
+    "description": "Ends the run as failed. Forbidden inside parallel branches and loop bodies.",
+    "control": { "in": ["in"], "out": [] },
+    "dataIn": [
+      { "name": "message", "label": "Message", "type": "string", "required": false }
+    ],
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "fs/listDirectory",
+    "typeVersion": "1.0.0",
+    "name": "List Directory",
+    "category": "filesystem",
+    "description": "Lists the immediate contents of a directory.",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "dir", "label": "Directory", "type": "path.dir", "required": true }
+    ],
+    "dataOut": [
+      { "name": "entries", "label": "Entries", "type": "list<path>", "description": "Every direct child of the directory, files and subdirectories alike." }
+    ],
+    "settings": [
+      { "name": "recursive", "label": "Recursive", "type": "bool", "default": false }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
+  },
+
+  {
+    "type": "fs/moveFile",
+    "typeVersion": "1.0.0",
+    "name": "Move File",
+    "category": "filesystem",
+    "description": "Moves a file to a new location, creating destination directories as needed.",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "source", "label": "Source", "type": "path.file", "required": true },
+      { "name": "destination", "label": "Destination", "type": "path.file", "required": true }
+    ],
+    "dataOut": [
+      { "name": "movedTo", "label": "Moved to", "type": "path.file" }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write", "retry": { "attempts": 2, "backoff": "5s" } }
+  },
+
+  {
+    "type": "fs/copyFile",
+    "typeVersion": "1.0.0",
+    "name": "Copy File",
+    "category": "filesystem",
+    "description": "Copies a file to a new location, leaving the source in place.",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "source", "label": "Source", "type": "path.file", "required": true },
+      { "name": "destination", "label": "Destination", "type": "path.file", "required": true }
+    ],
+    "dataOut": [
+      { "name": "copiedTo", "label": "Copied to", "type": "path.file" }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write", "retry": { "attempts": 2, "backoff": "5s" } }
+  },
+
+  {
+    "type": "fs/deleteFile",
+    "typeVersion": "1.0.0",
+    "name": "Delete File",
+    "category": "filesystem",
+    "description": "Permanently removes a file. There is no undo.",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "target", "label": "File", "type": "path.file", "required": true }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "destructive" }
+  },
+
+  {
+    "type": "fs/exists",
+    "typeVersion": "1.0.0",
+    "name": "File Exists",
+    "category": "filesystem",
+    "kind": "branch",
+    "description": "Checks whether a path exists on disk and takes the yes or no branch. The branches are control flow, not booleans.",
+    "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
+    "dataIn": [
+      { "name": "target", "label": "Path", "type": "path", "required": true }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
+  },
+
+  {
+    "type": "fs/makeDirectory",
+    "typeVersion": "1.0.0",
+    "name": "Make Directory",
+    "category": "filesystem",
+    "description": "Creates a directory, including any missing parents.",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "target", "label": "Directory", "type": "path.dir", "required": true }
+    ],
+    "dataOut": [
+      { "name": "created", "label": "Created", "type": "path.dir" }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write" }
+  },
+
+  {
+    "type": "fs/fileSize",
+    "typeVersion": "1.0.0",
+    "name": "File Size",
+    "category": "filesystem",
+    "description": "Reads the size of a file in bytes.",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "target", "label": "File", "type": "path.file", "required": true }
+    ],
+    "dataOut": [
+      { "name": "size", "label": "Size", "type": "bytes" }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
+  },
+
+  {
+    "type": "fs/readTextFile",
+    "typeVersion": "1.0.0",
+    "name": "Read Text File",
+    "category": "filesystem",
+    "description": "Reads a small text file's full contents as a string.",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "source", "label": "File", "type": "path.file", "required": true }
+    ],
+    "dataOut": [
+      { "name": "content", "label": "Content", "type": "string" }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
+  },
+
+  {
+    "type": "fs/writeTextFile",
+    "typeVersion": "1.0.0",
+    "name": "Write Text File",
+    "category": "filesystem",
+    "description": "Writes a string out to a text file, overwriting it if present.",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "content", "label": "Content", "type": "string", "required": true },
+      { "name": "target", "label": "File", "type": "path.file", "required": true }
+    ],
+    "dataOut": [
+      { "name": "written", "label": "Written to", "type": "path.file" }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write" }
+  },
+
+  {
+    "type": "media/probe",
+    "typeVersion": "1.0.0",
+    "name": "Probe Media",
+    "category": "media",
+    "description": "Reads technical metadata from a video file without decoding it (duration, streams, codecs).",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "source", "label": "Source file", "type": "path.file.video", "required": true }
+    ],
+    "dataOut": [
+      { "name": "duration", "label": "Duration", "type": "duration" },
+      { "name": "streams", "label": "Streams", "type": "list<metadata.stream>" }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "1m", "effects": "read" }
+  },
+
+  {
+    "type": "media/transcode",
+    "typeVersion": "1.0.0",
+    "name": "Transcode",
+    "category": "media",
+    "description": "Re-encodes a video file into a different codec or container.",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "source", "label": "Source file", "type": "path.file.video", "required": true },
+      { "name": "destination", "label": "Destination", "type": "path.file.video", "required": true }
+    ],
+    "dataOut": [
+      { "name": "output", "label": "Output file", "type": "path.file.video" }
+    ],
+    "settings": [
+      { "name": "videoCodec", "label": "Video codec", "type": "string.enum", "default": "h264", "ui": { "widget": "dropdown", "options": ["h264", "hevc", "av1", "copy"] } },
+      { "name": "audioCodec", "label": "Audio codec", "type": "string.enum", "default": "aac", "ui": { "widget": "dropdown", "options": ["aac", "ac3", "copy"] } },
+      { "name": "crf", "label": "Quality (CRF)", "type": "number.int", "default": 20 }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "6h", "cancellable": true, "effects": "write", "retry": { "attempts": 1 } }
+  },
+
+  {
+    "type": "media/extractStream",
+    "typeVersion": "1.0.0",
+    "name": "Extract Stream",
+    "category": "media",
+    "description": "Extracts a single subtitle or audio stream out of a container into its own file.",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "source", "label": "Source file", "type": "path.file.video", "required": true }
+    ],
+    "dataOut": [
+      { "name": "subtitle", "label": "Extracted subtitle", "type": "path.file.subtitle" },
+      { "name": "audio", "label": "Extracted audio", "type": "path.file" }
+    ],
+    "settings": [
+      { "name": "streamIndex", "label": "Stream index", "type": "number.int", "default": 0 },
+      { "name": "kind", "label": "Stream kind", "type": "string.enum", "default": "subtitle", "ui": { "widget": "dropdown", "options": ["subtitle", "audio"] } }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "5m", "effects": "write" }
+  },
+
+  {
+    "type": "media/generateThumbnail",
+    "typeVersion": "1.0.0",
+    "name": "Generate Thumbnail",
+    "category": "media",
+    "description": "Captures a single still frame from a video as an image file.",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "source", "label": "Source file", "type": "path.file.video", "required": true }
+    ],
+    "dataOut": [
+      { "name": "thumbnail", "label": "Thumbnail", "type": "path.file.image" }
+    ],
+    "settings": [
+      { "name": "atSeconds", "label": "Capture at (seconds)", "type": "number", "default": 30 },
+      { "name": "width", "label": "Width", "type": "number.int", "default": 640 }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "1m", "effects": "write" }
+  },
+
+  {
+    "type": "nfo/read",
+    "typeVersion": "1.0.0",
+    "name": "Read NFO",
+    "category": "metadata",
+    "description": "Parses an NFO sidecar into structured metadata.",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "source", "label": "NFO file", "type": "path.file.nfo", "required": true }
+    ],
+    "dataOut": [
+      { "name": "metadata", "label": "Metadata", "type": "metadata.nfo" }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
+  },
+
+  {
+    "type": "nfo/write",
+    "typeVersion": "1.0.0",
+    "name": "Write NFO",
+    "category": "metadata",
+    "description": "Writes structured metadata out to an NFO sidecar, overwriting it if present.",
+    "control": { "in": ["in"], "out": ["next"], "error": true },
+    "dataIn": [
+      { "name": "metadata", "label": "Metadata", "type": "metadata.nfo", "required": true },
+      { "name": "target", "label": "NFO file", "type": "path.file.nfo", "required": true }
+    ],
+    "dataOut": [
+      { "name": "written", "label": "Written to", "type": "path.file.nfo" }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write" }
+  },
+
+  {
+    "type": "string/format",
+    "typeVersion": "1.0.0",
+    "name": "Format String",
+    "category": "string",
+    "description": "Substitutes wired values into a template string, e.g. \"{value1} ({value2})\".",
+    "control": { "in": ["in"], "out": ["next"] },
+    "dataIn": [
+      { "name": "value1", "label": "Value 1", "type": "any", "required": false },
+      { "name": "value2", "label": "Value 2", "type": "any", "required": false }
+    ],
+    "dataOut": [
+      { "name": "result", "label": "Result", "type": "string" }
+    ],
+    "settings": [
+      { "name": "template", "label": "Template", "type": "string", "default": "", "description": "Use {value1}, {value2} as placeholders." }
+    ],
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "string/regexMatch",
+    "typeVersion": "1.0.0",
+    "name": "Regex Match",
+    "category": "string",
+    "kind": "branch",
+    "description": "Tests a string against a regular expression and takes the matched or unmatched branch.",
+    "control": { "in": ["in"], "out": ["matched", "unmatched"], "error": true },
+    "dataIn": [
+      { "name": "input", "label": "Input", "type": "string", "required": true }
+    ],
+    "dataOut": [
+      { "name": "match", "label": "Matched text", "type": "string", "description": "The first match, or the first capture group if the pattern has one. Readable only on the matched branch." }
+    ],
+    "settings": [
+      { "name": "pattern", "label": "Pattern", "type": "string", "default": "" }
+    ],
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "string/concat",
+    "typeVersion": "1.0.0",
+    "name": "Concatenate",
+    "category": "string",
+    "description": "Joins two strings with an optional separator.",
+    "control": { "in": ["in"], "out": ["next"] },
+    "dataIn": [
+      { "name": "left", "label": "Left", "type": "string", "required": true },
+      { "name": "right", "label": "Right", "type": "string", "required": true }
+    ],
+    "dataOut": [
+      { "name": "result", "label": "Result", "type": "string" }
+    ],
+    "settings": [
+      { "name": "separator", "label": "Separator", "type": "string", "default": "" }
+    ],
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "string/parseNumber",
+    "typeVersion": "1.0.0",
+    "name": "Parse Number",
+    "category": "string",
+    "kind": "branch",
+    "description": "Parses text as a number and takes the parsed or failed branch, for when the value needs branching on rather than just wiring through the parseNumber transform.",
+    "control": { "in": ["in"], "out": ["parsed", "failed"] },
+    "dataIn": [
+      { "name": "input", "label": "Input", "type": "string", "required": true }
+    ],
+    "dataOut": [
+      { "name": "value", "label": "Value", "type": "number", "description": "Readable only on the parsed branch." }
+    ],
+    "exec": { "runsOn": "server", "effects": "read" }
+  },
+
+  {
+    "type": "string/trim",
+    "typeVersion": "1.0.0",
+    "name": "Trim",
+    "category": "string",
+    "description": "Removes leading and trailing whitespace from a string.",
+    "control": { "in": ["in"], "out": ["next"] },
+    "dataIn": [
+      { "name": "input", "label": "Input", "type": "string", "required": true }
+    ],
+    "dataOut": [
+      { "name": "result", "label": "Result", "type": "string" }
+    ],
+    "exec": { "runsOn": "server", "effects": "read" }
+  }
+]

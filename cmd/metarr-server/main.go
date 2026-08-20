@@ -28,6 +28,7 @@ import (
 	"Metarr/internal/server/passwordhash"
 	"Metarr/internal/server/redisstats"
 	"Metarr/internal/server/session"
+	workflowcatalog "Metarr/internal/server/workflow/catalog"
 	"Metarr/internal/server/wsbus"
 	"Metarr/internal/shared/appconfig"
 	"Metarr/internal/shared/config"
@@ -126,6 +127,19 @@ func run() error {
 	if err := workflowRepo.EnsureIndexes(connectCtx); err != nil {
 		return err
 	}
+
+	// The node catalog is loaded once at startup and is fatal on failure: a
+	// server that cannot read it can neither validate a workflow nor run
+	// one, so starting up and failing later would only hide the problem.
+	workflowCatalogLoader := workflowcatalog.NewLoader(cfg.WorkflowCatalogPath)
+	workflowCatalog, err := workflowCatalogLoader.Load()
+	if err != nil {
+		return err
+	}
+	logger.Info("workflow catalog loaded",
+		"path", workflowCatalogLoader.Path(),
+		"node_types", workflowCatalog.Len(),
+	)
 
 	// Warm the in-memory config singleton from MongoDB before serving any
 	// requests, so it reflects the persisted config from process start.
@@ -342,7 +356,7 @@ func run() error {
 		return logTailBuffer.Recent(), nil
 	})
 
-	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, workflowRepo, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
+	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
 	router := httpserver.NewRouter(apiHandlers, hub, sessions, logger)
 	server := httpserver.New(cfg.Host, cfg.Port, router)
 
