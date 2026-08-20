@@ -151,3 +151,16 @@ body {
   background-color: var(--color-blue);
   color: var(--surface-canvas);
 }
+
+/* Hovering a diagnostic in the workflow editor's Diagnostics panel blinks
+   the edge(s) it's about (WorkflowCanvas.tsx's hoveredDiagnosticEdgeIds,
+   applied via edges/ControlEdge.tsx and edges/DataEdge.tsx) — opacity only,
+   so the edge's own color (cyan/orange/red) stays visible throughout. */
+@keyframes diagnostic-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+
+.diagnostic-blink {
+  animation: diagnostic-blink 0.6s ease-in-out infinite;
+}

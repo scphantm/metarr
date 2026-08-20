@@ -6,6 +6,7 @@ import { ReactFlowProvider, type ReactFlowInstance, type Viewport } from '@xyflo
 import type { Workflow } from '../../api/types'
 import { queryKeys, useSaveWorkflow, useWorkflow, useWorkflowVersion, useWorkflowVersions } from '../../api/queries'
 import { Button } from '../../components/Card'
+import { useRegisterPageContext } from '../../pagecontext/PageContextRegistry'
 import { DnDProvider } from './DnDContext'
 import { fromRFGraph, toRFGraph } from './graphAdapter'
 import { NodePalette } from './NodePalette'
@@ -14,7 +15,7 @@ import { TagsInput } from './TagsInput'
 import { VersionHistory } from './VersionHistory'
 import { WorkflowCanvas } from './WorkflowCanvas'
 import { clearStashedDraft, readStashedDraft, stashDraft, type StashedDraft } from './draftStorage'
-import { SchemaVersion } from './catalogTypes'
+import { SchemaVersion, type Graph } from './catalogTypes'
 
 const emptyViewport: Viewport = { x: 0, y: 0, zoom: 1 }
 const emptySnapshot: StashedDraft = { name: '', description: '', tags: [], nodes: [], edges: [], viewport: emptyViewport }
@@ -221,6 +222,34 @@ const EditorBody = forwardRef<
 
   const rfInstanceRef = useRef<ReactFlowInstance | null>(null)
   const saveWorkflow = useSaveWorkflow()
+
+  // The chat widget's page context, read wherever it's actually rendered
+  // (the globally-mounted ChatWidget, not this component's own tree) — see
+  // pagecontext/PageContextRegistry.tsx. graph reuses the exact fromRFGraph
+  // adapter handleSave already uses, so what the AI sees matches what a
+  // real save would send. applyToolResult is how ProposedEditCard pushes
+  // an approved propose_workflow_edit onto the live canvas — never to
+  // Mongo directly; the user still presses Save Workflow to persist it,
+  // which is what already, unconditionally, creates a new version.
+  useRegisterPageContext(
+    'workflow',
+    () => ({
+      documentId,
+      meta: { name, description, tags },
+      graph: rfInstanceRef.current
+        ? fromRFGraph(rfInstanceRef.current.getNodes(), rfInstanceRef.current.getEdges(), rfInstanceRef.current.getViewport())
+        : null,
+    }),
+    (toolName, args) => {
+      if (toolName !== 'propose_workflow_edit') return
+      const instance = rfInstanceRef.current
+      if (!instance) return
+      const { graph } = args as { graph: Graph; summary: string }
+      const { nodes, edges } = toRFGraph(graph, registeredTypes)
+      instance.setNodes(nodes)
+      instance.setEdges(edges)
+    },
+  )
 
   useImperativeHandle(ref, () => ({
     getSnapshot: () => ({

@@ -26,8 +26,8 @@
     "type": "core/inputPath",
     "typeVersion": "1.0.0",
     "name": "Input Path",
-    "category": "input",
-    "kind": "start",
+    "category": "inputPath",
+    "kind": "source",
     "description": "A literal path typed by the author. A pure data source with no control ports — it is not an execution step, so its value is always available.",
     "control": { "in": [], "out": [] },
     "dataOut": [

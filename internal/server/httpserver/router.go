@@ -77,6 +77,20 @@ func NewRouter(h *handlers.Handlers, hub *wsbus.Hub, sessions *session.Store, lo
 	// fallback; logging.tail is the same buffer streamed over the socket.
 	mux.Handle("GET /api/logging/tail", protect(auth.GroupConfig, h.GetLogTail))
 
+	// Chatbot: which of the four providers is active, plus each one's
+	// settings (all four stay stored so switching providers never drops
+	// what was entered). See appconfig.ChatbotConfig.
+	mux.Handle("GET /api/config/chatbot", protect(auth.GroupConfig, h.GetChatbotConfig))
+	mux.Handle("POST /api/config/chatbot", protect(auth.GroupConfig, h.UpsertChatbotConfig))
+
+	// Chat messages/sessions are a plain REST resource; the reply itself is
+	// a dedicated WS connection (not a wsbus topic — see ChatStream's doc
+	// comment) opened against the message id this POST returns.
+	mux.Handle("POST /api/chatbot/messages", protect(auth.GroupTasks, h.PostChatMessage))
+	mux.Handle("GET /api/chatbot/stream/{id}", protect(auth.GroupTasks, h.ChatStream))
+	mux.Handle("GET /api/chatbot/sessions", protect(auth.GroupTasks, h.ListChatSessions))
+	mux.Handle("GET /api/chatbot/sessions/{id}/messages", protect(auth.GroupTasks, h.ListChatMessages))
+
 	mux.Handle("GET /api/config/directory-scanner", protect(auth.GroupConfig, h.GetDirectoryScannerConfig))
 	mux.Handle("PUT /api/config/directory-scanner", protect(auth.GroupConfig, h.UpdateDirectoryScannerConfig))
 

@@ -6,16 +6,21 @@ import type { Diagnostic } from './catalogTypes'
  * Renders the debounced POST /api/workflows/validate result as a collapsible
  * list, docked inside the canvas via React Flow's own <Panel>. Clicking a
  * row (or a node in its witness path) pans/selects that node — see
- * WorkflowCanvas's onSelectDiagnosticNode.
+ * WorkflowCanvas's onSelectDiagnosticNode. Hovering a row blinks the edge(s)
+ * it names (diagnostic.edge_ids) via onHoverDiagnostic — see
+ * WorkflowCanvas's hoveredDiagnosticEdgeIds and edges/ControlEdge.tsx /
+ * edges/DataEdge.tsx's diagnosticHighlight.
  */
 export function DiagnosticsPanel({
   diagnostics,
   nodeLabel,
   onSelectNode,
+  onHoverDiagnostic,
 }: {
   diagnostics: Diagnostic[]
   nodeLabel: (nodeId: string) => string
   onSelectNode: (nodeId: string) => void
+  onHoverDiagnostic: (edgeIds: string[]) => void
 }) {
   const [open, setOpen] = useState(false)
 
@@ -51,7 +56,12 @@ export function DiagnosticsPanel({
           ) : (
             <ul className="flex flex-col divide-y divide-edge/60">
               {diagnostics.map((diagnostic, index) => (
-                <li key={`${diagnostic.code}-${index}`} className="px-3 py-2">
+                <li
+                  key={`${diagnostic.code}-${index}`}
+                  className="px-3 py-2"
+                  onMouseEnter={() => onHoverDiagnostic(diagnostic.edge_ids ?? [])}
+                  onMouseLeave={() => onHoverDiagnostic([])}
+                >
                   <div className="flex items-start gap-1.5">
                     <span
                       className={`mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full ${

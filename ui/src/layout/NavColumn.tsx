@@ -42,6 +42,7 @@ const sections: NavSection[] = [
           { label: 'Directory Scanner', to: '/system/directory-scanner' },
           { label: 'Sidecars', to: '/system/sidecars' },
           { label: 'Interfaces', to: '/system/interfaces' },
+          { label: 'Chatbot', to: '/system/chatbot' },
           { label: 'Security', to: '/system/security' },
         ],
       },

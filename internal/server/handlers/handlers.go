@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"Metarr/internal/server/agentregistry"
+	"Metarr/internal/server/chatbot"
 	"Metarr/internal/server/logtail"
 	"Metarr/internal/server/mongostore"
 	"Metarr/internal/server/redisstats"
@@ -24,6 +25,8 @@ type Handlers struct {
 	LocalDirectoryRepo *mongostore.LocalDirectoryRepo
 	WorkflowRepo       *mongostore.WorkflowRepo
 	WorkflowCatalog    *workflow.Catalog
+	ChatbotRepo        *mongostore.ChatbotRepo
+	ChatbotService     *chatbot.Service
 	Sessions           *session.Store
 	Stats              *redisstats.Collector
 	Agents             *agentregistry.Registry
@@ -40,6 +43,8 @@ func New(
 	localDirectoryRepo *mongostore.LocalDirectoryRepo,
 	workflowRepo *mongostore.WorkflowRepo,
 	workflowCatalog *workflow.Catalog,
+	chatbotRepo *mongostore.ChatbotRepo,
+	chatbotService *chatbot.Service,
 	sessions *session.Store,
 	stats *redisstats.Collector,
 	agents *agentregistry.Registry,
@@ -54,6 +59,8 @@ func New(
 		LocalDirectoryRepo: localDirectoryRepo,
 		WorkflowRepo:       workflowRepo,
 		WorkflowCatalog:    workflowCatalog,
+		ChatbotRepo:        chatbotRepo,
+		ChatbotService:     chatbotService,
 		Sessions:           sessions,
 		Stats:              stats,
 		Agents:             agents,

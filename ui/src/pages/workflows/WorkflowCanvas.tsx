@@ -233,11 +233,32 @@ export function WorkflowCanvas({
     [getNode, fitView],
   )
 
+  // Hovering a diagnostic in the panel below blinks the edge(s) it's about
+  // — a display-only annotation stamped onto the edges React Flow actually
+  // renders, kept out of `edges` itself so hovering never touches the
+  // state a save reads from (same reasoning as displayNodes' readOnly
+  // stamp above).
+  const [hoveredDiagnosticEdgeIds, setHoveredDiagnosticEdgeIds] = useState<Set<string>>(new Set())
+  const onHoverDiagnostic = useCallback((edgeIds: string[]) => {
+    setHoveredDiagnosticEdgeIds(new Set(edgeIds))
+  }, [])
+  const displayEdges = useMemo(
+    () =>
+      hoveredDiagnosticEdgeIds.size === 0
+        ? edges
+        : edges.map((edge) =>
+            hoveredDiagnosticEdgeIds.has(edge.id)
+              ? { ...edge, data: { ...edge.data, diagnosticHighlight: true } }
+              : edge,
+          ),
+    [edges, hoveredDiagnosticEdgeIds],
+  )
+
   return (
     <div className="h-full w-full" onDrop={onDrop} onDragOver={onDragOver}>
       <ReactFlow
         nodes={displayNodes}
-        edges={edges}
+        edges={displayEdges}
         onNodesChange={readOnly ? undefined : onNodesChange}
         onEdgesChange={readOnly ? undefined : onEdgesChange}
         onConnect={readOnly ? undefined : onConnect}
@@ -274,7 +295,12 @@ export function WorkflowCanvas({
         ) : null}
         {!readOnly ? (
           <Panel position="bottom-right">
-            <DiagnosticsPanel diagnostics={validation.diagnostics} nodeLabel={nodeLabel} onSelectNode={onSelectDiagnosticNode} />
+            <DiagnosticsPanel
+              diagnostics={validation.diagnostics}
+              nodeLabel={nodeLabel}
+              onSelectNode={onSelectDiagnosticNode}
+              onHoverDiagnostic={onHoverDiagnostic}
+            />
           </Panel>
         ) : null}
       </ReactFlow>

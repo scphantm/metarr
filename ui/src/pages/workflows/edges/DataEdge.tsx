@@ -1,20 +1,24 @@
 import { useState } from 'react'
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, useReactFlow, type Edge, type EdgeProps } from '@xyflow/react'
 
-import { typeStrokeColor } from '../../../lib/typeColors'
 import { canConnect, parseHandleId } from '../connectionRules'
 import { useCatalogEntry, useTransforms } from '../useCatalogEntry'
 import { TransformPicker } from './TransformPicker'
 
 /*
- * The one shared data-edge component: thin, static, colored by the source
- * socket's type (lib/typeColors.ts), dashed when a transform is applied.
- * The transform — if any — shows as a clickable chip (design.md §4.4's
- * "small chip on the edge reading e.g. parentDir"); clicking it reopens
+ * The one shared data-edge component: thin, static, theme orange (the wire
+ * marks it as a data edge at a glance, distinct from a cyan control edge —
+ * type compatibility is still conveyed at the socket dots via
+ * lib/typeColors.ts, unchanged), dashed when a transform is applied. The
+ * transform — if any — shows as a clickable chip (design.md §4.4's "small
+ * chip on the edge reading e.g. parentDir"); clicking it reopens
  * TransformPicker to change or clear the conversion.
  */
 
-export type DataEdgeData = { transform?: string }
+// diagnosticHighlight is set by WorkflowCanvas.tsx while the user hovers a
+// diagnostic naming this edge — see DiagnosticsPanel.tsx — never persisted
+// (graphAdapter.ts's fromRFEdge doesn't read it).
+export type DataEdgeData = { transform?: string; diagnosticHighlight?: boolean }
 export type DataEdgeType = Edge<DataEdgeData, 'dataEdge'>
 
 export function DataEdge({
@@ -47,11 +51,11 @@ export function DataEdge({
   const sourceSocket = sourceNodeType?.dataOut?.find((socket) => socket.name === sourceSocketName)
   const targetSocket = targetNodeType?.dataIn?.find((socket) => socket.name === targetSocketName)
 
-  const color = typeStrokeColor(sourceSocket?.type ?? 'any')
+  const color = 'var(--color-orange)'
   const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
 
   return (
-    <>
+    <g className={data?.diagnosticHighlight ? 'diagnostic-blink' : undefined}>
       <BaseEdge
         id={id}
         path={path}
@@ -99,6 +103,6 @@ export function DataEdge({
             )
           })()
         : null}
-    </>
+    </g>
   )
 }
