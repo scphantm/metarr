@@ -64,6 +64,7 @@ export function NodePalette() {
                     event.dataTransfer.effectAllowed = 'move'
                   }}
                   onDragEnd={() => setDraggedTemplate(null)}
+                  title={entry.description}
                   className="cursor-grab rounded border border-edge-strong/40 bg-canvas px-2.5 py-2 text-sm text-ink-strong transition-colors hover:border-blue active:cursor-grabbing"
                 >
                   <div className="font-medium">{entry.name}</div>
