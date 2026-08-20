@@ -216,6 +216,7 @@
       "out": ["next"],
       "error": true
     },
+    "settings": [{ "name": "branches", "label": "Branches", "type": "number.int", "default": 2 }],
     "exec": { "runsOn": "server", "effects": "read" }
   },
 
