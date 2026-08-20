@@ -94,7 +94,7 @@ func (f *Forwarder) post(ctx context.Context, record []byte) {
 		f.failed.Add(1)
 		return
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode >= 300 {
 		f.failed.Add(1)

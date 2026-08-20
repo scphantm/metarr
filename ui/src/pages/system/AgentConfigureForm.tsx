@@ -96,7 +96,7 @@ export function AgentConfigureForm({
           Libraries
         </h3>
         <p className="mb-2 text-xs text-ink-muted">
-          Enter the path each library has on this agent's machine. Leave one
+          Enter the path each library has on this agent&apos;s machine. Leave one
           blank if the agent cannot reach it.
         </p>
 

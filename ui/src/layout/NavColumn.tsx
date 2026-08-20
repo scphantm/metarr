@@ -26,6 +26,11 @@ type NavSection = {
 }
 
 const sections: NavSection[] = [
+  { label: 'Workflows', to: '/workflows',
+    items: [{ label: 'Add Workflow', to: '/workflows/add' }] },
+  { label: 'Searches', items: [], comingSoon: true },
+  { label: 'Automations', items: [], comingSoon: true },
+  { label: 'Tasks', items: [], comingSoon: true },
   {
     label: 'System',
     to: '/system',
@@ -45,12 +50,6 @@ const sections: NavSection[] = [
       { label: 'External Tools', to: '/system/external-tools' },
     ],
   },
-  { label: 'Workflows',
-    to: '/workflows',
-    items: [] },
-  { label: 'Searches', items: [], comingSoon: true },
-  { label: 'Automations', items: [], comingSoon: true },
-  { label: 'Tasks', items: [], comingSoon: true },
 ]
 
 export function NavColumn({ onNavigate }: { onNavigate?: () => void }) {

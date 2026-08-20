@@ -1603,6 +1603,251 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/workflows": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Returns the latest version of every saved workflow, newest first, paginated by an opaque cursor.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workflows"
+                ],
+                "summary": "List workflows",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Maximum records to return (default 20, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Opaque cursor from a previous page's next_cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.WorkflowListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid limit or cursor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Creates a new workflow, or appends a new version to an existing one if document_id is set. Every save is a new version — nothing is overwritten in place.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workflows"
+                ],
+                "summary": "Save a workflow",
+                "parameters": [
+                    {
+                        "description": "Workflow to save",
+                        "name": "workflow",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/mongostore.Workflow"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/mongostore.Workflow"
+                        }
+                    },
+                    "400": {
+                        "description": "malformed body, or missing name/description/tags",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/workflows/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Returns the latest version of one workflow.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workflows"
+                ],
+                "summary": "Fetch a workflow",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workflow id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/mongostore.Workflow"
+                        }
+                    },
+                    "400": {
+                        "description": "malformed id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "no workflow with that id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/workflows/{id}/versions": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Returns every saved version of one workflow, newest first, for the version-history strip.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workflows"
+                ],
+                "summary": "List a workflow's versions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workflow id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/mongostore.Workflow"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "malformed id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/workflows/{id}/versions/{version}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Returns one specific past version of a workflow, exactly as it was saved.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Workflows"
+                ],
+                "summary": "Fetch one workflow version",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workflow id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Version number",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/mongostore.Workflow"
+                        }
+                    },
+                    "400": {
+                        "description": "malformed id or version",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "no such workflow or version",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1999,6 +2244,10 @@ const docTemplate = `{
                 }
             }
         },
+        "bson.M": {
+            "type": "object",
+            "additionalProperties": {}
+        },
         "handlers.AcceptedResponse": {
             "type": "object",
             "properties": {
@@ -2087,6 +2336,23 @@ const docTemplate = `{
             "properties": {
                 "parallel_count": {
                     "type": "integer"
+                }
+            }
+        },
+        "handlers.WorkflowListResponse": {
+            "type": "object",
+            "properties": {
+                "has_more": {
+                    "type": "boolean"
+                },
+                "next_cursor": {
+                    "type": "string"
+                },
+                "workflows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/mongostore.Workflow"
+                    }
                 }
             }
         },
@@ -2580,6 +2846,51 @@ const docTemplate = `{
                 },
                 "year": {
                     "type": "integer"
+                }
+            }
+        },
+        "mongostore.Workflow": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "document_id": {
+                    "type": "string"
+                },
+                "edges": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/bson.M"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nodes": {
+                    "description": "React Flow's own toObject() shape, stored as-is and re-rendered with\nwhatever the current node/edge components are. Deliberately untyped\n(bson.M, not a Go struct): the node/edge schema is still being\ndesigned on the frontend and is expected to keep changing without a\nbackend release in lockstep — see the no-migration-logic note on\nreading old versions.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/bson.M"
+                    }
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "version": {
+                    "type": "integer"
+                },
+                "viewport": {
+                    "$ref": "#/definitions/bson.M"
                 }
             }
         },

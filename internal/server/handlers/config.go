@@ -38,7 +38,9 @@ func (h *Handlers) GetConfig(w http.ResponseWriter, r *http.Request) {
 	appConfig.Admin.PasswordHash = ""
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(appConfig)
+	if err := json.NewEncoder(w).Encode(appConfig); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // UpdateConfig handles PUT /api/config. It fires the system_config_update
@@ -76,11 +78,13 @@ func (h *Handlers) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(AcceptedResponse{
+	if err := json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // fireConfigUpdate marshals config and fires it as a system_config_update

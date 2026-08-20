@@ -15,7 +15,7 @@ import (
 // happens to be running this listener.
 func RunLogTailListener(ctx context.Context, bus *eventbus.PubSubBus, buffer *logtail.Buffer, logger *slog.Logger) {
 	subscription := bus.Subscribe(ctx, eventbus.LogChannel)
-	defer subscription.Close()
+	defer func() { _ = subscription.Close() }()
 
 	logger.Info("log tail listener started", "channel", eventbus.LogChannel)
 

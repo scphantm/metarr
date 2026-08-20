@@ -42,7 +42,7 @@ func dial(t *testing.T, ctx context.Context, url string) *websocket.Conn {
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
-	t.Cleanup(func() { conn.Close(websocket.StatusNormalClosure, "") })
+	t.Cleanup(func() { _ = conn.Close(websocket.StatusNormalClosure, "") })
 
 	return conn
 }
@@ -199,7 +199,7 @@ func TestDisconnectStopsProducer(t *testing.T) {
 	}
 	readUntil(t, ctx, conn, TypeData)
 
-	conn.Close(websocket.StatusNormalClosure, "")
+	_ = conn.Close(websocket.StatusNormalClosure, "")
 
 	time.Sleep(30 * time.Millisecond)
 	settled := collections.Load()

@@ -21,6 +21,7 @@ type Handlers struct {
 	Streams            *eventbus.StreamBus
 	AppConfigRepo      *mongostore.AppConfigRepo
 	LocalDirectoryRepo *mongostore.LocalDirectoryRepo
+	WorkflowRepo       *mongostore.WorkflowRepo
 	Sessions           *session.Store
 	Stats              *redisstats.Collector
 	Agents             *agentregistry.Registry
@@ -35,6 +36,7 @@ func New(
 	streams *eventbus.StreamBus,
 	appConfigRepo *mongostore.AppConfigRepo,
 	localDirectoryRepo *mongostore.LocalDirectoryRepo,
+	workflowRepo *mongostore.WorkflowRepo,
 	sessions *session.Store,
 	stats *redisstats.Collector,
 	agents *agentregistry.Registry,
@@ -47,6 +49,7 @@ func New(
 		Streams:            streams,
 		AppConfigRepo:      appConfigRepo,
 		LocalDirectoryRepo: localDirectoryRepo,
+		WorkflowRepo:       workflowRepo,
 		Sessions:           sessions,
 		Stats:              stats,
 		Agents:             agents,

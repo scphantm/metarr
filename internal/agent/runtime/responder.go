@@ -36,7 +36,7 @@ func NewResponder(bus *eventbus.PubSubBus, config *ConfigStore, logger *slog.Log
 // Run answers requests until ctx is cancelled.
 func (r *Responder) Run(ctx context.Context) {
 	subscription := r.bus.Subscribe(ctx, agentproto.RequestChannel(r.slug))
-	defer subscription.Close()
+	defer func() { _ = subscription.Close() }()
 
 	for message := range subscription.Channel() {
 		var request eventbus.Event

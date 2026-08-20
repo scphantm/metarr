@@ -30,7 +30,9 @@ func (h *Handlers) ListSonarrInterfaces(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(appConfig.Interfaces.Sonarr)
+	if err := json.NewEncoder(w).Encode(appConfig.Interfaces.Sonarr); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // GetSonarrInterface handles GET /api/config/interfaces/sonarr/{slug}.
@@ -62,7 +64,9 @@ func (h *Handlers) GetSonarrInterface(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(appConfig.Interfaces.Sonarr[index])
+	if err := json.NewEncoder(w).Encode(appConfig.Interfaces.Sonarr[index]); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // UpsertSonarrInterface handles POST /api/config/interfaces/sonarr.
@@ -128,11 +132,13 @@ func (h *Handlers) UpsertSonarrInterface(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(AcceptedResponse{
+	if err := json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // DeleteSonarrInterface handles DELETE /api/config/interfaces/sonarr/{slug}.
@@ -174,9 +180,11 @@ func (h *Handlers) DeleteSonarrInterface(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(AcceptedResponse{
+	if err := json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "accepted",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }

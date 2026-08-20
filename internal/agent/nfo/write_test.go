@@ -268,7 +268,7 @@ func TestRoundTripDates(t *testing.T) {
 func TestUnparseableDateIsDroppedNotFatal(t *testing.T) {
 	md := mustParse(t, `<movie><title>x</title><premiered>not a date</premiered></movie>`).toMetadata()
 
-	if !md.Premiered.Time.IsZero() {
+	if !md.Premiered.IsZero() {
 		t.Errorf("Premiered = %v, want the zero date", md.Premiered)
 	}
 	if out := render(t, md); strings.Contains(out, "<premiered>") {

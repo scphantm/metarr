@@ -105,6 +105,17 @@ func NewRouter(h *handlers.Handlers, hub *wsbus.Hub, sessions *session.Store, lo
 	mux.Handle("GET /api/local-directories/{id}/nfo", protect(auth.GroupTasks, h.GetLocalDirectoryNFO))
 	mux.Handle("GET /api/media-files/{id}", protect(auth.GroupTasks, h.GetMediaFile))
 
+	// Workflows: a versioned document type (internal/server/mongostore/versioned)
+	// applied to graph-editor workflows. Every POST creates a new version rather
+	// than overwriting one in place — see mongostore.WorkflowRepo. Data reads and
+	// writes, not admin configuration, so this sits in the tasks group like
+	// local-directories above.
+	mux.Handle("GET /api/workflows", protect(auth.GroupTasks, h.ListWorkflows))
+	mux.Handle("POST /api/workflows", protect(auth.GroupTasks, h.UpsertWorkflow))
+	mux.Handle("GET /api/workflows/{id}", protect(auth.GroupTasks, h.GetWorkflow))
+	mux.Handle("GET /api/workflows/{id}/versions", protect(auth.GroupTasks, h.ListWorkflowVersions))
+	mux.Handle("GET /api/workflows/{id}/versions/{version}", protect(auth.GroupTasks, h.GetWorkflowVersion))
+
 	// Documentation, not part of the authenticated API surface.
 	mux.HandleFunc("GET /swagger/", httpSwagger.WrapHandler)
 

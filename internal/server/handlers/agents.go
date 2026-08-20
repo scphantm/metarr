@@ -46,7 +46,9 @@ func (h *Handlers) ListAgents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(agents)
+	if err := json.NewEncoder(w).Encode(agents); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }
 
 // UpsertAgent handles POST /api/config/agents. The slug in the body determines
@@ -189,9 +191,11 @@ func validateMappings(config *appconfig.Config, entry appconfig.AgentConfig) (in
 func (h *Handlers) writeAccepted(w http.ResponseWriter, correlationID string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(AcceptedResponse{
+	if err := json.NewEncoder(w).Encode(AcceptedResponse{
 		Status:        "queued",
 		Event:         eventbus.SystemConfigUpdateEventName,
 		CorrelationID: correlationID,
-	})
+	}); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }

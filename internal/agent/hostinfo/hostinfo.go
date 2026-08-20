@@ -63,7 +63,7 @@ func Identity(slug, instanceID, version string, started time.Time) agentproto.Ag
 func primaryIP() string {
 	conn, err := net.Dial("udp", "203.0.113.1:80")
 	if err == nil {
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		if addr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
 			return addr.IP.String()
 		}

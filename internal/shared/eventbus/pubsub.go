@@ -47,7 +47,7 @@ func (b *PubSubBus) Subscribe(ctx context.Context, channel string) *redis.PubSub
 // heartbeat API's blocking behavior.
 func (b *PubSubBus) Request(ctx context.Context, requestChannel string, event Event) (Event, error) {
 	sub := b.client.Subscribe(ctx, ReplyChannel(event.CorrelationID))
-	defer sub.Close()
+	defer func() { _ = sub.Close() }()
 
 	// Wait for the subscription to be acknowledged before publishing, so
 	// the request can't be picked up and replied to before we're listening.

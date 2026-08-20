@@ -320,3 +320,45 @@ export type LogTailEntry = {
   source: string
   attrs?: Record<string, unknown>
 }
+
+/*
+ * Workflows.
+ *
+ * A Workflow is one version of a versioned document (see
+ * internal/server/mongostore/versioned): document_id groups every version of
+ * the same logical workflow, id is this specific version's own identity, and
+ * every save produces a brand new version rather than overwriting one in
+ * place. nodes/edges/viewport are React Flow's own toObject() shape, stored
+ * and read back as-is — deliberately untyped here too, for the same reason
+ * the Go side leaves them as bson.M: the node/edge schema is still being
+ * designed and is expected to keep changing.
+ */
+
+export type Workflow = {
+  id: string
+  document_id: string
+  version: number
+  created_at: string
+  name: string
+  description: string
+  tags: string[]
+  nodes: Record<string, unknown>[]
+  edges: Record<string, unknown>[]
+  viewport: Record<string, unknown>
+}
+
+export type WorkflowListResponse = {
+  workflows: Workflow[]
+  next_cursor?: string
+  has_more: boolean
+}
+
+export type UpsertWorkflowRequest = {
+  document_id?: string
+  name: string
+  description: string
+  tags: string[]
+  nodes: Record<string, unknown>[]
+  edges: Record<string, unknown>[]
+  viewport: Record<string, unknown>
+}

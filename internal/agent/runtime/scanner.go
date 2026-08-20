@@ -76,12 +76,14 @@ func (s *Scanner) handle(ctx context.Context, event eventbus.Event) {
 
 	if err := s.scan(ctx, command, log); err != nil {
 		log.Error("scan failed", "error", err)
-		s.report(ctx, event.CorrelationID, agentproto.ScanFailedEventName, agentproto.ScanFailedMessage{
+		if reportErr := s.report(ctx, event.CorrelationID, agentproto.ScanFailedEventName, agentproto.ScanFailedMessage{
 			ScanID:      command.ScanID,
 			AgentSlug:   s.slug,
 			ScannerSlug: command.ScannerSlug,
 			Error:       err.Error(),
-		})
+		}); reportErr != nil {
+			log.Error("failed to report scan failure", "error", reportErr)
+		}
 	}
 }
 

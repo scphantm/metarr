@@ -61,7 +61,7 @@ func (b *StreamBus) Consume(ctx context.Context, stream, group, consumer string,
 	if err != nil {
 		return err
 	}
-	defer subscriber.Close()
+	defer func() { _ = subscriber.Close() }()
 
 	messages, err := subscriber.Subscribe(ctx, stream)
 	if err != nil {

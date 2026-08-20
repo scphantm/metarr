@@ -69,7 +69,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	defer redisClient.Close()
+	defer func() { _ = redisClient.Close() }()
 
 	logShipper.Attach(redisClient)
 

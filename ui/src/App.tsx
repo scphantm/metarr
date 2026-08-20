@@ -21,6 +21,8 @@ import {
   SystemDashboardPage,
   SystemDashboardSidebar,
 } from './pages/system/SystemDashboardPage'
+import { WorkflowEditorPage } from './pages/workflows/WorkflowEditorPage'
+import { WorkflowListPage } from './pages/workflows/WorkflowListPage'
 
 export function App() {
   const { isAuthenticated } = useAuth()
@@ -100,6 +102,30 @@ export function App() {
         element={
           <AppShell sidebar={<SecuritySidebar />}>
             <SecurityPage />
+          </AppShell>
+        }
+      />
+      <Route
+        path="/workflows"
+        element={
+          <AppShell>
+            <WorkflowListPage />
+          </AppShell>
+        }
+      />
+      <Route
+        path="/workflows/add"
+        element={
+          <AppShell>
+            <WorkflowEditorPage />
+          </AppShell>
+        }
+      />
+      <Route
+        path="/workflows/:id/edit"
+        element={
+          <AppShell>
+            <WorkflowEditorPage />
           </AppShell>
         }
       />

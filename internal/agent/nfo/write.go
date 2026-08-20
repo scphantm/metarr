@@ -41,8 +41,8 @@ func WriteFile(path string, m *metadata.Metadata) error {
 	// Any failure from here on must clean up the temporary file rather than
 	// leaving litter beside the user's media.
 	cleanup := func() {
-		tempFile.Close()
-		os.Remove(tempPath)
+		_ = tempFile.Close()
+		_ = os.Remove(tempPath)
 	}
 
 	if _, err := tempFile.Write(data); err != nil {
@@ -54,7 +54,7 @@ func WriteFile(path string, m *metadata.Metadata) error {
 		return fmt.Errorf("nfo: syncing %s: %w", tempPath, err)
 	}
 	if err := tempFile.Close(); err != nil {
-		os.Remove(tempPath)
+		_ = os.Remove(tempPath)
 		return fmt.Errorf("nfo: closing %s: %w", tempPath, err)
 	}
 
@@ -66,12 +66,12 @@ func WriteFile(path string, m *metadata.Metadata) error {
 		mode = info.Mode().Perm()
 	}
 	if err := os.Chmod(tempPath, mode); err != nil {
-		os.Remove(tempPath)
+		_ = os.Remove(tempPath)
 		return fmt.Errorf("nfo: setting mode on %s: %w", tempPath, err)
 	}
 
 	if err := os.Rename(tempPath, path); err != nil {
-		os.Remove(tempPath)
+		_ = os.Remove(tempPath)
 		return fmt.Errorf("nfo: replacing %s: %w", path, err)
 	}
 	return nil

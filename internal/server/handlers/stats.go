@@ -31,5 +31,7 @@ func (h *Handlers) GetRedisStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(snapshot)
+	if err := json.NewEncoder(w).Encode(snapshot); err != nil {
+		h.Logger.Debug("failed to write response body", "error", err)
+	}
 }

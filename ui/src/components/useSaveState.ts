@@ -65,7 +65,9 @@ export function useSaveState<T>({
   // Held in a ref as well so the polling effect can compare without listing
   // isEqual among its dependencies and restarting the timer on every render.
   const isEqualRef = useRef(isEqual)
-  isEqualRef.current = isEqual
+  useEffect(() => {
+    isEqualRef.current = isEqual
+  }, [isEqual])
 
   const save = useCallback(
     async (next: T, run: () => Promise<unknown>) => {
