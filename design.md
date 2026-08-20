@@ -708,3 +708,7 @@ Folding §14–§16 in changes earlier sections rather than merely appending to 
 - **The dispatch envelope grows** `dry_run`, `log_level`, `mode`, and `work_dir` (§8, §14.2, §15.3).
 - **Run status gains `paused`** and the run document gains `mode`, `dry_run`, `log_level`, `breakpoints`, `work_dir` (§7).
 - **Build order shifts.** `NodeContext`, the effects classification, and the run-scoped logger belong in step 1 (`internal/shared/workflow`) rather than being deferred — they are contract, not runtime, and everything downstream depends on their shape.
+
+
+
+
