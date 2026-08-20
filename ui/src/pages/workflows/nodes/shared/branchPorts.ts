@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { useNodeConnections } from '@xyflow/react'
+import { useEffect, useMemo } from 'react'
+import { useNodeConnections, useUpdateNodeInternals } from '@xyflow/react'
 
 import { parseHandleId } from '../../connectionRules'
 import type { CatalogNodeData, NodeType } from '../../catalogTypes'
@@ -54,8 +54,9 @@ export function useVisibleBranchCount(
   handleType: 'source' | 'target',
 ): number {
   const connections = useNodeConnections({ id: nodeId, handleType })
+  const updateNodeInternals = useUpdateNodeInternals()
 
-  return useMemo(() => {
+  const visibleCount = useMemo(() => {
     const declared = declaredBranches(data, nodeType)
     const wiredMax = connections.reduce((max, connection) => {
       const handleId = handleType === 'source' ? connection.sourceHandle : connection.targetHandle
@@ -65,4 +66,16 @@ export function useVisibleBranchCount(
     }, 0)
     return Math.min(maxBranchIndex(ports), Math.max(declared, wiredMax, 1))
   }, [data, nodeType, connections, handleType, ports])
+
+  // React Flow measures each handle's connection-anchor position once and
+  // caches it — it does not re-measure just because a re-render changes
+  // which/how many <Handle> elements a node mounts. Without this, the dot
+  // moves (plain DOM/CSS) but drags and edge paths keep snapping to the
+  // stale position. Must run after the new handles have committed to the
+  // DOM, hence useEffect rather than doing this inside the useMemo above.
+  useEffect(() => {
+    updateNodeInternals(nodeId)
+  }, [nodeId, visibleCount, updateNodeInternals])
+
+  return visibleCount
 }
