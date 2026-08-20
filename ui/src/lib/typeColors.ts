@@ -7,6 +7,10 @@ import type { Type } from '../pages/workflows/catalogTypes'
  * names (never a template-literal-constructed class) — Tailwind's scanner
  * only picks up class names that appear verbatim as source text, so every
  * possible result has to be written out once, here.
+ *
+ * Node chrome (shape/border/fill color) lives in
+ * nodes/shared/nodeVisual.ts — a different concern (a node's declared
+ * identity) from this file's (a data socket's inferred type family).
  */
 
 type AccentToken = 'cyan' | 'violet' | 'yellow' | 'orange' | 'blue' | 'magenta' | 'green' | 'red' | 'base1'
@@ -68,22 +72,4 @@ export function dataHandleClass(type: Type): string {
 // in index.css's @theme block for all nine tokens used here.
 export function typeStrokeColor(type: Type): string {
   return `var(--color-${accentTokenForType(type)})`
-}
-
-const categoryAccentClasses: Record<string, string> = {
-  input: 'border-l-cyan',
-  output: 'border-l-violet',
-  check: 'border-l-yellow',
-  note: 'border-l-orange',
-  control: 'border-l-blue',
-  filesystem: 'border-l-green',
-  media: 'border-l-magenta',
-  metadata: 'border-l-yellow',
-  string: 'border-l-cyan',
-}
-
-// Cosmetic only, per CLAUDE.md: "category is presentation-only." Unlisted or
-// missing categories fall back to blue rather than failing to render.
-export function accentClassForCategory(category: string | undefined): string {
-  return categoryAccentClasses[category ?? ''] ?? 'border-l-blue'
 }

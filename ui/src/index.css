@@ -68,6 +68,55 @@
   color-scheme: light;
 }
 
+/*
+ * Transparent tints of the 8 accents, at fixed opacity steps — for layers
+ * that need to sit visibly *under* other content rather than read as a
+ * solid fill (e.g. the node quadrant notification layer, nodes/shared/
+ * NodeShell.tsx). color-mix against the accent's own --color-<name> token,
+ * so these stay correct if the accent hexes above ever change and need no
+ * dark/light variants of their own — the 8 accents are identical in both
+ * themes (see the Solarized comment above).
+ */
+.accent-red-20 { background-color: color-mix(in srgb, var(--color-red) 20%, transparent); }
+.accent-red-40 { background-color: color-mix(in srgb, var(--color-red) 40%, transparent); }
+.accent-red-60 { background-color: color-mix(in srgb, var(--color-red) 60%, transparent); }
+.accent-red-80 { background-color: color-mix(in srgb, var(--color-red) 80%, transparent); }
+
+.accent-orange-20 { background-color: color-mix(in srgb, var(--color-orange) 20%, transparent); }
+.accent-orange-40 { background-color: color-mix(in srgb, var(--color-orange) 40%, transparent); }
+.accent-orange-60 { background-color: color-mix(in srgb, var(--color-orange) 60%, transparent); }
+.accent-orange-80 { background-color: color-mix(in srgb, var(--color-orange) 80%, transparent); }
+
+.accent-yellow-20 { background-color: color-mix(in srgb, var(--color-yellow) 20%, transparent); }
+.accent-yellow-40 { background-color: color-mix(in srgb, var(--color-yellow) 40%, transparent); }
+.accent-yellow-60 { background-color: color-mix(in srgb, var(--color-yellow) 60%, transparent); }
+.accent-yellow-80 { background-color: color-mix(in srgb, var(--color-yellow) 80%, transparent); }
+
+.accent-green-20 { background-color: color-mix(in srgb, var(--color-green) 20%, transparent); }
+.accent-green-40 { background-color: color-mix(in srgb, var(--color-green) 40%, transparent); }
+.accent-green-60 { background-color: color-mix(in srgb, var(--color-green) 60%, transparent); }
+.accent-green-80 { background-color: color-mix(in srgb, var(--color-green) 80%, transparent); }
+
+.accent-cyan-20 { background-color: color-mix(in srgb, var(--color-cyan) 20%, transparent); }
+.accent-cyan-40 { background-color: color-mix(in srgb, var(--color-cyan) 40%, transparent); }
+.accent-cyan-60 { background-color: color-mix(in srgb, var(--color-cyan) 60%, transparent); }
+.accent-cyan-80 { background-color: color-mix(in srgb, var(--color-cyan) 80%, transparent); }
+
+.accent-blue-20 { background-color: color-mix(in srgb, var(--color-blue) 20%, transparent); }
+.accent-blue-40 { background-color: color-mix(in srgb, var(--color-blue) 40%, transparent); }
+.accent-blue-60 { background-color: color-mix(in srgb, var(--color-blue) 60%, transparent); }
+.accent-blue-80 { background-color: color-mix(in srgb, var(--color-blue) 80%, transparent); }
+
+.accent-violet-20 { background-color: color-mix(in srgb, var(--color-violet) 20%, transparent); }
+.accent-violet-40 { background-color: color-mix(in srgb, var(--color-violet) 40%, transparent); }
+.accent-violet-60 { background-color: color-mix(in srgb, var(--color-violet) 60%, transparent); }
+.accent-violet-80 { background-color: color-mix(in srgb, var(--color-violet) 80%, transparent); }
+
+.accent-magenta-20 { background-color: color-mix(in srgb, var(--color-magenta) 20%, transparent); }
+.accent-magenta-40 { background-color: color-mix(in srgb, var(--color-magenta) 40%, transparent); }
+.accent-magenta-60 { background-color: color-mix(in srgb, var(--color-magenta) 60%, transparent); }
+.accent-magenta-80 { background-color: color-mix(in srgb, var(--color-magenta) 80%, transparent); }
+
 html,
 body,
 #root {

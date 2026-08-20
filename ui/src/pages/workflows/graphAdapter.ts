@@ -22,6 +22,8 @@ export function toRFNode(node: GraphNode, registeredTypes: ReadonlySet<string>):
     settings: node.settings ?? {},
     promoted: node.promoted ?? [],
     label: node.label,
+    shapeColor: node.shapeColor,
+    borderColor: node.borderColor,
   }
 
   if (!registeredTypes.has(node.type)) {
@@ -55,6 +57,8 @@ export function fromRFNode(node: RFNode): GraphNode {
   if (data.settings && Object.keys(data.settings).length > 0) graphNode.settings = data.settings
   if (data.promoted && data.promoted.length > 0) graphNode.promoted = data.promoted
   if (data.label) graphNode.label = data.label
+  if (data.shapeColor) graphNode.shapeColor = data.shapeColor
+  if (data.borderColor) graphNode.borderColor = data.borderColor
   return graphNode
 }
 
