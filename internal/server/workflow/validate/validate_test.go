@@ -153,10 +153,12 @@ func TestStraightLineDataEdgeIsAllowed(t *testing.T) {
 	graph := graphOf(
 		[]workflow.Node{
 			node("start", "t/start"), node("a", "t/task"), node("b", "t/task"),
+			node("literal", "t/source"), node("stop", "t/end"),
 		},
 		[]workflow.Edge{
 			control("c1", "start", "next", "a", "in"),
 			control("c2", "a", "next", "b", "in"),
+			control("c3", "b", "next", "stop", "in"),
 			data("d1", "a", "result", "b", "value"),
 		},
 	)
@@ -179,6 +181,7 @@ func TestParallelBranchToAfterJoinIsAllowed(t *testing.T) {
 			node("start", "t/start"), node("par", "t/parallel"),
 			node("a", "t/task"), node("b", "t/task"),
 			node("join", "t/join"), node("x", "t/task"),
+			node("literal", "t/source"), node("stop", "t/end"),
 		},
 		[]workflow.Edge{
 			control("c1", "start", "next", "par", "in"),
@@ -187,6 +190,7 @@ func TestParallelBranchToAfterJoinIsAllowed(t *testing.T) {
 			control("c4", "a", "next", "join", "branch1"),
 			control("c5", "b", "next", "join", "branch2"),
 			control("c6", "join", "next", "x", "in"),
+			control("c7", "x", "next", "stop", "in"),
 			data("d1", "a", "result", "x", "value"),
 		},
 	)
@@ -366,10 +370,12 @@ func TestDataInSocketTakesOnlyOneEdge(t *testing.T) {
 func TestFileToDirectoryNeedsAnExplicitTransform(t *testing.T) {
 	nodes := []workflow.Node{
 		node("start", "t/start"), node("literal", "t/source"), node("dir", "t/dirTask"),
+		node("stop", "t/end"),
 	}
 	edges := []workflow.Edge{
 		control("c1", "start", "next", "dir", "in"),
 		data("d1", "literal", "path", "dir", "folder"),
+		control("c2", "dir", "next", "stop", "in"),
 	}
 
 	withoutTransform := validate.Graph(graphOf(nodes, edges), testCatalog(t))
@@ -443,6 +449,7 @@ func TestTerminalAfterJoinIsAllowed(t *testing.T) {
 			node("start", "t/start"), node("par", "t/parallel"),
 			node("a", "t/task"), node("b", "t/task"),
 			node("join", "t/join"), node("stop", "t/end"),
+			node("literal", "t/source"),
 		},
 		[]workflow.Edge{
 			control("c1", "start", "next", "par", "in"),
@@ -467,6 +474,43 @@ func TestMissingStartIsRejected(t *testing.T) {
 
 	result := validate.Graph(graph, testCatalog(t))
 	requireCode(t, result, "start.missing")
+}
+
+// TestMissingInputPathIsRejected: a Start with nothing to read from is just
+// as unrunnable as no Start at all.
+func TestMissingInputPathIsRejected(t *testing.T) {
+	graph := graphOf(
+		[]workflow.Node{node("start", "t/start"), node("stop", "t/end")},
+		[]workflow.Edge{control("c1", "start", "next", "stop", "in")},
+	)
+
+	result := validate.Graph(graph, testCatalog(t))
+	requireCode(t, result, "inputPath.missing")
+}
+
+// TestMissingEndIsRejected: a run with nowhere to finish.
+func TestMissingEndIsRejected(t *testing.T) {
+	graph := graphOf(
+		[]workflow.Node{node("start", "t/start"), node("literal", "t/source")},
+		nil,
+	)
+
+	result := validate.Graph(graph, testCatalog(t))
+	requireCode(t, result, "end.missing")
+}
+
+// TestStartInputPathAndEndTogetherAreSufficient — the minimum legal shape:
+// exactly one of each, wired straight through.
+func TestStartInputPathAndEndTogetherAreSufficient(t *testing.T) {
+	graph := graphOf(
+		[]workflow.Node{node("start", "t/start"), node("literal", "t/source"), node("stop", "t/end")},
+		[]workflow.Edge{control("c1", "start", "next", "stop", "in")},
+	)
+
+	result := validate.Graph(graph, testCatalog(t))
+	requireNoCode(t, result, "inputPath.missing")
+	requireNoCode(t, result, "end.missing")
+	requireNoCode(t, result, "start.missing")
 }
 
 // TestUnknownNodeTypeIsReportedNotDropped: the node must survive so the flow

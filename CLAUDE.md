@@ -4,7 +4,7 @@ Kill any spawned processes (node, metarr-server, metarr-agent) before ending a t
 # General conventions
 * Descriptive names; standard clean-code practices.
 * CRUD APIs: one upserting POST, never separate POST/PUT.
-* External HTTP calls: always use the cached HTTP client (cached/reusable per config).
+* External HTTP calls to interfaces that request metadata (Sonarr, etc.): always use the cached HTTP client (cached/reusable per config). One-shot or streamed calls that aren't metadata lookups (e.g. AI chat completions) don't fit this — a plain client is fine.
 * After validating a change, add regression unit tests — cheaper to rerun than to re-derive next time.
 
 # Configuration file structure changes

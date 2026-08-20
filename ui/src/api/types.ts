@@ -324,6 +324,101 @@ export type LogTailEntry = {
 }
 
 /*
+ * Chatbot — exactly one provider is active at a time (provider), but
+ * settings for all four stay stored so switching back and forth never
+ * drops what was entered. "mcp" rather than "local": MCP is
+ * transport-agnostic (stdio or HTTP), so the model it talks to isn't
+ * necessarily local.
+ */
+
+export const chatbotProviders = ['claude', 'openai', 'gemini', 'mcp'] as const
+export type ChatbotProvider = (typeof chatbotProviders)[number]
+
+export type ChatbotProviderKeyConfig = {
+  api_key: string
+  model: string
+}
+
+export type ChatbotMCPConfig = {
+  transport: 'stdio' | 'http'
+  command?: string
+  args?: string[]
+  url?: string
+  tool_name: string
+}
+
+export type ChatbotConfig = {
+  enabled: boolean
+  provider: ChatbotProvider
+  claude: ChatbotProviderKeyConfig
+  openai: ChatbotProviderKeyConfig
+  gemini: ChatbotProviderKeyConfig
+  mcp: ChatbotMCPConfig
+}
+
+/*
+ * Chat sessions/messages — mirrors mongostore.ChatMessage /
+ * mongostore.SessionSummary / pagecontext.ContextSentRecord field-for-field.
+ * The generation-input fields (page_key/system/history/tools) are
+ * internal-only on the Go side (json:"-") and never reach the client.
+ */
+
+export type ContextSentItem = {
+  label: string
+  description: string
+  token_estimate: number
+  detail: unknown
+}
+
+export type ContextSentRecord = {
+  page_key: string
+  items: ContextSentItem[]
+}
+
+export type ChatToolCall = {
+  name: string
+  arguments: unknown
+}
+
+export type ChatMessage = {
+  id: string
+  session_id: string
+  role: 'user' | 'assistant'
+  text?: string
+  status: 'complete' | 'pending' | 'failed'
+  context_sent?: ContextSentRecord
+  tool_call?: ChatToolCall
+  created_at: string
+}
+
+export type ChatSessionSummary = {
+  session_id: string
+  last_message_at: string
+}
+
+export type SendChatMessageRequest = {
+  session_id: string
+  page_key?: string
+  context?: unknown
+  text: string
+}
+
+export type SendChatMessageResponse = {
+  message_id: string
+  context_sent?: ContextSentRecord
+}
+
+// One increment of a streamed reply, read off the WS frames
+// GET /api/chatbot/stream/{id} sends — mirrors provider.Delta's
+// MarshalJSON output.
+export type ChatDelta = {
+  text?: string
+  tool_call?: ChatToolCall
+  done?: boolean
+  error?: string
+}
+
+/*
  * Workflows.
  *
  * A Workflow is one version of a versioned document (see

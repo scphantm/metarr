@@ -12,10 +12,15 @@ import type {
   AcceptedResponse,
   AgentConfig,
   AgentView,
+  ChatbotConfig,
+  ChatMessage,
+  ChatSessionSummary,
   Config,
   DirectoryScannerConfig,
   LoggingConfig,
   LogTailEntry,
+  SendChatMessageRequest,
+  SendChatMessageResponse,
   RedisStats,
   ReorderSidecarTypesRequest,
   ScanDirectory,
@@ -41,6 +46,11 @@ export const queryKeys = {
   agents: ['stats', 'agents'] as const,
   logging: ['config', 'logging'] as const,
   logTail: ['stats', 'log-tail'] as const,
+  chatbot: ['config', 'chatbot'] as const,
+  // Outside the config tree, same reasoning as workflows: a plain
+  // server-only resource with no config-mutation event behind it.
+  chatSessions: ['chatbot', 'sessions'] as const,
+  chatMessages: (sessionId: string) => ['chatbot', 'sessions', sessionId, 'messages'] as const,
   // Also outside the config tree: workflows are a server-only, single-
   // collection concern with no config-mutation event behind them at all.
   workflows: ['workflows'] as const,
@@ -150,6 +160,13 @@ export function useLoggingConfig() {
   })
 }
 
+export function useChatbotConfig() {
+  return useQuery({
+    queryKey: queryKeys.chatbot,
+    queryFn: () => request<ChatbotConfig>('/api/config/chatbot'),
+  })
+}
+
 // The live tail streams over the socket, same shape as useRedisStats/useAgents:
 // the queryFn covers first paint and a down socket, the topic keeps it fresh.
 export function useLogTail() {
@@ -224,6 +241,14 @@ export function useUpdateLoggingConfig() {
     (body) =>
       request<Accepted>('/api/config/logging', { method: 'POST', body }),
     [queryKeys.logging, queryKeys.config],
+  )
+}
+
+export function useUpdateChatbotConfig() {
+  return useConfigMutation<ChatbotConfig>(
+    (body) =>
+      request<Accepted>('/api/config/chatbot', { method: 'POST', body }),
+    [queryKeys.chatbot, queryKeys.config],
   )
 }
 
@@ -381,6 +406,41 @@ export function useWorkflowCatalog() {
     queryKey: queryKeys.workflowCatalog,
     queryFn: () => request<CatalogResponse>('/api/workflows/catalog'),
     staleTime: Infinity,
+  })
+}
+
+/*
+ * Chatbot messages/sessions. Unlike every write above, sending a message
+ * does not invalidate a corresponding read query — the caller already has
+ * the response (message_id + context_sent) and drives the reply itself via
+ * useChatStream against the dedicated stream endpoint, not a refetch.
+ */
+
+export function useChatSessions() {
+  return useQuery({
+    queryKey: queryKeys.chatSessions,
+    queryFn: () => request<ChatSessionSummary[]>('/api/chatbot/sessions'),
+  })
+}
+
+export function useChatMessages(sessionId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.chatMessages(sessionId ?? ''),
+    queryFn: () =>
+      request<ChatMessage[]>(
+        `/api/chatbot/sessions/${encodeURIComponent(sessionId ?? '')}/messages`,
+      ),
+    enabled: sessionId !== null,
+  })
+}
+
+export function useSendChatMessage() {
+  return useMutation({
+    mutationFn: (body: SendChatMessageRequest) =>
+      request<SendChatMessageResponse>('/api/chatbot/messages', {
+        method: 'POST',
+        body,
+      }),
   })
 }
 

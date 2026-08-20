@@ -19,6 +19,8 @@ import (
 
 	"Metarr/internal/server/agentregistry"
 	"Metarr/internal/server/auth"
+	"Metarr/internal/server/chatbot"
+	"Metarr/internal/server/chatbot/pagecontext"
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/server/httpserver"
 	"Metarr/internal/server/listeners"
@@ -116,6 +118,7 @@ func run() error {
 	appConfigRepo := mongostore.NewAppConfigRepo(mongoClient, cfg.MongoDatabase)
 	localDirectoryRepo := mongostore.NewLocalDirectoryRepo(mongoClient, cfg.MongoDatabase)
 	workflowRepo := mongostore.NewWorkflowRepo(mongoClient, cfg.MongoDatabase)
+	chatbotRepo := mongostore.NewChatbotRepo(mongoClient, cfg.MongoDatabase)
 	sessions := session.NewStore(redisClient)
 
 	// The local_directory indexes include the unique index on path that makes a
@@ -125,6 +128,9 @@ func run() error {
 		return err
 	}
 	if err := workflowRepo.EnsureIndexes(connectCtx); err != nil {
+		return err
+	}
+	if err := chatbotRepo.EnsureIndexes(connectCtx); err != nil {
 		return err
 	}
 
@@ -140,6 +146,16 @@ func run() error {
 		"path", workflowCatalogLoader.Path(),
 		"node_types", workflowCatalog.Len(),
 	)
+
+	// The generic page-context registry a chat message's page_key looks up
+	// into — only the workflow page is wired up so far; a future page (e.g.
+	// Search) adds its own Assembler here with no other changes required.
+	pageContextRegistry := pagecontext.Registry{
+		"workflow": pagecontext.NewWorkflowAssembler(workflowCatalog),
+	}
+	chatbotService := chatbot.NewService(chatbotRepo, pageContextRegistry, func() appconfig.ChatbotConfig {
+		return appconfig.Get().Chatbot
+	})
 
 	// Warm the in-memory config singleton from MongoDB before serving any
 	// requests, so it reflects the persisted config from process start.
@@ -261,6 +277,12 @@ func run() error {
 		bootstrapped = true
 	}
 
+	// A database predating the chatbot feature has no Provider set at all.
+	if startupCfg.Chatbot.Provider == "" {
+		startupCfg.Chatbot = appconfig.Default().Chatbot
+		bootstrapped = true
+	}
+
 	// A built-in type added after this database was seeded would otherwise never
 	// reach it, since the seed above only fires on an empty table. Note this
 	// also means a built-in deleted through the API comes back on the next
@@ -356,7 +378,7 @@ func run() error {
 		return logTailBuffer.Recent(), nil
 	})
 
-	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
+	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, workflowRepo, workflowCatalog, chatbotRepo, chatbotService, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
 	router := httpserver.NewRouter(apiHandlers, hub, sessions, logger)
 	server := httpserver.New(cfg.Host, cfg.Port, router)
 

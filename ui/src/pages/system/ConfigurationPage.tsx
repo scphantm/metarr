@@ -19,6 +19,11 @@ const sections = [
     description: 'External services Metarr integrates with, like Sonarr.',
   },
   {
+    to: '/system/chatbot',
+    label: 'Chatbot',
+    description: 'The AI provider connected to the chat widget.',
+  },
+  {
     to: '/system/security',
     label: 'Security',
     description: 'The administrator account and API keys.',

@@ -2,11 +2,13 @@ import type { Type } from '../pages/workflows/catalogTypes'
 
 /*
  * Maps a workflow socket Type to one of the eight Solarized accents so data
- * handles and data edges are colored by type, per CLAUDE.md's "data = thin/
- * type-coloured" edge rule. Deliberately a small closed set of literal class
- * names (never a template-literal-constructed class) — Tailwind's scanner
- * only picks up class names that appear verbatim as source text, so every
- * possible result has to be written out once, here.
+ * handles (the socket dots) are colored by type — edges themselves are a
+ * flat theme orange regardless of type (see edges/DataEdge.tsx), so this is
+ * where type compatibility is still conveyed at a glance. Deliberately a
+ * small closed set of literal class names (never a template-literal-
+ * constructed class) — Tailwind's scanner only picks up class names that
+ * appear verbatim as source text, so every possible result has to be
+ * written out once, here.
  *
  * Node chrome (shape/border/fill color) lives in
  * nodes/shared/nodeVisual.ts — a different concern (a node's declared
@@ -64,12 +66,4 @@ const handleClasses: Record<AccentToken, string> = {
 
 export function dataHandleClass(type: Type): string {
   return handleClasses[accentTokenForType(type)]
-}
-
-// A real CSS value (not a Tailwind class) for use as an SVG stroke/fill —
-// safe to build dynamically since it's an inline style, not something
-// Tailwind needs to find as literal source text. --color-<token> is defined
-// in index.css's @theme block for all nine tokens used here.
-export function typeStrokeColor(type: Type): string {
-  return `var(--color-${accentTokenForType(type)})`
 }
