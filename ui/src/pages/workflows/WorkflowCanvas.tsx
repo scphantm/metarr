@@ -24,11 +24,17 @@ import { DataEdge } from './edges/DataEdge'
 import { TransformPicker } from './edges/TransformPicker'
 import { fromRFGraph, toRFNode } from './graphAdapter'
 import { nodeTypes as catalogNodeTypes, registeredTypes, unknownNodeType } from './nodes/registry'
+import type { Accent } from './nodes/shared/nodeVisual'
 import { useWorkflowValidation } from './useWorkflowValidation'
 import type { NodeType, Transform } from './catalogTypes'
 
 const nodeTypes = { ...catalogNodeTypes, ...unknownNodeType }
 const edgeTypes = { controlEdge: ControlEdge, dataEdge: DataEdge }
+
+// The same 8 accents nodeVisual.ts resolves node colors from — see that
+// file's ACCENT-keyed maps. Order here is just the cycle order, not
+// meaningful otherwise.
+const ACCENTS: Accent[] = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet', 'magenta']
 
 type PendingPicker = {
   connection: Connection
@@ -68,6 +74,30 @@ export function WorkflowCanvas({
     const timer = window.setTimeout(() => setConnectionError(null), 4000)
     return () => window.clearTimeout(timer)
   }, [connectionError])
+
+  // Exercises the quadrant notification layer (NodeShell.tsx) — every
+  // node's four quadrants cycle through the 8 theme accents together, each
+  // quadrant offset from the next so the whole node visibly rotates rather
+  // than flashing one color at once. quadrantColors is deliberately absent
+  // from GraphNode/graphAdapter.ts (see CatalogNodeData's own comment) — a
+  // saved workflow never carries this. Unchecking clears every node back to
+  // invisible rather than leaving whatever the last tick happened to set.
+  const [testAnimate, setTestAnimate] = useState(false)
+  useEffect(() => {
+    if (!testAnimate) {
+      setNodes((current) =>
+        current.map((node) => ({ ...node, data: { ...node.data, quadrantColors: undefined } })),
+      )
+      return
+    }
+    let tick = 0
+    const interval = window.setInterval(() => {
+      tick += 1
+      const quadrantColors = [0, 1, 2, 3].map((quadrant) => ACCENTS[(tick + quadrant * 2) % ACCENTS.length])
+      setNodes((current) => current.map((node) => ({ ...node, data: { ...node.data, quadrantColors } })))
+    }, 600)
+    return () => window.clearInterval(interval)
+  }, [testAnimate, setNodes])
 
   const catalogByType = useMemo(() => {
     const map = new Map<string, NodeType>()
@@ -224,6 +254,17 @@ export function WorkflowCanvas({
       >
         <Background />
         <Controls />
+        <Panel position="top-left">
+          <label className="flex items-center gap-1.5 rounded border border-edge-strong/40 bg-surface px-2.5 py-1.5 text-xs text-ink-strong shadow-sm">
+            <input
+              type="checkbox"
+              checked={testAnimate}
+              onChange={(event) => setTestAnimate(event.target.checked)}
+              className="h-3.5 w-3.5"
+            />
+            Test animate
+          </label>
+        </Panel>
         {connectionError ? (
           <Panel position="top-center">
             <div className="rounded border border-red/50 bg-surface px-3 py-1.5 text-xs text-red shadow-lg">

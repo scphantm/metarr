@@ -124,6 +124,13 @@ export type GraphNode = {
   settings?: Record<string, unknown>
   promoted?: string[]
   label?: string
+  // Per-instance color overrides — independent parameters, each one of the
+  // 8 Solarized accent token names (see nodes/shared/nodeVisual.ts).
+  // Unknown to the Go backend's typed Node struct, which round-trips them
+  // via its Extra field rather than dropping them — see
+  // internal/shared/workflow/graph.go.
+  shapeColor?: string
+  borderColor?: string
 }
 
 export type EdgeKind = 'control' | 'data'
@@ -177,6 +184,18 @@ export type CatalogNodeData = {
   settings: Record<string, unknown>
   promoted: string[]
   label?: string
+  // Per-instance color overrides — see GraphNode.shapeColor/borderColor
+  // above. Each falls back independently to the type-computed color
+  // (nodes/shared/nodeVisual.ts) when unset.
+  shapeColor?: string
+  borderColor?: string
+  // Live notification signal, not authored graph content — deliberately
+  // absent from GraphNode above, so graphAdapter.ts never persists it and a
+  // saved workflow can't carry stale test-animation state. One accent
+  // token name per quadrant (top-left, top-right, bottom-left,
+  // bottom-right); undefined slots stay invisible. Driven today by
+  // WorkflowCanvas's "Test animate" checkbox, later by real run status.
+  quadrantColors?: (string | undefined)[]
   // Set while a historic version is being viewed, or the node's own type
   // isn't in the loaded catalog — see WorkflowCanvas's displayNodes.
   readOnly?: boolean

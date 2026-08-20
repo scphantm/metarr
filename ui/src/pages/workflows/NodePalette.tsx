@@ -75,6 +75,29 @@ export function NodePalette() {
           </section>
         ))}
       </div>
+
+      <section className="border-t border-edge-strong/40 pt-3">
+        <h3 className="mb-1.5 px-1 text-[11px] tracking-wide text-ink-muted uppercase">Color legend</h3>
+        <div className="flex flex-col gap-1 px-1 text-xs text-ink-strong">
+          <LegendRow color="bg-cyan" label="Input / output / control flow / notes" />
+          <LegendRow color="bg-red" label="Errors" />
+          <LegendRow color="bg-yellow" label="Decisions" />
+          <p className="mt-1.5 text-[11px] tracking-wide text-ink-muted uppercase">Processes</p>
+          <LegendRow color="bg-blue" label="Neutral (e.g. list)" />
+          <LegendRow color="bg-green" label="Creation (e.g. copy)" />
+          <LegendRow color="bg-magenta" label="Destructive (move, delete, update)" />
+          <LegendRow color="bg-violet" label="Create + destroy (complex)" />
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function LegendRow({ color, label }: { color: string; label: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${color}`} />
+      <span>{label}</span>
     </div>
   )
 }

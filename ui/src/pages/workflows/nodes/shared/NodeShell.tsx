@@ -1,45 +1,55 @@
-import { useState, type ReactNode } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { Handle, Position, useReactFlow } from '@xyflow/react'
 
-import { accentClassForCategory, dataHandleClass } from '../../../../lib/typeColors'
+import { dataHandleClass } from '../../../../lib/typeColors'
 import { controlHandleId } from '../../connectionRules'
 import { useCatalogEntry } from '../../useCatalogEntry'
 import { nodeTypeKey, type CatalogNodeData } from '../../catalogTypes'
 import { EditIcon } from './EditIcon'
 import { NodeSettingsEditor } from './NodeSettingsEditor'
+import {
+  accentTintClassForAccent,
+  hoverBorderColorClassForAccent,
+  nodeVisual,
+  shapeColorClassForAccent,
+  type Accent,
+} from './nodeVisual'
 import { errorHandleTitle, handleOffset, useNodeHandles, type ArrangedHandles } from './useNodeHandles'
+import '../../../../shapes.css'
 
 /*
- * The common chrome every catalog-driven node is built on: accent border,
- * handles arranged per useNodeHandles, name/label, an effects badge, and the
- * settings-edit button + modal. Ports/sockets/labels are always resolved
- * live from the fetched catalog by `typeKey` — never hardcoded per node file
- * — so the ~30 files under nodes/{core,fs,media,nfo,string}/ stay thin
- * wrappers rather than 30 copies of this logic. A node whose own body needs
- * to diverge (currently just Notes) skips this component and renders itself
- * directly instead; Start uses the `children` slot below rather than
- * skipping it.
+ * The common chrome every catalog-driven node is built on: a transparent,
+ * compact card sized to its shape (nodes/shared/nodeVisual.ts) — no header
+ * or footer row. A neutral base02 border at rest, revealing a 40%-opacity
+ * tint of the node's accent on hover; the shape fill, label, and
+ * edit/destructive affordances overlay the shape itself rather than
+ * sitting in their own rows; four
+ * quadrant divs behind the shape carry a live notification signal
+ * (data.quadrantColors), invisible unless something sets them. Both shape
+ * and (hover) border color are independently overridable per instance
+ * (data.shapeColor / data.borderColor). Ports/sockets/labels are always
+ * resolved live from the fetched catalog by `typeKey` — never hardcoded per
+ * node file — so the ~30 files under nodes/{core,fs,media,nfo,string}/ stay
+ * thin wrappers rather than 30 copies of this logic. A node whose own body
+ * needs to diverge (currently just Notes) skips this component and renders
+ * itself directly instead.
  */
 
 // Square-ish and a distinct ink tone from data handles' type coloring, so
 // the two port kinds read as visually different before a drag even starts.
 const controlHandleClass = '!rounded-[3px] !h-2.5 !w-2.5 !border-ink-strong !bg-ink-strong'
 
+const SHAPE_BOX_SIZE: CSSProperties = { width: 80, height: 52 }
+
 export function NodeShell({
   id,
   data,
   typeKey,
-  children,
   handles: handlesOverride,
 }: {
   id: string
   data: CatalogNodeData
   typeKey: string
-  // Extra content rendered between the header and the settings button —
-  // used by the handful of node types that show a live value inline
-  // (Start's trigger, Trickplay's dimensions) without needing a fully
-  // custom body.
-  children?: ReactNode
   // Pre-arranged handles to render instead of the catalog's full set — used
   // by node types whose visible port count depends on their own settings
   // rather than being fixed by the catalog alone (Parallel, Join; see
@@ -65,12 +75,32 @@ export function NodeShell({
 
   const label = data.label ?? nodeType.name
   const settings = nodeType.settings ?? []
-  const canEdit = settings.length > 0 && !data.readOnly
-  const accentClass = accentClassForCategory(nodeType.category)
+  // Every non-readonly node is editable now, not just ones with catalog
+  // settings — color is a per-instance property of the node, not the node
+  // type, so even a settings-less node (e.g. core/collect) still needs a
+  // way to reach NodeSettingsEditor's color picker.
+  const canEdit = !data.readOnly
+  // The node's declared visual identity — shape, shape-fill accent, border
+  // accent — resolved from its catalog type alone (see nodeVisual.ts), one
+  // explicit entry per type, nothing shared or derived. Shape color and
+  // border color are independent parameters, each with its own optional
+  // per-instance override (data.shapeColor / data.borderColor, set via
+  // NodeSettingsEditor) — overriding one never touches the other or the
+  // node's shape.
+  const visual = nodeVisual(nodeType.type)
+  const shapeAccent = (data.shapeColor as Accent | undefined) ?? visual.shapeAccent
+  const shapeColorClass = shapeColorClassForAccent(shapeAccent)
+  // The border sits at a neutral base02 at rest and only reveals a
+  // 40%-opacity tint of an accent on hover — data.borderColor, when set, is
+  // what that hover accent is (still an independent per-instance override),
+  // defaulting to the shape's own accent so hovering an unstyled node
+  // reveals its shape color.
+  const hoverBorderClass = hoverBorderColorClassForAccent((data.borderColor as Accent | undefined) ?? shapeAccent)
+  const quadrantColors = data.quadrantColors ?? []
 
   return (
     <div
-      className={`min-w-[150px] rounded border border-edge-strong/40 border-l-4 bg-surface px-3 py-3 shadow-sm ${accentClass}`}
+      className={`rounded border border-base02 ${hoverBorderClass} bg-transparent p-1.5 shadow-sm transition-colors`}
     >
       {handles.top.map((handle, index) => (
         <Handle
@@ -104,27 +134,62 @@ export function NodeShell({
         />
       ) : null}
 
-      <div className="flex items-center gap-1.5">
+      <div
+        className={`box relative mx-auto overflow-hidden ${shapeColorClass}`}
+        style={SHAPE_BOX_SIZE}
+        title={nodeType.description ? `${label} — ${nodeType.description}` : label}
+      >
+        {/*
+         * Four quadrants behind the shape — invisible unless
+         * data.quadrantColors assigns one, a live notification signal (see
+         * CatalogNodeData.quadrantColors), not authored node styling.
+         * pointer-events-none so they never intercept clicks/hover meant
+         * for the shape, edit button, or the box's own title tooltip.
+         */}
+        <div
+          className={`pointer-events-none absolute top-0 left-0 h-1/2 w-1/2 ${quadrantColors[0] ? accentTintClassForAccent(quadrantColors[0] as Accent, 40) : ''}`}
+        />
+        <div
+          className={`pointer-events-none absolute top-0 right-0 h-1/2 w-1/2 ${quadrantColors[1] ? accentTintClassForAccent(quadrantColors[1] as Accent, 40) : ''}`}
+        />
+        <div
+          className={`pointer-events-none absolute bottom-0 left-0 h-1/2 w-1/2 ${quadrantColors[2] ? accentTintClassForAccent(quadrantColors[2] as Accent, 40) : ''}`}
+        />
+        <div
+          className={`pointer-events-none absolute right-0 bottom-0 h-1/2 w-1/2 ${quadrantColors[3] ? accentTintClassForAccent(quadrantColors[3] as Accent, 40) : ''}`}
+        />
+        <div className={`shape ${visual.shapeClassName} ${visual.shapeExtraClassName ?? ''}`} />
+        <div className="absolute inset-0 flex items-center justify-center px-1.5">
+          <span
+            className="text-center text-[10px] leading-tight font-semibold text-ink-strong"
+            style={{
+              textShadow: '0 1px 2px rgba(0, 0, 0, 0.7)',
+              display: '-webkit-box',
+              WebkitBoxOrient: 'vertical',
+              WebkitLineClamp: 2,
+              overflow: 'hidden',
+            }}
+          >
+            {label}
+          </span>
+        </div>
         {canEdit ? (
           <button
             type="button"
             onClick={() => setEditing(true)}
             aria-label={`Edit ${label} settings`}
-            className="shrink-0 text-ink-muted transition-colors hover:text-blue"
+            className="absolute top-0.5 right-0.5 text-ink-muted transition-colors hover:text-blue"
           >
             <EditIcon />
           </button>
         ) : null}
-        <span className="text-sm font-semibold text-ink-strong">{label}</span>
         {nodeType.exec.effects === 'destructive' ? (
           <span
             title="Destructive: deletes or overwrites existing content"
-            className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-red"
+            className="absolute top-0.5 left-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red"
           />
         ) : null}
       </div>
-
-      {children}
 
       {editing ? (
         <NodeSettingsEditor
@@ -133,8 +198,10 @@ export function NodeShell({
           description={nodeType.description}
           settings={settings}
           values={data.settings}
+          shapeColor={data.shapeColor}
+          borderColor={data.borderColor}
           onSave={(next) => {
-            updateNodeData(id, { settings: next })
+            updateNodeData(id, next)
             setEditing(false)
           }}
           onCancel={() => setEditing(false)}

@@ -22,13 +22,12 @@
     ],
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "core/inputPath",
     "typeVersion": "1.0.0",
     "name": "Input Path",
     "category": "input",
-    "kind": "source",
+    "kind": "start",
     "description": "A literal path typed by the author. A pure data source with no control ports — it is not an execution step, so its value is always available.",
     "control": { "in": [], "out": [] },
     "dataOut": [
@@ -39,7 +38,6 @@
     ],
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "core/writeChanges",
     "typeVersion": "1.0.0",
@@ -50,7 +48,6 @@
     "control": { "in": ["in"], "out": [], "error": true },
     "exec": { "runsOn": "server", "effects": "write" }
   },
-
   {
     "type": "core/errorOutput",
     "typeVersion": "1.0.0",
@@ -64,7 +61,6 @@
     ],
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "core/note",
     "typeVersion": "1.0.0",
@@ -78,7 +74,6 @@
     ],
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "core/checkFlowVariable",
     "typeVersion": "1.0.0",
@@ -103,7 +98,6 @@
     ],
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "core/trickplay",
     "typeVersion": "1.0.0",
@@ -131,7 +125,6 @@
       "retry": { "attempts": 3, "backoff": "30s" }
     }
   },
-
   {
     "type": "core/forEach",
     "typeVersion": "1.0.0",
@@ -161,7 +154,6 @@
     ],
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "core/collect",
     "typeVersion": "1.0.0",
@@ -178,7 +170,6 @@
     ],
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "core/parallel",
     "typeVersion": "1.0.0",
@@ -203,7 +194,6 @@
     ],
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "core/join",
     "typeVersion": "1.0.0",
@@ -219,7 +209,6 @@
     "settings": [{ "name": "branches", "label": "Branches", "type": "number.int", "default": 2 }],
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "core/break",
     "typeVersion": "1.0.0",
@@ -230,7 +219,6 @@
     "control": { "in": ["in"], "out": [] },
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "core/end",
     "typeVersion": "1.0.0",
@@ -241,7 +229,6 @@
     "control": { "in": ["in"], "out": [] },
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "core/fail",
     "typeVersion": "1.0.0",
@@ -255,7 +242,6 @@
     ],
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "fs/listDirectory",
     "typeVersion": "1.0.0",
@@ -274,7 +260,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
   },
-
   {
     "type": "fs/moveFile",
     "typeVersion": "1.0.0",
@@ -291,7 +276,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write", "retry": { "attempts": 2, "backoff": "5s" } }
   },
-
   {
     "type": "fs/copyFile",
     "typeVersion": "1.0.0",
@@ -308,7 +292,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write", "retry": { "attempts": 2, "backoff": "5s" } }
   },
-
   {
     "type": "fs/deleteFile",
     "typeVersion": "1.0.0",
@@ -321,7 +304,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "destructive" }
   },
-
   {
     "type": "fs/exists",
     "typeVersion": "1.0.0",
@@ -335,7 +317,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
   },
-
   {
     "type": "fs/makeDirectory",
     "typeVersion": "1.0.0",
@@ -351,7 +332,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write" }
   },
-
   {
     "type": "fs/fileSize",
     "typeVersion": "1.0.0",
@@ -367,7 +347,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
   },
-
   {
     "type": "fs/readTextFile",
     "typeVersion": "1.0.0",
@@ -383,7 +362,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
   },
-
   {
     "type": "fs/writeTextFile",
     "typeVersion": "1.0.0",
@@ -400,7 +378,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write" }
   },
-
   {
     "type": "media/probe",
     "typeVersion": "1.0.0",
@@ -417,7 +394,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "1m", "effects": "read" }
   },
-
   {
     "type": "media/transcode",
     "typeVersion": "1.0.0",
@@ -439,7 +415,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "6h", "cancellable": true, "effects": "write", "retry": { "attempts": 1 } }
   },
-
   {
     "type": "media/extractStream",
     "typeVersion": "1.0.0",
@@ -460,7 +435,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "5m", "effects": "write" }
   },
-
   {
     "type": "media/generateThumbnail",
     "typeVersion": "1.0.0",
@@ -480,7 +454,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "1m", "effects": "write" }
   },
-
   {
     "type": "nfo/read",
     "typeVersion": "1.0.0",
@@ -496,7 +469,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
   },
-
   {
     "type": "nfo/write",
     "typeVersion": "1.0.0",
@@ -513,7 +485,6 @@
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write" }
   },
-
   {
     "type": "string/format",
     "typeVersion": "1.0.0",
@@ -533,7 +504,6 @@
     ],
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "string/regexMatch",
     "typeVersion": "1.0.0",
@@ -553,7 +523,6 @@
     ],
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "string/concat",
     "typeVersion": "1.0.0",
@@ -573,7 +542,6 @@
     ],
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "string/parseNumber",
     "typeVersion": "1.0.0",
@@ -590,7 +558,6 @@
     ],
     "exec": { "runsOn": "server", "effects": "read" }
   },
-
   {
     "type": "string/trim",
     "typeVersion": "1.0.0",
