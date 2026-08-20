@@ -16,8 +16,9 @@ import { errorHandleTitle, handleOffset, useNodeHandles, type ArrangedHandles } 
  * live from the fetched catalog by `typeKey` — never hardcoded per node file
  * — so the ~30 files under nodes/{core,fs,media,nfo,string}/ stay thin
  * wrappers rather than 30 copies of this logic. A node whose own body needs
- * to diverge (Notes, CheckFlowVariable, Start) skips this component and
- * renders itself directly instead.
+ * to diverge (currently just Notes) skips this component and renders itself
+ * directly instead; Start uses the `children` slot below rather than
+ * skipping it.
  */
 
 // Square-ish and a distinct ink tone from data handles' type coloring, so
