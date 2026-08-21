@@ -12,9 +12,10 @@ import { writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { FaFolder, FaFile, FaList, FaRegThumbsUp, FaCopy, FaNoteSticky } from 'react-icons/fa6'
+import { FaList, FaRegThumbsUp, FaCopy, FaNoteSticky, FaFolderTree } from 'react-icons/fa6'
+import { FaFileAlt } from 'react-icons/fa'
 import { PiFolders, PiFiles, PiTreeView } from 'react-icons/pi'
-import { GoIterations } from 'react-icons/go'
+import { GoIterations, GoFileDirectoryFill } from 'react-icons/go'
 import {
   MdNotificationImportant,
   MdInput,
@@ -25,8 +26,12 @@ import {
   MdFormatColorFill,
   MdOutlineJoinFull,
   MdOutlineConfirmationNumber,
+  MdNearbyError,
+  MdOutput,
+  MdCheckCircle,
+  MdReport,
 } from 'react-icons/md'
-import { TbBinaryTreeFilled, TbArrowsJoin, TbDeviceImacQuestion } from 'react-icons/tb'
+import { TbBinaryTreeFilled, TbArrowsJoin, TbDeviceImacQuestion, TbFileDatabase } from 'react-icons/tb'
 import { BiSolidMessageSquareError } from 'react-icons/bi'
 import { GiMagicSwirl, GiLightningBranches, GiMatchTip } from 'react-icons/gi'
 import { RiLoopRightAiFill, RiDeleteBack2Fill, RiTranslate } from 'react-icons/ri'
@@ -40,14 +45,25 @@ import { LuGalleryThumbnails } from 'react-icons/lu'
 import { CgCap } from 'react-icons/cg'
 
 const icons = [
-  { className: 'icon-directory', Component: FaFolder },
-  { className: 'icon-file', Component: FaFile },
+  { className: 'icon-directory', Component: GoFileDirectoryFill },
+  { className: 'icon-file', Component: FaFileAlt },
   { className: 'icon-list', Component: FaList },
   { className: 'icon-list-directory', Component: PiFolders },
   { className: 'icon-list-file', Component: PiFiles },
   { className: 'icon-iterate', Component: GoIterations },
   { className: 'icon-tree', Component: PiTreeView },
+  { className: 'icon-media', Component: TbFileDatabase },
   { className: 'icon-type-unsafe', Component: MdNotificationImportant },
+  { className: 'icon-recursive', Component: FaFolderTree },
+  // Control-flow port icons — keyed by port name (in/error/next/yes/no),
+  // not by data Type, so these live alongside the data-type icons above but
+  // are looked up differently — see lib/typeIcons.ts's
+  // iconClassForControlPort.
+  { className: 'icon-control-in', Component: MdInput },
+  { className: 'icon-control-error', Component: MdNearbyError },
+  { className: 'icon-control-next', Component: MdOutput },
+  { className: 'icon-control-yes', Component: MdCheckCircle },
+  { className: 'icon-control-no', Component: MdReport },
   // Node-shape icons (nodeVisual.ts's iconVisual) — same mask-image
   // mechanism as the data-type icons above, just filling a node's shape
   // box instead of a handle/edge endpoint. See index.css's .shape-icon.

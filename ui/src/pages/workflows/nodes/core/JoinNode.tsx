@@ -12,7 +12,7 @@ const TYPE_KEY = 'core/join'
 // setting calls for (plus any branch already wired past that) — mirrors
 // Parallel's control-out ports, see nodes/shared/branchPorts.ts.
 export function JoinNode({ id, data }: NodeProps<Node<CatalogNodeData>>) {
-  const nodeType = useCatalogEntry(TYPE_KEY)
+  const nodeType = useCatalogEntry(data.catalogId, TYPE_KEY)
   const handles = useNodeHandles(nodeType)
   const visibleBranches = useVisibleBranchCount(id, data, nodeType, nodeType?.control.in ?? [], 'target')
 

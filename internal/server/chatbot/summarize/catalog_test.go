@@ -11,8 +11,8 @@ func fixtureCatalog(t *testing.T, description string) *workflow.Catalog {
 	t.Helper()
 
 	catalog, err := workflow.NewCatalog([]workflow.NodeType{{
+		ID:          "fs/copyFile",
 		Type:        "fs/copyFile",
-		TypeVersion: "1.0.0",
 		Name:        "Copy File",
 		Category:    "filesystem",
 		Description: description,

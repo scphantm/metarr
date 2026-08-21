@@ -45,10 +45,10 @@ The catalog is a hand-edited JSON file **owned by the server**, read at startup 
 
 ```json
 {
+  "id": "a1b2c3d4-...",
   "type": "core/trickplay",
-  "typeVersion": "1.0.0",
   "name": "Generate Trickplay",
-  "category": "function",
+  "subcategory": "function",
   "description": "Generates Jellyfin-compatible trickplay tiles.",
 
   "control": { "in": ["in"], "out": ["next"], "error": true },
@@ -57,7 +57,7 @@ The catalog is a hand-edited JSON file **owned by the server**, read at startup 
   "dataOut": [ { "name": "trickplayDir", "label": "Trickplay folder", "type": "path.dir" } ],
 
   "settings": [
-    { "name": "width", "label": "Tile width", "type": "number.int", "default": 320 }
+    { "name": "width", "label": "Tile width", "type": "any", "default": 320 }
   ],
 
   "exec": {
@@ -81,8 +81,9 @@ This splits three concepts that are currently mashed into `parameters` plus a fr
 
 Two structural consequences:
 
-- **`category` becomes a pure UI grouping label with no behavioural meaning.** Today `nodeSockets.deriveSockets` hardcodes `category === 'input'` / `'output'` to decide which handles exist. That moves into the catalog: a start node simply declares `"control": { "in": [], "out": ["next"] }`. An empty `in` array *is* "this is a starting point". The TypeScript special-casing disappears entirely.
-- **`type` is the single dispatch key**, replacing today's incoherent branching (on `category` for notes, on `pluginName` for checks). The catalog's `id` field — currently the duplicated string `Mc5PmBxBL` across five of six entries — and its vestigial `position` are both deleted.
+- **`category` (and its inner level, `subcategory`) become pure UI grouping labels with no behavioural meaning.** Today `nodeSockets.deriveSockets` hardcodes `category === 'input'` / `'output'` to decide which handles exist. That moves into the catalog: a start node simply declares `"control": { "in": [], "out": ["next"] }`. An empty `in` array *is* "this is a starting point". The TypeScript special-casing disappears entirely. The palette renders these as two nested accordion levels, collapsed by default — `category` outer, `subcategory` inner — populated incrementally; an entry with no `category` yet falls into an "Uncategorized" top group rather than disappearing from the palette. `workflow` is the first `category` populated: it groups the domain-agnostic control-flow primitives — Start and End (`subcategory: "start"`/`"end"`), the loop/fan-out constructs `forEach`/`collect`/`parallel`/`join`/`break` (`subcategory: "control"`), and Notes (`subcategory: "misc"`) — as distinct from the domain-specific entries (filesystem, media, metadata, string) that still await a `category`.
+- **`type` is the dispatch key** — it selects which React Flow component renders a node and which handler executes it, replacing today's incoherent branching (on `category` for notes, on `pluginName` for checks). The catalog's vestigial old `id` field — the duplicated string `Mc5PmBxBL` across five of six entries — and its vestigial `position` are both deleted.
+- **`id` is the catalog's uniqueness key**, reintroduced with a different, deliberate meaning: a hand-assigned, permanent identifier for one catalog row. Several rows may share a `type` — that's how a plugin offers variations (e.g. two `core/start` entries with different `dataOut` shapes) without a new registered component or handler per variation, since dispatch still keys on `type` alone and variations share identical settings UI — but `id` is what the catalog and a placed node instance actually use to resolve *which* row. `NewCatalog` rejects a duplicate `id`; it does not reject a duplicate `type`.
 
 **`name` on a port is a permanent identifier.** Stored edges reference it. Renaming one silently breaks every saved workflow. Display text goes in `label`, which may change freely.
 
@@ -91,12 +92,14 @@ Two structural consequences:
 ### 3.2 Node instance and edges
 
 ```json
-{ "id": "<uuid>", "type": "core/trickplay", "typeVersion": "1.0.0",
+{ "id": "<uuid>", "type": "core/trickplay", "catalogId": "a1b2c3d4-...",
   "position": { "x": 0, "y": 0 },
   "settings": { "width": 320 },
   "promoted": ["width"],
   "label": "optional user override" }
 ```
+
+`catalogId` names the exact catalog entry (§3.1) this instance was placed from — needed once several entries can share `type`. Empty on a graph saved before catalog entries carried an id; resolution then falls back to an arbitrary but deterministic (catalog-file order) match by `type`.
 
 ```json
 { "id": "e1", "kind": "control",
@@ -105,9 +108,15 @@ Two structural consequences:
 { "id": "e2", "kind": "data",
   "from": { "node": "n1", "port": "trickplayDir" }, "to": { "node": "n2", "port": "source" },
   "transform": "parentDir" }
+
+{ "id": "e3", "kind": "data",
+  "from": { "node": "n3", "port": "dir" }, "to": { "node": "n4", "port": "target" },
+  "settings": { "recursive": true } }
 ```
 
 `promoted` lists settings that have been turned into wired data-in sockets — users immediately want a computed setting ("width derived from source resolution"). The field is reserved in v1 even if the UI ships later; retrofitting it into the node shape afterwards is far more disruptive.
+
+`settings` on an edge (e3 above) is per-edge configuration with no catalog schema behind it — unlike a node's settings, there's no per-type declaration listing what an edge of a given data type may configure. `recursive` is the first and, so far, only one: shown in the editor by double-clicking a path-typed data edge, opening a small `Recursive` checkbox. It exists because a directory-to-directory connection needs to say whether descending into subdirectories is intended, and that's a property of the connection, not of either endpoint node.
 
 ### 3.3 Workflow document
 
@@ -128,39 +137,38 @@ Store the **canonical shape above**, not React Flow's `toObject()` output, with 
 
 ### 4.1 The lattice
 
-A **dotted-prefix nominal hierarchy** plus one generic constructor. `a.b` is a subtype of `a`; the subtype test is `sub == super || strings.HasPrefix(sub, super+".")`. Three lines in Go, three in TypeScript, no lattice structure to maintain, and new types need no release.
+A **dotted-prefix nominal hierarchy** plus one generic constructor. `a.b` is a subtype of `a`; the subtype test is `sub == super || strings.HasPrefix(sub, super+".")`. Three lines in Go, three in TypeScript, no lattice structure to maintain, and new types need no release. That's the whole of subtyping — a fact about a type's *name*, nothing else.
 
-```
-any                              (top)
+The table below is a separate, independent fact about each type: what real Go value a value of it actually holds at runtime, the same way a struct field's declared type names what's stored in it. A type's dotted name determines its place in the hierarchy above; its row here determines its representation. Neither is derived from the other.
 
-bool
-number          number.int
-string          string.enum
-duration                         (milliseconds)
-bytes                            (int64)
-timestamp
+| Type         | Represented as                            |
+|--------------|-------------------------------------------|
+| any          | (top)                                     |
+| bool         | primitive.bool                            |
+| number       | primitive.number                          |
+| string       | primitive.string                          |
+| datetime     | primitive.datetime                        |
+| media        | (scanmodel.MediaFile)                     |
+| media.file   | (io/fs.File)                              |
+| path         | os.path (not yet built)                   |
+| path.file    | (io/fs.File)                              |
+| path.dir     | (io/fs.DirEntry)                          |
+| tvseries     | (scanmodel.TVSeries)                      |
+| movie        | (scanmodel.Movie — not yet built)         |
+| agent        | (agent.Agent)                             |
+| agent.slug   | primitive.string                          |
+| scanner      | (scanner.Scanner)                         |
+| scanner.slug | primitive.string                          |
+| error        | ({node, frame, code, message, agent, at}) |
+| list<T>      | (covariant in T)                          |
 
-path            path.dir
-                path.file
-                  path.file.video
-                  path.file.image
-                  path.file.subtitle
-                  path.file.nfo
+**Two types sharing a representation need no transform, in either direction — there's nothing to convert, because there's only one shape of value.** `media.file` and `path.file` are both represented as `io/fs.File`: an output of `media.file` connects straight to an input of `path.file`, and back, with nothing recorded on the edge. `string`, `agent.slug`, and `scanner.slug` are the same case — all `primitive.string` underneath, so any of the three connects directly to any other. This is formalized as an implicit rule in §4.3, alongside `T → T` and `T → any supertype of T`: it's a fact about representation, not about the dotted-prefix hierarchy those other rules key off, which is why `media.file`/`path.file` qualify despite sharing no dotted prefix and neither being a subtype of the other.
 
-media.item                       (a scanned directory record — scanmodel.TVSeries)
-media.file                       (scanmodel.MediaFile)
-media.sidecar                    (scanmodel.SidecarFile)
-metadata.nfo
-metadata.stream                  (scanmodel.StreamDetails)
+`path`'s own representation, `os.path`, is a reserved name for an object that doesn't exist yet — a Go type resembling Python's `os.path` module. Until it's written, `path` (and its subtypes) is a plain string; see §13.
 
-agent.slug
-scanner.slug
-error                            ({node, frame, code, message, agent, at})
+**`path` and `media` are different types, at the root of the whole family.** `path` (and its subtypes `path.dir`/`path.file`/…) is a string naming a filesystem location — it means nothing until something opens it. `media` is a Mongo record — represented as `scanmodel.MediaFile`, the document type stored in the `local_directory` collection (`internal/server/mongostore/local_directory_repo.go`) by the directory scanner — and its one subtype `media.file` names the file aspect of that record, represented as `io/fs.File`. `tvseries` and `movie` are deliberately *not* `media.*` subtypes — they're separate root families, so a TV series and a movie are non-interchangeable types rather than one loose `media.item` catch-all a node could accept without meaning to. Trickplay wants a path; "set NFO title" wants a record. Conflating them is how every node ends up accepting `any`.
 
-list<T>                          (covariant in T)
-```
-
-**`path.file` and `media.file` are different types.** One is a string naming a location; the other is a database record. Trickplay wants a path; "set NFO title" wants a record. Conflating them is how every node ends up accepting `any`.
+This is exactly the choice between the catalog's two `core/start` variants (§3.1): **Start Path** hands the run a bare filesystem string (`dataOut` type `path`) — go find out what's there. **Start Media** hands the run an already-scanned `media` record — the corresponding `MediaFile` document is already sitting in Mongo, no filesystem walk required. Both are legitimate starting points for a workflow; which one to use depends on whether the flow is meant to act on a location or on a library record the scanner already knows about.
 
 `list<path>`, `list<path.dir>`, and `list<path.file>` are not new leaf types — they are the existing generic `list<T>` applied to `path`, `path.dir`, and `path.file`. Covariance already gives the intended behaviour for free: a socket declared `list<path>` accepts either a `list<path.dir>` or a `list<path.file>` value with no extra rule, because both are already subtypes of `list<path>`. In the editor these are labelled path list, directory list, and file list; directory list holds only subdirectories of a path, file list holds only its files.
 
@@ -178,30 +186,27 @@ A runtime check falls out of this: a node dispatched to agent X that receives a 
 
 **Implicit** — engine-inserted, no `transform` recorded, no UI:
 
-| From | To |
-|---|---|
-| `T` | `T` |
-| `T` | any supertype of `T` (`path.file.video → path.file → path`) |
-| `number.int` | `number` |
-| `T` | `any` |
-| `list<S>` | `list<T>` where `S <: T` |
+| From         | To                                                                                                                |
+|--------------|-------------------------------------------------------------------------------------------------------------------|
+| `T`          | `T`                                                                                                               |
+| `T`          | any `U` with the same §4.1 representation as `T` (`media.file ↔ path.file`, `string ↔ agent.slug ↔ scanner.slug`) |
+| `T`          | `any`                                                                                                             |
+| `list<S>`    | `list<T>` where `S <: T`                                                                                          |
 
 **Explicit** — a named `transform` on the edge, offered by the UI:
 
-| From | To | transform |
-|---|---|---|
-| `path.file` | `path.dir` | `parentDir` |
-| `path.dir` | `path.file` | `eachFile` |
-| `path.*` | `string` | `toString` |
-| `path.file` | `string` | `fileName` / `baseName` / `extension` (ambiguous — always prompts) |
-| `media.file` | `path.file` | `filePath` |
-| `media.file` | `path.dir` | `directoryPath` |
-| `media.item` | `path.dir` | `itemPath` |
-| `duration` | `number` | `seconds` / `milliseconds` (ambiguous — always prompts) |
-| `string` | `number` | `parseNumber` (may fail at runtime → node error) |
-| `number` | `string` | `format` |
-| `T` | `list<T>` | `wrap` |
-| `list<T>` | `T` | **forbidden** — use `forEach` |
+| From         | To          | transform                                               |
+|--------------|-------------|---------------------------------------------------------|
+| `path.file`  | `path.dir`  | `parentDir`                                             |
+| `path.dir`   | `path.file` | `eachFile`                                              |
+| `path.*`     | `string`    | `toString`                                              |
+| `path.file`  | `string`    | `toString`                                              |
+| `path.dir`   | `string`    | `toString`                                              |
+| `media.file` | `path.dir`  | `media.file.parentDir`                                  |
+| `string`     | `number`    | `parseNumber` (may fail at runtime → node error)        |
+| `number`     | `string`    | `format`                                                |
+| `T`          | `list<T>`   | `wrap`                                                  |
+| `list<T>`    | `T`         | **forbidden** — use `forEach`                           |
 
 **`path.file → path.dir` is explicit, never implicit.** This is the case that motivated typing in the first place: a file path feeding a consumer that wants a directory passes the *parent directory*. That changes which thing on disk is being pointed at, so it must be visible on the wire — silently rewriting "write into this directory" to mean the media folder is exactly the failure typing exists to prevent. But it costs **one click, not a hunt**.
 
@@ -209,7 +214,7 @@ A runtime check falls out of this: a node dispatched to agent X that receives a 
 
 **A supertype connecting to one of its own subtypes (`path → path.dir`) is also a silent pass-through — no `transform` recorded — but it is not implicit in the same sense as `T → supertype of T`.** `CanConnect` allows it (`Connection.Direct = true`) but sets `Connection.TypeUnsafe = true`: the graph cannot verify the runtime value really is the declared narrower type. This is structural — `IsSubtypeOf(to, from)` — not scoped to the path family; it applies to any dotted-prefix pair the moment one exists. The editor shows a warning badge (`MdNotificationImportant`, `icon-type-unsafe`) next to the target end's type icon, with a tooltip explaining the risk — see §10.
 
-`transform` is a **single name, never a chain**. Chains are unreadable on an edge and untestable; useful compositions are registered as named transforms (`directoryPath` above is exactly that).
+`transform` is a **single name, never a chain**. Chains are unreadable on an edge and untestable; useful compositions are registered as named transforms (`media.file.parentDir` above is exactly that).
 
 Transforms are expected to eventually need their own configuration — the clearest case is a future `string → date` transform, which cannot be unambiguous without a caller-supplied date-format string. That parameter mechanism is not designed or built here; this round only adds a boolean classification flag (`ImpliesIteration`) to `Transform`. Nothing here forecloses adding a `Params` shape to `Transform` later — the struct already has room to grow the same way `Ambiguous` and `Summary` were added without disturbing existing entries.
 
@@ -293,10 +298,10 @@ core/forEach
                error
   dataIn     : collection : list<T>   required
   dataOut    : item  : T           }  body-scoped
-               index : number.int  }
-               count : number.int     (body- and done-scoped)
-               failedCount : number.int  (done-scoped)
-  settings   : parallelism : number.int          (default 1)
+               index : any         }
+               count : any            (body- and done-scoped)
+               failedCount : any         (done-scoped)
+  settings   : parallelism : any                 (default 1)
                onItemError : abort | skip        (default abort)
 ```
 
@@ -531,8 +536,8 @@ Follows the existing three-transport split exactly:
 
 ## 9. Catalog versioning and drift
 
-- **Catalog entries are immutable per `(type, version)`.** The server hashes each entry at load and stores seen hashes; a changed hash on an unchanged version is a **startup error**. This matters more than usual because the catalog is a hand-edited file with no review process.
-- **Compatible changes** for a version bump: adding an optional data-in, adding a data-out, adding a setting with a default. **Incompatible**: removing or renaming a port, making an input required, narrowing a type.
+- **Catalog entries are immutable per `id`.** The server hashes each entry at load and stores seen hashes; a changed hash on an unchanged `id` is a **startup error**. This matters more than usual because the catalog is a hand-edited file with no review process. A behaviour change gets a new `id` (a new JSON object in catalog.json), not a content edit to an existing one.
+- **Compatible changes**: adding an optional data-in, adding a data-out, adding a setting with a default — safe to make as a content edit under the same `id`, since nothing an existing node instance depends on changes shape. **Incompatible**: removing or renaming a port, making an input required, narrowing a type — these require a new `id` (`typeVersion` was retired from the schema; `id` alone is the catalog's identity now).
 - **Resolution status on load**, per node instance: `ok` | `upgradable` | `missing` | `incompatible`.
 - **Tombstone rendering.** A `missing`/`incompatible` node renders as a distinct tombstone that **preserves its stored settings and edges verbatim**. The flow opens, displays, and re-saves without loss; it simply cannot run. See the warning in §3.3 — a typed schema loses this unless the passthrough is deliberate.
 - **Cheap migrations**: `"migrations": [{ "from": "1.0.0", "renamePorts": { "src": "source" } }]` covers the common rename without a code release.
@@ -581,12 +586,13 @@ Existing saved workflows are junk data and can be deleted.
 
 These are not built in v1. Each is listed because the schema must not foreclose it:
 
-- **Triggers.** The `core/start` node carries a `trigger` setting slot **now**, or every workflow authored in the interim needs rewriting. Its data-outs vary by trigger kind (`item : media.item` for scan-complete).
+- **Triggers.** The `core/start` node carries a `trigger` setting slot **now**, or every workflow authored in the interim needs rewriting. Its data-outs vary by trigger kind (`item : media` for scan-complete — or a more specific `tvseries`/`movie` once the scanner's result type is known at that point in the design).
 - **The `eachFile` implied per-file iteration.** `path.dir → path.file` is connectable and documented (§4.3), and the editor renders it distinctly, but the engine does not yet execute the implied fan-out — today it behaves like any other explicit transform, producing one value. Building real support means deciding how the implied loop's per-file runs relate to frames (§5.1) and to the existing, deliberately-explicit `core/forEach` without collapsing the two mechanisms; deferred, but `Transform.ImpliesIteration` and the UI already carry enough information not to need a breaking change later.
 - **Cross-run concurrency.** Two runs over the same library concurrently means two ffmpegs writing the same file. Policy `singleton` (default) | `parallel`, implemented with the existing lock pattern (`metarr:workflow:{documentID}:lock`, `SET NX` with TTL refresh).
 - **Large collections by reference.** `list<media.file>` over 50,000 files fits in no Redis value, Mongo document, or stream entry. A database-sourced collection is a **query descriptor plus a count**, materialised page-by-page by `forEach`; only `forEach` may consume a reference list, everything else gets a hard cap with a clear error. Retrofitting this after the engine assumes materialised slices is a rewrite.
 - **Promoted settings** (§3.2) and the loop `collectErrors` mode (§5.5).
 - **Full crash resume** (§7).
+- **The `os.path` object** (§4.1). `path`'s row in the representation table names it, but nothing has written it yet — a Go type resembling Python's `os.path` module. Until then, `path`-typed values are plain strings; nothing about the type or its subtypes depends on the object existing.
 
 
 

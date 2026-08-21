@@ -4,13 +4,24 @@ import { useWorkflowCatalog } from '../../api/queries'
 import { useDnD } from './DnDContext'
 import type { NodeType } from './catalogTypes'
 
-function groupByCategory(entries: NodeType[]) {
-  const groups = new Map<string, NodeType[]>()
+// Two accordion levels: category (outer) then subcategory (inner). Neither
+// is required on a catalog entry yet — subcategory is only assigned for a
+// handful of entries so far (see catalog.json), category fewer still — so
+// both fall back to an 'uncategorized' bucket rather than dropping an
+// entry from the palette while the catalog is mid-migration.
+function groupByCategoryAndSubcategory(entries: NodeType[]) {
+  const groups = new Map<string, Map<string, NodeType[]>>()
   for (const entry of entries) {
     const category = entry.category ?? ''
-    const group = groups.get(category) ?? []
+    const subcategory = entry.subcategory ?? ''
+    let subgroups = groups.get(category)
+    if (!subgroups) {
+      subgroups = new Map()
+      groups.set(category, subgroups)
+    }
+    const group = subgroups.get(subcategory) ?? []
     group.push(entry)
-    groups.set(category, group)
+    subgroups.set(subcategory, group)
   }
   return groups
 }
@@ -28,7 +39,7 @@ export function NodePalette() {
       (entry) => entry.name.toLowerCase().includes(query) || entry.type.toLowerCase().includes(query),
     )
   }, [catalog, filter])
-  const groups = groupByCategory(filtered)
+  const groups = groupByCategoryAndSubcategory(filtered)
 
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto border-r border-edge bg-surface p-3">
@@ -45,31 +56,37 @@ export function NodePalette() {
       {isError ? <p className="px-1 text-xs text-red">Failed to load the node catalog.</p> : null}
 
       <div className="flex flex-col gap-2">
-        {[...groups.entries()].map(([category, groupEntries]) => (
+        {[...groups.entries()].map(([category, subgroups]) => (
           <details key={category || 'uncategorized'} className="rounded border border-edge-strong/40">
             <summary className="cursor-pointer px-2 py-1.5 text-[11px] font-semibold tracking-wide text-ink-muted uppercase select-none hover:text-ink-strong">
               {category || 'Uncategorized'}
             </summary>
             <div className="flex flex-col gap-1.5 border-t border-edge-strong/40 p-2">
-              {groupEntries.map((entry) => (
-                <div
-                  key={entry.type}
-                  draggable
-                  onDragStart={(event) => {
-                    setDraggedTemplate({ type: entry.type, typeVersion: entry.typeVersion })
-                    event.dataTransfer.setData(
-                      'application/json',
-                      JSON.stringify({ type: entry.type, typeVersion: entry.typeVersion }),
-                    )
-                    event.dataTransfer.effectAllowed = 'move'
-                  }}
-                  onDragEnd={() => setDraggedTemplate(null)}
-                  title={entry.description}
-                  className="cursor-grab rounded border border-edge-strong/40 bg-canvas px-2.5 py-2 text-sm text-ink-strong transition-colors hover:border-blue active:cursor-grabbing"
-                >
-                  <div className="font-medium">{entry.name}</div>
-                  <div className="font-mono text-xs text-ink-muted">{entry.type}</div>
-                </div>
+              {[...subgroups.entries()].map(([subcategory, groupEntries]) => (
+                <details key={subcategory || 'uncategorized'} className="rounded border border-edge-strong/25 bg-canvas/40">
+                  <summary className="cursor-pointer px-2 py-1 text-[10px] font-semibold tracking-wide text-ink-muted uppercase select-none hover:text-ink-strong">
+                    {subcategory || 'Uncategorized'}
+                  </summary>
+                  <div className="flex flex-col gap-1.5 border-t border-edge-strong/25 p-2">
+                    {groupEntries.map((entry) => (
+                      <div
+                        key={entry.id}
+                        draggable
+                        onDragStart={(event) => {
+                          setDraggedTemplate({ id: entry.id })
+                          event.dataTransfer.setData('application/json', JSON.stringify({ id: entry.id }))
+                          event.dataTransfer.effectAllowed = 'move'
+                        }}
+                        onDragEnd={() => setDraggedTemplate(null)}
+                        title={entry.description}
+                        className="cursor-grab rounded border border-edge-strong/40 bg-canvas px-2.5 py-2 text-sm text-ink-strong transition-colors hover:border-blue active:cursor-grabbing"
+                      >
+                        <div className="font-medium">{entry.name}</div>
+                        <div className="font-mono text-xs text-ink-muted">{entry.type}</div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
               ))}
             </div>
           </details>

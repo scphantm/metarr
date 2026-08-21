@@ -12,7 +12,7 @@ const TYPE_KEY = 'core/parallel'
 // setting calls for (plus any branch already wired past that) — see
 // nodes/shared/branchPorts.ts.
 export function ParallelNode({ id, data }: NodeProps<Node<CatalogNodeData>>) {
-  const nodeType = useCatalogEntry(TYPE_KEY)
+  const nodeType = useCatalogEntry(data.catalogId, TYPE_KEY)
   const handles = useNodeHandles(nodeType)
   const visibleBranches = useVisibleBranchCount(id, data, nodeType, nodeType?.control.out ?? [], 'source')
 

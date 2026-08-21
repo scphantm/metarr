@@ -51,6 +51,47 @@ export type TypeConnection = {
   typeUnsafe?: boolean
 }
 
+// Mirrors types.go's representationOf: only where a representation is
+// shared by more than one type — an unshared one has no behavioral effect,
+// nothing else could ever match it.
+const representationOf: Partial<Record<Type, string>> = {
+  string: 'primitive.string',
+  'agent.slug': 'primitive.string',
+  'scanner.slug': 'primitive.string',
+
+  'media.file': 'io/fs.File',
+  'path.file': 'io/fs.File',
+}
+
+// Mirrors types.go's SameRepresentation: two types sharing a real-world
+// representation (design.md §4.1's table) need no transform in either
+// direction — there's nothing to convert, only one shape of value. Distinct
+// from isSubtypeOf: media.file and path.file share no dotted prefix and
+// neither is a subtype of the other, but both are io/fs.File underneath.
+function sameRepresentation(a: Type, b: Type): boolean {
+  const aElement = elementType(a)
+  const bElement = elementType(b)
+  if (aElement != null || bElement != null) {
+    if (aElement == null || bElement == null) return false
+    return sameRepresentation(aElement, bElement)
+  }
+
+  const aRep = representationOf[a]
+  const bRep = representationOf[b]
+  return aRep != null && aRep === bRep
+}
+
+// wrapTransform mirrors types.go's wrapTransform: the synthetic "wrap" (T ->
+// list<T>, design.md §4.3) can't be one entry in the transforms array from
+// the catalog endpoint — it must match list<T> for every T, not one
+// hardcoded element type — so it's computed per-connection instead.
+function wrapTransform(from: Type, to: Type): Transform | null {
+  if (isListType(from)) return null
+  const element = elementType(to)
+  if (element == null || !isSubtypeOf(from, element)) return null
+  return { name: 'wrap', from, to, summary: 'Wraps the single value into a one-element list' }
+}
+
 export function canConnect(from: Type, to: Type, transforms: Transform[]): TypeConnection {
   if (isSubtypeOf(from, to)) {
     return { direct: true, candidates: [] }
@@ -58,9 +99,16 @@ export function canConnect(from: Type, to: Type, transforms: Transform[]): TypeC
   if (isSubtypeOf(to, from)) {
     return { direct: true, candidates: [], typeUnsafe: true }
   }
+  if (sameRepresentation(from, to)) {
+    // Not a narrowing — neither is a subtype of the other — so no
+    // typeUnsafe: this is asserted equivalence, not an unverifiable guess.
+    return { direct: true, candidates: [] }
+  }
   const candidates = transforms.filter(
     (transform) => isSubtypeOf(from, transform.from) && isSubtypeOf(transform.to, to),
   )
+  const wrap = wrapTransform(from, to)
+  if (wrap) candidates.push(wrap)
   return { direct: false, candidates }
 }
 

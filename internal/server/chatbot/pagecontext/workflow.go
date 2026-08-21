@@ -36,11 +36,11 @@ const proposeWorkflowEditSchema = `{
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["id", "type", "typeVersion"],
+            "required": ["id", "type", "catalogId"],
             "properties": {
               "id": { "type": "string" },
               "type": { "type": "string", "description": "A catalog type, e.g. fs/copyFile." },
-              "typeVersion": { "type": "string" },
+              "catalogId": { "type": "string", "description": "The exact catalog entry's id (from the node catalog above). Several entries may share a type — this is what picks the right one, e.g. between two core/start variants with different dataOut shapes." },
               "position": {
                 "type": "object",
                 "properties": { "x": { "type": "number" }, "y": { "type": "number" } }
@@ -68,7 +68,8 @@ const proposeWorkflowEditSchema = `{
                 "required": ["node", "port"],
                 "properties": { "node": { "type": "string" }, "port": { "type": "string" } }
               },
-              "transform": { "type": "string" }
+              "transform": { "type": "string" },
+              "settings": { "type": "object", "description": "Per-edge configuration, e.g. { \"recursive\": true } on a data edge delivering a path." }
             }
           }
         }

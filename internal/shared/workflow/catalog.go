@@ -126,10 +126,17 @@ type ExecSpec struct {
 // NodeType is one catalog entry: the definition of a kind of node, as
 // distinct from an instance of one placed on a canvas.
 type NodeType struct {
-	Type        string   `json:"type"`
-	TypeVersion string   `json:"typeVersion"`
-	Name        string   `json:"name"`
+	ID   string `json:"id"`
+	Type string `json:"type"`
+	Name string `json:"name"`
+	// Category and Subcategory are the palette's two accordion levels —
+	// Category is the outer group (e.g. "workflow"), Subcategory the inner
+	// one (e.g. "start"). Both are presentation-only, like the single
+	// category field they replaced: never dispatch behavior on either, only
+	// on Type. Subcategory is not yet assigned catalog-wide — an entry with
+	// no Category renders under a palette-level "Uncategorized" top group.
 	Category    string   `json:"category,omitempty"`
+	Subcategory string   `json:"subcategory,omitempty"`
 	Kind        NodeKind `json:"kind,omitempty"`
 	Description string   `json:"description,omitempty"`
 
@@ -140,12 +147,6 @@ type NodeType struct {
 
 	Exec ExecSpec `json:"exec"`
 }
-
-// Key is the catalog identity of this entry.
-func (n NodeType) Key() string { return TypeKey(n.Type, n.TypeVersion) }
-
-// TypeKey builds the catalog key for a type at a version.
-func TypeKey(nodeType, version string) string { return nodeType + "@" + version }
 
 // RunsOnAgent reports whether this node must be dispatched to an agent.
 func (n NodeType) RunsOnAgent() bool { return n.Exec.RunsOn == RunsOnAgent }
@@ -202,13 +203,13 @@ func containsString(values []string, want string) bool {
 func (n NodeType) Validate() error {
 	var problems []string
 
+	if n.ID == "" {
+		problems = append(problems, "id is required")
+	}
 	if n.Type == "" {
 		problems = append(problems, "type is required")
 	} else if !strings.Contains(n.Type, "/") {
 		problems = append(problems, "type must be namespaced, e.g. core/trickplay")
-	}
-	if n.TypeVersion == "" {
-		problems = append(problems, "typeVersion is required")
 	}
 	if n.Name == "" {
 		problems = append(problems, "name is required")
@@ -244,7 +245,7 @@ func (n NodeType) Validate() error {
 	problems = append(problems, n.portProblems()...)
 
 	if len(problems) > 0 {
-		return fmt.Errorf("node type %s: %s", n.Key(), strings.Join(problems, "; "))
+		return fmt.Errorf("node type %s (%s): %s", n.Type, n.ID, strings.Join(problems, "; "))
 	}
 	return nil
 }
@@ -313,7 +314,7 @@ func findSetting(settings []Setting, name string) (Setting, bool) {
 	return Setting{}, false
 }
 
-// Catalog is the loaded set of node types, keyed by type and version.
+// Catalog is the loaded set of node types, keyed by id.
 type Catalog struct {
 	entries map[string]NodeType
 	ordered []NodeType
@@ -326,6 +327,10 @@ var ErrCatalogEmpty = errors.New("workflow: catalog contains no node types")
 // NewCatalog validates every entry and indexes them. A single bad entry
 // fails the whole catalog, so a typo is caught at startup rather than when
 // somebody happens to drag that node onto a canvas.
+//
+// Several entries may share a `type` — that's how a plugin offers variations
+// (e.g. two core/start entries with different dataOut shapes) without a new
+// registered type per variation. `id` is what has to be unique.
 func NewCatalog(entries []NodeType) (*Catalog, error) {
 	if len(entries) == 0 {
 		return nil, ErrCatalogEmpty
@@ -337,19 +342,33 @@ func NewCatalog(entries []NodeType) (*Catalog, error) {
 		if err := entry.Validate(); err != nil {
 			return nil, err
 		}
-		if _, duplicate := indexed[entry.Key()]; duplicate {
-			return nil, fmt.Errorf("workflow: catalog declares %s more than once", entry.Key())
+		if _, duplicate := indexed[entry.ID]; duplicate {
+			return nil, fmt.Errorf("workflow: catalog declares id %s more than once", entry.ID)
 		}
-		indexed[entry.Key()] = entry
+		indexed[entry.ID] = entry
 		ordered = append(ordered, entry)
 	}
 	return &Catalog{entries: indexed, ordered: ordered}, nil
 }
 
-// Lookup finds a node type by the identity a stored node instance carries.
-func (c *Catalog) Lookup(nodeType, version string) (NodeType, bool) {
-	entry, found := c.entries[TypeKey(nodeType, version)]
+// Lookup finds a node type by the catalog id a stored node instance carries.
+func (c *Catalog) Lookup(id string) (NodeType, bool) {
+	entry, found := c.entries[id]
 	return entry, found
+}
+
+// LookupByType returns the first entry (in catalog-file order) whose Type
+// matches. This is a backward-compatibility fallback only, for graph nodes
+// saved before catalog entries carried an id — when several entries share a
+// type, which one it returns is arbitrary but deterministic, the same
+// ambiguity such a save already had.
+func (c *Catalog) LookupByType(nodeType string) (NodeType, bool) {
+	for _, entry := range c.ordered {
+		if entry.Type == nodeType {
+			return entry, true
+		}
+	}
+	return NodeType{}, false
 }
 
 // All returns every entry in catalog order, for serving to the editor.

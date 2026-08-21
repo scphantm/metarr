@@ -20,10 +20,11 @@ const maxDescriptionLen = 200
 // RunsOn/AgentSelector/Timeout/Retry are irrelevant to proposing a graph
 // edit).
 type CatalogEntry struct {
+	ID          string       `json:"id"`
 	Type        string       `json:"type"`
-	TypeVersion string       `json:"type_version"`
 	Name        string       `json:"name"`
 	Category    string       `json:"category,omitempty"`
+	Subcategory string       `json:"subcategory,omitempty"`
 	Kind        string       `json:"kind,omitempty"`
 	Description string       `json:"description,omitempty"`
 	Control     ControlPorts `json:"control"`
@@ -63,10 +64,11 @@ func Catalog(catalog *workflow.Catalog) []CatalogEntry {
 	summarized := make([]CatalogEntry, 0, len(entries))
 	for _, entry := range entries {
 		summarized = append(summarized, CatalogEntry{
+			ID:          entry.ID,
 			Type:        entry.Type,
-			TypeVersion: entry.TypeVersion,
 			Name:        entry.Name,
 			Category:    entry.Category,
+			Subcategory: entry.Subcategory,
 			Kind:        string(entry.Kind),
 			Description: truncate(entry.Description, maxDescriptionLen),
 			Control: ControlPorts{

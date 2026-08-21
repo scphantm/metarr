@@ -11,48 +11,44 @@ import "strings"
 
 // Type is a value type in the workflow type system.
 //
-// Type names form a dotted-prefix hierarchy: "path.file.video" is a subtype
-// of "path.file", which is a subtype of "path". That is the whole mechanism —
+// Type names form a dotted-prefix hierarchy: "path.dir" is a subtype of
+// "path", "agent.slug" is a subtype of "agent". That is the whole mechanism —
 // there is no lattice structure to maintain, and a new type needs no code
 // change beyond naming it. The one exception is list, which is a generic
-// constructor written list<T> and is covariant in T.
+// constructor written list<T> and is covariant in T. See design.md §4.1.
 type Type string
 
 const (
 	// TypeAny is the top of the hierarchy: everything is assignable to it.
 	TypeAny Type = "any"
 
-	TypeBool       Type = "bool"
-	TypeNumber     Type = "number"
-	TypeNumberInt  Type = "number.int"
-	TypeString     Type = "string"
-	TypeStringEnum Type = "string.enum"
-	// TypeDuration is milliseconds.
-	TypeDuration  Type = "duration"
-	TypeBytes     Type = "bytes"
-	TypeTimestamp Type = "timestamp"
+	TypeBool   Type = "bool"
+	TypeNumber Type = "number"
+	TypeString Type = "string"
+	// TypeDatetime is a point in time.
+	TypeDatetime Type = "datetime"
 
 	// Path types. Every path value inside a workflow is in server-canonical
 	// space; translation to an agent's own space happens once, in the
 	// dispatch layer. See design.md §4.2.
-	TypePath             Type = "path"
-	TypePathDir          Type = "path.dir"
-	TypePathFile         Type = "path.file"
-	TypePathFileVideo    Type = "path.file.video"
-	TypePathFileImage    Type = "path.file.image"
-	TypePathFileSubtitle Type = "path.file.subtitle"
-	TypePathFileNFO      Type = "path.file.nfo"
+	TypePath     Type = "path"
+	TypePathDir  Type = "path.dir"
+	TypePathFile Type = "path.file"
 
 	// Media types are database records, not paths. media.file is a scanned
 	// MediaFile; path.file is a string naming a location. Conflating the two
-	// is how every node ends up accepting "any".
-	TypeMediaItem      Type = "media.item"
-	TypeMediaFile      Type = "media.file"
-	TypeMediaSidecar   Type = "media.sidecar"
-	TypeMetadataNFO    Type = "metadata.nfo"
-	TypeMetadataStream Type = "metadata.stream"
+	// is how every node ends up accepting "any". TVSeries and Movie are
+	// deliberately not media.* subtypes — separate root families, so they
+	// stay non-interchangeable rather than folding into one loose catch-all.
+	TypeMedia     Type = "media"
+	TypeMediaFile Type = "media.file"
+	TypeTVSeries  Type = "tvseries"
+	// TypeMovie has no backing scanmodel struct yet — reserved.
+	TypeMovie Type = "movie"
 
+	TypeAgent       Type = "agent"
 	TypeAgentSlug   Type = "agent.slug"
+	TypeScanner     Type = "scanner"
 	TypeScannerSlug Type = "scanner.slug"
 
 	// TypeError is what an error control-out's companion data-out carries.
@@ -121,12 +117,48 @@ func IsSubtypeOf(sub, super Type) bool {
 	return strings.HasPrefix(string(sub), string(super)+".")
 }
 
+// representationOf names, for a type, the real-world value it's actually
+// represented as at runtime (design.md §4.1's "Represented as" column) —
+// only where that representation is shared by more than one type. An
+// unshared representation has no behavioral effect, so it isn't worth
+// encoding: nothing else could ever match it.
+var representationOf = map[Type]string{
+	TypeString:      "primitive.string",
+	TypeAgentSlug:   "primitive.string",
+	TypeScannerSlug: "primitive.string",
+
+	TypeMediaFile: "io/fs.File",
+	TypePathFile:  "io/fs.File",
+}
+
+// SameRepresentation reports whether a and b are, underneath, the same real
+// value — design.md §4.1's table, not §4.3's dotted-prefix hierarchy. Two
+// types sharing a representation need no transform in either direction:
+// there's nothing to convert, because there's only one shape of value. This
+// is deliberately distinct from IsSubtypeOf — media.file and path.file
+// share no dotted prefix and neither is a subtype of the other, but both are
+// io/fs.File underneath.
+func SameRepresentation(a, b Type) bool {
+	aElement, aIsList := a.ElementType()
+	bElement, bIsList := b.ElementType()
+	if aIsList || bIsList {
+		if !aIsList || !bIsList {
+			return false
+		}
+		return SameRepresentation(aElement, bElement)
+	}
+
+	aRep, aFound := representationOf[a]
+	bRep, bFound := representationOf[b]
+	return aFound && bFound && aRep == bRep
+}
+
 // Transform is a named, explicit conversion between two types, recorded on
 // the data edge that uses it.
 //
 // Transforms are deliberately single names rather than chains: a chain is
 // unreadable on an edge and untestable. Useful compositions are registered
-// here as their own transform instead — directoryPath is exactly that.
+// here as their own transform instead — media.file.parentDir is exactly that.
 type Transform struct {
 	Name string `json:"name"`
 	From Type   `json:"from"`
@@ -162,40 +194,15 @@ var transformRegistry = []Transform{
 		Summary: "Every file in the directory, one per downstream run",
 	},
 	{
+		// Also covers path.dir/path.file -> string implicitly, via ordinary
+		// subtyping (IsSubtypeOf(path.file, path) is already true) — no
+		// separate registry entry needed per subtype. See design.md §4.3.
 		Name: "toString", From: TypePath, To: TypeString,
 		Summary: "The path as text",
 	},
 	{
-		Name: "fileName", From: TypePathFile, To: TypeString, Ambiguous: true,
-		Summary: "File name with extension",
-	},
-	{
-		Name: "baseName", From: TypePathFile, To: TypeString, Ambiguous: true,
-		Summary: "File name without extension",
-	},
-	{
-		Name: "extension", From: TypePathFile, To: TypeString, Ambiguous: true,
-		Summary: "File extension only",
-	},
-	{
-		Name: "filePath", From: TypeMediaFile, To: TypePathFile,
-		Summary: "The record's own path",
-	},
-	{
-		Name: "directoryPath", From: TypeMediaFile, To: TypePathDir,
+		Name: "media.file.parentDir", From: TypeMediaFile, To: TypePathDir,
 		Summary: "The directory containing the record's file",
-	},
-	{
-		Name: "itemPath", From: TypeMediaItem, To: TypePathDir,
-		Summary: "The item's directory",
-	},
-	{
-		Name: "seconds", From: TypeDuration, To: TypeNumber, Ambiguous: true,
-		Summary: "Duration in seconds",
-	},
-	{
-		Name: "milliseconds", From: TypeDuration, To: TypeNumber, Ambiguous: true,
-		Summary: "Duration in milliseconds",
 	},
 	{
 		Name: "parseNumber", From: TypeString, To: TypeNumber,
@@ -207,12 +214,30 @@ var transformRegistry = []Transform{
 	},
 }
 
-// FindTransform returns the registered transform with the given name.
+// FindTransform returns the registered transform with the given name. It
+// does not know about "wrap" (see ResolveTransform) — wrap is synthesized
+// per-connection, not a static registry entry, since it must match list<T>
+// for every T rather than one hardcoded element type.
 func FindTransform(name string) (Transform, bool) {
 	for _, transform := range transformRegistry {
 		if transform.Name == name {
 			return transform, true
 		}
+	}
+	return Transform{}, false
+}
+
+// ResolveTransform is FindTransform plus the one case FindTransform can't
+// handle alone: a persisted edge naming "wrap" resolves against the edge's
+// actual from/to types, the same way CanConnect synthesizes it live. Callers
+// re-validating a saved edge's named transform (as opposed to offering fresh
+// candidates) should use this instead of FindTransform.
+func ResolveTransform(name string, from, to Type) (Transform, bool) {
+	if transform, found := FindTransform(name); found {
+		return transform, true
+	}
+	if name == "wrap" {
+		return wrapTransform(from, to)
 	}
 	return Transform{}, false
 }
@@ -273,18 +298,46 @@ func CanConnect(from, to Type) Connection {
 	if IsSubtypeOf(to, from) {
 		return Connection{Direct: true, TypeUnsafe: true}
 	}
+	if SameRepresentation(from, to) {
+		// Not a narrowing — neither is a subtype of the other — so no
+		// TypeUnsafe: this is asserted equivalence, not an unverifiable
+		// guess about the runtime value's shape.
+		return Connection{Direct: true}
+	}
 
 	var candidates []Transform
 	for _, transform := range transformRegistry {
 		// The source must satisfy the transform's input, and the transform's
 		// output must satisfy the target — both by subtyping, so that
-		// path.file.video reaches parentDir and its path.dir result reaches
-		// a socket declared merely path.
+		// path.dir reaches media.file.parentDir's From and its path.dir
+		// result reaches a socket declared merely path.
 		if IsSubtypeOf(from, transform.From) && IsSubtypeOf(transform.To, to) {
 			candidates = append(candidates, transform)
 		}
 	}
+	if wrap, ok := wrapTransform(from, to); ok {
+		candidates = append(candidates, wrap)
+	}
 	return Connection{Candidates: candidates}
+}
+
+// wrapTransform offers the synthetic "wrap" transform (T -> list<T>, design.md
+// §4.3) when to is a list and from — a non-list — is a subtype of its element
+// type. This can't be one static transformRegistry entry: a registry entry
+// tests subtyping against a *concrete* From/To pair, but "wrap" must match
+// list<T> for every T, not just one hardcoded element type.
+func wrapTransform(from, to Type) (Transform, bool) {
+	if _, fromIsList := from.ElementType(); fromIsList {
+		return Transform{}, false
+	}
+	element, toIsList := to.ElementType()
+	if !toIsList || !IsSubtypeOf(from, element) {
+		return Transform{}, false
+	}
+	return Transform{
+		Name: "wrap", From: from, To: to,
+		Summary: "Wraps the single value into a one-element list",
+	}, true
 }
 
 // ExplainIncompatible returns a human-readable reason a connection was

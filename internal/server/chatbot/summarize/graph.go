@@ -2,6 +2,8 @@ package summarize
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
 	"Metarr/internal/shared/workflow"
 )
@@ -40,12 +42,35 @@ func Graph(g workflow.Graph) GraphSummary {
 }
 
 // formatEdge renders "from:port -> to:port (kind)", with a "[transform]"
-// suffix when one applies — e.g. "n1:out -> n2:in (control)" or
-// "n1:path -> n2:input (data) [toUpper]".
+// suffix when one applies and a "{settings}" suffix when any are set — e.g.
+// "n1:out -> n2:in (control)" or "n1:path -> n2:input (data) [toUpper]" or
+// "n1:dir -> n2:target (data) {recursive:true}". Settings has no catalog
+// schema (see workflow.Edge.Settings), so this stays generic rather than
+// naming "recursive" specifically — it renders whatever is set.
 func formatEdge(edge workflow.Edge) string {
 	rendered := fmt.Sprintf("%s:%s -> %s:%s (%s)", edge.From.Node, edge.From.Port, edge.To.Node, edge.To.Port, edge.Kind)
 	if edge.Transform != "" {
 		rendered += fmt.Sprintf(" [%s]", edge.Transform)
 	}
+	if settings := formatSettings(edge.Settings); settings != "" {
+		rendered += " " + settings
+	}
 	return rendered
+}
+
+func formatSettings(settings map[string]any) string {
+	if len(settings) == 0 {
+		return ""
+	}
+	names := make([]string, 0, len(settings))
+	for name := range settings {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	pairs := make([]string, 0, len(names))
+	for _, name := range names {
+		pairs = append(pairs, fmt.Sprintf("%s:%v", name, settings[name]))
+	}
+	return "{" + strings.Join(pairs, ", ") + "}"
 }

@@ -1,12 +1,11 @@
 import { useState, type CSSProperties } from 'react'
 import { Handle, Position, useReactFlow } from '@xyflow/react'
 
-import { dataHandleClass } from '../../../../lib/typeColors'
-import { iconClassForType } from '../../../../lib/typeIcons'
+import { iconClassForControlPort, iconClassForType } from '../../../../lib/typeIcons'
 import { controlHandleId } from '../../connectionRules'
 import { useCatalogEntry } from '../../useCatalogEntry'
 import { useIconZoomVisibility } from '../../useIconZoomVisibility'
-import { nodeTypeKey, type CatalogNodeData } from '../../catalogTypes'
+import type { CatalogNodeData } from '../../catalogTypes'
 import { EditIcon } from './EditIcon'
 import { NodeSettingsEditor } from './NodeSettingsEditor'
 import {
@@ -36,18 +35,61 @@ import { errorHandleTitle, handleOffset, useNodeHandles, type ArrangedHandles } 
  * itself directly instead.
  */
 
-// Square-ish and a distinct ink tone from data handles' type coloring, so
-// the two port kinds read as visually different before a drag even starts.
-const controlHandleClass = '!rounded-[3px] !h-2.5 !w-2.5 !border-ink-strong !bg-ink-strong'
+// Square-ish and cyan — matching ControlEdge.tsx's ordinary (non-error)
+// control-edge color, so a control socket and the wire it connects to read
+// as one visual family. The error control port is styled separately, below
+// (red, matching ControlEdge.tsx's error-branch color).
+const controlHandleClass = '!rounded-[3px] !h-2.5 !w-2.5 !border-cyan !bg-cyan'
 
-// A data handle's color (dataHandleClass) and, when its type has one
+// Orange, matching DataEdge.tsx's data-edge-path color, same reasoning as
+// controlHandleClass above. Flat rather than colored per type
+// (typeColors.ts's old per-type accent scheme is retired): the icon mask
+// (iconClassForType) is what conveys a specific type now, not the dot's
+// fill color.
+//
+// !border-0 overrides React Flow's own base CSS, which puts a 1px border
+// (a light theme color, not ours) on every handle by default. That border
+// sits outside the mask-image entirely — mask-image only clips the
+// background fill, never the border — so it's invisible only where the
+// icon's own opaque area happens to reach the box edge. An icon that
+// doesn't fill its box on every side (most of them, once "contain"-fit
+// into a square) leaves that stretch of default border exposed as a stray
+// pale line. controlHandleClass doesn't have this problem: it sets an
+// explicit border color matching its own fill, so the border and the mask
+// gaps are the same color either way.
+//
+// Shape depends on whether an icon is showing. React Flow's own base CSS
+// also sets every handle to a circle (border-radius: 100%) by default,
+// which is fine for the plain color dot — but a circular clip crops a
+// mask-image that fills its box, cutting away however much of the icon
+// falls outside the inscribed circle. A wide glyph (a folder) loses much
+// more area to that clip than a narrow one (a document), which is why
+// swapping the folder icon alone didn't fix the visibility complaint this
+// was diagnosing — the shape was clipping it regardless of which glyph was
+// in the mask. Explicit here rather than left to inherit React Flow's
+// default, since a library default silently changing shape out from under
+// us would be easy to miss: square/rounded whenever the icon mask is
+// visible, circular only when zoomed out and there's no icon to protect.
+const dataHandleClass = '!border-0 !bg-orange !h-3 !w-3'
+const dataHandleIconShape = '!rounded-[3px]'
+const dataHandleDotShape = '!rounded-full'
+
+// A data handle's flat color (dataHandleClass) and, when its type has one
 // registered, an icon mask on top (iconClassForType) — see lib/typeIcons.ts.
 // A type with no icon composes to just the color class, unchanged from
 // before this existed. showIcon is useIconZoomVisibility() — the icon mask
 // only shows at maximum zoom, leaving just the plain color dot otherwise;
 // see that hook's comment for why.
 function dataHandleAppearance(type: string, showIcon: boolean): string {
-  return `${dataHandleClass(type)} ${showIcon ? (iconClassForType(type) ?? '') : ''}`.trim()
+  const shape = showIcon ? dataHandleIconShape : dataHandleDotShape
+  return `${dataHandleClass} ${shape} ${showIcon ? (iconClassForType(type) ?? '') : ''}`.trim()
+}
+
+// Same pattern as dataHandleAppearance, but for a control port — keyed by
+// port name (iconClassForControlPort) rather than data Type. A port name
+// with no icon composes to just controlHandleClass, unchanged.
+function controlHandleAppearance(port: string, showIcon: boolean): string {
+  return `${controlHandleClass} ${showIcon ? (iconClassForControlPort(port) ?? '') : ''}`.trim()
 }
 
 const SHAPE_BOX_SIZE: CSSProperties = { width: 80, height: 52 }
@@ -69,7 +111,7 @@ export function NodeShell({
 }) {
   const { updateNodeData } = useReactFlow()
   const [editing, setEditing] = useState(false)
-  const nodeType = useCatalogEntry(typeKey)
+  const nodeType = useCatalogEntry(data.catalogId, typeKey)
   const catalogHandles = useNodeHandles(nodeType)
   const handles = handlesOverride ?? catalogHandles
   const showSmallIcons = useIconZoomVisibility()
@@ -121,7 +163,11 @@ export function NodeShell({
           type="target"
           position={Position.Top}
           style={{ left: handleOffset(index, handles.top.length) }}
-          className={handle.kind === 'control' ? controlHandleClass : dataHandleAppearance(handle.type ?? 'any', showSmallIcons)}
+          className={
+            handle.kind === 'control'
+              ? controlHandleAppearance(handle.label, showSmallIcons)
+              : dataHandleAppearance(handle.type ?? 'any', showSmallIcons)
+          }
           title={handle.title}
         />
       ))}
@@ -132,7 +178,11 @@ export function NodeShell({
           type="source"
           position={Position.Bottom}
           style={{ left: handleOffset(index, handles.bottom.length) }}
-          className={handle.kind === 'control' ? controlHandleClass : dataHandleAppearance(handle.type ?? 'any', showSmallIcons)}
+          className={
+            handle.kind === 'control'
+              ? controlHandleAppearance(handle.label, showSmallIcons)
+              : dataHandleAppearance(handle.type ?? 'any', showSmallIcons)
+          }
           title={handle.title}
         />
       ))}
@@ -141,7 +191,7 @@ export function NodeShell({
           id={controlHandleId('error')}
           type="source"
           position={Position.Right}
-          className="!border-red !bg-red"
+          className={`!rounded-[3px] !border-red !bg-red ${showSmallIcons ? (iconClassForControlPort('error') ?? '') : ''}`.trim()}
           title={errorHandleTitle}
         />
       ) : null}
@@ -210,7 +260,7 @@ export function NodeShell({
       {editing ? (
         <NodeSettingsEditor
           nodeName={label}
-          typeKey={nodeTypeKey(nodeType.type, nodeType.typeVersion)}
+          typeKey={nodeType.type}
           description={nodeType.description}
           settings={settings}
           values={data.settings}

@@ -18,10 +18,15 @@ type Position struct {
 
 // Node is one placed instance of a catalog type.
 type Node struct {
-	ID          string   `json:"id"`
-	Type        string   `json:"type"`
-	TypeVersion string   `json:"typeVersion"`
-	Position    Position `json:"position"`
+	ID   string `json:"id"`
+	Type string `json:"type"`
+	// CatalogID names the exact catalog entry this instance was placed from
+	// — several entries may share Type (variations of one plugin, e.g. two
+	// core/start entries with different dataOut shapes), so this is what
+	// resolves it unambiguously. Empty on graphs saved before catalog
+	// entries carried an id; those fall back to an arbitrary match by Type.
+	CatalogID string   `json:"catalogId,omitempty"`
+	Position  Position `json:"position"`
 	// Settings holds the literal values the user entered, keyed by the
 	// catalog's setting names.
 	Settings map[string]any `json:"settings,omitempty"`
@@ -45,20 +50,20 @@ type Node struct {
 // knownNodeFields are the keys Node models directly; everything else in the
 // incoming object is preserved in Extra.
 var knownNodeFields = map[string]bool{
-	"id": true, "type": true, "typeVersion": true, "position": true,
+	"id": true, "type": true, "catalogId": true, "position": true,
 	"settings": true, "promoted": true, "label": true,
 }
 
 // nodeFields mirrors Node without the custom marshalling, so the encoder can
 // be reused without recursing.
 type nodeFields struct {
-	ID          string         `json:"id"`
-	Type        string         `json:"type"`
-	TypeVersion string         `json:"typeVersion"`
-	Position    Position       `json:"position"`
-	Settings    map[string]any `json:"settings,omitempty"`
-	Promoted    []string       `json:"promoted,omitempty"`
-	Label       string         `json:"label,omitempty"`
+	ID        string         `json:"id"`
+	Type      string         `json:"type"`
+	CatalogID string         `json:"catalogId,omitempty"`
+	Position  Position       `json:"position"`
+	Settings  map[string]any `json:"settings,omitempty"`
+	Promoted  []string       `json:"promoted,omitempty"`
+	Label     string         `json:"label,omitempty"`
 }
 
 // UnmarshalJSON decodes a node, routing unrecognised keys into Extra.
@@ -74,13 +79,13 @@ func (n *Node) UnmarshalJSON(data []byte) error {
 	}
 
 	*n = Node{
-		ID:          fields.ID,
-		Type:        fields.Type,
-		TypeVersion: fields.TypeVersion,
-		Position:    fields.Position,
-		Settings:    fields.Settings,
-		Promoted:    fields.Promoted,
-		Label:       fields.Label,
+		ID:        fields.ID,
+		Type:      fields.Type,
+		CatalogID: fields.CatalogID,
+		Position:  fields.Position,
+		Settings:  fields.Settings,
+		Promoted:  fields.Promoted,
+		Label:     fields.Label,
 	}
 	for key, value := range raw {
 		if knownNodeFields[key] {
@@ -97,13 +102,13 @@ func (n *Node) UnmarshalJSON(data []byte) error {
 // MarshalJSON re-emits the node with its preserved unknown fields.
 func (n Node) MarshalJSON() ([]byte, error) {
 	encoded, err := json.Marshal(nodeFields{
-		ID:          n.ID,
-		Type:        n.Type,
-		TypeVersion: n.TypeVersion,
-		Position:    n.Position,
-		Settings:    n.Settings,
-		Promoted:    n.Promoted,
-		Label:       n.Label,
+		ID:        n.ID,
+		Type:      n.Type,
+		CatalogID: n.CatalogID,
+		Position:  n.Position,
+		Settings:  n.Settings,
+		Promoted:  n.Promoted,
+		Label:     n.Label,
 	})
 	if err != nil {
 		return nil, err
@@ -154,6 +159,12 @@ type Edge struct {
 	// Only meaningful on data edges, and always a single registered name
 	// rather than a chain.
 	Transform string `json:"transform,omitempty"`
+	// Settings holds per-edge configuration — e.g. "recursive" on a data
+	// edge delivering a path, opened via double-clicking the edge in the
+	// editor. Unlike Node's Settings, this isn't catalog-declared (there is
+	// no per-type edge schema); each setting is a one-off the UI knows how
+	// to render for the edge's own data type.
+	Settings map[string]any `json:"settings,omitempty"`
 }
 
 // Graph is a stored workflow's node and edge content.

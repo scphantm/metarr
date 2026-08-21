@@ -22,6 +22,7 @@ export function toRFNode(node: GraphNode, registeredTypes: ReadonlySet<string>):
     settings: node.settings ?? {},
     promoted: node.promoted ?? [],
     label: node.label,
+    catalogId: node.catalogId,
     shapeColor: node.shapeColor,
     borderColor: node.borderColor,
   }
@@ -31,7 +32,7 @@ export function toRFNode(node: GraphNode, registeredTypes: ReadonlySet<string>):
       id: node.id,
       type: UNKNOWN_NODE_TYPE,
       position: node.position,
-      data: { ...data, catalogType: node.type, catalogTypeVersion: node.typeVersion },
+      data: { ...data, catalogType: node.type },
     }
   }
 
@@ -44,16 +45,15 @@ export function toRFNode(node: GraphNode, registeredTypes: ReadonlySet<string>):
 }
 
 export function fromRFNode(node: RFNode): GraphNode {
-  const data = node.data as Partial<CatalogNodeData> & { catalogType?: string; catalogTypeVersion?: string }
+  const data = node.data as Partial<CatalogNodeData> & { catalogType?: string }
   const type = data.catalogType ?? node.type ?? ''
-  const typeVersion = data.catalogTypeVersion ?? '1.0.0'
 
   const graphNode: GraphNode = {
     id: node.id,
     type,
-    typeVersion,
     position: { x: node.position.x, y: node.position.y },
   }
+  if (data.catalogId) graphNode.catalogId = data.catalogId
   if (data.settings && Object.keys(data.settings).length > 0) graphNode.settings = data.settings
   if (data.promoted && data.promoted.length > 0) graphNode.promoted = data.promoted
   if (data.label) graphNode.label = data.label
@@ -63,6 +63,7 @@ export function fromRFNode(node: RFNode): GraphNode {
 }
 
 export function toRFEdge(edge: GraphEdge): RFEdge {
+  const data = edge.transform || edge.settings ? { transform: edge.transform, settings: edge.settings } : undefined
   return {
     id: edge.id,
     type: edge.kind === 'control' ? 'controlEdge' : 'dataEdge',
@@ -70,7 +71,7 @@ export function toRFEdge(edge: GraphEdge): RFEdge {
     sourceHandle: edge.kind === 'control' ? controlHandleId(edge.from.port) : dataHandleId(edge.from.port),
     target: edge.to.node,
     targetHandle: edge.kind === 'control' ? controlHandleId(edge.to.port) : dataHandleId(edge.to.port),
-    data: edge.transform ? { transform: edge.transform } : undefined,
+    data,
   }
 }
 
@@ -85,8 +86,9 @@ export function fromRFEdge(edge: RFEdge): GraphEdge | null {
     from: { node: edge.source, port: from.name },
     to: { node: edge.target, port: to.name },
   }
-  const transform = (edge.data as { transform?: string } | undefined)?.transform
-  if (transform) graphEdge.transform = transform
+  const data = edge.data as { transform?: string; settings?: Record<string, unknown> } | undefined
+  if (data?.transform) graphEdge.transform = data.transform
+  if (data?.settings && Object.keys(data.settings).length > 0) graphEdge.settings = data.settings
   return graphEdge
 }
 
