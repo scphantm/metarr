@@ -44,13 +44,13 @@ export function NodePalette() {
       {isLoading ? <p className="px-1 text-xs text-ink-muted">Loading catalog…</p> : null}
       {isError ? <p className="px-1 text-xs text-red">Failed to load the node catalog.</p> : null}
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
         {[...groups.entries()].map(([category, groupEntries]) => (
-          <section key={category || 'uncategorized'}>
-            <h3 className="mb-1.5 px-1 text-[11px] tracking-wide text-ink-muted uppercase">
+          <details key={category || 'uncategorized'} className="rounded border border-edge-strong/40">
+            <summary className="cursor-pointer px-2 py-1.5 text-[11px] font-semibold tracking-wide text-ink-muted uppercase select-none hover:text-ink-strong">
               {category || 'Uncategorized'}
-            </h3>
-            <div className="flex flex-col gap-1.5">
+            </summary>
+            <div className="flex flex-col gap-1.5 border-t border-edge-strong/40 p-2">
               {groupEntries.map((entry) => (
                 <div
                   key={entry.type}
@@ -72,7 +72,7 @@ export function NodePalette() {
                 </div>
               ))}
             </div>
-          </section>
+          </details>
         ))}
       </div>
 

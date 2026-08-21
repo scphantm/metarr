@@ -8,7 +8,7 @@ import { ApiError } from './api/client'
 import { AuthProvider } from './auth/AuthContext'
 import { ThemeProvider } from './theme/ThemeContext'
 import './index.css'
-import './shapes.css'
+import './lib/icons/typeIcons.css'
 
 const queryClient = new QueryClient({
   defaultOptions: {

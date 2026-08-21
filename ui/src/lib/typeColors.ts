@@ -64,6 +64,12 @@ const handleClasses: Record<AccentToken, string> = {
   base1: '!bg-base1',
 }
 
+// xyflow's default handle size (~6px) is too small to read an icon shape at
+// — bumped to 12px, just above controlHandleClass's 10px, uniformly for
+// every data handle regardless of whether that type has an icon, so icon
+// and icon-less handles stay visually consistent with each other.
+const HANDLE_SIZE_CLASS = '!h-3 !w-3'
+
 export function dataHandleClass(type: Type): string {
-  return handleClasses[accentTokenForType(type)]
+  return `${handleClasses[accentTokenForType(type)]} ${HANDLE_SIZE_CLASS}`
 }

@@ -2,8 +2,10 @@ import { useState, type CSSProperties } from 'react'
 import { Handle, Position, useReactFlow } from '@xyflow/react'
 
 import { dataHandleClass } from '../../../../lib/typeColors'
+import { iconClassForType } from '../../../../lib/typeIcons'
 import { controlHandleId } from '../../connectionRules'
 import { useCatalogEntry } from '../../useCatalogEntry'
+import { useIconZoomVisibility } from '../../useIconZoomVisibility'
 import { nodeTypeKey, type CatalogNodeData } from '../../catalogTypes'
 import { EditIcon } from './EditIcon'
 import { NodeSettingsEditor } from './NodeSettingsEditor'
@@ -15,7 +17,6 @@ import {
   type Accent,
 } from './nodeVisual'
 import { errorHandleTitle, handleOffset, useNodeHandles, type ArrangedHandles } from './useNodeHandles'
-import '../../../../shapes.css'
 
 /*
  * The common chrome every catalog-driven node is built on: a transparent,
@@ -39,6 +40,16 @@ import '../../../../shapes.css'
 // the two port kinds read as visually different before a drag even starts.
 const controlHandleClass = '!rounded-[3px] !h-2.5 !w-2.5 !border-ink-strong !bg-ink-strong'
 
+// A data handle's color (dataHandleClass) and, when its type has one
+// registered, an icon mask on top (iconClassForType) — see lib/typeIcons.ts.
+// A type with no icon composes to just the color class, unchanged from
+// before this existed. showIcon is useIconZoomVisibility() — the icon mask
+// only shows at maximum zoom, leaving just the plain color dot otherwise;
+// see that hook's comment for why.
+function dataHandleAppearance(type: string, showIcon: boolean): string {
+  return `${dataHandleClass(type)} ${showIcon ? (iconClassForType(type) ?? '') : ''}`.trim()
+}
+
 const SHAPE_BOX_SIZE: CSSProperties = { width: 80, height: 52 }
 
 export function NodeShell({
@@ -61,6 +72,7 @@ export function NodeShell({
   const nodeType = useCatalogEntry(typeKey)
   const catalogHandles = useNodeHandles(nodeType)
   const handles = handlesOverride ?? catalogHandles
+  const showSmallIcons = useIconZoomVisibility()
 
   if (!nodeType) {
     // The catalog hasn't loaded yet, or (should not happen if
@@ -109,7 +121,7 @@ export function NodeShell({
           type="target"
           position={Position.Top}
           style={{ left: handleOffset(index, handles.top.length) }}
-          className={handle.kind === 'control' ? controlHandleClass : dataHandleClass(handle.type ?? 'any')}
+          className={handle.kind === 'control' ? controlHandleClass : dataHandleAppearance(handle.type ?? 'any', showSmallIcons)}
           title={handle.title}
         />
       ))}
@@ -120,7 +132,7 @@ export function NodeShell({
           type="source"
           position={Position.Bottom}
           style={{ left: handleOffset(index, handles.bottom.length) }}
-          className={handle.kind === 'control' ? controlHandleClass : dataHandleClass(handle.type ?? 'any')}
+          className={handle.kind === 'control' ? controlHandleClass : dataHandleAppearance(handle.type ?? 'any', showSmallIcons)}
           title={handle.title}
         />
       ))}
@@ -158,7 +170,11 @@ export function NodeShell({
         <div
           className={`pointer-events-none absolute right-0 bottom-0 h-1/2 w-1/2 ${quadrantColors[3] ? accentTintClassForAccent(quadrantColors[3] as Accent, 40) : ''}`}
         />
-        <div className={`shape ${visual.shapeClassName} ${visual.shapeExtraClassName ?? ''}`} />
+        {visual.shapeIsIcon ? (
+          <div className={`shape-icon ${visual.shapeClassName} ${visual.shapeExtraClassName ?? ''}`} />
+        ) : (
+          <div className={`shape ${visual.shapeClassName} ${visual.shapeExtraClassName ?? ''}`} />
+        )}
         <div className="absolute inset-0 flex items-center justify-center px-1.5">
           <span
             className="text-center text-[10px] leading-tight font-semibold text-ink-strong"

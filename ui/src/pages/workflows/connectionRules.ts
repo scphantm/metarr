@@ -45,11 +45,18 @@ export function isSubtypeOf(sub: Type, superType: Type): boolean {
 export type TypeConnection = {
   direct: boolean
   candidates: Transform[]
+  // See types.go's Connection.TypeUnsafe: true when this Direct connection
+  // is a narrowing (supertype -> subtype) rather than the safe covariant
+  // direction — structural, not scoped to any one type family.
+  typeUnsafe?: boolean
 }
 
 export function canConnect(from: Type, to: Type, transforms: Transform[]): TypeConnection {
   if (isSubtypeOf(from, to)) {
     return { direct: true, candidates: [] }
+  }
+  if (isSubtypeOf(to, from)) {
+    return { direct: true, candidates: [], typeUnsafe: true }
   }
   const candidates = transforms.filter(
     (transform) => isSubtypeOf(from, transform.from) && isSubtypeOf(transform.to, to),

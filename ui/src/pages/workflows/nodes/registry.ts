@@ -37,6 +37,8 @@ import { FormatNode } from './string/FormatNode'
 import { ParseNumberNode } from './string/ParseNumberNode'
 import { RegexMatchNode } from './string/RegexMatchNode'
 import { TrimNode } from './string/TrimNode'
+import {IsDirNode} from "@/pages/workflows/nodes/fs/IsDirNode.tsx";
+import {IsFileNode} from "@/pages/workflows/nodes/fs/IsFileNode.tsx";
 
 /*
  * Every catalog entry gets its own registered React Flow node component —
@@ -69,6 +71,8 @@ export const nodeTypes: Record<string, ComponentType<NodeProps<Node<CatalogNodeD
   'fs/copyFile': CopyFileNode,
   'fs/deleteFile': DeleteFileNode,
   'fs/exists': ExistsNode,
+  'fs/isdir': IsDirNode,
+  'fs/isfile': IsFileNode,
   'fs/makeDirectory': MakeDirectoryNode,
   'fs/fileSize': FileSizeNode,
   'fs/readTextFile': ReadTextFileNode,

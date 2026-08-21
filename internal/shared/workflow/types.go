@@ -59,6 +59,18 @@ const (
 	TypeError Type = "error"
 )
 
+// Names for the generic list<T> instantiations used by the path family — not
+// new leaf types, just symbolic aliases for list<path>/list<path.dir>/
+// list<path.file> so Go code and tests can write TypePathListFile instead of
+// the string literal. var, not const: ListOf is a function call. catalog.json
+// may still write "list<path.file>" etc. literally; nothing requires a node
+// to use these.
+var (
+	TypePathList     = ListOf(TypePath)
+	TypePathListDir  = ListOf(TypePathDir)
+	TypePathListFile = ListOf(TypePathFile)
+)
+
 const (
 	listPrefix = "list<"
 	listSuffix = ">"
@@ -124,6 +136,18 @@ type Transform struct {
 	// defensible and guessing wrong is silent. The UI always prompts.
 	Ambiguous bool   `json:"ambiguous,omitempty"`
 	Summary   string `json:"summary,omitempty"`
+	// ImpliesIteration marks a transform whose value production is
+	// one-to-many at the data level — eachFile fans a directory out to one
+	// run per file, the way a SQL UNNEST fans a column out to one row per
+	// element, without the graph author drawing an explicit loop. This is
+	// deliberately NOT a control-flow construct: neither side is a list<T>,
+	// no new frame or token is created, and no whole-graph analysis
+	// (parallel/join arity, MustHaveRun) needs to reason about it — it's
+	// local detail on one edge, the same category as a future string->date
+	// transform needing a format parameter. The engine does not yet execute
+	// the implied fan-out (design.md §13); today this is UI/documentation
+	// metadata that drives the editor's iteration badge.
+	ImpliesIteration bool `json:"implies_iteration,omitempty"`
 }
 
 // transformRegistry is the complete set of explicit conversions. Anything not
@@ -132,6 +156,10 @@ var transformRegistry = []Transform{
 	{
 		Name: "parentDir", From: TypePathFile, To: TypePathDir,
 		Summary: "The directory containing the file",
+	},
+	{
+		Name: "eachFile", From: TypePathDir, To: TypePathFile, ImpliesIteration: true,
+		Summary: "Every file in the directory, one per downstream run",
 	},
 	{
 		Name: "toString", From: TypePath, To: TypeString,
@@ -206,6 +234,14 @@ type Connection struct {
 	// Candidates are the explicit transforms that would bridge the gap, in
 	// registry order. Empty when Direct is true.
 	Candidates []Transform
+	// TypeUnsafe marks a Direct connection made by narrowing — the source
+	// declares a supertype and the target declares one of its subtypes
+	// (e.g. path -> path.dir). Structural, not scoped to any one type
+	// family: it fires whenever IsSubtypeOf(to, from) rather than the safe,
+	// covariant IsSubtypeOf(from, to). The graph cannot verify at author
+	// time that the runtime value really is the narrower type, so it's
+	// allowed but flagged — see design.md §4.3.
+	TypeUnsafe bool
 }
 
 // Allowed reports whether the connection may be made at all.
@@ -233,6 +269,9 @@ func (c Connection) AutoApply() (Transform, bool) {
 func CanConnect(from, to Type) Connection {
 	if IsSubtypeOf(from, to) {
 		return Connection{Direct: true}
+	}
+	if IsSubtypeOf(to, from) {
+		return Connection{Direct: true, TypeUnsafe: true}
 	}
 
 	var candidates []Transform

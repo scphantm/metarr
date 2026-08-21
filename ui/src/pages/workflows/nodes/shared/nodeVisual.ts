@@ -20,12 +20,20 @@
  *              destructive (move, delete, update) -> magenta;
  *              create + destroy / complex -> violet
  *
- * Shapes deliberately not used: .display, .subroutine, .internal-storage,
- * .gate — all four fake a concave cutout by painting a page-background-
- * colored pseudo-element over the shape, which only works against a solid
- * background. Node cards are transparent, so every shape below is either a
- * pure clip-path/border-radius silhouette or an additive (same-color, not
- * background-matching) pseudo-element.
+ * Every entry now uses a generated icon (iconVisual(), shapeIsIcon: true) —
+ * a CSS-class mask, same mechanism as the data-type icons in
+ * lib/typeIcons.ts (never a rendered icon-library component, see
+ * eslint.config.js's no-restricted-imports rule); the icon and its class
+ * name are visible directly on the relevant line below, not repeated here.
+ * The standalone shapes.css clip-path/border-radius shape system (decision
+ * diamonds, terminators, the document wave, etc.) was retired once its last
+ * consumer moved to an icon and deleted outright — what's still load-bearing
+ * (.box, .shape, .shape-icon, the .color-<accent> classes, and the
+ * --accent/--accent-dim/--page-bg vars they resolve) now lives in
+ * index.css. `process` never had a real CSS rule (shapes.css used to note
+ * "plain rectangle, no extra rule needed" — just the bare .shape box);
+ * DEFAULT below still names it as the fallback for a catalog type with no
+ * entry yet, resolving to an unstyled .shape rectangle via index.css.
  */
 
 export type Accent = 'red' | 'orange' | 'yellow' | 'green' | 'cyan' | 'blue' | 'violet' | 'magenta'
@@ -40,6 +48,12 @@ export type NodeVisual = {
   // sets it to the same value — the hover-reveal border (NodeShell.tsx)
   // needs both resolvable on their own.
   borderAccent: Accent
+  // True when shapeClassName names a generated icon-mask class
+  // (lib/icons/typeIcons.css) rather than a plain index.css .shape div —
+  // NodeShell.tsx renders the two differently (a masked icon vs. a filled
+  // shape rectangle). Explicit, never inferred from the class name,
+  // matching this table's "nothing here is derived" rule.
+  shapeIsIcon?: boolean
 }
 
 // Literal so Tailwind's scanner can find every possible result written out
@@ -73,9 +87,9 @@ const HOVER_BORDER_CLASS: Record<Accent, string> = {
 }
 
 // Unlike the two maps above, these are safe to build from a template —
-// color-<token> and accent-<token>-<opacity> are hand-written classes
-// (shapes.css and index.css respectively), not Tailwind utilities, so they
-// were never subject to the "must appear verbatim in source" scanning rule.
+// color-<token> and accent-<token>-<opacity> are both hand-written classes
+// in index.css, not Tailwind utilities, so they were never subject to the
+// "must appear verbatim in source" scanning rule.
 export function shapeColorClassForAccent(accent: Accent): string {
   return `color-${accent}`
 }
@@ -113,52 +127,61 @@ function visual(
   }
 }
 
+// Same contract as visual(), for the icon-backed shapes (shapeIsIcon: true)
+// — see the file header and index.css's .shape-icon.
+function iconVisual(shapeClassName: string, shapeAccent: Accent, options?: { border?: Accent }): NodeVisual {
+  return {
+    shapeClassName,
+    shapeAccent,
+    borderAccent: options?.border ?? shapeAccent,
+    shapeIsIcon: true,
+  }
+}
+
 const definitions: Record<string, NodeVisual> = {
-  'core/start': visual('terminator', 'cyan'),
-  'core/inputPath': visual('data-shape', 'cyan'),
+  'core/start': iconVisual('shape-start', 'cyan'),
+  'core/inputPath': iconVisual('shape-input', 'cyan'),
   // The graph's one committing action — stands out from the plain exits
   // around it rather than reading as an ordinary terminator.
-  'core/writeChanges': visual('terminator', 'magenta'),
+  'core/writeChanges': iconVisual('shape-write-changes', 'magenta'),
   // The graph's one error terminal.
-  'core/errorOutput': visual('terminator', 'red'),
-  'core/note': visual('document', 'cyan'),
-  'core/checkFlowVariable': visual('decision', 'yellow'),
-  'core/trickplay': visual('process', 'violet'),
-  'core/forEach': visual('loop-limit', 'cyan'),
-  'core/collect': visual('stored-data', 'cyan'),
-  // Same .merge triangle as join, just rotated — point-top/wide-bottom reads
-  // as "one becomes many," matching parallel's single top-in/multi bottom-out.
-  'core/parallel': visual('merge', 'cyan', { extraClass: 'rotate-180' }),
-  // Wide-top/point-bottom reads as "many become one," matching join's multi
-  // top-in/single bottom-out.
-  'core/join': visual('merge', 'cyan'),
-  'core/break': visual('terminator', 'cyan'),
-  'core/end': visual('terminator', 'cyan'),
-  'core/fail': visual('triangle', 'red'),
+  'core/errorOutput': iconVisual('shape-error-output', 'red'),
+  'core/note': iconVisual('shape-note', 'cyan'),
+  'core/checkFlowVariable': iconVisual('shape-decision', 'yellow'),
+  'core/trickplay': iconVisual('shape-trickplay', 'violet'),
+  'core/forEach': iconVisual('shape-for-each', 'cyan'),
+  'core/collect': iconVisual('shape-collect', 'cyan'),
+  'core/parallel': iconVisual('shape-parallel', 'cyan'),
+  'core/join': iconVisual('shape-join', 'cyan'),
+  'core/break': iconVisual('shape-break', 'cyan'),
+  'core/end': iconVisual('shape-end', 'cyan'),
+  'core/fail': iconVisual('shape-fail', 'red'),
 
-  'fs/listDirectory': visual('process', 'blue'),
-  'fs/moveFile': visual('process', 'magenta'),
-  'fs/copyFile': visual('process', 'green'),
-  'fs/deleteFile': visual('process', 'magenta'),
-  'fs/exists': visual('decision', 'yellow'),
-  'fs/makeDirectory': visual('process', 'green'),
-  'fs/fileSize': visual('process', 'blue'),
-  'fs/readTextFile': visual('process', 'blue'),
-  'fs/writeTextFile': visual('process', 'magenta'),
+  'fs/listDirectory': iconVisual('shape-list-directory', 'blue'),
+  'fs/moveFile': iconVisual('shape-move-file', 'magenta'),
+  'fs/copyFile': iconVisual('shape-copy-file', 'green'),
+  'fs/deleteFile': iconVisual('shape-delete-file', 'magenta'),
+  'fs/exists': iconVisual('shape-decision', 'yellow'),
+  'fs/isdir': iconVisual('shape-decision', 'yellow'),
+  'fs/isfile': iconVisual('shape-decision', 'yellow'),
+  'fs/makeDirectory': iconVisual('shape-make-directory', 'green'),
+  'fs/fileSize': iconVisual('shape-file-size', 'blue'),
+  'fs/readTextFile': iconVisual('shape-read-text-file', 'blue'),
+  'fs/writeTextFile': iconVisual('shape-write-text-file', 'magenta'),
 
-  'media/probe': visual('process', 'blue'),
-  'media/transcode': visual('process', 'green'),
-  'media/extractStream': visual('process', 'green'),
-  'media/generateThumbnail': visual('process', 'green'),
+  'media/probe': iconVisual('shape-probe', 'blue'),
+  'media/transcode': iconVisual('shape-transcode', 'green'),
+  'media/extractStream': iconVisual('shape-extract-stream', 'green'),
+  'media/generateThumbnail': iconVisual('shape-generate-thumbnail', 'green'),
 
-  'nfo/read': visual('process', 'blue'),
-  'nfo/write': visual('process', 'magenta'),
+  'nfo/read': iconVisual('shape-nfo-read', 'blue'),
+  'nfo/write': iconVisual('shape-nfo-write', 'magenta'),
 
-  'string/format': visual('process', 'blue'),
-  'string/regexMatch': visual('decision', 'blue'),
-  'string/concat': visual('process', 'blue'),
-  'string/parseNumber': visual('decision', 'blue'),
-  'string/trim': visual('process', 'blue'),
+  'string/format': iconVisual('shape-format', 'blue'),
+  'string/regexMatch': iconVisual('shape-regex-match', 'blue'),
+  'string/concat': iconVisual('shape-concat', 'blue'),
+  'string/parseNumber': iconVisual('shape-parse-number', 'blue'),
+  'string/trim': iconVisual('shape-trim', 'blue'),
 }
 
 // Never a derivation from kind/category — just the same "don't render
