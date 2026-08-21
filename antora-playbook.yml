@@ -1,0 +1,50 @@
+site:
+  title: Metarr Documentation
+  start_page: metarr::index.adoc
+
+content:
+  sources:
+  - url: ./
+    branches: HEAD
+    start_path: documentation
+
+ui:
+  bundle:
+    url: ./documentation-theme/build/ui-bundle.zip
+    snapshot: true
+    # supplemental_files: ../documentation-theme-supplemental-ui
+
+output:
+  dir: ./build/site
+  destinations:
+    - provider: fs
+    - provider: archive
+
+antora:
+  # https://github.com/lask79/antora-shiki-extension
+  # https://github.com/shikijs/shiki/
+  extensions:
+    - '@antora/pdf-extension'
+    - require: '@antora/lunr-extension'
+    - require: 'antora-shiki-extension'
+      languages: # default: see this list
+        - bash
+        - console
+        - js
+        - shell
+        - ruby
+        - docker
+        - yaml
+      use_line_numbers: true
+      theme: solarized-dark
+asciidoc:
+  extensions:
+    - '@asciidoctor/tabs'
+    - 'asciidoctor-kroki'
+  attributes:
+    kroki-fetch-diagram: true
+    kroki-default-format: svg
+    source-highlighter: shiki
+runtime:
+  log:
+    level: info
