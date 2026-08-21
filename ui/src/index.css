@@ -117,6 +117,72 @@
 .accent-magenta-60 { background-color: color-mix(in srgb, var(--color-magenta) 60%, transparent); }
 .accent-magenta-80 { background-color: color-mix(in srgb, var(--color-magenta) 80%, transparent); }
 
+/*
+ * Workflow node shape chrome (nodes/shared/NodeShell.tsx, nodeVisual.ts) —
+ * migrated here from the now-deleted shapes.css once every node's shape
+ * became a generated icon (lib/icons/typeIcons.css) and the standalone
+ * clip-path shape library it used to hold had nothing left using it.
+ * --accent/--accent-dim/--page-bg are meant to be overridden per node
+ * instance by whatever consumes them; the defaults below are just a sane
+ * fallback, kept on the app's real Solarized tokens so an unstyled shape is
+ * never a jarring off-palette color and stays dark/light-theme-correct
+ * automatically.
+ */
+:root {
+  --accent: color-mix(in srgb, var(--color-blue) 80%, transparent);
+  --accent-dim: var(--color-cyan);
+  --page-bg: var(--color-canvas);
+
+  /* Distance a data edge's endpoint type icon (edges/DataEdge.tsx) sits off
+     its handle, slid along the edge so it doesn't overlap the handle dot. */
+  --data-edge-icon-offset: 20px;
+}
+
+/* Per-node color as a class, not an inline style — see nodeVisual.ts's
+ * shapeColorClassForAccent. A shape's primary fill sits at 80% opacity
+ * rather than the fully-opaque accent, to match this file's own
+ * accent-<color>-N tints above. */
+.color-red { --accent: color-mix(in srgb, var(--color-red) 80%, transparent); }
+.color-orange { --accent: color-mix(in srgb, var(--color-orange) 80%, transparent); }
+.color-yellow { --accent: color-mix(in srgb, var(--color-yellow) 80%, transparent); }
+.color-green { --accent: color-mix(in srgb, var(--color-green) 80%, transparent); }
+.color-cyan { --accent: color-mix(in srgb, var(--color-cyan) 80%, transparent); }
+.color-blue { --accent: color-mix(in srgb, var(--color-blue) 80%, transparent); }
+.color-violet { --accent: color-mix(in srgb, var(--color-violet) 80%, transparent); }
+.color-magenta { --accent: color-mix(in srgb, var(--color-magenta) 80%, transparent); }
+
+.box {
+  flex-shrink: 0;
+  width: 100px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Plain filled rectangle — the DEFAULT fallback (nodeVisual.ts) for a
+ * catalog type with no explicit entry yet. Every declared node now uses
+ * .shape-icon instead. */
+.shape {
+  width: 100%;
+  height: 100%;
+  background: var(--accent);
+  position: relative;
+}
+
+/* Icon-backed shapes (nodeVisual.ts's iconVisual — e.g. decision nodes as
+ * TbBinaryTreeFilled, the input node as MdInput) render a generated icon
+ * mask (lib/icons/typeIcons.css) instead of a filled rectangle. `color`,
+ * not `background`, carries --accent here: the mask trick recolors through
+ * currentColor. */
+.shape-icon {
+  width: 100%;
+  height: 100%;
+  display: block;
+  color: var(--accent);
+}
+
 html,
 body,
 #root {
@@ -163,4 +229,49 @@ body {
 
 .diagnostic-blink {
   animation: diagnostic-blink 0.6s ease-in-out infinite;
+}
+
+/* Data edge (edges/DataEdge.tsx) presentation, pulled out of inline styles
+   so per-edge JS only ever passes numbers (coordinates, unit direction)
+   across as custom properties — never composes CSS in JS. */
+
+.data-edge-path {
+  stroke: var(--color-orange);
+  stroke-width: 1.5;
+  opacity: 0.85;
+}
+
+.data-edge-path.is-selected {
+  opacity: 1;
+}
+
+.data-edge-path.is-transformed {
+  stroke-dasharray: 4 3;
+}
+
+/* Both the transform-chip label and the endpoint type icons are absolutely
+   positioned at a point given in flow coordinates, via EdgeLabelRenderer —
+   which does not itself center its children, hence the -50%/-50% first
+   translate. --edge-x/--edge-y carry the point (already in px); the second
+   translate stays pure CSS. */
+.data-edge-transform-chip {
+  position: absolute;
+  transform: translate(-50%, -50%) translate(var(--edge-x), var(--edge-y));
+}
+
+/* Endpoint type icon (+ iterate/warning badge). --edge-ux/--edge-uy are a
+   unit direction (-1/0/1) — see edges/DataEdge.tsx's OUTWARD_UNIT — scaled
+   by --data-edge-icon-offset so the slide distance is a CSS knob, not a
+   number in the component. */
+.data-edge-endpoint {
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--color-orange);
+  transform: translate(-50%, -50%) translate(
+    calc(var(--edge-x) + var(--data-edge-icon-offset) * var(--edge-ux)),
+    calc(var(--edge-y) + var(--data-edge-icon-offset) * var(--edge-uy))
+  );
 }

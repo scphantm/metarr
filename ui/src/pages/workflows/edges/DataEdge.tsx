@@ -1,9 +1,23 @@
-import { useState } from 'react'
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, useReactFlow, type Edge, type EdgeProps } from '@xyflow/react'
+import { useState, type CSSProperties } from 'react'
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, Position, useReactFlow, type Edge, type EdgeProps } from '@xyflow/react'
 
+import { iconClassForType, ITERATE_ICON_CLASS, TYPE_UNSAFE_ICON_CLASS } from '../../../lib/typeIcons'
 import { canConnect, parseHandleId } from '../connectionRules'
 import { useCatalogEntry, useTransforms } from '../useCatalogEntry'
+import { useIconZoomVisibility } from '../useIconZoomVisibility'
 import { TransformPicker } from './TransformPicker'
+
+// The unit direction a handle's own position "faces" — used to slide an
+// endpoint icon along the edge, away from its node, toward the middle (see
+// index.css's --data-edge-icon-offset). Both ends use this on their own
+// position: a source's outward direction and a target's outward direction
+// point into the path from opposite sides.
+const OUTWARD_UNIT: Record<Position, { ux: number; uy: number }> = {
+  [Position.Top]: { ux: 0, uy: -1 },
+  [Position.Bottom]: { ux: 0, uy: 1 },
+  [Position.Left]: { ux: -1, uy: 0 },
+  [Position.Right]: { ux: 1, uy: 0 },
+}
 
 /*
  * The one shared data-edge component: thin, static, theme orange (the wire
@@ -12,7 +26,21 @@ import { TransformPicker } from './TransformPicker'
  * lib/typeColors.ts, unchanged), dashed when a transform is applied. The
  * transform — if any — shows as a clickable chip (design.md §4.4's "small
  * chip on the edge reading e.g. parentDir"); clicking it reopens
- * TransformPicker to change or clear the conversion.
+ * TransformPicker to change or clear the conversion. All of this is real CSS
+ * (index.css's .data-edge-* classes) — the component only ever passes
+ * coordinates and a unit direction across as custom-property values, never
+ * composes styling in JS.
+ *
+ * Both ends also show the type icon for that end's socket (lib/typeIcons.ts,
+ * same lookup NodeShell.tsx's handles use — single source of truth), and the
+ * source end additionally shows an iteration badge when the active
+ * transform has implies_iteration set (design.md §4.3's ETL transforms,
+ * e.g. eachFile) — a data edge, not a control-flow construct. The target end
+ * shows a warning badge instead when the connection itself is TypeUnsafe
+ * (design.md §4.3's narrowing rule) — generic, not scoped to any one type
+ * family. These endpoint icons only show at maximum zoom (useIconZoomVisibility,
+ * shared with NodeShell.tsx's handle icons) — the transform chip does not,
+ * since it's a text label rather than a small icon.
  */
 
 // diagnosticHighlight is set by WorkflowCanvas.tsx while the user hovers a
@@ -40,6 +68,7 @@ export function DataEdge({
   const { getNode, updateEdgeData } = useReactFlow()
   const [pickerOpen, setPickerOpen] = useState(false)
   const transforms = useTransforms()
+  const showSmallIcons = useIconZoomVisibility()
 
   const sourceNode = getNode(source)
   const targetNode = getNode(target)
@@ -51,8 +80,14 @@ export function DataEdge({
   const sourceSocket = sourceNodeType?.dataOut?.find((socket) => socket.name === sourceSocketName)
   const targetSocket = targetNodeType?.dataIn?.find((socket) => socket.name === targetSocketName)
 
-  const color = 'var(--color-orange)'
   const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
+
+  const connectionInfo = sourceSocket && targetSocket ? canConnect(sourceSocket.type, targetSocket.type, transforms) : undefined
+  const activeTransform = data?.transform ? transforms.find((candidate) => candidate.name === data.transform) : undefined
+  const sourceIconClass = sourceSocket ? iconClassForType(sourceSocket.type) : undefined
+  const targetIconClass = targetSocket ? iconClassForType(targetSocket.type) : undefined
+  const sourceUnit = OUTWARD_UNIT[sourcePosition]
+  const targetUnit = OUTWARD_UNIT[targetPosition]
 
   return (
     <g className={data?.diagnosticHighlight ? 'diagnostic-blink' : undefined}>
@@ -60,19 +95,14 @@ export function DataEdge({
         id={id}
         path={path}
         markerEnd={markerEnd}
-        style={{
-          stroke: color,
-          strokeWidth: 1.5,
-          strokeDasharray: data?.transform ? '4 3' : undefined,
-          opacity: selected ? 1 : 0.85,
-        }}
+        className={`data-edge-path${data?.transform ? ' is-transformed' : ''}${selected ? ' is-selected' : ''}`}
       />
 
       {data?.transform ? (
         <EdgeLabelRenderer>
           <div
-            style={{ position: 'absolute', transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
-            className="nodrag nopan pointer-events-auto"
+            style={{ '--edge-x': `${labelX}px`, '--edge-y': `${labelY}px` } as CSSProperties}
+            className="data-edge-transform-chip nodrag nopan pointer-events-auto"
           >
             <button
               type="button"
@@ -85,24 +115,47 @@ export function DataEdge({
         </EdgeLabelRenderer>
       ) : null}
 
-      {pickerOpen && sourceSocket && targetSocket
-        ? (() => {
-            const connection = canConnect(sourceSocket.type, targetSocket.type, transforms)
-            return (
-              <TransformPicker
-                fromType={sourceSocket.type}
-                toType={targetSocket.type}
-                candidates={connection.candidates}
-                current={data?.transform}
-                onPick={(name) => {
-                  void updateEdgeData(id, { transform: name })
-                  setPickerOpen(false)
-                }}
-                onClose={() => setPickerOpen(false)}
-              />
-            )
-          })()
-        : null}
+      {showSmallIcons && (sourceIconClass || targetIconClass) ? (
+        <EdgeLabelRenderer>
+          {sourceIconClass ? (
+            <div
+              style={{ '--edge-x': `${sourceX}px`, '--edge-y': `${sourceY}px`, '--edge-ux': sourceUnit.ux, '--edge-uy': sourceUnit.uy } as CSSProperties}
+              className="data-edge-endpoint"
+            >
+              <span className={`${sourceIconClass} block h-2.5 w-2.5`} />
+              {activeTransform?.implies_iteration ? <span className={`${ITERATE_ICON_CLASS} block h-2.5 w-2.5`} /> : null}
+            </div>
+          ) : null}
+          {targetIconClass ? (
+            <div
+              style={{ '--edge-x': `${targetX}px`, '--edge-y': `${targetY}px`, '--edge-ux': targetUnit.ux, '--edge-uy': targetUnit.uy } as CSSProperties}
+              className="data-edge-endpoint"
+            >
+              <span className={`${targetIconClass} block h-2.5 w-2.5`} />
+              {connectionInfo?.typeUnsafe ? (
+                <span
+                  className={`${TYPE_UNSAFE_ICON_CLASS} block h-2.5 w-2.5 pointer-events-auto`}
+                  title="Not rigidly type safe — the connected value's actual type isn't guaranteed to match."
+                />
+              ) : null}
+            </div>
+          ) : null}
+        </EdgeLabelRenderer>
+      ) : null}
+
+      {pickerOpen && sourceSocket && targetSocket && connectionInfo ? (
+        <TransformPicker
+          fromType={sourceSocket.type}
+          toType={targetSocket.type}
+          candidates={connectionInfo.candidates}
+          current={data?.transform}
+          onPick={(name) => {
+            void updateEdgeData(id, { transform: name })
+            setPickerOpen(false)
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
+      ) : null}
     </g>
   )
 }

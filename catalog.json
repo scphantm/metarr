@@ -318,6 +318,32 @@
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
   },
   {
+    "type": "fs/isdir",
+    "typeVersion": "1.0.0",
+    "name": "Is Directory?",
+    "category": "filesystem",
+    "kind": "branch",
+    "description": "Checks if the path is a directory or not",
+    "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
+    "dataIn": [
+      { "name": "target", "label": "Path", "type": "path", "required": true }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
+  },
+  {
+    "type": "fs/isfile",
+    "typeVersion": "1.0.0",
+    "name": "Is File?",
+    "category": "filesystem",
+    "kind": "branch",
+    "description": "Checks if the path is a file or not",
+    "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
+    "dataIn": [
+      { "name": "target", "label": "Path", "type": "path", "required": true }
+    ],
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
+  },
+  {
     "type": "fs/makeDirectory",
     "typeVersion": "1.0.0",
     "name": "Make Directory",

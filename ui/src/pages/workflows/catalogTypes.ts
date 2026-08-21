@@ -23,6 +23,7 @@ export type Transform = {
   to: Type
   ambiguous?: boolean
   summary?: string
+  implies_iteration?: boolean
 }
 
 // ---- catalog.go ---------------------------------------------------------

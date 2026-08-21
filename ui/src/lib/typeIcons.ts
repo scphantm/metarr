@@ -1,0 +1,52 @@
+import type { Type } from '../pages/workflows/catalogTypes'
+import { elementType, isListType } from '../pages/workflows/connectionRules'
+
+/*
+ * Maps a workflow socket Type to a CSS class from lib/icons/typeIcons.css
+ * (mask-image + currentColor — see that file and scripts/generate-icons.mjs
+ * for how the classes are produced). react-icons is a devDependency used
+ * only by that generation script; nothing under src/ imports it directly —
+ * enforced by eslint.config.js's no-restricted-imports rule. The icon
+ * itself is never embedded in markup, only a semantic class name.
+ *
+ * Same shape as typeColors.ts's prefixAccents: a small ordered literal
+ * list, longest/most-specific prefix first, deliberately not exhaustive —
+ * a type with no listed icon renders no icon at all (falls through to
+ * undefined), which must not regress that type's existing (non-icon)
+ * appearance. Extend this list as new type families get icons; nothing
+ * else needs to change.
+ */
+
+// Longest/most-specific prefix first — 'path' is the generic fallback for
+// any path.* subtype not already claimed by a more specific entry above it
+// (e.g. path.dir, path.file), so it must stay last.
+const prefixIcons: [string, string][] = [
+  ['path.dir', 'icon-directory'],
+  ['path.file', 'icon-file'],
+  ['path', 'icon-tree'],
+]
+
+export function iconClassForType(type: Type): string | undefined {
+  if (isListType(type)) {
+    const inner = elementType(type) ?? ''
+    if (inner === 'path.dir' || inner.startsWith('path.dir.')) return 'icon-list-directory'
+    if (inner === 'path.file' || inner.startsWith('path.file.')) return 'icon-list-file'
+    if (inner === 'path' || inner.startsWith('path.')) return 'icon-list'
+    return undefined
+  }
+  for (const [prefix, className] of prefixIcons) {
+    if (type === prefix || type.startsWith(`${prefix}.`)) return className
+  }
+  return undefined
+}
+
+// The badge shown next to a data edge's source-end icon when its active
+// transform implies an iterator (Transform.implies_iteration) — see
+// edges/DataEdge.tsx.
+export const ITERATE_ICON_CLASS = 'icon-iterate'
+
+// The badge shown next to a data edge's target-end icon when the connection
+// is a type-unsafe narrowing (Connection.typeUnsafe) — see
+// connectionRules.ts and edges/DataEdge.tsx. Generic: fires for any
+// supertype -> subtype pair, not scoped to the path family.
+export const TYPE_UNSAFE_ICON_CLASS = 'icon-type-unsafe'

@@ -162,6 +162,8 @@ list<T>                          (covariant in T)
 
 **`path.file` and `media.file` are different types.** One is a string naming a location; the other is a database record. Trickplay wants a path; "set NFO title" wants a record. Conflating them is how every node ends up accepting `any`.
 
+`list<path>`, `list<path.dir>`, and `list<path.file>` are not new leaf types — they are the existing generic `list<T>` applied to `path`, `path.dir`, and `path.file`. Covariance already gives the intended behaviour for free: a socket declared `list<path>` accepts either a `list<path.dir>` or a `list<path.file>` value with no extra rule, because both are already subtypes of `list<path>`. In the editor these are labelled path list, directory list, and file list; directory list holds only subdirectories of a path, file list holds only its files.
+
 ### 4.2 Paths are always server-canonical
 
 `CLAUDE.md` already requires that records are stored under server-canonical paths and that agent-reported paths are translated by `agentregistry.PathTranslator` on arrival. That rule is extended to the graph: **every `path.*` value inside a workflow is in server-canonical space, always.** Translation to agent space happens once, in the dispatch layer, at the boundary.
@@ -189,6 +191,7 @@ A runtime check falls out of this: a node dispatched to agent X that receives a 
 | From | To | transform |
 |---|---|---|
 | `path.file` | `path.dir` | `parentDir` |
+| `path.dir` | `path.file` | `eachFile` |
 | `path.*` | `string` | `toString` |
 | `path.file` | `string` | `fileName` / `baseName` / `extension` (ambiguous — always prompts) |
 | `media.file` | `path.file` | `filePath` |
@@ -202,12 +205,18 @@ A runtime check falls out of this: a node dispatched to agent X that receives a 
 
 **`path.file → path.dir` is explicit, never implicit.** This is the case that motivated typing in the first place: a file path feeding a consumer that wants a directory passes the *parent directory*. That changes which thing on disk is being pointed at, so it must be visible on the wire — silently rewriting "write into this directory" to mean the media folder is exactly the failure typing exists to prevent. But it costs **one click, not a hunt**.
 
+**`path.dir → path.file` (`eachFile`) is an ETL transform, not a control-flow construct — it does not conflict with the `list<T> → T` forbidden rule above.** Neither `path.dir` nor `path.file` is a `list<T>`; they're ordinary sibling scalar types, exactly like any other pair a transform bridges. Conceptually the transform fans a directory out to one run per file — the way a SQL `UNNEST` fans a column out to one row per element without the query author writing an explicit loop — but that fan-out is a detail local to this one edge's data conversion, not a graph-topology change: it introduces no new frame or token (§5.1), and no whole-graph analysis (parallel/join arity, `MustHaveRun`) needs to know it happened. This is the same category as a future `string → date` transform needing a format-string parameter: an execution nuance the transform carries, not a shape the graph takes. Contrast with `core/forEach`, the one place iteration *is* a graph-topology construct — a control-flow node that creates a new frame per element, participates in join arity, and is the only sanctioned way to turn a `list<T>` into a `T`. `eachFile` carries `ImpliesIteration: true` on its `Transform` entry so the editor can show it distinctly (an iteration badge at the edge's source end — §10), but as of this writing the engine does not execute the implied per-file fan-out; see §13.
+
+**A supertype connecting to one of its own subtypes (`path → path.dir`) is also a silent pass-through — no `transform` recorded — but it is not implicit in the same sense as `T → supertype of T`.** `CanConnect` allows it (`Connection.Direct = true`) but sets `Connection.TypeUnsafe = true`: the graph cannot verify the runtime value really is the declared narrower type. This is structural — `IsSubtypeOf(to, from)` — not scoped to the path family; it applies to any dotted-prefix pair the moment one exists. The editor shows a warning badge (`MdNotificationImportant`, `icon-type-unsafe`) next to the target end's type icon, with a tooltip explaining the risk — see §10.
+
 `transform` is a **single name, never a chain**. Chains are unreadable on an edge and untestable; useful compositions are registered as named transforms (`directoryPath` above is exactly that).
+
+Transforms are expected to eventually need their own configuration — the clearest case is a future `string → date` transform, which cannot be unambiguous without a caller-supplied date-format string. That parameter mechanism is not designed or built here; this round only adds a boolean classification flag (`ImpliesIteration`) to `Transform`. Nothing here forecloses adding a `Params` shape to `Transform` later — the struct already has room to grow the same way `Ambiguous` and `Summary` were added without disturbing existing entries.
 
 ### 4.4 Connect-time behaviour
 
 1. **During drag** — `isValidConnection` greys out every incompatible handle. Compatible means an implicit coercion exists, or at least one explicit transform does.
-2. **Implicit match** — edge created silently, no `transform`.
+2. **Implicit match** — edge created silently, no `transform`. If the match is a narrowing (supertype → subtype) rather than the safe covariant direction, the connection still succeeds but the editor marks it `TypeUnsafe` (§4.3) with a warning badge — still silent in the sense that no `transform` is recorded.
 3. **Exactly one explicit transform** — edge created with `transform` pre-filled and a small chip on the edge reading e.g. `parentDir`. Clicking the chip opens the picker.
 4. **Several candidates** — inline picker at the drop point, no default pre-selected.
 5. **Incompatible** — refused, with both type names in the message.
@@ -541,7 +550,11 @@ Amending `CLAUDE.md`'s existing pattern for the four-category split while keepin
 
 Handle ids encode the port kind so the client can pre-filter without a lookup: `c:in`, `c:next`, `c:error`, `d:source`, `d:trickplayDir`. Today `nodeSockets.tsx` uses raw parameter names — that is a migration point.
 
-Control and data edges are distinct React Flow edge types: **control** thick, solid, neutral, keeping the existing animated treatment; **data** thin, coloured by type family. The current `defaultEdgeOptions` applies the animation to everything and must apply to control only.
+Control and data edges are distinct React Flow edge types: **control** thick, solid, neutral, keeping the existing animated treatment; **data** thin, coloured by type family. <!-- TODO: stale as of a prior round — control edges are theme cyan (red off an error port), and data edges are a flat theme orange regardless of type, with type compatibility now conveyed at the handle dots instead (see the icon paragraph below). Flagging rather than rewriting here since fixing this description fully is separate from this task. --> The current `defaultEdgeOptions` applies the animation to everything and must apply to control only.
+
+**Data handles are also shaped by socket type**, for the set of types with a registered icon (`lib/typeIcons.ts` on the frontend, extended as needed — currently the `path`/`path.dir`/`path.file`/`list<path.dir>`/`list<path.file>` family). The icon is a CSS class (`mask-image` + `currentColor`, generated once from `react-icons` SVGs and committed — `ui/scripts/generate-icons.mjs`), never a rendered icon-library component; an unlisted type renders exactly as before, a plain colour dot. The same icon appears at both ends of a data edge over the socket type at that end; the source end additionally shows an iteration badge when the edge's active transform has `implies_iteration: true` (currently only `eachFile` — see §4.3).
+
+When a connection is `TypeUnsafe` (§4.3 — a supertype narrowing into one of its subtypes), the target end additionally shows a warning badge (`MdNotificationImportant`, `icon-type-unsafe`) beside its type icon, with a tooltip explaining the value's actual type isn't guaranteed. Positioning (the offset that slides both endpoint icons off their handles, and the transform-chip placement) is entirely CSS — `index.css`'s `.data-edge-endpoint`/`.data-edge-transform-chip` classes and the `--data-edge-icon-offset` custom property — the component only ever passes coordinates and a unit direction across as custom-property values, never composes styling in JS.
 
 **Sticky notes** (`category: "note"`) have no ports, are stripped before compilation, and are excluded from every validation pass. They should be attachable to a node (React Flow `parentId`) so they move with what they annotate.
 
@@ -569,6 +582,7 @@ Existing saved workflows are junk data and can be deleted.
 These are not built in v1. Each is listed because the schema must not foreclose it:
 
 - **Triggers.** The `core/start` node carries a `trigger` setting slot **now**, or every workflow authored in the interim needs rewriting. Its data-outs vary by trigger kind (`item : media.item` for scan-complete).
+- **The `eachFile` implied per-file iteration.** `path.dir → path.file` is connectable and documented (§4.3), and the editor renders it distinctly, but the engine does not yet execute the implied fan-out — today it behaves like any other explicit transform, producing one value. Building real support means deciding how the implied loop's per-file runs relate to frames (§5.1) and to the existing, deliberately-explicit `core/forEach` without collapsing the two mechanisms; deferred, but `Transform.ImpliesIteration` and the UI already carry enough information not to need a breaking change later.
 - **Cross-run concurrency.** Two runs over the same library concurrently means two ffmpegs writing the same file. Policy `singleton` (default) | `parallel`, implemented with the existing lock pattern (`metarr:workflow:{documentID}:lock`, `SET NX` with TTL refresh).
 - **Large collections by reference.** `list<media.file>` over 50,000 files fits in no Redis value, Mongo document, or stream entry. A database-sourced collection is a **query descriptor plus a count**, materialised page-by-page by `forEach`; only `forEach` may consume a reference list, everything else gets a hard cap with a clear error. Retrofitting this after the engine assumes materialised slices is a rewrite.
 - **Promoted settings** (§3.2) and the loop `collectErrors` mode (§5.5).
