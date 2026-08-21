@@ -99,11 +99,32 @@ export function WorkflowCanvas({
     return () => window.clearInterval(interval)
   }, [testAnimate, setNodes])
 
-  const catalogByType = useMemo(() => {
+  // Two maps: catalogById is the authoritative lookup once a node carries a
+  // catalogId; catalogFirstByType is the fallback for legacy nodes saved
+  // before catalog entries carried an id (deterministic — catalog-file
+  // order — but arbitrary when several entries share a type).
+  const catalogById = useMemo(() => {
     const map = new Map<string, NodeType>()
-    for (const entry of catalog?.node_types ?? []) map.set(entry.type, entry)
+    for (const entry of catalog?.node_types ?? []) map.set(entry.id, entry)
     return map
   }, [catalog])
+  const catalogFirstByType = useMemo(() => {
+    const map = new Map<string, NodeType>()
+    for (const entry of catalog?.node_types ?? []) if (!map.has(entry.type)) map.set(entry.type, entry)
+    return map
+  }, [catalog])
+  const resolveCatalogEntry = useCallback(
+    (node: Node | undefined): NodeType | undefined => {
+      if (!node) return undefined
+      const catalogId = (node.data as { catalogId?: string } | undefined)?.catalogId
+      if (catalogId) {
+        const byId = catalogById.get(catalogId)
+        if (byId) return byId
+      }
+      return catalogFirstByType.get(node.type ?? '')
+    },
+    [catalogById, catalogFirstByType],
+  )
   const transforms = useMemo(() => catalog?.transforms ?? [], [catalog])
 
   const endpointTypes = useCallback(
@@ -111,11 +132,11 @@ export function WorkflowCanvas({
       const sourceNode = getNode(connection.source)
       const targetNode = getNode(connection.target)
       return {
-        sourceType: sourceNode ? catalogByType.get(sourceNode.type ?? '') : undefined,
-        targetType: targetNode ? catalogByType.get(targetNode.type ?? '') : undefined,
+        sourceType: resolveCatalogEntry(sourceNode),
+        targetType: resolveCatalogEntry(targetNode),
       }
     },
-    [getNode, catalogByType],
+    [getNode, resolveCatalogEntry],
   )
 
   const isValidConnection = useCallback(
@@ -178,8 +199,8 @@ export function WorkflowCanvas({
       const raw = event.dataTransfer.getData('application/json')
       if (!raw) return
 
-      const dragged = JSON.parse(raw) as { type: string; typeVersion: string }
-      const nodeType = catalogByType.get(dragged.type)
+      const dragged = JSON.parse(raw) as { id: string }
+      const nodeType = catalogById.get(dragged.id)
       if (!nodeType) return
 
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY })
@@ -192,7 +213,7 @@ export function WorkflowCanvas({
         {
           id: crypto.randomUUID(),
           type: nodeType.type,
-          typeVersion: nodeType.typeVersion,
+          catalogId: nodeType.id,
           position,
           settings: defaultSettings,
         },
@@ -201,7 +222,7 @@ export function WorkflowCanvas({
       setNodes((current) => current.concat(newNode))
       setDraggedTemplate(null)
     },
-    [screenToFlowPosition, setNodes, setDraggedTemplate, catalogByType],
+    [screenToFlowPosition, setNodes, setDraggedTemplate, catalogById],
   )
 
   // Stamps readOnly onto each node's own data so a node can hide its Edit
@@ -220,9 +241,9 @@ export function WorkflowCanvas({
     (nodeId: string) => {
       const node = getNode(nodeId)
       const data = node?.data as { label?: string } | undefined
-      return data?.label ?? (node ? catalogByType.get(node.type ?? '')?.name : undefined) ?? nodeId
+      return data?.label ?? resolveCatalogEntry(node)?.name ?? nodeId
     },
-    [getNode, catalogByType],
+    [getNode, resolveCatalogEntry],
   )
 
   const onSelectDiagnosticNode = useCallback(

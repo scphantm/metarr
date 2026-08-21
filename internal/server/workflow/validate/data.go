@@ -146,7 +146,7 @@ func (a *analysis) checkDataEdgeTypes(edge workflow.Edge, targetType workflow.No
 	producedType := a.resolveOutputType(edge.From.Node, edge.From.Port, nil)
 
 	if edge.Transform != "" {
-		transform, known := workflow.FindTransform(edge.Transform)
+		transform, known := workflow.ResolveTransform(edge.Transform, producedType, targetSocket.Type)
 		if !known {
 			a.report(SeverityError, "data.unknownTransform",
 				fmt.Sprintf("This connection uses a conversion called %q, which this build does not know about.", edge.Transform),
@@ -244,12 +244,19 @@ func (a *analysis) wiredInputType(nodeID, port string, visiting map[string]bool)
 		if edge.To.Node != nodeID || edge.To.Port != port {
 			continue
 		}
+		producedType := a.resolveOutputType(edge.From.Node, edge.From.Port, visiting)
 		if edge.Transform != "" {
-			if transform, known := workflow.FindTransform(edge.Transform); known {
+			targetType := workflow.TypeAny
+			if nodeType, resolved := a.types[nodeID]; resolved {
+				if socket, found := nodeType.DataInSocket(port); found {
+					targetType = socket.Type
+				}
+			}
+			if transform, known := workflow.ResolveTransform(edge.Transform, producedType, targetType); known {
 				return transform.To, true
 			}
 		}
-		return a.resolveOutputType(edge.From.Node, edge.From.Port, visiting), true
+		return producedType, true
 	}
 	return "", false
 }

@@ -62,7 +62,6 @@ func Graph(graph workflow.Graph, catalog *workflow.Catalog) Result {
 	analysis.checkPortsExist()
 	analysis.checkArity()
 	analysis.checkStart()
-	analysis.checkInputPath()
 	analysis.checkEnd()
 	analysis.checkTerminalPlacement()
 	analysis.checkParallelJoins()
@@ -127,10 +126,15 @@ func (a *analysis) checkSchemaVersion() {
 // and edges so the flow can be opened, displayed and re-saved without loss.
 func (a *analysis) checkNodeTypes() {
 	for _, node := range a.graph.Nodes {
-		nodeType, found := a.catalog.Lookup(node.Type, node.TypeVersion)
+		nodeType, found := a.catalog.Lookup(node.CatalogID)
+		if !found && node.CatalogID == "" {
+			// Legacy save from before catalog entries carried an id — fall
+			// back to an arbitrary but deterministic match by Type.
+			nodeType, found = a.catalog.LookupByType(node.Type)
+		}
 		if !found {
 			a.report(SeverityError, "type.missing",
-				fmt.Sprintf("No node type %s is installed, so this node cannot run. Its settings and connections are preserved.", workflow.TypeKey(node.Type, node.TypeVersion)),
+				fmt.Sprintf("No node type %s is installed, so this node cannot run. Its settings and connections are preserved.", node.Type),
 				[]string{node.ID}, nil)
 			continue
 		}
@@ -269,25 +273,6 @@ func (a *analysis) checkStart() {
 		a.report(SeverityError, "start.multiple",
 			"A workflow may only have one Start node.", startNodes, nil)
 	}
-}
-
-// checkInputPath requires at least one source-kind node. In the shipped
-// catalog core/inputPath is the only KindSource entry today — it is what
-// supplies the file or folder a run actually acts on, so a workflow with a
-// Start node but nothing to read is just as unrunnable as one with no Start
-// at all. Checked by Kind rather than the literal type "core/inputPath" so
-// this stays consistent with every other structural rule in this file
-// (Start, End, Fail are all Kind-based) and testable against the fixture
-// catalog's own fake types; if the catalog ever grows a second source-kind
-// node, this rule accepts either one rather than requiring inputPath by name.
-func (a *analysis) checkInputPath() {
-	for _, node := range a.graph.Nodes {
-		if nodeType, resolved := a.types[node.ID]; resolved && nodeType.Kind == workflow.KindSource {
-			return
-		}
-	}
-	a.report(SeverityError, "inputPath.missing",
-		"This workflow has no Input Path node, so there is no file or folder for it to act on.", nil, nil)
 }
 
 // checkEnd requires at least one End node. Unlike Start, more than one is

@@ -18,71 +18,87 @@ func testCatalog(t *testing.T) *workflow.Catalog {
 
 	catalog, err := workflow.NewCatalog([]workflow.NodeType{
 		{
-			Type: "t/start", TypeVersion: "1", Name: "Start", Kind: workflow.KindStart,
+			ID: "t/start", Type: "t/start", Name: "Start", Kind: workflow.KindStart,
 			Control: workflow.ControlPorts{Out: []string{"next"}},
 			Exec:    readOnServer,
 		},
 		{
-			Type: "t/task", TypeVersion: "1", Name: "Task",
+			ID: "t/task", Type: "t/task", Name: "Task",
 			Control: workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}, Error: true},
 			DataIn:  []workflow.Socket{{Name: "value", Type: workflow.TypeAny}},
 			DataOut: []workflow.Socket{{Name: "result", Type: workflow.TypePathFile}},
 			Exec:    readOnServer,
 		},
 		{
-			Type: "t/dirTask", TypeVersion: "1", Name: "Directory Task",
+			ID: "t/dirTask", Type: "t/dirTask", Name: "Directory Task",
 			Control: workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}},
 			DataIn:  []workflow.Socket{{Name: "folder", Type: workflow.TypePathDir}},
 			Exec:    readOnServer,
 		},
 		{
-			Type: "t/branch", TypeVersion: "1", Name: "Branch", Kind: workflow.KindBranch,
+			ID: "t/branch", Type: "t/branch", Name: "Branch", Kind: workflow.KindBranch,
 			Control: workflow.ControlPorts{In: []string{"in"}, Out: []string{"yes", "no"}},
 			Exec:    readOnServer,
 		},
 		{
-			Type: "t/forEach", TypeVersion: "1", Name: "For Each", Kind: workflow.KindForEach,
+			ID: "t/forEach", Type: "t/forEach", Name: "For Each", Kind: workflow.KindForEach,
 			Control: workflow.ControlPorts{In: []string{"in"}, Out: []string{"body", "done"}},
 			DataIn:  []workflow.Socket{{Name: "collection", Type: workflow.ListOf(workflow.TypeAny), Required: true}},
 			DataOut: []workflow.Socket{
 				{Name: "item", Type: workflow.TypeAny},
-				{Name: "index", Type: workflow.TypeNumberInt},
+				{Name: "index", Type: workflow.TypeAny},
 			},
 			Exec: readOnServer,
 		},
 		{
-			Type: "t/collect", TypeVersion: "1", Name: "Collect", Kind: workflow.KindCollect,
+			ID: "t/collect", Type: "t/collect", Name: "Collect", Kind: workflow.KindCollect,
 			Control: workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}},
 			DataIn:  []workflow.Socket{{Name: "value", Type: workflow.TypeAny, Required: true}},
 			DataOut: []workflow.Socket{{Name: "collected", Type: workflow.ListOf(workflow.TypeAny)}},
 			Exec:    readOnServer,
 		},
 		{
-			Type: "t/parallel", TypeVersion: "1", Name: "Parallel", Kind: workflow.KindParallel,
+			ID: "t/parallel", Type: "t/parallel", Name: "Parallel", Kind: workflow.KindParallel,
 			Control:  workflow.ControlPorts{In: []string{"in"}, Out: branchPorts},
-			Settings: []workflow.Setting{{Name: "branches", Type: workflow.TypeNumberInt, Default: 2}},
+			Settings: []workflow.Setting{{Name: "branches", Type: workflow.TypeAny, Default: 2}},
 			Exec:     readOnServer,
 		},
 		{
-			Type: "t/join", TypeVersion: "1", Name: "Join", Kind: workflow.KindJoin,
+			ID: "t/join", Type: "t/join", Name: "Join", Kind: workflow.KindJoin,
 			Control: workflow.ControlPorts{In: branchPorts, Out: []string{"next"}},
 			Exec:    readOnServer,
 		},
 		{
-			Type: "t/end", TypeVersion: "1", Name: "End", Kind: workflow.KindEnd,
+			ID: "t/end", Type: "t/end", Name: "End", Kind: workflow.KindEnd,
 			Control: workflow.ControlPorts{In: []string{"in"}},
 			Exec:    readOnServer,
 		},
 		{
-			Type: "t/source", TypeVersion: "1", Name: "Literal Path", Kind: workflow.KindSource,
+			ID: "t/source", Type: "t/source", Name: "Literal Path", Kind: workflow.KindSource,
 			Control: workflow.ControlPorts{},
 			DataOut: []workflow.Socket{{Name: "path", Type: workflow.TypePathFile}},
 			Exec:    readOnServer,
 		},
 		{
-			Type: "t/listSource", TypeVersion: "1", Name: "File List", Kind: workflow.KindSource,
+			ID: "t/listSource", Type: "t/listSource", Name: "File List", Kind: workflow.KindSource,
 			Control: workflow.ControlPorts{},
 			DataOut: []workflow.Socket{{Name: "files", Type: workflow.ListOf(workflow.TypePathFile)}},
+			Exec:    readOnServer,
+		},
+		// Two entries sharing a Type but distinct IDs and DataOut shapes —
+		// variations of one plugin, the same pattern as catalog.json's two
+		// core/start entries. Used by TestNodeResolvesByIDNotByType to prove
+		// resolution is genuinely id-based rather than first-match-by-type.
+		{
+			ID: "t/variantA", Type: "t/variant", Name: "Variant A",
+			Control: workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}},
+			DataOut: []workflow.Socket{{Name: "outA", Type: workflow.TypePathFile}},
+			Exec:    readOnServer,
+		},
+		{
+			ID: "t/variantB", Type: "t/variant", Name: "Variant B",
+			Control: workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}},
+			DataOut: []workflow.Socket{{Name: "outB", Type: workflow.TypePathFile}},
 			Exec:    readOnServer,
 		},
 	})
@@ -93,7 +109,7 @@ func testCatalog(t *testing.T) *workflow.Catalog {
 }
 
 func node(id, nodeType string) workflow.Node {
-	return workflow.Node{ID: id, Type: nodeType, TypeVersion: "1"}
+	return workflow.Node{ID: id, Type: nodeType}
 }
 
 func control(id, fromNode, fromPort, toNode, toPort string) workflow.Edge {
@@ -476,18 +492,6 @@ func TestMissingStartIsRejected(t *testing.T) {
 	requireCode(t, result, "start.missing")
 }
 
-// TestMissingInputPathIsRejected: a Start with nothing to read from is just
-// as unrunnable as no Start at all.
-func TestMissingInputPathIsRejected(t *testing.T) {
-	graph := graphOf(
-		[]workflow.Node{node("start", "t/start"), node("stop", "t/end")},
-		[]workflow.Edge{control("c1", "start", "next", "stop", "in")},
-	)
-
-	result := validate.Graph(graph, testCatalog(t))
-	requireCode(t, result, "inputPath.missing")
-}
-
 // TestMissingEndIsRejected: a run with nowhere to finish.
 func TestMissingEndIsRejected(t *testing.T) {
 	graph := graphOf(
@@ -499,18 +503,22 @@ func TestMissingEndIsRejected(t *testing.T) {
 	requireCode(t, result, "end.missing")
 }
 
-// TestStartInputPathAndEndTogetherAreSufficient — the minimum legal shape:
-// exactly one of each, wired straight through.
-func TestStartInputPathAndEndTogetherAreSufficient(t *testing.T) {
+// TestStartAndEndAloneAreSufficient — the new minimum legal shape now that a
+// Start node supplies its own data directly: exactly one Start wired to one
+// End, nothing else required.
+func TestStartAndEndAloneAreSufficient(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{node("start", "t/start"), node("literal", "t/source"), node("stop", "t/end")},
+		[]workflow.Node{node("start", "t/start"), node("stop", "t/end")},
 		[]workflow.Edge{control("c1", "start", "next", "stop", "in")},
 	)
 
 	result := validate.Graph(graph, testCatalog(t))
-	requireNoCode(t, result, "inputPath.missing")
-	requireNoCode(t, result, "end.missing")
-	requireNoCode(t, result, "start.missing")
+	if !result.Runnable() {
+		t.Fatalf("expected a runnable graph, got diagnostics: %+v", result.Diagnostics)
+	}
+	if len(result.Diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got: %+v", result.Diagnostics)
+	}
 }
 
 // TestUnknownNodeTypeIsReportedNotDropped: the node must survive so the flow
@@ -533,4 +541,34 @@ func TestLegacySchemaIsRefusedRatherThanGuessed(t *testing.T) {
 
 	result := validate.Graph(graph, testCatalog(t))
 	requireCode(t, result, "schema.legacy")
+}
+
+// TestNodeResolvesByIDNotByType proves a node whose CatalogID names one of
+// several catalog entries sharing a Type resolves to that entry's own ports
+// — not to whichever entry happens to match Type first. t/variantA and
+// t/variantB share Type "t/variant" but declare different DataOut sockets
+// (outA vs outB); a node instance pinned to variantB must expose outB and
+// must not expose outA.
+func TestNodeResolvesByIDNotByType(t *testing.T) {
+	variantB := workflow.Node{ID: "n", Type: "t/variant", CatalogID: "t/variantB"}
+
+	wiredToOutB := graphOf(
+		[]workflow.Node{node("start", "t/start"), variantB, node("sink", "t/task")},
+		[]workflow.Edge{
+			control("c1", "start", "next", "n", "in"),
+			data("d1", "n", "outB", "sink", "value"),
+		},
+	)
+	result := validate.Graph(wiredToOutB, testCatalog(t))
+	requireNoCode(t, result, "port.unknownDataOut")
+
+	wiredToOutA := graphOf(
+		[]workflow.Node{node("start", "t/start"), variantB, node("sink", "t/task")},
+		[]workflow.Edge{
+			control("c1", "start", "next", "n", "in"),
+			data("d1", "n", "outA", "sink", "value"),
+		},
+	)
+	result = validate.Graph(wiredToOutA, testCatalog(t))
+	requireCode(t, result, "port.unknownDataOut")
 }

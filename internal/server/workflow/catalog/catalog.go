@@ -60,30 +60,31 @@ func (l *Loader) Load() (*workflow.Catalog, error) {
 	return loaded, nil
 }
 
-// checkImmutability refuses a catalog in which a published type@version has
-// changed content.
+// checkImmutability refuses a catalog in which a published entry has changed
+// content.
 //
 // This matters more here than it usually would, because the catalog is a
 // hand-edited file with no review process, and a run in flight has frozen a
-// snapshot of the entries it uses. Silently changing what "core/trickplay
-// 1.0.0" means would make two runs of the same workflow behave differently
-// with nothing to show why. Behaviour changes require a version bump.
+// snapshot of the entries it uses. Silently changing what a given catalog id
+// means would make two runs of the same workflow behave differently with
+// nothing to show why. A behaviour change requires a new id.
 func (l *Loader) checkImmutability(entries []workflow.NodeType) error {
 	for _, entry := range entries {
 		encoded, err := json.Marshal(entry)
 		if err != nil {
-			return fmt.Errorf("catalog: hashing %s: %w", entry.Key(), err)
+			return fmt.Errorf("catalog: hashing %s (%s): %w", entry.Type, entry.ID, err)
 		}
 		sum := sha256.Sum256(encoded)
 		hash := hex.EncodeToString(sum[:])
 
-		previous, seen := l.hashes[entry.Key()]
+		previous, seen := l.hashes[entry.ID]
 		if seen && previous != hash {
 			return fmt.Errorf(
-				"catalog: %s changed without a version bump — bump typeVersion instead, "+
-					"because runs in flight have frozen the previous definition", entry.Key())
+				"catalog: %s (%s) changed — a catalog entry must not change silently once "+
+					"published, because runs in flight have frozen the previous definition; "+
+					"give it a new id instead", entry.Type, entry.ID)
 		}
-		l.hashes[entry.Key()] = hash
+		l.hashes[entry.ID] = hash
 	}
 	return nil
 }

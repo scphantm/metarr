@@ -12,8 +12,8 @@
 
 // ---- types.go ----------------------------------------------------------
 
-// A dotted-prefix hierarchy ("path.file.video" is a subtype of "path.file",
-// which is a subtype of "path"), plus the generic `list<T>` constructor. See
+// A dotted-prefix hierarchy ("path.dir" is a subtype of "path", "agent.slug"
+// is a subtype of "agent"), plus the generic `list<T>` constructor. See
 // connectionRules.ts for the subtyping/coercion logic itself.
 export type Type = string
 
@@ -82,10 +82,16 @@ export type ExecSpec = {
 }
 
 export type NodeType = {
+  id: string
   type: string
-  typeVersion: string
   name: string
+  // The palette's two accordion levels — category is the outer group (e.g.
+  // "workflow"), subcategory the inner one (e.g. "start"). Presentation
+  // only, same as before this split. subcategory isn't assigned catalog-wide
+  // yet; category is absent on most entries until it is — see
+  // NodePalette.tsx's grouping fallback.
   category?: string
+  subcategory?: string
   kind?: NodeKind
   description?: string
   control: ControlPorts
@@ -93,10 +99,6 @@ export type NodeType = {
   dataOut?: Socket[]
   settings?: Setting[]
   exec: ExecSpec
-}
-
-export function nodeTypeKey(type: string, typeVersion: string): string {
-  return `${type}@${typeVersion}`
 }
 
 export type CatalogResponse = {
@@ -120,7 +122,12 @@ export type GraphPosition = {
 export type GraphNode = {
   id: string
   type: string
-  typeVersion: string
+  // The exact catalog entry this instance was placed from — several entries
+  // may share `type` (variations of one plugin, e.g. two core/start entries
+  // with different dataOut shapes), so this is what resolves it
+  // unambiguously. Absent on graphs saved before catalog entries carried an
+  // id; those fall back to an arbitrary match by type.
+  catalogId?: string
   position: GraphPosition
   settings?: Record<string, unknown>
   promoted?: string[]
@@ -147,6 +154,10 @@ export type GraphEdge = {
   from: Endpoint
   to: Endpoint
   transform?: string
+  // Per-edge configuration, e.g. { recursive: true } on a data edge
+  // delivering a path — opened by double-clicking the edge in the editor.
+  // No catalog schema, unlike a node's settings (see workflow.Edge.Settings).
+  settings?: Record<string, unknown>
 }
 
 export type Graph = {
@@ -185,6 +196,11 @@ export type CatalogNodeData = {
   settings: Record<string, unknown>
   promoted: string[]
   label?: string
+  // The exact catalog entry this instance was placed from — see
+  // GraphNode.catalogId above. Present on every catalog-driven node
+  // (registered or unknown), not just unknown ones, because React Flow's own
+  // `type` field can't disambiguate several entries sharing one type.
+  catalogId?: string
   // Per-instance color overrides — see GraphNode.shapeColor/borderColor
   // above. Each falls back independently to the type-computed color
   // (nodes/shared/nodeVisual.ts) when unset.
@@ -203,10 +219,11 @@ export type CatalogNodeData = {
 }
 
 // Carried by nodes rendered as UnknownNode: either the catalog has no entry
-// for (type, typeVersion) at all (design.md §9, catalog drift), or the
-// registry has no component for it (should not happen if the registry is
-// generated from the catalog, but guards a stale build).
+// for this type at all (design.md §9, catalog drift), or the registry has no
+// component for it (should not happen if the registry is generated from the
+// catalog, but guards a stale build). React Flow's own `type` field is
+// overwritten to UNKNOWN_NODE_TYPE for these, so the real type has to be
+// stashed here instead.
 export type UnknownNodeData = CatalogNodeData & {
   catalogType: string
-  catalogTypeVersion: string
 }

@@ -15,9 +15,7 @@ export function UnknownNode({ data }: NodeProps<Node<UnknownNodeData>>) {
   return (
     <div className="min-w-[160px] rounded border-2 border-dashed border-red/60 bg-surface px-3 py-2 shadow-sm">
       <div className="text-xs font-semibold text-red">Unknown node type</div>
-      <div className="mt-0.5 font-mono text-[11px] text-ink-muted">
-        {data.catalogType}@{data.catalogTypeVersion}
-      </div>
+      <div className="mt-0.5 font-mono text-[11px] text-ink-muted">{data.catalogType}</div>
       {data.label ? <div className="mt-1 text-xs text-ink-strong">{data.label}</div> : null}
     </div>
   )

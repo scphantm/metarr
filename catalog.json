@@ -1,20 +1,21 @@
 [
   {
     "type": "core/start",
-    "typeVersion": "1.0.0",
-    "name": "Start",
-    "category": "input",
+    "id": "72f8e409-bf15-4dd6-ab8c-70a2ec512ec7",
+    "name": "Start Path",
+    "category": "workflow",
+    "subcategory": "start",
     "kind": "start",
-    "description": "Where the run begins. Exactly one per workflow.",
+    "description": "Where the run begins. The input type of this is path, which translates to a file on a drive",
     "control": { "in": [], "out": ["next"] },
     "dataOut": [
-      { "name": "item", "label": "Triggering item", "type": "media.item", "description": "The item the run was started for. Empty for a bare manual run." }
+      { "name": "path", "label": "Path", "type": "path", "description": "The configured path." }
     ],
     "settings": [
       {
         "name": "trigger",
         "label": "Trigger",
-        "type": "string.enum",
+        "type": "any",
         "default": "manual",
         "ui": { "widget": "dropdown", "options": ["manual", "schedule", "scanComplete"] },
         "description": "What starts this workflow. Only manual is honoured today; the rest are reserved."
@@ -23,26 +24,35 @@
     "exec": { "runsOn": "server", "effects": "read" }
   },
   {
-    "type": "core/inputPath",
-    "typeVersion": "1.0.0",
-    "name": "Input Path",
-    "category": "inputPath",
-    "kind": "source",
-    "description": "A literal path typed by the author. A pure data source with no control ports — it is not an execution step, so its value is always available.",
-    "control": { "in": [], "out": [] },
+    "type": "core/start",
+    "id": "df1084cd-e619-4af2-9214-048898acc479",
+    "name": "Start Media",
+    "category": "workflow",
+    "subcategory": "start",
+    "kind": "start",
+    "description": "Where the run begins. The input type of this is media, media is a database record in mongo",
+    "control": { "in": [], "out": ["next"] },
     "dataOut": [
-      { "name": "path", "label": "Path", "type": "path", "description": "The configured path." }
+      { "name": "media", "label": "Media Record", "type": "media", "description": "The media record." }
     ],
     "settings": [
-      { "name": "path", "label": "Path", "type": "path", "default": "", "ui": { "widget": "directory" } }
+      {
+        "name": "trigger",
+        "label": "Trigger",
+        "type": "any",
+        "default": "manual",
+        "ui": { "widget": "dropdown", "options": ["manual", "schedule", "scanComplete"] },
+        "description": "What starts this workflow. Only manual is honoured today; the rest are reserved."
+      }
     ],
     "exec": { "runsOn": "server", "effects": "read" }
   },
   {
     "type": "core/writeChanges",
-    "typeVersion": "1.0.0",
+    "id": "cc45bcdf-48be-466f-9bbf-d4c74da3b05f",
     "name": "Write changes",
-    "category": "output",
+    "category": "workflow",
+    "subcategory": "end",
     "kind": "end",
     "description": "Commits pending changes and ends this path of the run.",
     "control": { "in": ["in"], "out": [], "error": true },
@@ -50,9 +60,10 @@
   },
   {
     "type": "core/errorOutput",
-    "typeVersion": "1.0.0",
+    "id": "f71e846a-2015-4d2d-99f1-22b35ec9dc43",
     "name": "Error Output",
-    "category": "output",
+    "category": "workflow",
+    "subcategory": "end",
     "kind": "end",
     "description": "Ends this path of the run, recording the incoming error.",
     "control": { "in": ["in"], "out": [] },
@@ -63,9 +74,10 @@
   },
   {
     "type": "core/note",
-    "typeVersion": "1.0.0",
+    "id": "46c28876-69ca-4963-85ed-bc96f75fbf6e",
     "name": "Notes",
-    "category": "note",
+    "category": "workflow",
+    "subcategory": "misc",
     "kind": "note",
     "description": "An annotation. Has no ports, is stripped before compilation, and is excluded from validation.",
     "control": { "in": [], "out": [] },
@@ -76,9 +88,9 @@
   },
   {
     "type": "core/checkFlowVariable",
-    "typeVersion": "1.0.0",
+    "id": "6b32e34c-c356-4536-a073-9c40f0b4ec91",
     "name": "Check flow variable",
-    "category": "check",
+    "subcategory": "check",
     "kind": "branch",
     "description": "Compares two values and takes the yes or no branch. The branches are control flow, not booleans — nothing downstream consumes them as data.",
     "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
@@ -90,7 +102,7 @@
       {
         "name": "operator",
         "label": "Operator",
-        "type": "string.enum",
+        "type": "any",
         "default": "==",
         "ui": { "widget": "dropdown", "options": ["==", "!=", "contains", ">", "<", ">=", "<="] }
       },
@@ -100,21 +112,21 @@
   },
   {
     "type": "core/trickplay",
-    "typeVersion": "1.0.0",
+    "id": "68c3a45b-da57-4e9c-a86b-0debf67b2ca9",
     "name": "Generate Trickplay",
-    "category": "function",
+    "subcategory": "function",
     "description": "Generates Jellyfin-compatible trickplay tiles beside the source video.",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
-      { "name": "source", "label": "Source file", "type": "path.file.video", "required": true }
+      { "name": "source", "label": "Source file", "type": "any", "required": true }
     ],
     "dataOut": [
       { "name": "trickplayDir", "label": "Trickplay folder", "type": "path.dir" }
     ],
     "settings": [
-      { "name": "width", "label": "Tile width", "type": "number.int", "default": 320 },
-      { "name": "tileWidth", "label": "Tiles across", "type": "number.int", "default": 10 },
-      { "name": "tileHeight", "label": "Tiles down", "type": "number.int", "default": 10 }
+      { "name": "width", "label": "Tile width", "type": "any", "default": 320 },
+      { "name": "tileWidth", "label": "Tiles across", "type": "any", "default": 10 },
+      { "name": "tileHeight", "label": "Tiles down", "type": "any", "default": 10 }
     ],
     "exec": {
       "runsOn": "agent",
@@ -127,9 +139,10 @@
   },
   {
     "type": "core/forEach",
-    "typeVersion": "1.0.0",
+    "id": "618d2ce0-738b-4e82-b0f0-e501f4fa9095",
     "name": "For Each",
-    "category": "control",
+    "category": "workflow",
+    "subcategory": "control",
     "kind": "forEach",
     "description": "Runs the body once per item, then fires done. Both body and done come from this node, so the zero-iteration path exists in the graph.",
     "control": { "in": ["in"], "out": ["body", "done"], "error": true },
@@ -138,16 +151,16 @@
     ],
     "dataOut": [
       { "name": "item", "label": "Item", "type": "any", "description": "The current item. Readable only inside the body. Its concrete type is inferred from the wired collection." },
-      { "name": "index", "label": "Index", "type": "number.int", "description": "Zero-based position. Body-scoped." },
-      { "name": "count", "label": "Count", "type": "number.int", "description": "Size of the whole collection." },
-      { "name": "failedCount", "label": "Failed count", "type": "number.int", "description": "Items that failed under skip. Readable after done." }
+      { "name": "index", "label": "Index", "type": "any", "description": "Zero-based position. Body-scoped." },
+      { "name": "count", "label": "Count", "type": "any", "description": "Size of the whole collection." },
+      { "name": "failedCount", "label": "Failed count", "type": "any", "description": "Items that failed under skip. Readable after done." }
     ],
     "settings": [
-      { "name": "parallelism", "label": "Run at once", "type": "number.int", "default": 1 },
+      { "name": "parallelism", "label": "Run at once", "type": "any", "default": 1 },
       {
         "name": "onItemError",
         "label": "On item error",
-        "type": "string.enum",
+        "type": "any",
         "default": "abort",
         "ui": { "widget": "dropdown", "options": ["abort", "skip"] }
       }
@@ -156,9 +169,10 @@
   },
   {
     "type": "core/collect",
-    "typeVersion": "1.0.0",
+    "id": "d65e372d-b363-4718-9c65-0dfab07dbaed",
     "name": "Collect",
-    "category": "control",
+    "category": "workflow",
+    "subcategory": "control",
     "kind": "collect",
     "description": "Accumulates one value per iteration. Placed inside a loop body; its collected output is readable after the loop's done, in collection order.",
     "control": { "in": ["in"], "out": ["next"] },
@@ -172,9 +186,10 @@
   },
   {
     "type": "core/parallel",
-    "typeVersion": "1.0.0",
+    "id": "3fa05432-1000-4e6e-8367-6a24d3abb041",
     "name": "Parallel",
-    "category": "control",
+    "subcategory": "control",
+    "category": "workflow",
     "kind": "parallel",
     "description": "Runs its branches concurrently. Parallelism is always explicit — a second wire on one out-port is a validation error, never an implicit fork.",
     "control": {
@@ -183,11 +198,11 @@
       "error": true
     },
     "settings": [
-      { "name": "branches", "label": "Branches", "type": "number.int", "default": 2 },
+      { "name": "branches", "label": "Branches", "type": "any", "default": 2 },
       {
         "name": "onBranchError",
         "label": "On branch error",
-        "type": "string.enum",
+        "type": "any",
         "default": "cancelSiblings",
         "ui": { "widget": "dropdown", "options": ["cancelSiblings", "waitForSiblings"] }
       }
@@ -196,9 +211,10 @@
   },
   {
     "type": "core/join",
-    "typeVersion": "1.0.0",
+    "id": "2c65816e-a7d8-4ee4-8217-b40437ab0d1e",
     "name": "Join",
-    "category": "control",
+    "subcategory": "control",
+    "category": "workflow",
     "kind": "join",
     "description": "Waits for every branch of its paired Parallel. Fires error instead of next if any branch failed.",
     "control": {
@@ -206,14 +222,15 @@
       "out": ["next"],
       "error": true
     },
-    "settings": [{ "name": "branches", "label": "Branches", "type": "number.int", "default": 2 }],
+    "settings": [{ "name": "branches", "label": "Branches", "type": "any", "default": 2 }],
     "exec": { "runsOn": "server", "effects": "read" }
   },
   {
     "type": "core/break",
-    "typeVersion": "1.0.0",
+    "id": "f38ee5cf-20c6-4b40-827c-9687288d5b82",
     "name": "Break",
-    "category": "control",
+    "category": "workflow",
+    "subcategory": "control",
     "kind": "break",
     "description": "Ends the enclosing loop early and fires its done port. Legal only inside a loop body.",
     "control": { "in": ["in"], "out": [] },
@@ -221,9 +238,10 @@
   },
   {
     "type": "core/end",
-    "typeVersion": "1.0.0",
+    "id": "7e5ef826-a1fc-4300-a23f-5ed58ccece0b",
     "name": "End",
-    "category": "output",
+    "category": "workflow",
+    "subcategory": "end",
     "kind": "end",
     "description": "Ends the run successfully. Forbidden inside parallel branches and loop bodies.",
     "control": { "in": ["in"], "out": [] },
@@ -231,9 +249,10 @@
   },
   {
     "type": "core/fail",
-    "typeVersion": "1.0.0",
+    "id": "b3832590-df95-4ff5-b06e-d4f7605142c6",
     "name": "Fail",
-    "category": "output",
+    "category": "workflow",
+    "subcategory": "end",
     "kind": "fail",
     "description": "Ends the run as failed. Forbidden inside parallel branches and loop bodies.",
     "control": { "in": ["in"], "out": [] },
@@ -244,9 +263,9 @@
   },
   {
     "type": "fs/listDirectory",
-    "typeVersion": "1.0.0",
+    "id": "77212793-4419-49e0-9e0f-4aafd7643b2f",
     "name": "List Directory",
-    "category": "filesystem",
+    "subcategory": "filesystem",
     "description": "Lists the immediate contents of a directory.",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
@@ -262,9 +281,9 @@
   },
   {
     "type": "fs/moveFile",
-    "typeVersion": "1.0.0",
+    "id": "31e09fea-bb13-4c83-8996-90ab10854380",
     "name": "Move File",
-    "category": "filesystem",
+    "subcategory": "filesystem",
     "description": "Moves a file to a new location, creating destination directories as needed.",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
@@ -278,9 +297,9 @@
   },
   {
     "type": "fs/copyFile",
-    "typeVersion": "1.0.0",
+    "id": "93c580a8-895a-4e5f-a97d-c903c7f077e1",
     "name": "Copy File",
-    "category": "filesystem",
+    "subcategory": "filesystem",
     "description": "Copies a file to a new location, leaving the source in place.",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
@@ -294,9 +313,9 @@
   },
   {
     "type": "fs/deleteFile",
-    "typeVersion": "1.0.0",
+    "id": "053e1297-dee3-431a-9210-f0ee566328a2",
     "name": "Delete File",
-    "category": "filesystem",
+    "subcategory": "filesystem",
     "description": "Permanently removes a file. There is no undo.",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
@@ -306,9 +325,9 @@
   },
   {
     "type": "fs/exists",
-    "typeVersion": "1.0.0",
+    "id": "5bb99fb3-41a1-4fbe-94c3-d738c7785214",
     "name": "File Exists",
-    "category": "filesystem",
+    "subcategory": "filesystem",
     "kind": "branch",
     "description": "Checks whether a path exists on disk and takes the yes or no branch. The branches are control flow, not booleans.",
     "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
@@ -319,9 +338,9 @@
   },
   {
     "type": "fs/isdir",
-    "typeVersion": "1.0.0",
+    "id": "1b900117-dca1-4530-b391-fd42b43fbc6b",
     "name": "Is Directory?",
-    "category": "filesystem",
+    "subcategory": "filesystem",
     "kind": "branch",
     "description": "Checks if the path is a directory or not",
     "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
@@ -332,9 +351,9 @@
   },
   {
     "type": "fs/isfile",
-    "typeVersion": "1.0.0",
+    "id": "ea9ad657-28fe-4d79-89be-50d466d27ea7",
     "name": "Is File?",
-    "category": "filesystem",
+    "subcategory": "filesystem",
     "kind": "branch",
     "description": "Checks if the path is a file or not",
     "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
@@ -345,9 +364,9 @@
   },
   {
     "type": "fs/makeDirectory",
-    "typeVersion": "1.0.0",
+    "id": "2bad8e41-d1fd-4f27-a2d6-aed8130bb68d",
     "name": "Make Directory",
-    "category": "filesystem",
+    "subcategory": "filesystem",
     "description": "Creates a directory, including any missing parents.",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
@@ -360,24 +379,24 @@
   },
   {
     "type": "fs/fileSize",
-    "typeVersion": "1.0.0",
+    "id": "89d26a9e-d14a-408f-91c4-45535c8a44fe",
     "name": "File Size",
-    "category": "filesystem",
+    "subcategory": "filesystem",
     "description": "Reads the size of a file in bytes.",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
       { "name": "target", "label": "File", "type": "path.file", "required": true }
     ],
     "dataOut": [
-      { "name": "size", "label": "Size", "type": "bytes" }
+      { "name": "size", "label": "Size", "type": "any" }
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
   },
   {
     "type": "fs/readTextFile",
-    "typeVersion": "1.0.0",
+    "id": "8fb47e16-24a0-4173-ac87-9a4fa12ab230",
     "name": "Read Text File",
-    "category": "filesystem",
+    "subcategory": "filesystem",
     "description": "Reads a small text file's full contents as a string.",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
@@ -390,9 +409,9 @@
   },
   {
     "type": "fs/writeTextFile",
-    "typeVersion": "1.0.0",
+    "id": "a4a20322-dfb8-4898-a83e-885715448ed6",
     "name": "Write Text File",
-    "category": "filesystem",
+    "subcategory": "filesystem",
     "description": "Writes a string out to a text file, overwriting it if present.",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
@@ -406,116 +425,116 @@
   },
   {
     "type": "media/probe",
-    "typeVersion": "1.0.0",
+    "id": "d3cfe88e-e1ef-4ac5-88d1-0b6d581b87fc",
     "name": "Probe Media",
-    "category": "media",
+    "subcategory": "media",
     "description": "Reads technical metadata from a video file without decoding it (duration, streams, codecs).",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
-      { "name": "source", "label": "Source file", "type": "path.file.video", "required": true }
+      { "name": "source", "label": "Source file", "type": "any", "required": true }
     ],
     "dataOut": [
-      { "name": "duration", "label": "Duration", "type": "duration" },
-      { "name": "streams", "label": "Streams", "type": "list<metadata.stream>" }
+      { "name": "duration", "label": "Duration", "type": "any" },
+      { "name": "streams", "label": "Streams", "type": "list<any>" }
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "1m", "effects": "read" }
   },
   {
     "type": "media/transcode",
-    "typeVersion": "1.0.0",
+    "id": "54d0e42c-1800-41f2-8db1-b4cc33a03df2",
     "name": "Transcode",
-    "category": "media",
+    "subcategory": "media",
     "description": "Re-encodes a video file into a different codec or container.",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
-      { "name": "source", "label": "Source file", "type": "path.file.video", "required": true },
-      { "name": "destination", "label": "Destination", "type": "path.file.video", "required": true }
+      { "name": "source", "label": "Source file", "type": "any", "required": true },
+      { "name": "destination", "label": "Destination", "type": "any", "required": true }
     ],
     "dataOut": [
-      { "name": "output", "label": "Output file", "type": "path.file.video" }
+      { "name": "output", "label": "Output file", "type": "any" }
     ],
     "settings": [
-      { "name": "videoCodec", "label": "Video codec", "type": "string.enum", "default": "h264", "ui": { "widget": "dropdown", "options": ["h264", "hevc", "av1", "copy"] } },
-      { "name": "audioCodec", "label": "Audio codec", "type": "string.enum", "default": "aac", "ui": { "widget": "dropdown", "options": ["aac", "ac3", "copy"] } },
-      { "name": "crf", "label": "Quality (CRF)", "type": "number.int", "default": 20 }
+      { "name": "videoCodec", "label": "Video codec", "type": "any", "default": "h264", "ui": { "widget": "dropdown", "options": ["h264", "hevc", "av1", "copy"] } },
+      { "name": "audioCodec", "label": "Audio codec", "type": "any", "default": "aac", "ui": { "widget": "dropdown", "options": ["aac", "ac3", "copy"] } },
+      { "name": "crf", "label": "Quality (CRF)", "type": "any", "default": 20 }
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "6h", "cancellable": true, "effects": "write", "retry": { "attempts": 1 } }
   },
   {
     "type": "media/extractStream",
-    "typeVersion": "1.0.0",
+    "id": "2332ec38-de75-4df1-b441-0ca8e8d49318",
     "name": "Extract Stream",
-    "category": "media",
+    "subcategory": "media",
     "description": "Extracts a single subtitle or audio stream out of a container into its own file.",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
-      { "name": "source", "label": "Source file", "type": "path.file.video", "required": true }
+      { "name": "source", "label": "Source file", "type": "any", "required": true }
     ],
     "dataOut": [
-      { "name": "subtitle", "label": "Extracted subtitle", "type": "path.file.subtitle" },
+      { "name": "subtitle", "label": "Extracted subtitle", "type": "any" },
       { "name": "audio", "label": "Extracted audio", "type": "path.file" }
     ],
     "settings": [
-      { "name": "streamIndex", "label": "Stream index", "type": "number.int", "default": 0 },
-      { "name": "kind", "label": "Stream kind", "type": "string.enum", "default": "subtitle", "ui": { "widget": "dropdown", "options": ["subtitle", "audio"] } }
+      { "name": "streamIndex", "label": "Stream index", "type": "any", "default": 0 },
+      { "name": "kind", "label": "Stream kind", "type": "any", "default": "subtitle", "ui": { "widget": "dropdown", "options": ["subtitle", "audio"] } }
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "5m", "effects": "write" }
   },
   {
     "type": "media/generateThumbnail",
-    "typeVersion": "1.0.0",
+    "id": "0ee12496-ce2d-43b2-98bc-0ab4377e6c33",
     "name": "Generate Thumbnail",
-    "category": "media",
+    "subcategory": "media",
     "description": "Captures a single still frame from a video as an image file.",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
-      { "name": "source", "label": "Source file", "type": "path.file.video", "required": true }
+      { "name": "source", "label": "Source file", "type": "any", "required": true }
     ],
     "dataOut": [
-      { "name": "thumbnail", "label": "Thumbnail", "type": "path.file.image" }
+      { "name": "thumbnail", "label": "Thumbnail", "type": "any" }
     ],
     "settings": [
       { "name": "atSeconds", "label": "Capture at (seconds)", "type": "number", "default": 30 },
-      { "name": "width", "label": "Width", "type": "number.int", "default": 640 }
+      { "name": "width", "label": "Width", "type": "any", "default": 640 }
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "1m", "effects": "write" }
   },
   {
     "type": "nfo/read",
-    "typeVersion": "1.0.0",
+    "id": "f06ccdcc-d98f-471c-bdfb-ded9276d5906",
     "name": "Read NFO",
-    "category": "metadata",
+    "subcategory": "metadata",
     "description": "Parses an NFO sidecar into structured metadata.",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
-      { "name": "source", "label": "NFO file", "type": "path.file.nfo", "required": true }
+      { "name": "source", "label": "NFO file", "type": "any", "required": true }
     ],
     "dataOut": [
-      { "name": "metadata", "label": "Metadata", "type": "metadata.nfo" }
+      { "name": "metadata", "label": "Metadata", "type": "any" }
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
   },
   {
     "type": "nfo/write",
-    "typeVersion": "1.0.0",
+    "id": "5c076327-da48-4179-9cb8-5ba507eb7912",
     "name": "Write NFO",
-    "category": "metadata",
+    "subcategory": "metadata",
     "description": "Writes structured metadata out to an NFO sidecar, overwriting it if present.",
     "control": { "in": ["in"], "out": ["next"], "error": true },
     "dataIn": [
-      { "name": "metadata", "label": "Metadata", "type": "metadata.nfo", "required": true },
-      { "name": "target", "label": "NFO file", "type": "path.file.nfo", "required": true }
+      { "name": "metadata", "label": "Metadata", "type": "any", "required": true },
+      { "name": "target", "label": "NFO file", "type": "any", "required": true }
     ],
     "dataOut": [
-      { "name": "written", "label": "Written to", "type": "path.file.nfo" }
+      { "name": "written", "label": "Written to", "type": "any" }
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write" }
   },
   {
     "type": "string/format",
-    "typeVersion": "1.0.0",
+    "id": "7ee07308-1c52-457c-b1de-6c1ece67d3ff",
     "name": "Format String",
-    "category": "string",
+    "subcategory": "string",
     "description": "Substitutes wired values into a template string, e.g. \"{value1} ({value2})\".",
     "control": { "in": ["in"], "out": ["next"] },
     "dataIn": [
@@ -532,9 +551,9 @@
   },
   {
     "type": "string/regexMatch",
-    "typeVersion": "1.0.0",
+    "id": "a72025a1-41b4-469b-907b-b0034c73901a",
     "name": "Regex Match",
-    "category": "string",
+    "subcategory": "string",
     "kind": "branch",
     "description": "Tests a string against a regular expression and takes the matched or unmatched branch.",
     "control": { "in": ["in"], "out": ["matched", "unmatched"], "error": true },
@@ -551,9 +570,9 @@
   },
   {
     "type": "string/concat",
-    "typeVersion": "1.0.0",
+    "id": "fc10ec6d-fe31-4922-bfa2-c7138221a76d",
     "name": "Concatenate",
-    "category": "string",
+    "subcategory": "string",
     "description": "Joins two strings with an optional separator.",
     "control": { "in": ["in"], "out": ["next"] },
     "dataIn": [
@@ -570,9 +589,9 @@
   },
   {
     "type": "string/parseNumber",
-    "typeVersion": "1.0.0",
+    "id": "48b4ef68-2b41-417d-a26a-e8d6f06afd8d",
     "name": "Parse Number",
-    "category": "string",
+    "subcategory": "string",
     "kind": "branch",
     "description": "Parses text as a number and takes the parsed or failed branch, for when the value needs branching on rather than just wiring through the parseNumber transform.",
     "control": { "in": ["in"], "out": ["parsed", "failed"] },
@@ -586,9 +605,9 @@
   },
   {
     "type": "string/trim",
-    "typeVersion": "1.0.0",
+    "id": "be0d4299-2cee-49a8-ac9c-709aa927b223",
     "name": "Trim",
-    "category": "string",
+    "subcategory": "string",
     "description": "Removes leading and trailing whitespace from a string.",
     "control": { "in": ["in"], "out": ["next"] },
     "dataIn": [

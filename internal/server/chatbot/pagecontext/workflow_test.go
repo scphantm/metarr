@@ -13,8 +13,8 @@ func fixtureWorkflowCatalog(t *testing.T) *workflow.Catalog {
 	t.Helper()
 
 	catalog, err := workflow.NewCatalog([]workflow.NodeType{{
+		ID:          "fs/copyFile",
 		Type:        "fs/copyFile",
-		TypeVersion: "1.0.0",
 		Name:        "Copy File",
 		Control:     workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}},
 		Exec:        workflow.ExecSpec{Effects: workflow.EffectsWrite},
@@ -66,7 +66,7 @@ func TestWorkflowAssemblerWithGraphSendsBothItems(t *testing.T) {
 		"meta": {"name": "My Workflow"},
 		"graph": {
 			"schema_version": 1,
-			"nodes": [{"id": "n1", "type": "fs/copyFile", "typeVersion": "1.0.0"}],
+			"nodes": [{"id": "n1", "type": "fs/copyFile", "catalogId": "fs/copyFile"}],
 			"edges": []
 		}
 	}`

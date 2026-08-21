@@ -9,7 +9,6 @@ import { EndNode } from './core/EndNode'
 import { ErrorOutputNode } from './core/ErrorOutputNode'
 import { FailNode } from './core/FailNode'
 import { ForEachNode } from './core/ForEachNode'
-import { InputPathNode } from './core/InputPathNode'
 import { JoinNode } from './core/JoinNode'
 import { NotesNode } from './core/NotesNode'
 import { ParallelNode } from './core/ParallelNode'
@@ -52,7 +51,6 @@ import {IsFileNode} from "@/pages/workflows/nodes/fs/IsFileNode.tsx";
  */
 export const nodeTypes: Record<string, ComponentType<NodeProps<Node<CatalogNodeData>>>> = {
   'core/start': StartNode,
-  'core/inputPath': InputPathNode,
   'core/writeChanges': WriteChangesNode,
   'core/errorOutput': ErrorOutputNode,
   'core/note': NotesNode,

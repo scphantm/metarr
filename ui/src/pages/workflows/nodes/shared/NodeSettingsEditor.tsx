@@ -164,20 +164,27 @@ export function NodeSettingsEditor({
                     className="resize-none rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong focus:border-blue"
                   />
                 ) : (
-                  <input
-                    id={fieldId}
-                    type={setting.type === 'number' || setting.type === 'number.int' ? 'number' : 'text'}
-                    value={value == null ? '' : String(value)}
-                    onChange={(event) =>
-                      setValue(
-                        setting.name,
-                        setting.type === 'number' || setting.type === 'number.int'
-                          ? Number(event.target.value)
-                          : event.target.value,
-                      )
-                    }
-                    className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong focus:border-blue"
-                  />
+                  (() => {
+                    // number.int was retired from the type lattice (design.md
+                    // §4.1) — those settings now declare "any", so the
+                    // declared type alone can no longer pick the number
+                    // widget. Falling back to the resolved value's actual JS
+                    // type keeps former-number.int settings (tile width,
+                    // branch count, ...) rendering as a number input rather
+                    // than regressing to plain text.
+                    const isNumeric = setting.type === 'number' || typeof value === 'number'
+                    return (
+                      <input
+                        id={fieldId}
+                        type={isNumeric ? 'number' : 'text'}
+                        value={value == null ? '' : String(value)}
+                        onChange={(event) =>
+                          setValue(setting.name, isNumeric ? Number(event.target.value) : event.target.value)
+                        }
+                        className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong focus:border-blue"
+                      />
+                    )
+                  })()
                 )}
 
                 {setting.description ? <p className="text-[11px] text-ink-muted">{setting.description}</p> : null}

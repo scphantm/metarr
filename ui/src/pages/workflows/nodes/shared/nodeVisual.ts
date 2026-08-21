@@ -57,9 +57,9 @@ export type NodeVisual = {
 }
 
 // Literal so Tailwind's scanner can find every possible result written out
-// as source text — see lib/typeColors.ts's handleClasses for the same
-// constraint on the same kind of lookup. Three separate maps because each
-// is a different Tailwind/CSS utility family, not three copies of one idea.
+// as source text — a template-literal-constructed class name is invisible
+// to Tailwind's scanner. Three separate maps because each is a different
+// Tailwind/CSS utility family, not three copies of one idea.
 const BORDER_CLASS: Record<Accent, string> = {
   red: 'border-red',
   orange: 'border-orange',
@@ -140,7 +140,6 @@ function iconVisual(shapeClassName: string, shapeAccent: Accent, options?: { bor
 
 const definitions: Record<string, NodeVisual> = {
   'core/start': iconVisual('shape-start', 'cyan'),
-  'core/inputPath': iconVisual('shape-input', 'cyan'),
   // The graph's one committing action — stands out from the plain exits
   // around it rather than reading as an ordinary terminator.
   'core/writeChanges': iconVisual('shape-write-changes', 'magenta'),

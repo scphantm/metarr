@@ -135,7 +135,7 @@
 
   /* Distance a data edge's endpoint type icon (edges/DataEdge.tsx) sits off
      its handle, slid along the edge so it doesn't overlap the handle dot. */
-  --data-edge-icon-offset: 20px;
+  --data-edge-icon-offset: 10px;
 }
 
 /* Per-node color as a class, not an inline style — see nodeVisual.ts's

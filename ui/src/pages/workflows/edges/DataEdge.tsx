@@ -1,10 +1,12 @@
 import { useState, type CSSProperties } from 'react'
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, Position, useReactFlow, type Edge, type EdgeProps } from '@xyflow/react'
 
-import { iconClassForType, ITERATE_ICON_CLASS, TYPE_UNSAFE_ICON_CLASS } from '../../../lib/typeIcons'
+import { iconClassForType, ITERATE_ICON_CLASS, RECURSIVE_ICON_CLASS, TYPE_UNSAFE_ICON_CLASS } from '../../../lib/typeIcons'
 import { canConnect, parseHandleId } from '../connectionRules'
+import type { CatalogNodeData } from '../catalogTypes'
 import { useCatalogEntry, useTransforms } from '../useCatalogEntry'
 import { useIconZoomVisibility } from '../useIconZoomVisibility'
+import { EdgeSettingsEditor } from './EdgeSettingsEditor'
 import { TransformPicker } from './TransformPicker'
 
 // The unit direction a handle's own position "faces" — used to slide an
@@ -22,10 +24,12 @@ const OUTWARD_UNIT: Record<Position, { ux: number; uy: number }> = {
 /*
  * The one shared data-edge component: thin, static, theme orange (the wire
  * marks it as a data edge at a glance, distinct from a cyan control edge —
- * type compatibility is still conveyed at the socket dots via
- * lib/typeColors.ts, unchanged), dashed when a transform is applied. The
- * transform — if any — shows as a clickable chip (design.md §4.4's "small
- * chip on the edge reading e.g. parentDir"); clicking it reopens
+ * NodeShell.tsx's socket dots match these same two colors now, so an edge
+ * and the sockets it connects read as one visual family; a specific type is
+ * conveyed by the icon mask instead, see lib/typeIcons.ts), dashed when a
+ * transform is applied. The transform — if any — shows as a clickable chip
+ * (design.md §4.4's "small chip on the edge reading e.g. parentDir");
+ * clicking it reopens
  * TransformPicker to change or clear the conversion. All of this is real CSS
  * (index.css's .data-edge-* classes) — the component only ever passes
  * coordinates and a unit direction across as custom-property values, never
@@ -41,12 +45,24 @@ const OUTWARD_UNIT: Record<Position, { ux: number; uy: number }> = {
  * family. These endpoint icons only show at maximum zoom (useIconZoomVisibility,
  * shared with NodeShell.tsx's handle icons) — the transform chip does not,
  * since it's a text label rather than a small icon.
+ *
+ * Double-clicking a path-typed edge (target socket type in the `path`
+ * family) opens EdgeSettingsEditor, currently offering just "Recursive".
+ * When set, a FaFolderTree badge joins the target-end icon group, titled
+ * "Path destinations are recursive". Gated on the target end because
+ * recursion describes what the receiving node does with the destination,
+ * not the source — a transform (e.g. media.file.parentDir) can make the
+ * two ends different type families.
  */
 
 // diagnosticHighlight is set by WorkflowCanvas.tsx while the user hovers a
 // diagnostic naming this edge — see DiagnosticsPanel.tsx — never persisted
 // (graphAdapter.ts's fromRFEdge doesn't read it).
-export type DataEdgeData = { transform?: string; diagnosticHighlight?: boolean }
+export type DataEdgeData = {
+  transform?: string
+  diagnosticHighlight?: boolean
+  settings?: Record<string, unknown>
+}
 export type DataEdgeType = Edge<DataEdgeData, 'dataEdge'>
 
 export function DataEdge({
@@ -67,13 +83,20 @@ export function DataEdge({
 }: EdgeProps<DataEdgeType>) {
   const { getNode, updateEdgeData } = useReactFlow()
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const transforms = useTransforms()
   const showSmallIcons = useIconZoomVisibility()
 
   const sourceNode = getNode(source)
   const targetNode = getNode(target)
-  const sourceNodeType = useCatalogEntry(sourceNode?.type ?? '')
-  const targetNodeType = useCatalogEntry(targetNode?.type ?? '')
+  const sourceNodeType = useCatalogEntry(
+    (sourceNode?.data as CatalogNodeData | undefined)?.catalogId,
+    sourceNode?.type ?? '',
+  )
+  const targetNodeType = useCatalogEntry(
+    (targetNode?.data as CatalogNodeData | undefined)?.catalogId,
+    targetNode?.type ?? '',
+  )
 
   const sourceSocketName = parseHandleId(sourceHandleId)?.name
   const targetSocketName = parseHandleId(targetHandleId)?.name
@@ -88,9 +111,15 @@ export function DataEdge({
   const targetIconClass = targetSocket ? iconClassForType(targetSocket.type) : undefined
   const sourceUnit = OUTWARD_UNIT[sourcePosition]
   const targetUnit = OUTWARD_UNIT[targetPosition]
+  const targetType = targetSocket?.type
+  const isPathEdge = targetType === 'path' || (targetType?.startsWith('path.') ?? false)
+  const isRecursive = Boolean(data?.settings?.recursive)
 
   return (
-    <g className={data?.diagnosticHighlight ? 'diagnostic-blink' : undefined}>
+    <g
+      className={data?.diagnosticHighlight ? 'diagnostic-blink' : undefined}
+      onDoubleClick={isPathEdge ? () => setSettingsOpen(true) : undefined}
+    >
       <BaseEdge
         id={id}
         path={path}
@@ -138,6 +167,12 @@ export function DataEdge({
                   title="Not rigidly type safe — the connected value's actual type isn't guaranteed to match."
                 />
               ) : null}
+              {isRecursive ? (
+                <span
+                  className={`${RECURSIVE_ICON_CLASS} block h-2.5 w-2.5 pointer-events-auto`}
+                  title="Path destinations are recursive"
+                />
+              ) : null}
             </div>
           ) : null}
         </EdgeLabelRenderer>
@@ -154,6 +189,17 @@ export function DataEdge({
             setPickerOpen(false)
           }}
           onClose={() => setPickerOpen(false)}
+        />
+      ) : null}
+
+      {settingsOpen ? (
+        <EdgeSettingsEditor
+          recursive={isRecursive}
+          onSave={(next) => {
+            void updateEdgeData(id, { settings: { ...data?.settings, recursive: next.recursive } })
+            setSettingsOpen(false)
+          }}
+          onCancel={() => setSettingsOpen(false)}
         />
       ) : null}
     </g>
