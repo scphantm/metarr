@@ -160,7 +160,7 @@
 }
 
 .doc .paragraph.lead > p {
-  font-size: calc(19.5 / var(--rem-base) * 1rem);
+  font-size: calc(18 / var(--rem-base) * 1rem);
 }
 
 .doc .right {
@@ -620,14 +620,15 @@
 }
 
 .doc ul.checklist {
-  padding-left: 1rem;
+  padding-left: 1.75rem;
 }
 
 .doc ul.checklist p > i.fa-check-square-o:first-child,
 .doc ul.checklist p > i.fa-square-o:first-child {
   display: inline-flex;
   justify-content: center;
-  width: 1em;
+  width: 1.25rem;
+  margin-left: -1.25rem;
 }
 
 .doc ul.checklist i.fa-check-square-o::before {
@@ -877,7 +878,7 @@
   background-color: var(--doc-font-color);
   border-radius: 0.25em;
   padding: 0.5em;
-  color: var(--color-white);
+  color: var(--fg);
   cursor: auto;
   opacity: 0;
   transition: opacity 0.5s ease 0.5s;

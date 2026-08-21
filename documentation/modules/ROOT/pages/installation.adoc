@@ -1,0 +1,143 @@
+= Installation
+
+Metarr needs MongoDB and Redis. The bundled Compose file provides those plus
+the optional logging stack and a few administrative web tools. The two Go
+binaries are *not* in the Compose file yet — you run them yourself.
+
+== Start the infrastructure
+
+Copy the example environment file and adjust it before the first run. It seeds
+the MongoDB accounts, and those values must match what `config.yaml` connects
+with — nothing substitutes between the two files, so they are kept in step by
+hand.
+
+[source,bash]
+----
+cp .env.example .env
+$EDITOR .env
+docker compose up -d
+----
+
+That brings up:
+
+[cols="1,1,3"]
+|===
+|Service |Port |Purpose
+
+|MongoDB
+|27017
+|The application datastore.
+
+|Redis
+|6379
+|Everything between the server and its agents. Password-protected, because
+agents connect to it from other machines.
+
+|Mongo Express
+|6969
+|Browse the database.
+
+|OpenObserve
+|5080
+|Log search and dashboards. Refuses to start unless its root password satisfies
+its own policy: 8–128 characters with upper, lower, digit and special.
+
+|Fluent Bit
+|8888
+|Receives log records from the server and ships them to OpenObserve.
+
+|RedisInsight
+|5540
+|Inspect Redis. Arrives pre-connected to the `metarr-redis` instance.
+|===
+
+WARNING: The defaults in `.env.example` are development conveniences. Change
+every password before exposing any of this beyond your own machine, and put TLS
+in front of Redis if agents will reach it across an untrusted network.
+
+== Run the server and an agent
+
+[source,bash]
+----
+make run-server                            # the API, on :8080
+make run-agent METARR_AGENT_SLUG=nas-01    # an agent alongside it
+----
+
+The agent needs only two things locally: a slug that identifies it, and how to
+reach Redis. Everything else is published to it by the server. Override the
+Redis host without editing a file:
+
+[source,bash]
+----
+make run-agent METARR_AGENT_SLUG=nas-01 METARR_REDIS_HOST=10.0.0.5
+----
+
+== First boot
+
+On its first start the server finds no configuration document and creates one.
+In doing so it generates an administrator password and a set of API keys, and
+prints them to *stdout* — deliberately not through the logger, so they do not
+end up in your log store.
+
+[IMPORTANT]
+====
+Capture the generated administrator password from the server's console output on
+first boot. It is stored only as a hash; there is no way to recover it
+afterwards. You can set a new one from *System → Security* once you are signed
+in.
+====
+
+== Run the web UI
+
+The UI is a separate React application. It is not embedded in the server binary.
+
+[source,bash]
+----
+make ui-install    # once
+make ui-dev        # http://localhost:5173
+----
+
+The dev server proxies `/api` to `http://localhost:8080`. That proxy is
+mandatory rather than a convenience — the Go API sends no CORS headers, so a
+browser talking to it directly from another origin will be refused. Point the
+proxy elsewhere with `METARR_API_URL`.
+
+Sign in with the administrator account. There is no separate registration step
+and no second user account — see xref:configuration.adoc[Configuration] for the
+security model.
+
+== Building binaries
+
+[source,bash]
+----
+make build-server    # bin/metarr-server
+make build-agent     # bin/metarr-agent
+make dist            # cross-compiled agents for every supported target
+----
+
+`make dist` produces static agent binaries for Linux (amd64 and arm64), Windows
+(amd64) and macOS (arm64), built with cgo disabled and paths trimmed. The agent
+is meant to drop onto a NAS as a single file; the container image for it is
+built `FROM scratch` and contains nothing but the binary and CA certificates.
+
+See xref:agents.adoc[Agents] for deploying and configuring one.
+
+== Companion tools
+
+Once everything is running, *System → External Tools* in the UI links to the
+administrative interfaces listed above. Each keeps its own credentials, set in
+`.env` — they are not tied to your Metarr login.
+
+The API's own interactive documentation is at
+`http://localhost:8080/swagger/index.html`.
+
+== Building this documentation
+
+[source,bash]
+----
+make docs_initialize   # once
+make docs_build        # output in build/site
+----
+
+Architecture and pipeline diagrams are rendered at build time by
+https://kroki.io[Kroki], so the build needs network access to produce them.

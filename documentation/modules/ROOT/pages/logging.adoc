@@ -1,0 +1,117 @@
+= Logging
+
+Both binaries emit structured logs, ship them over Redis, and — if you configure
+it — forward them to a log store. The live tail in the UI works regardless.
+
+== The pipeline
+
+[graphviz,log-pipeline,svg]
+....
+digraph logs {
+  rankdir=LR;
+  bgcolor="transparent";
+  node [shape=box style="rounded,filled" fontname="Helvetica" fontsize=10 color="#586e75" fillcolor="#fdf6e3" fontcolor="#073642"];
+  edge [fontname="Helvetica" fontsize=9 color="#586e75" fontcolor="#586e75"];
+
+  call   [label="a log call\nin either binary"];
+  out    [label="stdout" shape=note fillcolor="#f5f5f5"];
+  buf    [label="bounded buffer\ndrops when full" fillcolor="#fbeaea"];
+  redis  [label="Redis pub/sub\nlogs.app" shape=cylinder fillcolor="#fbeaea"];
+  tail   [label="live tail\nlast 200 records" fillcolor="#e8f0f7"];
+  fwd    [label="forwarder\n(server only)" fillcolor="#eaf3ea"];
+  fb     [label="Fluent Bit" fillcolor="#f3eaf5"];
+  oo     [label="OpenObserve" shape=cylinder fillcolor="#f3eaf5"];
+
+  call  -> out   [label="always,\nsynchronously"];
+  call  -> buf   [label="never blocks"];
+  buf   -> redis;
+  redis -> tail  [label="UI"];
+  redis -> fwd   [label="if configured"];
+  fwd   -> fb    [label="HTTP"];
+  fb    -> oo;
+}
+....
+
+Each record carries a timestamp, level, message, source, and whatever structured
+attributes the call site attached. The `source` field is fixed per process —
+`metarr-server`, or `metarr-agent-<slug>` — so you can always tell which machine
+a line came from.
+
+The format is deliberately vendor-neutral. Translating it into whatever shape a
+particular log store wants is Fluent Bit's job, not the application's.
+
+== Why the hop through Redis
+
+Agents run on other machines, and the design goal is that an agent's *only*
+network dependency is Redis. Giving each agent a connection to your log store
+would mean another endpoint to configure, another credential on a machine sitting
+on your storage, and another thing to break.
+
+So both binaries publish to a Redis channel, and only the server subscribes and
+forwards. Adding a tenth agent adds no logging configuration at all.
+
+That hop uses pub/sub rather than a durable stream, on purpose: a log record is
+worth having, but not worth blocking the application or growing a backlog to
+guarantee.
+
+== Nothing in the log path blocks
+
+A log call writes to stdout and then hands the record to a bounded buffer and
+returns. If the buffer is full — because Redis is slow or unreachable — the record
+is dropped and counted rather than making the caller wait. The dropped count is
+reported periodically so silence is distinguishable from loss.
+
+The same is true of the forwarder. A log store having a bad day slows down
+nothing else.
+
+The practical guarantee: *stdout always works*. Even before Redis is connected at
+startup, and after it fails, the process keeps logging to its console.
+
+== Viewing logs
+
+=== In the UI
+
+*System → Logging* shows a live tail of recent records — time, level, source and
+message — from both the server and every agent, fed by a rolling buffer of the
+most recent lines. It needs no external service and is the fastest way to see
+what is happening right now.
+
+The same screen sets log levels, live and without a restart:
+
+* The server's level.
+* Each agent's level, individually.
+
+Both offer `info` and `debug`. An agent's new level reaches it over Redis within
+a moment.
+
+=== In OpenObserve
+
+If forwarding is configured, records are searchable in OpenObserve, which is
+where you go for anything historical or cross-machine. *System → External Tools*
+links to it; it keeps its own credentials, set in `.env`.
+
+The Pipeline card on the Logging screen shows where records are being sent. It is
+informational — change the destination in configuration, not there.
+
+== Configuring forwarding
+
+Forwarding is controlled by a single key in `config.yaml`:
+
+[source,yaml]
+----
+logging:
+  forward_url: "http://fluent-bit:8888/app_logs"
+----
+
+Leave it blank and forwarding is disabled: both binaries still log to stdout, the
+live tail still works, and nothing else changes.
+
+== Using a different log store
+
+Neither binary talks to OpenObserve. They talk to Fluent Bit, which talks to
+OpenObserve — which means swapping log stores is a Fluent Bit configuration
+change and nothing else.
+
+Edit the `OUTPUT` block in `fluent-bit/fluent-bit.conf`. No Go code changes, no
+rebuild, no redeploy of either binary. The shipped configuration notes the
+Splunk and Elasticsearch equivalents inline.

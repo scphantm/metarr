@@ -8,6 +8,9 @@ Kill any spawned processes (node, metarr-server, metarr-agent) before ending a t
 * After validating a change, add regression unit tests — cheaper to rerun than to re-derive next time.
 * style sheet information should be stored in style sheets, not tsx.
 
+# Design documentation
+`documentation/modules/design/` is the source of truth for how the system is designed — not just the workflow engine, everything documented there. Before implementing a change in an area the module covers, check what it says and make the change match. If a change would require the design itself to be different, stop and ask — do not edit anything under `documentation/modules/design/` without the user's explicit go-ahead first, even to fix what looks like a stale or inconsistent passage.
+
 # Configuration file structure changes
 Any change to config structure also requires:
 * CRUD methods in the config API router
@@ -33,7 +36,7 @@ Only metarr-server may connect to Mongo. Server↔agent data goes only through t
 * Neither binary talks to OpenObserve directly — both publish to the `logs.app` Redis Pub/Sub channel. Only `metarr-server` also subscribes and forwards over HTTP to Fluent Bit's `http` input (`internal/server/logforward`), via `logging.forward_url` in `config.yaml` (infra wiring, not `appconfig`). Fluent Bit has no Redis input plugin (verified) — hence the HTTP hop. Swapping vendors only touches `fluent-bit/fluent-bit.conf`'s OUTPUT block — no Go changes, no redeploys.
 
 # Workflow UI node design
-See `design.md` for the full spec (schema, execution semantics, validation). This is UI node anatomy only.
+See `documentation/modules/design/pages/workflow_engine.adoc` for the full spec (schema, execution semantics, validation). This is UI node anatomy only.
 * Top edge: control-in (leftmost) then data-ins. Bottom edge: control-outs (leftmost) then data-outs. Right edge: `error`.
 * Control edges (thick, solid, neutral, animated) show what runs next; data edges (thin, coloured by type) wire a value. Never style them the same.
 * Input nodes have no control-in (starting points); output nodes have no control-out (ending points) — driven by the catalog's `control` block, never a hardcoded category check.

@@ -9,6 +9,8 @@ html {
   font-size: var(--body-font-size);
   height: 100%;
   scroll-behavior: smooth;
+  background-color: var(--hl);
+  color: var(--fg);
 }
 
 @media screen and (min-width: 1024px) {
@@ -18,13 +20,18 @@ html {
 }
 
 body {
-  background: var(--body-background);
+  background-image: var(--body-background-image);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+  /* background: var(--body-background); */
   color: var(--body-font-color);
   font-family: var(--body-font-family);
   line-height: var(--body-line-height);
   margin: 0;
   tab-size: 4;
   word-wrap: anywhere; /* aka overflow-wrap; used when hyphens are disabled or aren't sufficient */
+  border: 1pt solid var(--comment);
 }
 
 a {
@@ -102,11 +109,6 @@ table {
 
 object[type="image/svg+xml"]:not([width]) {
   width: fit-content;
-}
-
-.hide,
-.is-hidden {
-  display: none !important;
 }
 
 ::placeholder {

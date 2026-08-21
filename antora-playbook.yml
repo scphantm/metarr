@@ -35,6 +35,8 @@ antora:
         - ruby
         - docker
         - yaml
+        - go
+        - json
       use_line_numbers: true
       theme: solarized-dark
 asciidoc:

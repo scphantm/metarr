@@ -60,6 +60,9 @@ I want to snapshot the metadata library.  That way i can compare what changed ov
 === Backup
 I want to backup the metadata library.  all of it, everything except the video files themselves.
 
+=== Security
+I want to implement a security system that will lock out everything else from editing the metadata using file permissions.  basically metarr will be the only user allowed to write.
+
 === Metadata proxy.
 everything here is cached and versioned.  I want to build this so all other systems can point to it and
 they get cached results and versioned so you can see how a document changed over a period of time.  That

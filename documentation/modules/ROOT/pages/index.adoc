@@ -1,11 +1,78 @@
 = Metarr Documentation
 
-Welcome to the Metarr documentation.
+Metarr manages the metadata of a media collection, treating the files on your
+shared storage as the system of record rather than any one application's
+database.
 
-This site is a work in progress and is intended to grow into the full user manual for Metarr — installation, configuration, workflows, and reference material for every feature. For now it holds the project's design philosophy; more sections will land here as the application matures.
+If you want the reasoning behind that stance before anything else, start with
+xref:philosophy.adoc[Why Metarr].
+
+== Project status
+
+Metarr is under active development and is not a finished product. This
+documentation describes *what the software actually does today*. Where a
+capability is designed but not yet built, the page in question says so
+explicitly rather than staying silent — a gap you cannot see is worse than one
+that is written down.
+
+.Working end to end
+* *Library scanning* — agents walk your libraries, classify everything they
+  find, and the server stores the result. See xref:scanning.adoc[Library Scanning].
+* *Agent fleet management* — deploy agents, watch presence and telemetry, map
+  each library onto the path that machine knows it by. See xref:agents.adoc[Agents].
+* *Configuration and security* — every setting above the connection layer is
+  editable at runtime. See xref:configuration.adoc[Configuration].
+* *Logging and observability* — structured logs from both binaries, a live tail
+  in the UI, optional shipping to OpenObserve. See xref:logging.adoc[Logging].
+* *Workflow authoring and validation* — a graph editor over a node catalog,
+  continuously validated. See xref:workflows.adoc[Workflows].
+* *An AI assistant* that can read the workflow you are editing and propose
+  changes to it.
+
+.Not built yet
+* *Workflow execution.* Workflows are authorable, savable, versioned and
+  validated. Nothing runs them.
+* *Sonarr data fetching.* Instances are configurable; no Sonarr API call is
+  ever made.
+* *Radarr, TMDB, TVDB, Plex and Jellyfin integration.* Metarr reads provider IDs
+  out of NFO files that already exist. It does not call those APIs.
+* *Scheduling and automation.* No cron, no timers, no triggers.
+* *Searches, Automations and Tasks.* Present in the navigation marked "soon",
+  with no pages behind them.
 
 == Where to start
 
-* xref:philosophy.adoc[Why Metarr] — the full story behind why this project exists and how it approaches metadata management.
+[cols="1,3"]
+|===
+|Page |What it covers
 
-For a quick overview of what Metarr is and how to run it, see the README in the repository root.
+|xref:philosophy.adoc[Why Metarr]
+|The metadata-ownership problem in full, and why this needed its own project.
+
+|xref:installation.adoc[Installation]
+|Getting Metarr running, first-boot credentials, ports and companion tools.
+
+|xref:architecture.adoc[Architecture]
+|How the pieces fit: the server/agent split, the boundary between them, and a
+reference for every event, channel and key on the wire.
+
+|xref:configuration.adoc[Configuration]
+|The two configuration layers, the runtime settings screens, and the security
+model.
+
+|xref:agents.adoc[Agents]
+|What an agent is, how to deploy one, and how libraries are mapped onto it.
+
+|xref:scanning.adoc[Library Scanning]
+|Scan directories, sidecar classification, and what a scan produces.
+
+|xref:workflows.adoc[Workflows]
+|The editor, the node catalog, validation and versioning — and what does not
+run yet.
+
+|xref:logging.adoc[Logging]
+|The log pipeline from a `log.Info` call to OpenObserve.
+
+|xref:roadmap.adoc[Product Roadmap]
+|Where the project is headed.
+|===
