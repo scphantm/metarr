@@ -1,0 +1,68 @@
+= Movie Naming & Directory Structure
+
+Condensed from https://jellyfin.org/docs/general/server/media/movies[Jellyfin] and
+https://support.plex.tv/articles/naming-and-organizing-your-movie-media-files/[Plex].
+Metarr's scanner must recognize both dialects; this page is the merged spec it
+parses against — see `internal/agent/mediascan/tokens.go` and `parse.go`.
+
+== Folder
+
+[source]
+----
+Movies/MovieName (year) [provider-id]{edition-Name}/
+----
+
+* `year`: 4-digit, parenthesized. Optional.
+* Provider ID — bracket form (Jellyfin) or brace form (Plex), both must parse:
+  `[imdbid-tt0000000]` · `\{imdb-tt0000000}` · `\{tmdb-000}`
+* Edition — brace form, max 32 chars: `\{edition-Director's Cut}`
+
+== File
+
+[source]
+----
+MovieName (year) [provider-id]{edition-Name}.ext
+----
+
+File name matches its folder name, plus optional per-file tags.
+
+== Multi-version (same movie, different cut/quality)
+
+[source]
+----
+MovieName (year) [id] - VersionLabel.ext
+----
+
+Space-hyphen-space before the label. `VersionLabel` may itself be bracketed.
+
+== Multi-part (one cut split across files)
+
+[source]
+----
+MovieName-parttype#.ext
+----
+
+`parttype` ∈ `cd` `dvd` `part` `pt` `disc` `disk`. `#` is a number (Jellyfin also
+accepts letters a–d for part). Separator between name and type: space, `.`, `-`,
+`_`, or none. Plex caps this at 8 parts.
+
+== Disc structures
+
+`VIDEO_TS/` and `BDMV/` folders under the movie folder are recognized as-is —
+do not flatten or rename their contents.
+
+== Examples
+
+[source]
+----
+Movies/Avatar (2009)/Avatar (2009).mkv
+Movies/Batman Begins (2005) {imdb-tt0372784}/Batman Begins (2005) {imdb-tt0372784}.mp4
+Movies/Blade Runner (1982) {edition-Director's Cut}/Blade Runner (1982) {edition-Director's Cut}.mp4
+Movies/The Dark Knight (2008)/The Dark Knight (2008) - pt1.mp4
+Movies/Movie (2021) [imdbid-tt12801262]/Movie (2021) [imdbid-tt12801262] - 2160p.mp4
+Movies/Best_Movie_Ever (2019)/
+  Best_Movie_Ever (2019).mp4
+  Best_Movie_Ever (2019).nfo
+  Best_Movie_Ever (2019).en_us.srt
+  cover.png
+----

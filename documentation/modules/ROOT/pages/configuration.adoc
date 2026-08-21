@@ -1,0 +1,212 @@
+= Configuration
+
+Metarr splits its settings across two layers, and knowing which layer a setting
+lives in tells you how to change it.
+
+[cols="1,2,2"]
+|===
+| |Layer 1 — `config.yaml` |Layer 2 — the settings database
+
+|Holds
+|Where things live: connection strings, ports, file paths
+|Everything else: scanning, agents, interfaces, security, logging levels, the
+assistant
+
+|Changed by
+|Editing the file
+|The web UI, at runtime
+
+|Takes effect
+|On restart
+|Within a moment, without a restart
+|===
+
+The rule behind the split: Layer 1 is infrastructure wiring you need in order to
+reach the database at all, so it cannot itself be stored in the database.
+Everything else can be, and is.
+
+== Layer 1: `config.yaml`
+
+The file is read once at startup. Its location can be overridden with
+`METARR_CONFIG_FILE`. Only these keys are read:
+
+[cols="1,1,3"]
+|===
+|Key |Required |Meaning
+
+|`mongodb.app_uri`
+|yes
+|Read/write connection for the application's own data.
+
+|`mongodb.database`
+|yes
+|Database name.
+
+|`redis.uri`
+|yes
+|Redis connection, including the password.
+
+|`server.host`
+|no
+|Listen address. Defaults are supplied if omitted.
+
+|`server.port`
+|no
+|Listen port.
+
+|`logging.forward_url`
+|no
+|Where to forward log records. Leave it blank and the server still logs to
+stdout and Redis — it simply forwards nowhere. See xref:logging.adoc[Logging].
+
+|`workflow.catalog_path`
+|no
+|The workflow node catalog file. Defaults to `catalog.json`.
+|===
+
+NOTE: `config.yaml` also contains a `mongodb.readonly_uri` entry with a comment
+describing a Search screen. That key is *not parsed and not used* — there is no
+Search screen yet. It is a placeholder.
+
+=== Agent configuration
+
+An agent's local file (`agent.yaml`, or `METARR_AGENT_CONFIG_FILE`) carries only
+a slug and how to reach Redis. The file is entirely optional if the environment
+supplies those values.
+
+[source,yaml]
+----
+agent:
+  slug: local          # required
+redis:
+  uri: ""              # wins outright when set
+  host: redis          # otherwise host/port/credentials are assembled
+  port: 6379
+  username: ""
+  password: metarr
+  db: 0
+----
+
+Every field has an environment override: `METARR_AGENT_SLUG`, `METARR_REDIS_URI`,
+`METARR_REDIS_HOST`, `METARR_REDIS_PORT`, `METARR_REDIS_USERNAME`,
+`METARR_REDIS_PASSWORD` and `METARR_REDIS_DB`.
+
+There is deliberately no logging section: an agent's log level is set from the
+server, live, and everything else it needs arrives over Redis. See
+xref:agents.adoc[Agents].
+
+== Layer 2: runtime settings
+
+These live in a single document in MongoDB and are edited from the UI. They are
+organized into seven areas:
+
+[cols="1,3"]
+|===
+|Area |Managed at
+
+|API keys
+|*System → Security*
+
+|Administrator account
+|*System → Security*
+
+|Interfaces (Sonarr)
+|*System → Configuration → Interfaces*
+
+|Directory scanner
+|*System → Configuration → Directory Scanner* and *Sidecars*
+
+|Agents
+|*System → Agents*
+
+|Logging levels
+|*System → Logging*
+
+|Assistant
+|*System → Configuration → Chatbot*
+|===
+
+=== Saving is queued, not immediate
+
+Every settings change is published as an event and acknowledged with
+`202 Accepted` before it has been written. A listener persists it a moment later
+and swaps it into memory.
+
+This is why the UI shows a save moving from *queued* to *confirmed* rather than
+flashing "saved" on the response: the confirmation means the change has actually
+landed. If a field still says "not confirmed" after twenty seconds, the write did
+not complete — check that the server is healthy rather than assuming it took.
+
+The practical consequence for anyone using the API directly: a write followed
+immediately by a read can race, and briefly return the old value.
+
+=== Interfaces
+
+Only Sonarr can be configured. Each instance takes a slug, display name, URL, API
+key, a storage mode, and a map from Sonarr's paths to your local ones.
+
+[WARNING]
+====
+Configuring a Sonarr instance currently *does nothing*. The settings are stored
+and a generated Sonarr client exists in the codebase, but no Sonarr request is
+ever made and no Sonarr data is fetched or cached. The screen is ahead of the
+integration behind it.
+====
+
+=== The assistant
+
+The assistant is off until you enable it and configure a provider. Four are
+supported — Claude, ChatGPT, Gemini, and any MCP server — but only one is active
+at a time. Settings for all of them are retained when you switch, so
+experimenting does not lose your keys.
+
+The chat widget does not appear at all until the active provider is actually
+configured, so an enabled-but-keyless assistant stays out of the way rather than
+failing when clicked. What it can do is described in
+xref:workflows.adoc[Workflows], since the workflow editor is the only screen that
+gives it context.
+
+== Security model
+
+Metarr has *one* administrator account — the same account you sign in with and
+the one edited at *System → Security*. There are no additional users, no roles
+per user, and no registration.
+
+Programmatic access uses API keys, which fall into four categories:
+
+[cols="1,3"]
+|===
+|Category |Reach
+
+|Admin
+|Everything, including configuration.
+
+|User
+|Task routes.
+
+|Read only
+|Task routes, and `GET` requests only.
+
+|Webhook
+|Reserved. The role exists and is enforced, but no route currently uses it.
+|===
+
+Signing in mints a session key valid for 24 hours, which carries administrator
+rights. Any request that comes back unauthorized clears the session in the UI and
+returns you to the sign-in screen.
+
+=== Things to know before exposing this
+
+Stated plainly, because they are properties of the current implementation rather
+than oversights you would discover only by reading the source:
+
+* Passwords are stored as a salted SHA-256 hash, not a memory-hard key
+  derivation function such as bcrypt or Argon2.
+* The rate limiter on the sign-in route is global rather than per-client: it
+  throttles the route as a whole.
+* Sonarr and assistant API keys are returned to authenticated clients in plain
+  text, by design — the UI has to be able to display and edit them.
+* The administrator's password hash and salt are never returned by the API.
+
+Metarr is built for a private network alongside your media server. Treat it
+accordingly.

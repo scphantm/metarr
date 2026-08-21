@@ -1,0 +1,355 @@
+= Architecture
+
+Metarr is two Go binaries — `metarr-server` and `metarr-agent` — a React web UI,
+and the infrastructure they sit on. Redis is the only thing the two binaries
+have in common: they never talk to each other directly, and the agent never
+reaches the database at all.
+
+== The pieces
+
+[graphviz,metarr-components,svg]
+....
+digraph metarr {
+  rankdir=TB;
+  bgcolor="transparent";
+  node [shape=box style="rounded,filled" fontname="Helvetica" fontsize=10 color="#586e75" fillcolor="#fdf6e3" fontcolor="#073642"];
+  edge [fontname="Helvetica" fontsize=9 color="#586e75" fontcolor="#586e75"];
+
+  ui   [label="Web UI\n(React, served by Vite)" fillcolor="#e8f0f7"];
+
+  subgraph cluster_server {
+    label="server host";
+    fontname="Helvetica"; fontsize=10; color="#93a1a1"; fontcolor="#586e75";
+    server [label="metarr-server\nAPI · orchestration · the only\nprocess that touches Mongo" fillcolor="#eaf3ea"];
+  }
+
+  subgraph cluster_storage {
+    label="near the storage";
+    fontname="Helvetica"; fontsize=10; color="#93a1a1"; fontcolor="#586e75";
+    agent  [label="metarr-agent\nevery filesystem operation" fillcolor="#fdf0e5"];
+    lib    [label="media library" shape=cylinder fillcolor="#f5f5f5"];
+  }
+
+  mongo  [label="MongoDB" shape=cylinder fillcolor="#eaf3ea"];
+  redis  [label="Redis\nstreams · pub/sub · keys" shape=cylinder fillcolor="#fbeaea"];
+  fb     [label="Fluent Bit\n(optional)" fillcolor="#f3eaf5"];
+  oo     [label="OpenObserve\n(optional)" fillcolor="#f3eaf5"];
+
+  ui     -> server [label="HTTPS /api\n+ WebSocket"];
+  server -> mongo  [label="the only\nMongo client"];
+  server -> redis;
+  agent  -> redis  [label="its only\nnetwork peer"];
+  agent  -> lib    [label="read / write"];
+  server -> fb     [label="HTTP\nlog records"];
+  fb     -> oo;
+
+  {rank=same; mongo; redis;}
+}
+....
+
+`metarr-server`:: Owns the HTTP API, MongoDB, and orchestration. It has no
+filesystem access to the media library whatsoever — when it needs something from
+disk, it asks an agent.
+
+`metarr-agent`:: A small static binary deployed next to the storage, ideally on
+the NAS itself or on a machine with a GPU. It performs every filesystem
+operation: walking libraries, reading NFO files, inspecting artwork. Its only
+outbound connection is to Redis.
+
+The web UI:: A React application, *not* embedded in the server binary. In
+development it is served by Vite on port 5173, which proxies `/api` through to
+the server. The Go API emits no CORS headers, so that proxy is required rather
+than a convenience.
+
+MongoDB:: The application's own datastore. It is deliberately not the system of
+record for your metadata — the files on disk are. See
+xref:philosophy.adoc[Why Metarr].
+
+Redis:: Carries everything between the two binaries, plus session storage and
+presence.
+
+Fluent Bit and OpenObserve:: Optional. If you do not configure log forwarding,
+everything else still works. See xref:logging.adoc[Logging].
+
+== The agent boundary
+
+The agent holds no database credentials and cannot open a database connection.
+This is the single most important structural rule in the codebase, and it is
+enforced by a test rather than by convention.
+
+`internal/agent/boundary_test.go` shells out to `go list -deps` for the agent
+packages and the agent binary, then fails if any package in the resulting
+*transitive build graph* matches either of:
+
+[cols="2,3"]
+|===
+|Forbidden dependency |Reason
+
+|`go.mongodb.org/mongo-driver/v2/mongo`
+|The agent must never connect to MongoDB.
+
+|`Metarr/internal/server/`
+|The agent must not depend on server-side packages — which is how a Mongo client
+would arrive by accident.
+|===
+
+Because it walks the real build graph rather than reading import blocks, a
+dependency pulled in indirectly several packages down is caught just the same.
+
+The BSON *codec* package is deliberately allowed. It is a serialization library
+in the same sense as `encoding/json`, and the shared scan models type their
+record IDs as `bson.ObjectID` so the server can store what an agent produced
+without rewriting it. Banning the codec would mean retyping every record ID for
+no safety gain — without the client packages there is nothing to connect with.
+
+== Choosing a transport
+
+Redis offers several mechanisms and Metarr uses three of them. Which one carries
+what is a rule, not a habit:
+
+[cols="1,2,3"]
+|===
+|Mechanism |Carries |Why
+
+|Keys with a TTL
+|Agent presence, telemetry, the slug lock
+|True now and worthless later. An agent that dies simply stops refreshing and
+its key expires — there is no tombstone to clean up.
+
+|A key without a TTL
+|Each agent's configuration projection
+|Should survive the agent being switched off overnight.
+
+|Streams
+|Scan commands and scan results
+|Must survive a restart on either side. A durable, acknowledged log.
+
+|Pub/Sub
+|Config-change notifications, NFO read request/reply, log records, heartbeats
+|A missed message costs latency, not correctness.
+|===
+
+== Wire reference
+
+Everything below is a real identifier, defined in
+`internal/shared/agentproto` and `internal/shared/eventbus`.
+
+=== Envelope
+
+Both transports carry the same envelope:
+
+[source,go]
+----
+type Event struct {
+    CorrelationID string
+    Name          string
+    Payload       json.RawMessage
+    Timestamp     time.Time
+}
+----
+
+=== Streams
+
+[cols="2,1,2"]
+|===
+|Stream |Consumer group |Purpose
+
+|`events.agent.<slug>.commands`
+|`agent_<slug>_group`
+|Work addressed to one specific agent. Per-agent because a filesystem only
+exists on the machine that has it mounted.
+
+|`events.agent_scan_results`
+|`agent_scan_results_group`
+|Shared. Every message names the agent that produced it.
+
+|`events.system_config_update`
+|`system_config_update_group`
+|Configuration writes.
+
+|`events.sonarr_cache_data`
+|`sonarr_cache_data_group`
+|Fires, and is recorded as a task event. No Sonarr call results from it.
+|===
+
+=== Event names
+
+[cols="1,3"]
+|===
+|Name |Direction and meaning
+
+|`agent.scan`
+|Server to agent. Begin a scan.
+
+|`agent.scan_result`
+|Agent to server. One scanned item, possibly one part of several.
+
+|`agent.scan_complete`
+|Agent to server. Carries the scan start time, which the server uses to sweep
+stale records.
+
+|`agent.scan_failed`
+|Agent to server. Logged only — deliberately does *not* trigger a sweep.
+
+|`agent.nfo_read`
+|Both directions, over Pub/Sub. Read one NFO file on demand.
+|===
+
+=== Pub/Sub channels and keys
+
+[cols="2,3"]
+|===
+|Channel or key |Purpose
+
+|`agent.config.changed.<slug>`
+|Server to agent. The payload is the literal string `changed`; the agent then
+re-reads its configuration key.
+
+|`agent.<slug>.request`
+|Server to agent, request half of the NFO read.
+
+|`reply.<correlationID>`
+|Agent to server, reply half.
+
+|`heartbeat.request`
+|Backs the blocking heartbeat endpoint.
+
+|`logs.app`
+|Every process publishes here. See xref:logging.adoc[Logging].
+
+|`metarr:agent:presence:<slug>`
+|Written by the agent every 5 seconds with a 15-second TTL.
+
+|`metarr:agent:lock:<slug>`
+|The slug lock, taken with `SET NX`.
+
+|`metarr:agent:config:<slug>`
+|Written by the server. No expiry.
+|===
+
+Agents are discovered by scanning `metarr:agent:presence:*` — a `SCAN`, not a
+`KEYS`, because a polling UI sits behind it.
+
+== Translating paths between machines
+
+The same library is `/mnt/media/movies` to the server and might be `D:\Media\Movies`
+to an agent on Windows. Records are always stored under the *server's* paths, so
+the library reads the same however many agents produced it.
+
+`agentregistry.PathTranslator` does the rewriting, and its central constraint is
+that the server must never use Go's `path/filepath` on an agent's path —
+`filepath` is compiled for the server's own operating system and would treat a
+backslash as an ordinary character.
+
+* The agent's operating system is *inferred from the shape of its root* — a
+  drive letter, a UNC prefix, or any backslash means Windows — rather than being
+  configured.
+* Agent-side normalization uses `path.Clean`, which is always forward-slash.
+  Only the server half of the join goes through `filepath`.
+* Comparisons are case-insensitive when the agent is on Windows.
+* A path that falls outside the agent's mapped root is an *error*, not something
+  passed through untouched.
+* Translation is all or nothing: a partially translatable item is rejected whole.
+
+== Stored data
+
+Five MongoDB collections, all reached exclusively through
+`internal/server/mongostore`:
+
+[cols="1,3"]
+|===
+|Collection |Contents
+
+|`app_config`
+|A single document holding every runtime setting. See
+xref:configuration.adoc[Configuration].
+
+|`local_directory`
+|Scan results — series records and media-file records, discriminated by a
+`record_type` field. A unique index on `path` is what makes a rescan replace
+rather than duplicate.
+
+|`workflows`
+|Saved workflow graphs, append-only. See xref:workflows.adoc[Workflows].
+
+|`chatbot_messages`
+|Assistant conversation history.
+
+|`task_events`
+|An audit row per fired task event.
+|===
+
+Workflows are stored through a generic append-only versioned store: every save
+inserts a *new* document and flips an `is_latest` flag on the previous one, so
+"give me the current version" stays a single indexed query while the full history
+remains intact.
+
+== The HTTP API
+
+The router is a plain `http.ServeMux` using Go's method-and-pattern routing
+(`GET /api/config`) — no third-party router. Every route is registered
+explicitly in one function.
+
+Authentication uses an API key, sent as an `X-Api-Key` header or, for WebSocket
+connections that cannot set handshake headers, an `apikey` query parameter.
+Signing in with the admin account mints a session key with a 24-hour lifetime;
+otherwise the key is matched against the four configured categories.
+
+Authorization is a `Role × Group × Method` decision. A "group" is an
+authorization concept attached to each route, not a mount point:
+
+[cols="1,3"]
+|===
+|Role |May reach
+
+|`admin`
+|Everything, including all configuration.
+
+|`user`
+|Task and webhook routes.
+
+|`read_only`
+|Task and webhook routes, `GET` only, regardless of group.
+
+|`webhook`
+|Webhook routes only.
+|===
+
+Interactive API documentation is generated from annotations on the handlers and
+served at `/swagger/index.html`.
+
+== Configuration writes are eventually consistent
+
+Every configuration mutation is event-sourced rather than written directly. The
+handler reads the current document, applies the change, publishes the whole
+document as a `system_config_update` event, and returns `202 Accepted`. A
+listener persists it, swaps the in-memory singleton, recompiles the sidecar
+table, applies the new log level, and republishes each agent's projection.
+
+The practical consequence: a write followed immediately by a read can race. The
+UI accounts for this by showing each save moving from *queued* to *confirmed*
+rather than claiming success on the response.
+
+== Not yet built
+
+The codebase contains scaffolding for several things that do not run. Stated
+explicitly so their presence in the source is not mistaken for a working feature:
+
+* *Workflow execution.* The handler, filesystem-capability and dry-run contracts
+  exist, and the dry-run wrappers are implemented. There are no handler
+  implementations, no real filesystem or process capability implementation, no
+  executor, and no run endpoint. The agent does not import the workflow package
+  at all.
+* *Sonarr data fetching.* A generated Sonarr client and a Redis-caching HTTP
+  client both exist. Nothing imports the caching client except the Sonarr client,
+  and nothing imports the Sonarr client. No Sonarr request is ever issued, and
+  consequently no HTTP response caching happens at runtime.
+* *A read-only database credential.* `config.yaml` carries a `readonly_uri` with
+  a comment about a Search screen. It is not parsed and not used; there is no
+  Search screen.
+* *A webhook route.* The `webhook` role and group exist and are honored by the
+  authorization check, but no route is registered under that group.
+* *Scheduling.* There is no cron, timer, or job runner anywhere. Every action is
+  request- or event-triggered.
+* *Multiple user accounts.* There is exactly one administrator account, plus the
+  four static API-key categories.

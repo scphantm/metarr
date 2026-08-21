@@ -1,0 +1,135 @@
+= NFO File Format
+
+Condensed from https://kodi.wiki/view/NFO_files/Templates[Kodi's NFO templates].
+This is the target schema for `internal/agent/nfo` (`ReadFile`/`WriteFile`,
+`internal/shared/metadata`). Only the three document kinds Metarr's media types
+need are covered — `movie`, `tvshow`, `episodedetails`, `musicvideo`. Album and
+artist NFO (music library) are out of scope; Metarr does not manage a music
+library, only music videos.
+
+== File naming
+
+`<VideoFileName>.nfo` — same base name as the video file, `.nfo` extension.
+Preferred over the bare `movie.nfo` alternate form: the latter requires a Kodi
+library setting Metarr doesn't control, and round-trips ambiguously against
+`<VideoFileName>.nfo` if both exist.
+
+== Common conventions across all four kinds
+
+* Root element is unprefixed, single, and matches the kind (`<movie>`,
+  `<tvshow>`, `<episodedetails>`, `<musicvideo>`).
+* `<uniqueid type="PROVIDER" default="true">ID</uniqueid>` — repeatable, one per
+  provider. `type` is a free-form provider key (`imdb`, `tmdb`, `tvdb`, `home`,
+  `sport`, `docu`, ...). Exactly one entry should carry `default="true"`.
+* `<actor>` — repeatable, ordered by `<order>`, each with `<name>`, `<role>`,
+  `<order>`.
+* Dates are `yyyy-mm-dd`.
+* Elements not listed here (ratings, playcount, watched state, thumb/fanart
+  paths, etc.) are valid Kodi extensions — preserve unknown elements on
+  read/write rather than dropping them. This is why `internal/agent/nfo`'s
+  parser is token-based rather than a strict schema unmarshal: real-world NFO
+  files are frequently not well-formed XML (multiple root-sibling elements is
+  common for `episodedetails`), and unknown tags must round-trip.
+
+== movie
+
+[source,xml]
+----
+<movie>
+  <title></title>
+  <originaltitle></originaltitle>
+  <userrating>0</userrating>
+  <plot></plot>
+  <mpaa></mpaa>
+  <uniqueid type="" default="true"></uniqueid>
+  <genre></genre>
+  <tag></tag>
+  <country></country>
+  <set>
+    <name></name>
+    <overview></overview>
+  </set>
+  <credits></credits>
+  <director></director>
+  <premiered></premiered>
+  <studio></studio>
+  <actor>
+    <name></name>
+    <role></role>
+    <order></order>
+  </actor>
+</movie>
+----
+
+== tvshow
+
+One per series, at the series folder root.
+
+[source,xml]
+----
+<tvshow>
+  <title></title>
+  <plot></plot>
+  <userrating></userrating>
+  <mpaa></mpaa>
+  <uniqueid type="" default="true"></uniqueid>
+  <genre></genre>
+  <premiered></premiered>
+  <status></status>
+  <studio></studio>
+  <actor>
+    <name></name>
+    <role></role>
+    <order></order>
+  </actor>
+  <namedseason number="1"></namedseason>
+</tvshow>
+----
+
+`<namedseason number="N">Display Name</namedseason>` — repeatable, one per season
+that has a custom display name.
+
+== episodedetails
+
+One per episode file (or, for a multi-episode file, one `<episodedetails>` root
+per episode — concatenated siblings, **not** wrapped in one document). `<season>`
+and `<episode>` are required only when the file covers multiple episodes and
+their number can't be inferred from the filename.
+
+[source,xml]
+----
+<episodedetails>
+  <title></title>
+  <season></season>
+  <episode></episode>
+  <userrating></userrating>
+  <plot></plot>
+  <uniqueid type="" default="true"></uniqueid>
+  <credits></credits>
+  <director></director>
+  <aired></aired>
+  <actor>
+    <name></name>
+    <role></role>
+    <order></order>
+  </actor>
+</episodedetails>
+----
+
+== musicvideo
+
+[source,xml]
+----
+<musicvideo>
+  <title></title>
+  <userrating></userrating>
+  <track></track>
+  <album></album>
+  <plot></plot>
+  <genre></genre>
+  <director></director>
+  <premiered></premiered>
+  <studio></studio>
+  <artist></artist>
+</musicvideo>
+----

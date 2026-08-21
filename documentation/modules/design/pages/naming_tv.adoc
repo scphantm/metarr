@@ -1,0 +1,94 @@
+= TV Naming & Directory Structure
+
+Condensed from https://jellyfin.org/docs/general/server/media/shows/[Jellyfin] and
+https://support.plex.tv/articles/naming-and-organizing-your-tv-show-files/[Plex].
+Metarr's scanner must recognize both dialects — see
+`internal/agent/mediascan/tokens.go` and `parse.go`.
+
+== Series folder
+
+[source]
+----
+Shows/SeriesName (year) [provider-id]/
+----
+
+Year and provider ID optional. Provider ID: `[imdbid-tt0000000]` (Jellyfin) or
+`\{tmdb-123456}` / `\{tvdb-123456}` / `\{imdb-tt123456}` (Plex).
+
+== Season folder
+
+[source]
+----
+Season 01/
+----
+
+Never abbreviate to `S01`. Zero-pad. `Season 00` (or `Specials/`) holds specials
+and show-exclusive extras.
+
+== Episode file — season/episode form
+
+[source]
+----
+SeriesName (year) S##E## Title.ext          # Jellyfin
+SeriesName - s##e## - Title.ext             # Plex
+----
+
+Both `S##E##` and `s##e##` must parse; case is not significant.
+
+== Episode file — date-based form (no season/episode numbers)
+
+[source]
+----
+SeriesName (year) - YYYY-MM-DD - Title.ext
+SeriesName (year) - DD-MM-YYYY - Title.ext
+----
+
+Separators between date components: `-`, `.`, or space.
+
+== Multi-episode file (one file, several episodes)
+
+[source]
+----
+SeriesName S##E##-E##.ext        # Jellyfin
+SeriesName - s##e##-e##.ext      # Plex
+----
+
+Represents one file whose metadata spans multiple episode records — do not treat
+as multiple physical files.
+
+== Multi-part episode (one episode split across files)
+
+[source]
+----
+SeriesName S##E##-parttype-#.ext
+----
+
+Same `parttype`/separator rules as the movie multi-part form —
+see xref:naming_movies.adoc[Movie Naming]. Jellyfin also accepts a literal
+`Part 1` / `Part 2` suffix instead of the part-type token.
+
+== External subtitle/audio sidecars
+
+[source]
+----
+EpisodeFileName.[title].[language].[flag].ext
+----
+
+Recognized flags: `default`, `forced` (alias `foreign`), `sdh` (aliases `cc`,
+`hi`). Example: `Series Name A (2021) S01E01 Title.ja.ass`.
+
+== Example tree
+
+[source]
+----
+Shows/Series Name A (2010)/
+  Season 00/
+    Some Special.mkv
+    Series Name A S00E01.mkv
+  Season 01/
+    Series Name A S01E01-E02.mkv
+    Series Name A S01E03.mkv
+  Season 02/
+    Series Name A S02E03 Part 1.mkv
+    Series Name A S02E03 Part 2.mkv
+----

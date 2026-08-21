@@ -1,0 +1,164 @@
+= Library Scanning
+
+Scanning is what Metarr does end to end today. An agent walks a library,
+classifies everything it finds, and the server records it. Nothing is modified —
+scanning is a read-only operation.
+
+== Defining a library
+
+In *System → Configuration → Directory Scanner*, add a scan directory:
+
+[cols="1,3"]
+|===
+|Field |Meaning
+
+|Slug
+|A short identifier for the library. Fixed once created — it is the key
+everything else refers to.
+
+|Path
+|The absolute path *as the server names it*. Each agent maps this to its own
+path; see xref:agents.adoc[Agents].
+
+|Media type
+|`movie`, `tv`, or `music_video`. This selects how the scanner interprets the
+directory layout.
+|===
+
+*Parallel count* on the same screen controls how many library items an agent
+scans concurrently.
+
+Every library must be mapped to an agent before it can be scanned.
+
+== Sidecar classification
+
+A media directory contains far more than the video file: posters, fanart,
+subtitles, NFO files, trickplay tiles, disc structures. *System → Configuration →
+Sidecars* holds the table that decides what each of those files is.
+
+Each entry has a name, a category, a set of filename patterns (regular
+expressions) and a set of extensions. The categories are:
+
+`image`, `video_extra`, `subtitle`, `metadata`, `audio`, `disc_structure`,
+`trickplay`, and `unknown`.
+
+The table is *ordered*, and order matters: the first entry that matches a file
+wins, so put specific rules above general ones. Reorder rows with the arrows,
+disable an entry without deleting it by clearing its enabled checkbox, or restore
+the shipped defaults with *Reset to defaults*.
+
+Because classification has to happen where the files are, this whole table is
+published to every agent. A change takes effect on the next scan without
+restarting anything.
+
+== Running a scan
+
+Trigger a scan for a library and the server hands the work to whichever agent
+owns it. Two conditions are refused up front rather than accepted and lost:
+
+* The library is not mapped to any agent.
+* The owning agent is offline.
+
+The second is deliberate. The command stream is durable, so an offline agent
+*would* eventually pick the job up — possibly a day later, silently. Failing
+immediately is more useful than a scan that starts when you are not looking.
+
+== What happens during a scan
+
+[plantuml,scan-flow,svg]
+....
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 11
+
+actor You
+participant "Server" as S
+queue "Redis stream" as R
+participant "Agent" as A
+database "MongoDB" as M
+
+You -> S : scan library "movies"
+S -> S : owning agent? online?
+S -> R : agent.scan
+S --> You : 202 Accepted
+R -> A : agent.scan
+
+A -> A : list item directories
+loop each item, N at a time
+  A -> A : walk and classify
+  A -> R : agent.scan_result
+  R -> S : agent.scan_result
+  S -> S : translate paths
+  S -> M : upsert
+end
+
+A -> R : agent.scan_complete
+R -> S : agent.scan_complete
+S -> M : delete records older\nthan the scan start
+@enduml
+....
+
+The agent treats each immediate subdirectory of the library as one *item* — one
+movie, one series, one music video — and scans several at once up to the parallel
+count. Results are sent as each item finishes rather than in one batch at the
+end, so the library fills in progressively and a long scan is useful before it
+completes. A result too large for a single message is split into parts
+automatically.
+
+The server translates every path from the agent's naming to its own before
+storing anything, and rejects an item outright if any of its paths cannot be
+translated — a partial translation is never stored.
+
+When the agent reports completion, the server deletes records under that library
+that were not touched during the scan. That is how deletions and renames on disk
+propagate. If the scan *fails* instead, no sweep happens — a failed scan must
+never delete the half the agent never reached.
+
+== What the scanner understands
+
+The walker is built for real libraries, not tidy ones:
+
+* Season and extras folders
+* Disc structures (`VIDEO_TS`, `BDMV`)
+* Jellyfin trickplay tile directories
+* Multiple versions of the same movie in one folder
+* Stacked files split across discs (`-cd1`, `-cd2`)
+* Plex edition tags such as `{edition-Director's Cut}`
+* Provider ID tags in filenames — recognized and stripped, deliberately *not*
+  recorded. Provider links come from NFO contents, which are authoritative,
+  rather than from a filename someone may have typed.
+
+Image files are identified by reading their header bytes rather than trusting the
+extension, so a `.tbn` that actually contains a JPEG is reported as one.
+
+A subdirectory that cannot be read produces a warning and is skipped. It never
+fails the scan — one bad permission should not cost you the whole library.
+
+== What a scan produces
+
+Results are stored as two kinds of record: series records and media-file records.
+A unique index on the full path is what makes a rescan update a record in place
+rather than accumulate duplicates, no matter which agent produced it.
+
+For each media file, Metarr records its path, size, timestamps, and — where the
+platform supports it — ownership and inode details, along with the sidecars
+associated with it and any stream details parsed from its NFO.
+
+== Reading NFO files
+
+NFO contents are not stored wholesale. When you ask to see one, the server sends
+a request to the owning agent, which reads the file and replies. The read happens
+on demand, against the file as it exists right now, rather than against a copy
+that may have drifted.
+
+The parser is deliberately tolerant. Kodi NFO files are frequently not
+well-formed XML — files with several `episodedetails` elements and no single root
+are common — so it reads them as a token stream rather than rejecting them. Legacy
+single-byte encodings and byte-order marks are handled, and unknown elements are
+preserved rather than discarded.
+
+NOTE: Writing NFO files is implemented and tested — including atomic replacement
+and Kodi-compatible formatting — but nothing calls it yet. There is no endpoint
+or workflow that writes an NFO file back to disk today.

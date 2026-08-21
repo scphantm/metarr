@@ -1,0 +1,168 @@
+= Workflows
+
+A workflow is a graph of operations over your media library, built visually.
+
+[IMPORTANT]
+====
+*Workflows do not run yet.* You can author them, save them, version them and
+validate them. There is no execution engine, no node implementations, and no way
+to start a run. Everything on this page describes an editor and a validator, not
+something that will touch your files.
+
+This is stated up front because the codebase contains a substantial amount of
+execution *scaffolding* — the handler contract, the filesystem-capability
+interface, and working dry-run wrappers. None of it is wired to anything. See
+<<not-yet-implemented>>.
+====
+
+== The editor
+
+Open *Workflows → Add Workflow*, or edit an existing one from the list.
+
+A workflow needs a name, a description and at least one tag before it can be
+saved. Drag node types from the palette onto the canvas and connect their ports.
+
+=== Nodes and the palette
+
+The palette is driven by a catalog of 36 node types, grouped into two levels and
+filterable by name. The groups:
+
+[cols="1,3"]
+|===
+|Group |Nodes
+
+|Workflow — start
+|Start Path, Start Media
+
+|Workflow — control
+|For Each, Collect, Parallel, Join, Break
+
+|Workflow — end
+|Write Changes, Error Output, End, Fail
+
+|Workflow — misc
+|Note
+
+|Filesystem
+|List Directory, Move, Copy, Delete, Exists, Is Directory, Is File, Make
+Directory, File Size, Read Text File, Write Text File
+
+|Media
+|Probe, Transcode, Extract Stream, Generate Thumbnail
+
+|String
+|Format, Regex Match, Concat, Parse Number, Trim
+
+|Metadata
+|Read NFO, Write NFO
+
+|Other
+|Check Flow Variable, Trickplay
+|===
+
+Node colors carry meaning, and the palette shows a legend: cyan for input, output
+and control flow; red for errors; yellow for decisions; and blue, green, magenta
+or violet for processes according to whether they read, create, destroy, or both.
+
+=== Connecting nodes
+
+Ports come in two kinds and they are never interchangeable.
+
+*Control edges* — thick and cyan — say what runs next. *Data edges* — thin and
+orange — carry a value from one node to another. Each control output goes to
+exactly one place, and each data input accepts exactly one connection; running
+two things at once is expressed with an explicit Parallel node rather than by
+wiring one output twice.
+
+Connections are type-checked as you draw them. An invalid one is refused with a
+short explanation rather than silently accepted. Where a conversion between two
+types is needed and there is only one sensible choice, it is inserted for you;
+where several would work, you are asked which.
+
+=== Editing a node
+
+The pencil on a node opens its settings — the fields the catalog declares for
+that node type — along with a color picker, so you can mark up a large graph
+visually without changing its behavior.
+
+Double-clicking a path-carrying data edge opens its settings, which currently
+offer one option: whether the path is treated recursively.
+
+Nodes and edges are removed by selecting them and pressing Delete.
+
+=== Validation
+
+The diagnostics panel in the corner of the canvas validates continuously as you
+work — reachability, port arity, type compatibility, whether a value is
+guaranteed to exist by the time something consumes it, and loop scoping.
+
+Findings name the nodes involved. Clicking one moves the canvas to that node;
+hovering highlights the edges it refers to. Where a problem depends on a
+particular route through the graph, the panel shows that route as a clickable
+chain, so you can see *why* it is a problem rather than just being told it is.
+
+A workflow with errors can still be saved. Validation tells you whether a graph
+would be runnable; it does not stop you working on one that is not yet finished.
+
+== Versions
+
+Every save creates a new version rather than overwriting the last. The version
+list beside the editor shows each one with its timestamp; selecting one opens it
+read-only, and *Back to editing* returns to your in-progress draft, which is
+preserved locally while you look.
+
+[NOTE]
+====
+Version history is currently *read-only*. There is no button to restore an
+earlier version, and no way to delete a workflow — neither in the interface nor
+in the API.
+====
+
+== The assistant
+
+The workflow editor is the one screen that gives the assistant context. While it
+is open, the workflow you are editing — its graph, name, description and tags —
+is sent with your next message, and a banner tells you so. Messages that carried
+context are marked, and you can open the marker to see exactly what was sent.
+
+The assistant can propose a change to the workflow. It arrives as a card with a
+summary and Approve or Reject. Approving applies the proposed graph *to the
+canvas only*:
+
+[IMPORTANT]
+====
+The assistant never writes to the database. An approved proposal changes what is
+on your canvas, and nothing is persisted until you press Save Workflow yourself.
+====
+
+Configuring the assistant is covered in xref:configuration.adoc[Configuration].
+
+[#not-yet-implemented]
+== Not yet implemented
+
+What exists in the codebase but does not run, so that reading the source does not
+mislead:
+
+Execution:: There is no executor, scheduler or dispatcher. No node type has an
+implementation behind it. The context object handed to a node is never
+constructed, and there is no endpoint to start a run.
+
+The dry-run design:: Metarr's intended safety model is that a node handler never
+gets direct filesystem access — it receives a capability from the executor, and
+under dry-run the mutating operations log what they would have done instead of
+doing it. A handler that forgot to check a flag still could not write, because it
+would have no path to the disk. The wrappers implementing this are written and
+work. There is nothing for them to wrap yet, so treat this as a designed contract
+rather than a shipped guarantee.
+
+Effects declarations:: Every catalog entry must declare whether it reads, writes,
+or destroys, and the catalog refuses to load without it. That declaration is what
+dry-run will key off. It is enforced today; it does not gate anything yet.
+
+Run status on the canvas:: Each node reserves space for live run status. The
+"Test animate" control on the canvas cycles those indicators through colors — it
+is a development aid for that unfinished feature, not a way to run anything.
+
+Older schema versions:: A workflow saved under a previous graph schema cannot be
+opened in the current editor, and since there is no delete, such a workflow
+cannot be removed through the interface either.
