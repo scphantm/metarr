@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 import { NavColumn } from './NavColumn'
 import { Sidebar } from './Sidebar'
@@ -13,6 +13,10 @@ import { Sidebar } from './Sidebar'
  * theme controls.
  */
 
+// Persisted across sessions — pinning the nav column open is a standing
+// preference, not something to re-choose every time the app loads.
+const NAV_PINNED_KEY = 'metarr.nav.pinned'
+
 export function AppShell({
   children,
   sidebar,
@@ -22,6 +26,19 @@ export function AppShell({
 }) {
   const [navOpen, setNavOpen] = useState(false)
   const [panelOpen, setPanelOpen] = useState(false)
+  // Hidden by default: collapsed to a thin hover strip so content gets the
+  // width back until the nav is actually needed. Hovering the strip reveals
+  // it as a floating overlay (doesn't reflow the grid); pinning switches it
+  // to a normal, permanently-open column instead — see `navExpanded` below
+  // and its two render branches.
+  const [navPinned, setNavPinned] = useState(() => localStorage.getItem(NAV_PINNED_KEY) === 'true')
+  const [navHovering, setNavHovering] = useState(false)
+
+  useEffect(() => {
+    localStorage.setItem(NAV_PINNED_KEY, String(navPinned))
+  }, [navPinned])
+
+  const navExpanded = navPinned || navHovering
 
   return (
     <div className="h-full bg-canvas text-ink">
@@ -52,9 +69,32 @@ export function AppShell({
         </div>
       ) : null}
 
-      <div className="lg:grid lg:h-full lg:grid-cols-[16rem_minmax(0,1fr)_0.75rem]">
-        <div className="hidden overflow-y-auto border-r border-edge bg-surface lg:block">
-          <NavColumn />
+      <div
+        className="lg:grid lg:h-full"
+        style={{ gridTemplateColumns: `${navPinned ? '16rem' : '0.75rem'} minmax(0,1fr) 0.75rem` }}
+      >
+        <div
+          className="relative hidden border-r border-edge bg-surface lg:block"
+          onMouseEnter={() => setNavHovering(true)}
+          onMouseLeave={() => setNavHovering(false)}
+        >
+          {!navPinned ? (
+            <div className="flex h-full w-3 items-center justify-center">
+              <span className="h-8 w-0.5 rounded-full bg-edge-strong/40" />
+            </div>
+          ) : null}
+
+          {navExpanded ? (
+            <div
+              className={
+                navPinned
+                  ? 'flex h-full w-64 flex-col overflow-y-auto'
+                  : 'absolute inset-y-0 left-0 z-20 flex w-64 flex-col overflow-y-auto border-r border-edge bg-surface shadow-xl'
+              }
+            >
+              <NavColumn pinned={navPinned} onTogglePin={() => setNavPinned((current) => !current)} />
+            </div>
+          ) : null}
         </div>
 
         <main className="overflow-y-auto">{children}</main>

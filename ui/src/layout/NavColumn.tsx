@@ -53,19 +53,58 @@ const sections: NavSection[] = [
   },
 ]
 
-export function NavColumn({ onNavigate }: { onNavigate?: () => void }) {
+export function NavColumn({
+  onNavigate,
+  pinned,
+  onTogglePin,
+}: {
+  onNavigate?: () => void
+  // Only present on the desktop hover/pin variant (AppShell) — the mobile
+  // drawer always shows the full column, so it has no need for a pin control.
+  pinned?: boolean
+  onTogglePin?: () => void
+}) {
   return (
     <nav className="flex h-full flex-col gap-1 p-3" aria-label="Main">
-      <div className="px-2 py-3">
+      <div className="flex items-center justify-between px-2 py-3">
         <span className="text-lg font-semibold tracking-tight text-ink-strong">
           Metarr
         </span>
+        {onTogglePin ? (
+          <button
+            type="button"
+            onClick={onTogglePin}
+            aria-label={pinned ? 'Unpin navigation' : 'Pin navigation open'}
+            title={pinned ? 'Unpin' : 'Pin open'}
+            className={`shrink-0 transition-colors hover:text-blue ${pinned ? 'text-blue' : 'text-ink-muted'}`}
+          >
+            <PinIcon pinned={pinned} />
+          </button>
+        ) : null}
       </div>
 
       {sections.map((section) => (
         <NavGroup key={section.label} section={section} onNavigate={onNavigate} />
       ))}
     </nav>
+  )
+}
+
+// A map-pin glyph, filled when pinned and outlined otherwise. Hand-written
+// inline SVG rather than a react-icons import: those are banned under src/
+// (see eslint.config.js's no-restricted-imports rule) — reserved for the
+// generated type-system icons in lib/icons/typeIcons.css.
+function PinIcon({ pinned }: { pinned?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+      <path
+        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"
+        fill={pinned ? 'currentColor' : 'none'}
+        stroke="currentColor"
+        strokeWidth={pinned ? '0' : '1.4'}
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
 

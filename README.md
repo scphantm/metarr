@@ -1,29 +1,22 @@
 # Metarr
 
-In our media collections, the media files themselves are obviously important.  But as your collection grows,
-what becomes ever increasingly important is the maintenance of the metadata of your collection.  Its this metadata
-that ensures things get named right in systems, play correctly, and sort and organize your collection.  
+Media collection metadata management system.
 
-All the downloaders of the ServArr suite support writing metadata.  But that capability is limited by the number of 
-sources they use and different formats.  Stack more systems on top of your media library like TV Tuners, image systems
-and the like, and maintaining the metadata becomes nearly impossible.  TinyMediaManager does an ok, job, but it is very
-slow and doesn't read tags from Sonarr or Radarr.  
+Full documentation — growing into the complete user manual — lives in [`documentation/`](documentation/), built with [Antora](https://antora.org/) from AsciiDoc. Run `make docs-build && make docs-serve` and open the printed URL to browse it locally.
 
-Metarr is designed to maintain the metadata of your media collection so it can ultimatly be consumed
-by Jellyfin.  (Other outputs possible).  
+## Why Metarr
 
-Unlike other *arr's, the database in this project is more for caching data from external systems than
-metadata storage.  With Metarr, the final system of record for your metadata are the nfo files in the file system.  
+Radarr, Jellyfin, and your NAS's shared drive each end up holding their own copy of your media metadata, and none of them agree on which copy is the truth. Metarr fills that gap: it treats the files on your shared drive as the source of truth, edits them directly, and notifies Radarr, Jellyfin, and anything else watching that something changed — rather than each system quietly maintaining its own database. Delete and rebuild all  of those other tools (Metarr included) at any time; point them back at the share and the library comes back exactly as it was.
+
+For the full reasoning — the metadata-ownership problem in detail, and why this needed its own project rather than another *arr — see [Why Metarr](documentation/modules/ROOT/pages/philosophy.adoc) in the docs.
 
 ## What this does not do
 
 This does not look for missing media in your collection.  Other systems are designed to do that.  
 
-## Local URI's
+## This sounds and looks like Tdarr
 
-* [Swagger API](http://localhost:8080/swagger/index.html)
-* [Mongo Express](http://10.0.0.22:6969/)
-* [Redis Insights](http://localhost:5540/)
+The easiest way to put it is Tdarr is used to encode video files; Metarr is for everything else.
 
 ## Architecture
 
@@ -32,9 +25,9 @@ Metarr is two binaries.
 **metarr-server** owns the API, MongoDB, and orchestration. It never touches the
 media library — it has no filesystem access to it at all.
 
-**metarr-agent** is a small static binary deployed next to the storage, on the
-NAS itself where possible. It does every filesystem operation: walking
-libraries, reading NFO files, inspecting artwork. It connects to Redis and
+**metarr-agent** is a small static binary deployed next to the storage or other machines in your network, ideally on the NAS itself or a machine with a GPU. 
+It does every filesystem operation: walking
+libraries, reading NFO files, inspecting artwork. It communicates with the metarr-server via a Redis event driven backend and
 nothing else, holds no database credentials, and cannot open a database
 connection — a test walks the build graph on every run to keep that true.
 
@@ -55,84 +48,16 @@ docker compose up                                  # both, plus Mongo and Redis
 ```
 
 ## Architectural features
-Extensive use of caching.  I/O operations are the slowest operations in all of computer science.  And this application
-does thousands of them.  To prevent you from rate limiting your API keys, and to cut back on compilation times, this system
-caches virtually everything.  All the time to lives are configurable in the configuration system
 
-Event driven backend.  Because I/O is so time e[README.md](README.md)xpensive, Metarr takes advantage of an Event Driven Backend to spread jobs across
-several cores in parallel.  This means many things happen at once, instead of
-sequentially like other systems you may be used to.  Metarr follows a model called Eventually Consistent.  Meaning when you
-hit save, the change you make may not be instantaneous.  Many things happen in parallel in the background and all have to finish
-before the write actually happens.  Not when you click the save button.  Eventually Consistent means it will get there and update
-just maybe not instantly
+**Caching.** I/O is the slowest operation in computer science, and this application does thousands of them. Metarr caches virtually everything to avoid rate-limiting your API keys and to keep the system responsive; every cache TTL is configurable.
 
-## UI
+**Event-driven backend.** Jobs spread across cores in parallel rather than running sequentially, following an eventually-consistent model: saving a change kicks off work in the background, and the write lands once it finishes — not instantly on click, but reliably.
 
-The UI will consist of 3 critical pieces.  
-* Searches
-* Workflows
-* Automations
+## Gen AI position
 
-Searches will use [React Query Builder](https://react-querybuilder.js.org/docs/utils/import#custom-operators) to query the mongodb. 
-
-going to use
-https://tunarr.com/misc/search/ for the compare operators.  pretty good list
-
-Automations are mapping search results, workflows, and some kind of trigger.  cron, event bus hook, webhook, etc and what agent to run on
-
-Things like what i just wrote as a downloader will become workflows.  Thats going to be my first big task, taking my youtube downloader and making
-it a workflow in metarr.
-
-Workflows will be dry-run only to begin with.  There will be some kind of combination lock that puts the system into write mode that will
-allow workflows being worked on to write.
-
-metadata management itself will include a scraper system.  the one that grabs from all the different areas.
-
-## List manager
-Want a system that lets you compare my database with mdblists to group things, see what i already have, retag, request missing, etc.
-
-Lists could be an input to workflows.  That way you can build workflows that process lists.
-
-## Future Roadmap
-
-These are features I want to put into the system.
+This project is substantially AI-assisted — built on an architecture and feature set the author has designed professionally for years, not "vibe-coded." See [Why Metarr](documentation/modules/ROOT/pages/philosophy.adoc) in the docs for the full position, including how to feel about that if it matters to you as a user or contributor.
 
 
-
-### Safe rename
-I want a system where you can run reports on different naming conventions to see what would change.  When you come up
-with a standard pattern for naming your media, it should do the rename, AND update the correct darr to the new path
-so things line up.  It should update jellyfin too if the api has the ability.
-
-I want the rename system to have conditionals.  Like scripts.  Maybe Lua?  I don't know.  But the rename will not be 
-a simple regex pattern, it will have conditionals.
-
-### git style diff
-show a diff between what metarr believes the it should change like git
-
-### moment in time snapshot
-I want to snapshot the metadata library.  That way i can compare what changed over time.
-
-### Backup
-I want to backup the metadata library.  all of it, everything except the video files themselves.
-
-### Agents
-
-Done — see Architecture above. The remaining work is to move download operations
-(artwork fetching, and the wget-equivalent for external assets) onto the agent
-as well, so those also happen next to the storage rather than across the network.
-
-### Metadata proxy.
-everything here is cached and versioned.  I want to build this so all other systems can point to it and
-they get cached results and versioned so you can see how a document changed over a period of time.  That 
-data will be used along side our data just like any other.
-
-### Metadata update
-This should have a way to update the other metadata registries if its possible thru their api.
-
-### Poster manager
-Think Kometa poster manager, you can build one or more poster and image profiles for a media item.  those poster bundles
-will be stored somewhere and swapped in at will.  The different poster places will be huge for that.
 
 # References
 This system interfaces other systems.  These were the specifications that were used in building Metarr
