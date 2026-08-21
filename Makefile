@@ -178,6 +178,17 @@ purge-git-history:
 	fi
 
 
+docs_initialize:
+	npm update
+	gem install bundle
+	bundle update
+
+# to configure the way the build presentations system works, check out this link
+# https://docs.asciidoctor.org/reveal.js-converter/latest/setup/ruby-setup/
+docs_build_presentations:
+	bundle exec asciidoctor-revealjs --attribute revealjsdir=https://cdn.jsdelivr.net/npm/reveal.js@4.1.2 --out-file documentation/modules/ROOT/attachments/presentation.html documentation/modules/ROOT/pages/tests/presentation.adoc
+
+
 subtree_docs_theme-add:
 	git subtree add --prefix documentation-theme git@github.com:scphantm/metarr-documentation-theme.git metarr-main --squash
 

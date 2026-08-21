@@ -1,0 +1,6 @@
+#  https://gitlab.com/antora/antora-assembler
+
+extends: default
+role:
+  red:
+    font-color: #FF0000
