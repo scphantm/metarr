@@ -12,7 +12,8 @@ endif
 	dist dist-agent-linux-amd64 dist-agent-linux-arm64 \
 	dist-agent-windows-amd64 dist-agent-darwin-arm64 \
 	ui-install ui-dev ui-build docker-build purge-git-history \
-	lint lint-go lint-ui
+	lint lint-go lint-ui \
+	docs-install docs-build docs-serve
 
 generate:
 	go generate ./...
@@ -93,6 +94,18 @@ ui-dev:
 ui-build:
 	cd ui && npm run build
 
+docs-install:
+	cd documentation && npm install
+
+# The Antora playbook builds from whatever's currently checked out (branches:
+# HEAD against the repo itself), so this always reflects local changes —
+# no publish/remote-fetch step needed to preview docs.
+docs-build: docs-install
+	cd documentation && npm run build
+
+docs-serve: docs-build
+	cd documentation && npm run serve
+
 # Permanently removes one or more paths from every commit on every branch,
 # using git-filter-repo (brew install git-filter-repo). This rewrites commit
 # hashes repo-wide and cannot be undone except by restoring the backup
@@ -163,3 +176,13 @@ purge-git-history:
 		echo "This repo has a remote configured: force-push every affected branch,"; \
 		echo "and note the data is still in the history of any existing clone."; \
 	fi
+
+
+subtree_docs_theme-add:
+	git subtree add --prefix documentation-theme git@github.com:scphantm/metarr-documentation-theme.git metarr-main --squash
+
+subtree_docs_theme-pull:
+	git subtree pull --prefix documentation-theme git@github.com:scphantm/metarr-documentation-theme.git metarr-main --squash
+
+subtree_docs_theme-push:
+	git subtree push --prefix documentation-theme git@github.com:scphantm/metarr-documentation-theme.git metarr-main

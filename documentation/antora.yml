@@ -1,0 +1,5 @@
+name: metarr
+title: Metarr
+version: '~'
+nav:
+- modules/ROOT/nav.adoc

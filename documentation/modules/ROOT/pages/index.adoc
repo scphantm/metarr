@@ -1,0 +1,11 @@
+= Metarr Documentation
+
+Welcome to the Metarr documentation.
+
+This site is a work in progress and is intended to grow into the full user manual for Metarr — installation, configuration, workflows, and reference material for every feature. For now it holds the project's design philosophy; more sections will land here as the application matures.
+
+== Where to start
+
+* xref:philosophy.adoc[Why Metarr] — the full story behind why this project exists and how it approaches metadata management.
+
+For a quick overview of what Metarr is and how to run it, see the README in the repository root.

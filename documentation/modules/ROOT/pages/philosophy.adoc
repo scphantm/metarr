@@ -1,0 +1,35 @@
+= Why Metarr
+
+NOTE: The short version lives in the README — this is the full story.
+
+== Metadata is king
+
+Metadata. It's all about the metadata. Our lives are more about our metadata than you may realize. To illustrate this, consider an Amazon purchase of a $20 toy. Not only does Amazon have the receipt for the order, they also have your location information showing where you were standing when you placed the order. Knowing that, which sale is more interesting to Amazon? The $50 toy someone bought from home, or the $20 toy that sold while the buyer was standing in the middle of Target? Big Data analysts take this metadata and deduce they have a sales advantage on the $20 toy, because they can reasonably assume Amazon is either selling it for less than Target or Target is out — either way, Amazon has an advantage it can exploit. This information is used to automatically adjust the marketing on the toy to take advantage of the situation. Amazon doesn't care that you bought a $20 toy; they want the metadata, because if they can profile what you're doing when you make purchases, they can design a more effective marketing campaign targeting you specifically. This is the foundation of how all modern "rule your life" algorithms work — all driven by metadata.
+
+So in a media collection, what is metadata? Simple: the data is the video or book file itself; metadata is everything else. Yes, even the file name can be considered metadata, depending on what you're doing. Metadata includes all the information in the credits, cast, crew, production studios, then extends to poster images, background images, and more. All of this information is important to the media collection.
+
+Metarr was built to apply the "Metadata is King" principle to media libraries.
+
+== So what's different about Metarr?
+
+Yes, I know — another *arr app claiming to be different. So what's actually special about Metarr? To explain, let's first describe a typical media server installation:
+
+* A NAS sharing your files.
+* Radarr pointing at that share looking for new movies.
+* Jellyfin playing your movies.
+
+Consider what's going on here from a metadata perspective.
+
+When you ask Radarr to download a movie, it calls TheMovieDB to get the information about that movie. This is how Radarr knows the cast, what the poster image is, and so on. When Radarr downloads the movie, it can optionally write that metadata to the directory — this is your NFO file and images. Jellyfin has its own metadata management system that completely ignores Radarr. It can either manage the metadata in its own database or, optionally, write everything back to the media files directory.
+
+So what is the system of record for the metadata? It's now stored in Radarr, in Jellyfin, and on the shared drive — which copy is the truth? Metarr fills in this gap. It treats the files in your shared drive as the database's source of truth, manipulating those "records" (the files themselves) directly, then notifying other systems like Radarr and Jellyfin that something changed, letting them take care of themselves. At any point, you can delete Radarr and Jellyfin completely, create fresh copies, point them back at that share, and rebuild your media library back to the state it was in.
+
+All the downloaders in the *arr suite support writing metadata, but that capability is limited by the number of sources they use and the different formats involved. Stack more systems on top of your media library — TV tuners, image systems, and the like — and maintaining the metadata becomes nearly impossible. TinyMediaManager does an okay job, but it has some serious limitations.
+
+== Gen AI position
+
+A moment of honesty: the code in this project represents many, many man-years of work if done by hand. Metarr's concept and feature set have been rolling around in my head for years. The code design is based on the architecture of modern, high-speed, event-driven, distributed applications that I build all the time professionally.
+
+I didn't build Metarr until now because I know first-hand what it takes to build these types of systems. The new age of Gen AI has made building systems like this possible. Calling this project "vibe-coded" is not accurate. It is a well-thought-out system, with a modern, professionally designed architecture and feature set, using the latest and best tools for the problem.
+
+If you have issues with Gen AI software and choose not to use or contribute to this project, I respect that completely, and you're free to do as you will. I'm simply taking this opportunity to explain my position.

@@ -1,0 +1,73 @@
+= Future feature Roadmap
+
+These are features I want to put into the system.
+
+== UI
+
+The UI will consist of 3 critical pieces.
+* Searches
+* Workflows
+* Automations
+
+Searches will use [React Query Builder](https://react-querybuilder.js.org/docs/utils/import#custom-operators) to query the mongodb.
+
+going to use
+https://tunarr.com/misc/search/ for the compare operators.  pretty good list
+
+Automations are mapping search results, workflows, and some kind of trigger.  cron, event bus hook, webhook, etc and what agent to run on
+
+Things like what i just wrote as a downloader will become workflows.  Thats going to be my first big task, taking my youtube downloader and making
+it a workflow in metarr.
+
+Workflows will be dry-run only to begin with.  There will be some kind of combination lock that puts the system into write mode that will
+allow workflows being worked on to write.
+
+metadata management itself will include a scraper system.  the one that grabs from all the different areas.
+
+== List manager
+The search bar will have the abilty to search and filter by parameters simlar to how tunarr does.  In addition, external lists can be added as selection parameters so you can say, "items in this list" etc.
+
+== Digital fingerprinting
+
+The system shall consist of two subsystems, an ingest pipeline and a search pipeline, sharing a common fingerprint store. During ingest, each video file shall be processed once to compute and persist a layered set of fingerprints: the file size, a high-speed digital fingerprint (a cryptographic or near-cryptographic hash sampled from the file's bytes) sufficient to detect simple binary duplicates such as renamed but otherwise identical copies, an audio fingerprint capturing the content of the audio track independent of its container or codec, and a video content fingerprint (perceptual frame hashes and/or scene-cut timing) capable of matching the same underlying movie across differing codecs, framerates, and color depths. The search pipeline shall evaluate a candidate file against the fingerprint store as a staged cascade, with each stage narrowing the candidate set before the next, more computationally expensive stage runs: first filtering by file size, then by digital fingerprint to identify exact binary duplicates without further processing, then by audio fingerprint to identify same-content files with differing video encodings, and finally by video content fingerprint to confirm matches where audio alone is insufficient or absent. This staged design ensures that inexpensive comparisons eliminate the majority of non-matching candidates before expensive content-based analysis is performed, so that search cost scales with the degree of ambiguity between files rather than with the full cost of content comparison on every candidate.
+
+=== High speed digital fingerprinting
+
+Fingerprint{Size, Hash} — Hash is SHA-256 over the file's exact size followed by a handful of fixed-size byte windows sampled at evenly spaced offsets (always including the very first and last bytes).
+The window count and size are bounded (Config{SampleSize, NumSamples}, default 5 × 1MiB = 5MiB max), so I/O and hashing time stay constant no matter how big the movie file is — a 500MB file and a 50GB file fingerprint in roughly the same time.
+Since only a few MB are ever hashed regardless of file size, the hash algorithm's own speed stops mattering — SHA-256 on 5MB is a couple milliseconds, so the package needs zero external dependencies. (The doc comment notes where to swap in BLAKE3/xxhash if you ever want to widen the sample window a lot.)
+Small files (below the sample threshold) fall back to hashing the whole thing in one window — still cheap, and avoids weird overlapping-window edge cases.
+Nothing here ever reads the filename, path, or mtime, so renames are free by construction.
+
+=== cross-media linking
+
+Once all the media scrapers are done, I want to be able to build cross media dashboards.  Think a transformers dashboard that shows all the transformers books from calibre, comics from your comics system, movides, and tv shows all associated with each other and in one place.
+
+=== Safe rename
+I want a system where you can run reports on different naming conventions to see what would change.  When you come up
+with a standard pattern for naming your media, it should do the rename, AND update the correct darr to the new path
+so things line up.  It should update jellyfin too if the api has the ability.
+
+I want the rename system to have conditionals.  Like scripts.  Maybe Lua?  I don't know.  But the rename will not be
+a simple regex pattern, it will have conditionals.
+
+=== git style diff
+show a diff between what metarr believes the it should change like git
+
+=== moment in time snapshot
+I want to snapshot the metadata library.  That way i can compare what changed over time.
+
+=== Backup
+I want to backup the metadata library.  all of it, everything except the video files themselves.
+
+=== Metadata proxy.
+everything here is cached and versioned.  I want to build this so all other systems can point to it and
+they get cached results and versioned so you can see how a document changed over a period of time.  That
+data will be used along side our data just like any other.
+
+=== Metadata update
+This should have a way to update the other metadata registries if its possible thru their api.
+
+=== Poster manager
+Think Kometa poster manager, you can build one or more poster and image profiles for a media item.  those poster bundles
+will be stored somewhere and swapped in at will.  The different poster places will be huge for that.

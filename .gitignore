@@ -420,3 +420,4 @@ $RECYCLE.BIN/
 /data/
 /ui/.vite/
 /agent.local.yaml
+/documentation/build/
