@@ -1,6 +1,12 @@
 name: Build and Deploy Documentation
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'documentation*/**'
+      - '.github/workflows/publish_docs.yml'
   workflow_dispatch:
 
 permissions:
