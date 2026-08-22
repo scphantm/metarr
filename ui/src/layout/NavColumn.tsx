@@ -67,9 +67,12 @@ export function NavColumn({
   return (
     <nav className="flex h-full flex-col gap-1 p-3" aria-label="Main">
       <div className="flex items-center justify-between px-2 py-3">
-        <span className="text-lg font-semibold tracking-tight text-ink-strong">
-          Metarr
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-semibold tracking-tight text-ink-strong">
+            Metarr
+          </span>
+          <span className="text-xs text-ink-muted">v{__APP_VERSION__}</span>
+        </div>
         {onTogglePin ? (
           <button
             type="button"

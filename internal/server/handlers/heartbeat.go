@@ -14,6 +14,7 @@ import (
 type HeartbeatResponse struct {
 	Time          string `json:"time"`
 	CorrelationID string `json:"correlation_id"`
+	Version       string `json:"version"`
 }
 
 // Heartbeat handles GET /api/heartbeat. It publishes a heartbeat request

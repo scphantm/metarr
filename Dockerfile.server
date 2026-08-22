@@ -28,7 +28,7 @@ ARG TARGETOS
 ARG TARGETARCH
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
-    go build -trimpath -tags embed_ui -ldflags "-s -w -X main.version=${VERSION}" \
+    go build -trimpath -tags embed_ui -ldflags "-s -w -X Metarr/internal/shared/version.Raw=${VERSION}" \
     -o /out/metarr-server ./cmd/metarr-server
 
 FROM alpine:3.21

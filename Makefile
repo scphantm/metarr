@@ -80,18 +80,18 @@ build: generate
 # Build the metarr-server binary to bin/metarr-server.
 # Runs code generation first. Output is a statically-linked executable.
 build-server: generate
-	go build -o bin/metarr-server ./cmd/metarr-server
+	go build -ldflags "$(LDFLAGS)" -o bin/metarr-server ./cmd/metarr-server
 
 # Build the metarr-agent binary to bin/metarr-agent.
 # Runs code generation first. Output is a statically-linked executable for deployment to NAS/remote hosts.
 build-agent: generate
-	go build -o bin/metarr-agent ./cmd/metarr-agent
+	go build -ldflags "$(LDFLAGS)" -o bin/metarr-agent ./cmd/metarr-agent
 
 # Build metarr-server with the UI embedded, for production deployment.
 # Builds the UI first (npm run build), then compiles the Go binary with the embed_ui tag so the built
 # assets are baked into the binary. Serves the UI at / and the API at /api from a single process.
 build-server-production: generate ui-build
-	go build -tags embed_ui -o bin/metarr-server ./cmd/metarr-server
+	go build -tags embed_ui -ldflags "$(LDFLAGS)" -o bin/metarr-server ./cmd/metarr-server
 
 # Start the full Metarr stack: Docker services + server + agent + UI.
 # Launches docker compose, builds and starts the server and agent in the background, then runs the UI in the foreground.
@@ -160,9 +160,9 @@ run-agent: generate
 # Produces static binaries (no CGO dependencies) for Linux (amd64, arm64),
 # Windows (amd64), and macOS (arm64).
 # Set VERSION to embed a version string: make dist VERSION=1.0.0
-# Default VERSION is "dev".
-VERSION ?= dev
-AGENT_LDFLAGS := -s -w -X main.version=$(VERSION)
+# Default VERSION is read from the VERSION file at the repo root.
+VERSION ?= $(shell cat VERSION)
+LDFLAGS := -s -w -X Metarr/internal/shared/version.Raw=$(VERSION)
 
 dist: dist-agent-linux-amd64 dist-agent-linux-arm64 dist-agent-windows-amd64 dist-agent-darwin-arm64
 
@@ -170,33 +170,33 @@ dist: dist-agent-linux-amd64 dist-agent-linux-arm64 dist-agent-windows-amd64 dis
 # Output: bin/metarr-agent-linux-amd64
 dist-agent-linux-amd64: generate
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
-		-ldflags "$(AGENT_LDFLAGS)" -o bin/metarr-agent-linux-amd64 ./cmd/metarr-agent
+		-ldflags "$(LDFLAGS)" -o bin/metarr-agent-linux-amd64 ./cmd/metarr-agent
 
 # Build the metarr-agent for Linux ARM 64-bit (QNAP, Synology, most modern NAS).
 # Output: bin/metarr-agent-linux-arm64
 dist-agent-linux-arm64: generate
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath \
-		-ldflags "$(AGENT_LDFLAGS)" -o bin/metarr-agent-linux-arm64 ./cmd/metarr-agent
+		-ldflags "$(LDFLAGS)" -o bin/metarr-agent-linux-arm64 ./cmd/metarr-agent
 
 # Build the metarr-agent for Windows x86-64.
 # Output: bin/metarr-agent-windows-amd64.exe
 dist-agent-windows-amd64: generate
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath \
-		-ldflags "$(AGENT_LDFLAGS)" -o bin/metarr-agent-windows-amd64.exe ./cmd/metarr-agent
+		-ldflags "$(LDFLAGS)" -o bin/metarr-agent-windows-amd64.exe ./cmd/metarr-agent
 
 # Build the metarr-agent for macOS ARM 64-bit (Apple Silicon).
 # Output: bin/metarr-agent-darwin-arm64
 dist-agent-darwin-arm64: generate
 	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath \
-		-ldflags "$(AGENT_LDFLAGS)" -o bin/metarr-agent-darwin-arm64 ./cmd/metarr-agent
+		-ldflags "$(LDFLAGS)" -o bin/metarr-agent-darwin-arm64 ./cmd/metarr-agent
 
 # Build Docker images for metarr-server and metarr-agent.
 # Produces: metarr-server:<VERSION> and metarr-agent:<VERSION>
 # Set VERSION to tag the images: make docker-build VERSION=1.0.0
-# Default VERSION is "dev".
+# Default VERSION is read from the VERSION file at the repo root.
 docker-build:
-	docker build -f Dockerfile.server -t metarr-server:$(VERSION) .
-	docker build -f Dockerfile.agent -t metarr-agent:$(VERSION) .
+	docker build --build-arg VERSION=$(VERSION) -f Dockerfile.server -t metarr-server:$(VERSION) .
+	docker build --build-arg VERSION=$(VERSION) -f Dockerfile.agent -t metarr-agent:$(VERSION) .
 
 # Run the Go test suite.
 # Runs all tests in ./... and re-generates code first.
