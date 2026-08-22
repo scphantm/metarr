@@ -30,6 +30,7 @@ import (
 	"Metarr/internal/server/passwordhash"
 	"Metarr/internal/server/redisstats"
 	"Metarr/internal/server/session"
+	"Metarr/internal/server/webui"
 	workflowcatalog "Metarr/internal/server/workflow/catalog"
 	"Metarr/internal/server/wsbus"
 	"Metarr/internal/shared/appconfig"
@@ -379,7 +380,11 @@ func run() error {
 	})
 
 	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, workflowRepo, workflowCatalog, chatbotRepo, chatbotService, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
-	router := httpserver.NewRouter(apiHandlers, hub, sessions, logger)
+	uiFS, uiEmbedded := webui.FS()
+	if uiEmbedded {
+		logger.Info("ui embed", "enabled", true)
+	}
+	router := httpserver.NewRouter(apiHandlers, hub, sessions, logger, uiFS)
 	server := httpserver.New(cfg.Host, cfg.Port, router)
 
 	serverErr := make(chan error, 1)
