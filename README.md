@@ -6,9 +6,7 @@ Full documentation — growing into the complete user manual — lives in [`docu
 
 ## Why Metarr
 
-Radarr, Jellyfin, and your NAS's shared drive each end up holding their own copy of your media metadata, and none of them agree on which copy is the truth. Metarr fills that gap: it treats the files on your shared drive as the source of truth, edits them directly, and notifies Radarr, Jellyfin, and anything else watching that something changed — rather than each system quietly maintaining its own database. Delete and rebuild all  of those other tools (Metarr included) at any time; point them back at the share and the library comes back exactly as it was.
-
-For the full reasoning — the metadata-ownership problem in detail, and why this needed its own project rather than another *arr — see [Why Metarr](documentation/modules/ROOT/pages/philosophy.adoc) in the docs.
+Radarr, Jellyfin, and your NAS's shared drive each end up holding their own copy of your media metadata, and all of them believe they are the system of trueth. Metarr resolves the debate: it treats the files on your shared drive as the source of truth, edits them directly, and notifies Radarr, Jellyfin, and anything else watching that something changed, letting the other system eventually get in sync. — see [Why Metarr](documentation/modules/ROOT/pages/philosophy.adoc) in the docs.
 
 ## Project status
 
@@ -24,12 +22,9 @@ end to end today:
 * **Configuration and security.** Every setting above the connection layer is
   editable at runtime from the UI, with an admin account and four categories of
   API key.
-* **Logging and observability.** Structured logs from both binaries, a live tail
-  in the UI, and optional shipping to OpenObserve through Fluent Bit.
-* **Workflow authoring and validation.** A graph editor over a 36-entry node
-  catalog, with continuous static validation.
-* **An AI assistant** that can see the workflow you are editing and propose
-  changes to it.
+* **Logging and observability.** Structured logs from both binaries, a live tail in the UI, and optional shipping to OpenObserve through Fluent Bit.
+* **Workflow authoring and validation.** A graph editor over a large catalog, with continuous validation.
+* **An AI assistant** that can see the workflow you are editing and propose changes to it.
 
 What is **not** built yet, stated plainly because the code contains the
 scaffolding for all of it:

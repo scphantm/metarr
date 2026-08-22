@@ -3,6 +3,10 @@
 Both binaries emit structured logs, ship them over Redis, and — if you configure
 it — forward them to a log store. The live tail in the UI works regardless.
 
+Metarr was designed from the beginning to be a distributed application, with separate server and agent component that can be run on different machines.  
+The problem Metarr exposes is that the execution of a workflow may not happen on one computer and trying to debug issues using logs from two different machines
+gets complicated quick.  By integrating OpenObserve into the stack early, all logs show up on one searchable screen no matter how many agents you are running.
+
 == The pipeline
 
 [graphviz,log-pipeline,svg]

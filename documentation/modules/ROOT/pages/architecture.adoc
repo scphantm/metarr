@@ -71,6 +71,12 @@ presence.
 Fluent Bit and OpenObserve:: Optional. If you do not configure log forwarding,
 everything else still works. See xref:logging.adoc[Logging].
 
+Typescript/React for front end:: Chosen because its a standard language for web interfaces
+
+GoLang:: The server is written in Go for performance and concurrency.  It's designed to write these types of apps.  Go's IO is substantially faster than other languages
+
+Antora:: The documentation is done in AsciiDoc, which is a more advanced variation of Markdown.  Antora is the tool that takes individual AsciiDoc files and compiles them into a website.
+
 == The agent boundary
 
 The agent holds no database credentials and cannot open a database connection.

@@ -11,6 +11,12 @@ Kill any spawned processes (node, metarr-server, metarr-agent) before ending a t
 # Design documentation
 `documentation/modules/design/` is the source of truth for how the system is designed — not just the workflow engine, everything documented there. Before implementing a change in an area the module covers, check what it says and make the change match. If a change would require the design itself to be different, stop and ask — do not edit anything under `documentation/modules/design/` without the user's explicit go-ahead first, even to fix what looks like a stale or inconsistent passage.
 
+# System documentation
+* The documentation in `documentation/modules/ROOT` will be referred to as system docs
+* Don't read or update `documentation/modules/ROOT` unless told to.  This is for token efficiency.
+* When told to update the documentation, assume the code is correct and update the documentation to match.
+* Ignore the directory `documentation-theme` unless told otherwise
+
 # Configuration file structure changes
 Any change to config structure also requires:
 * CRUD methods in the config API router
