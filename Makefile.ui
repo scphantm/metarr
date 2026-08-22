@@ -1,7 +1,7 @@
 # UI (Vite/React) build and development tasks for the Metarr web frontend.
 # Included by the main Makefile.
 
-.PHONY: ui-install ui-dev ui-build lint-ui
+.PHONY: ui-install ui-dev ui-build ui-test ui-test-watch lint-ui
 
 # Install UI dependencies via npm.
 # Reads from ui/package-lock.json to ensure reproducible installs.
@@ -23,6 +23,17 @@ ui-dev:
 # Use this to test production builds locally or before deploying.
 ui-build:
 	cd ui && npm run build
+
+# Run the UI unit test suite once.
+# Tests use Vitest and cover utilities, hooks, and core business logic.
+# See ui/TEST.md for details on test organization and writing new tests.
+ui-test:
+	cd ui && npm run test
+
+# Run the UI unit tests in watch mode.
+# Reruns tests when source files change — useful during development.
+ui-test-watch:
+	cd ui && npm run test:watch
 
 # Lint the UI code (JavaScript/TypeScript) using ESLint.
 # Part of the full `make lint` target (which also runs lint-go).
