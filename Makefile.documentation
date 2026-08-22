@@ -1,7 +1,6 @@
 docs_initialize: docs_theme_init
 	npm update
 	gem install bundle
-	bundle update
 
 docs_build: docs_initialize docs_theme_pack docs_antora_run
 
