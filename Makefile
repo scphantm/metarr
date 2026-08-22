@@ -32,7 +32,7 @@ help:
 	@echo "  make run-production   Build and run metarr-server with embedded UI"
 	@echo ""
 	@echo "UI (from Makefile.ui):"
-	@echo "  make ui-install       Install UI dependencies (npm install)"
+	@echo "  make ui-install       Install UI dependencies (yarn install)"
 	@echo "  make ui-dev           Start Vite dev server on http://localhost:5173"
 	@echo "  make ui-build         Build production UI bundle"
 	@echo "  make ui-test          Run UI unit tests"

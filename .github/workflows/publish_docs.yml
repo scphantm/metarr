@@ -30,7 +30,7 @@ jobs:
           docker build -f Dockerfile.documentation -t metarr-docs:latest .
           docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace \
             metarr-docs:latest \
-            sh -c 'make docs_build'
+            sh -c 'yarn install && yarn workspace @metarr/metarr_docs_theme run pack && yarn workspace @metarr/documentation run build'
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5

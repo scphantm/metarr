@@ -60,3 +60,7 @@ See `documentation/modules/design/pages/workflow_engine.adoc` for the full spec 
 # Testing
 * During verification, promote token-efficient candidates to unit tests.
 * Unit tests are designed for token efficiency in subsequent runs
+
+# editing documentation theme
+* The documentation theme bundles into a standard package that is used by antora to theme the site.  It must follow specifications.  Those specifications are in `documentation-theme/docs`
+* when editing the documentation theme do not make changes to anything in `documentation-theme/docs`

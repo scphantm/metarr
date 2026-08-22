@@ -1,10 +1,23 @@
-docs_initialize: docs_theme_init
-	npm update
-	gem install bundle
+# Install all documentation and theme dependencies via yarn workspaces.
+docs_initialize: docs_install
 
-docs_build: docs_initialize docs_theme_pack docs_antora_run
+# Install documentation workspace dependencies.
+docs_install: docs_theme_install
+	yarn workspace @metarr/documentation install
 
-docs_antora_run:
+# Install documentation-theme workspace dependencies.
+docs_theme_install:
+	yarn workspace @metarr/metarr_docs_theme install
+
+# Build the documentation site: pack theme first, then run Antora.
+docs_build: docs_theme_pack docs_antora_run
+
+# Pack the documentation theme (create ui-bundle.zip).
+docs_theme_pack: docs_theme_install
+	yarn workspace @metarr/metarr_docs_theme run pack
+
+# Run Antora to generate the documentation site.
+docs_antora_run: docs_install
 	npx antora generate antora-playbook.yml --stacktrace
 
 # Serve the built documentation site (build/site) locally over HTTP.
@@ -13,7 +26,7 @@ docs_antora_run:
 #
 # Usage: make docs-serve
 # Then navigate to http://localhost:8090 in your browser.
-docs-serve: docs_build
+docs_serve: docs_build
 	npx http-server build/site -p 8090
 
 # Launch an interactive shell inside the Dockerfile.documentation container.
@@ -22,13 +35,13 @@ docs-serve: docs_build
 # directory structure, so `antora-playbook.yml` and all relative paths work without changes.
 #
 # Usage: make docs-shell
-# Inside the container, you can run: npx antora generate antora-playbook.yml
+# Inside the container, you can run: npm --workspace=documentation run build
 docs_shell:
 	@echo "=== Building documentation container ===" && \
 	docker build -f Dockerfile.documentation -t metarr-docs-shell:latest . && \
 	echo "=== Launching shell in documentation container ===" && \
 	echo "The repo is mounted at /workspace. To build docs:" && \
-	echo "  cd /workspace && npx antora generate antora-playbook.yml" && \
+	echo "  cd /workspace && npm --workspace=documentation run build" && \
 	echo "" && \
 	docker run -it --rm \
 		-v $$(pwd):/workspace \
@@ -50,8 +63,12 @@ subtree_docs_theme-pull:
 subtree_docs_theme-push:
 	git subtree push --prefix documentation-theme git@github.com:scphantm/metarr-documentation-theme.git metarr-main
 
-docs_theme_init:
-	cd documentation-theme && npm install
+# Clean documentation theme build artifacts.
+docs_theme_clean:
+	rm -Rf documentation-theme/node_modules
+	rm -Rf documentation-theme/build
+	rm -Rf documentation-theme/public
 
-docs_theme_pack: docs_theme_init
-	cd documentation-theme && gulp pack
+docs_clean: docs_theme_clean
+	rm -Rf node_modules
+	rm -Rf build
