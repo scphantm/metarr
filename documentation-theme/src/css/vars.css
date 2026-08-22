@@ -30,6 +30,12 @@
   --comment: var(--base01); /* font color */
   --body-background-image: url("../img/background-dark.png");
 
+  /* gloss sheen overlay */
+  --gloss-sheen-down: linear-gradient(to bottom, rgba(255,255,255,0.10), rgba(255,255,255,0) 45%);
+  --gloss-sheen-up: linear-gradient(to top, rgba(255,255,255,0.10), rgba(255,255,255,0) 45%);
+  --gloss-sheen-right: linear-gradient(to right, rgba(255,255,255,0.10), rgba(255,255,255,0) 45%);
+  --gloss-sheen-left: linear-gradient(to left, rgba(255,255,255,0.10), rgba(255,255,255,0) 45%);
+
   /* solarized light */
   /* --fg: var(--base00); */
   /* --bg: var(--base3); */
@@ -50,13 +56,13 @@
   --monospace-font-weight-bold: 600;
   /* base */
   --body-background: var(--bg);
-  --panel-background: var(--hl);
+  --panel-background: var(--bg);
   --panel-border-color: var(--hl);
   --scrollbar-track-color: var(--hl);
   --scrollbar-thumb-color: var(--fg);
   --scrollbar_hover-thumb-color: var(--hl);
   /* navbar */
-  --navbar-background: var(--bg);
+  --navbar-background: var(--gloss-sheen-up), var(--bg);
   --navbar-font-color: var(--emph);
   --navbar_hover-background: var(--hl);
   --navbar-button-background: var(--hl);
@@ -67,7 +73,7 @@
   --navbar-menu-font-color: var(--body-font-color);
   --navbar-menu_hover-background: var(--hl);
   /* nav */
-  --nav-background: var(--body-background);
+  --nav-background: var(--gloss-sheen-left), var(--body-background);
   --nav-border-color: var(--panel-border-color);
   --nav-line-height: 1.35;
   --nav-heading-font-color: var(--emph);
@@ -109,7 +115,7 @@
   --abstract-background: var(--panel-background);
   --abstract-font-color: var(--comment);
   --abstract-border-color: var(--panel-border-color);
-  --admonition-background: var(--panel-background);
+  --admonition-background: var(--gloss-sheen-down), var(--panel-background);
   --admonition-label-font-weight: var(--body-font-weight-bold);
   --caption-font-color: var(--emph);
   --caption-font-style: italic;

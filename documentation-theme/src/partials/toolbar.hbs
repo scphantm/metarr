@@ -11,3 +11,28 @@
     <span class="widescreen-toggle-icon"></span>
   </label>
 </div>
+
+<script>
+(function() {
+  const toggle = document.getElementById('widescreen-toggle');
+  const cookieName = 'metarr-widescreen-mode';
+
+  function setCookie(value) {
+    document.cookie = `${cookieName}=${value}; path=/; max-age=31536000`;
+  }
+
+  function getCookie() {
+    return document.cookie.split('; ').find(row => row.startsWith(cookieName + '='))?.split('=')[1] === 'true';
+  }
+
+  function restoreState() {
+    toggle.checked = getCookie();
+  }
+
+  toggle.addEventListener('change', function() {
+    setCookie(this.checked);
+  });
+
+  restoreState();
+})();
+</script>

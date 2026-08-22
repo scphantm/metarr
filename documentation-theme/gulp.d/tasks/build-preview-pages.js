@@ -14,6 +14,31 @@ const yaml = require('js-yaml')
 
 const ASCIIDOC_ATTRIBUTES = { experimental: '', icons: 'font', sectanchors: '', 'source-highlighter': 'highlight.js' }
 
+let highlighter = null
+
+async function initHighlighter () {
+  if (!highlighter) {
+    const { createHighlighter } = await import('shiki')
+    highlighter = await createHighlighter({ themes: ['solarized-dark'], langs: ['json', 'js', 'ts', 'asciidoc', 'bash', 'shell'] })
+  }
+  return highlighter
+}
+
+async function highlightCodeBlocks (html) {
+  const highlighter = await initHighlighter()
+
+  return html.replace(/<pre[^>]*><code[^>]*data-lang="([^"]*)"[^>]*>([\s\S]*?)<\/code><\/pre>/g, (match, lang, code) => {
+    const language = lang || 'text'
+    const decodedCode = code.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/<[^>]+>/g, '')
+
+    try {
+      return highlighter.codeToHtml(decodedCode, { lang: language, theme: 'solarized-dark' })
+    } catch (e) {
+      return match
+    }
+  })
+}
+
 module.exports = (src, previewSrc, previewDest, sink = () => map()) => (done) =>
   Promise.all([
     loadSampleUiModel(previewSrc),
@@ -60,8 +85,9 @@ module.exports = (src, previewSrc, previewDest, sink = () => map()) => (done) =>
                 uiModel.page.description = doc.getAttribute('description')
                 uiModel.page.layout = doc.getAttribute('page-layout', 'default')
                 uiModel.page.title = doc.getDocumentTitle()
-                const html = await doc.convert()
-                uiModel.page.contents = Buffer.from(html || '')
+                let html = await doc.convert()
+                html = await highlightCodeBlocks(html || '')
+                uiModel.page.contents = Buffer.from(html)
               }
               file.extname = '.html'
               try {
