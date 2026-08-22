@@ -1085,3 +1085,8 @@
   text-align: right;
   width: 1.5em;
 }
+
+/* Widescreen mode: full-width article */
+body:has(#widescreen-toggle:checked) .doc {
+  max-width: none;
+}

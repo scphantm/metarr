@@ -41,33 +41,36 @@ module.exports = (src, previewSrc, previewDest, sink = () => map()) => (done) =>
         .src('**/*.adoc', { base: previewSrc, cwd: previewSrc })
         .pipe(
           map((file, enc, next) => {
-            const siteRootPath = path.relative(ospath.dirname(file.path), ospath.resolve(previewSrc))
-            const uiModel = { ...baseUiModel }
-            uiModel.page = { ...uiModel.page }
-            uiModel.siteRootPath = siteRootPath
-            uiModel.uiRootPath = path.join(siteRootPath, '_')
-            if (file.stem === '404') {
-              uiModel.page = { layout: '404', title: 'Page Not Found' }
-            } else {
-              const doc = Asciidoctor.load(file.contents, { safe: 'safe', attributes: ASCIIDOC_ATTRIBUTES })
-              uiModel.page.attributes = Object.entries(doc.getAttributes())
-                .filter(([name, val]) => name.startsWith('page-'))
-                .reduce((accum, [name, val]) => {
-                  accum[name.slice(5)] = val
-                  return accum
-                }, {})
-              uiModel.page.description = doc.getAttribute('description')
-              uiModel.page.layout = doc.getAttribute('page-layout', 'default')
-              uiModel.page.title = doc.getDocumentTitle()
-              uiModel.page.contents = Buffer.from(doc.convert())
-            }
-            file.extname = '.html'
-            try {
-              file.contents = Buffer.from(layouts.get(uiModel.page.layout)(uiModel))
-              next(null, file)
-            } catch (e) {
-              next(transformHandlebarsError(e, uiModel.page.layout))
-            }
+            Promise.resolve().then(async () => {
+              const siteRootPath = path.relative(ospath.dirname(file.path), ospath.resolve(previewSrc))
+              const uiModel = { ...baseUiModel }
+              uiModel.page = { ...uiModel.page }
+              uiModel.siteRootPath = siteRootPath
+              uiModel.uiRootPath = path.join(siteRootPath, '_')
+              if (file.stem === '404') {
+                uiModel.page = { layout: '404', title: 'Page Not Found' }
+              } else {
+                const doc = await Asciidoctor.load(file.contents, { safe: 'safe', attributes: ASCIIDOC_ATTRIBUTES })
+                uiModel.page.attributes = Object.entries(doc.getAttributes())
+                  .filter(([name, val]) => name.startsWith('page-'))
+                  .reduce((accum, [name, val]) => {
+                    accum[name.slice(5)] = val
+                    return accum
+                  }, {})
+                uiModel.page.description = doc.getAttribute('description')
+                uiModel.page.layout = doc.getAttribute('page-layout', 'default')
+                uiModel.page.title = doc.getDocumentTitle()
+                const html = await doc.convert()
+                uiModel.page.contents = Buffer.from(html || '')
+              }
+              file.extname = '.html'
+              try {
+                file.contents = Buffer.from(layouts.get(uiModel.page.layout)(uiModel))
+                next(null, file)
+              } catch (e) {
+                next(transformHandlebarsError(e, uiModel.page.layout))
+              }
+            }).catch(next)
           })
         )
         .pipe(vfs.dest(previewDest))
@@ -76,7 +79,7 @@ module.exports = (src, previewSrc, previewDest, sink = () => map()) => (done) =>
     )
 
 function loadSampleUiModel (src) {
-  return fs.readFile(ospath.join(src, 'ui-model.yml'), 'utf8').then((contents) => yaml.safeLoad(contents))
+  return fs.readFile(ospath.join(src, 'ui-model.yml'), 'utf8').then((contents) => yaml.load(contents))
 }
 
 function registerPartials (src) {

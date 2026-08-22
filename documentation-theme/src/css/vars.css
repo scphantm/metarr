@@ -67,7 +67,7 @@
   --navbar-menu-font-color: var(--body-font-color);
   --navbar-menu_hover-background: var(--hl);
   /* nav */
-  --nav-background: var(--panel-background);
+  --nav-background: var(--body-background);
   --nav-border-color: var(--panel-border-color);
   --nav-line-height: 1.35;
   --nav-heading-font-color: var(--emph);
