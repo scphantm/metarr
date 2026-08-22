@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"time"
@@ -21,7 +22,9 @@ const throttledInterval = 500 * time.Millisecond
 // NewRouter builds the application's HTTP route table, wrapped with
 // correlation ID and request logging middleware. Every route requires an
 // API key except the heartbeat, login, and the Swagger UI.
-func NewRouter(h *handlers.Handlers, hub *wsbus.Hub, sessions *session.Store, logger *slog.Logger) http.Handler {
+// If uiFS is provided (non-nil), the router also serves the embedded UI
+// at the root path (/) with SPA fallback.
+func NewRouter(h *handlers.Handlers, hub *wsbus.Hub, sessions *session.Store, logger *slog.Logger, uiFS fs.FS) http.Handler {
 	mux := http.NewServeMux()
 
 	protect := func(group auth.Group, handler http.HandlerFunc) http.Handler {
@@ -139,6 +142,12 @@ func NewRouter(h *handlers.Handlers, hub *wsbus.Hub, sessions *session.Store, lo
 
 	// Documentation, not part of the authenticated API surface.
 	mux.HandleFunc("GET /swagger/", httpSwagger.WrapHandler)
+
+	// Serve the embedded UI (if available) at the root path with SPA fallback.
+	// This is only registered if uiFS is non-nil (production builds with -tags embed_ui).
+	if uiFS != nil {
+		mux.Handle("GET /", newSPAHandler(uiFS))
+	}
 
 	var handler http.Handler = mux
 	handler = withLogging(logger, handler)

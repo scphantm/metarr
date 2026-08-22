@@ -6,6 +6,35 @@ docs_initialize:
 docs_build:
 	npx antora generate antora-playbook.yml
 
+# Serve the built documentation site (build/site) locally over HTTP.
+# Uses `npx http-server`, fetched on demand the same way `docs_build` fetches antora via npx.
+# Run `make docs_build` first if build/site doesn't exist yet.
+#
+# Usage: make docs-serve
+# Then navigate to http://localhost:8090 in your browser.
+docs-serve: docs_build
+	npx http-server build/site -p 8090
+
+# Launch an interactive shell inside the Dockerfile.documentation container.
+# Useful for debugging Antora builds, testing asciidoctor extensions, or running commands
+# in the exact environment the CI uses. The repo is mounted at /workspace with the same
+# directory structure, so `antora-playbook.yml` and all relative paths work without changes.
+#
+# Usage: make docs-shell
+# Inside the container, you can run: npx antora generate antora-playbook.yml
+docs-shell:
+	@echo "=== Building documentation container ===" && \
+	docker build -f Dockerfile.documentation -t metarr-docs-shell:latest . && \
+	echo "=== Launching shell in documentation container ===" && \
+	echo "The repo is mounted at /workspace. To build docs:" && \
+	echo "  cd /workspace && npx antora generate antora-playbook.yml" && \
+	echo "" && \
+	docker run -it --rm \
+		-v $$(pwd):/workspace \
+		-w /workspace \
+		metarr-docs-shell:latest \
+		/bin/sh
+
 # to configure the way the build presentations system works, check out this link
 # https://docs.asciidoctor.org/reveal.js-converter/latest/setup/ruby-setup/
 docs_build_presentations:
