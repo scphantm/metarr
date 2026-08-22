@@ -7,7 +7,7 @@ import (
 
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 
-	_ "Metarr/docs"
+	_ "Metarr/api"
 	"Metarr/internal/server/auth"
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/server/session"

@@ -94,6 +94,152 @@
                 }
             }
         },
+        "/api/chatbot/messages": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Persists a chat message (and, on a page with an active context, what was sent). Returns immediately with the assistant message's id — connect to GET /api/chatbot/stream/{message_id} to actually run and stream the reply.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chatbot"
+                ],
+                "summary": "Send a chat message",
+                "parameters": [
+                    {
+                        "description": "Chat message",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.postChatMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.postChatMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/chatbot/sessions": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Every session that has at least one message, most-recently-active first.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chatbot"
+                ],
+                "summary": "List chat sessions",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/mongostore.SessionSummary"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/chatbot/sessions/{id}/messages": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Every message in a session, oldest first.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chatbot"
+                ],
+                "summary": "List one session's messages",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/mongostore.ChatMessage"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/chatbot/stream/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Connecting runs the completion for the given (pending) assistant message id and streams each delta as a JSON frame, ending with one carrying done:true. A message that isn't pending (already streamed, or never created) closes the connection immediately with an error frame.",
+                "tags": [
+                    "Chatbot"
+                ],
+                "summary": "Stream a chat reply",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Assistant message id, from POST /api/chatbot/messages's response",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
         "/api/config": {
             "get": {
                 "security": [
@@ -390,6 +536,80 @@
                     },
                     "400": {
                         "description": "invalid request body or log_level",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/config/chatbot": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Returns settings for all four providers (only Provider's is active) — API keys are returned in plaintext, unredacted, matching how Sonarr's API key is already handled.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Fetch the chatbot configuration",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/appconfig.ChatbotConfig"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyHeaderAuth": []
+                    },
+                    {
+                        "ApiKeyQueryAuth": []
+                    }
+                ],
+                "description": "Replaces the chatbot section. Settings for all four providers are stored even though only Provider's are active, so switching providers back and forth never drops what was entered.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Config"
+                ],
+                "summary": "Update the chatbot configuration",
+                "parameters": [
+                    {
+                        "description": "Chatbot configuration",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/appconfig.ChatbotConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AcceptedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request body or provider",
                         "schema": {
                             "type": "string"
                         }
@@ -2142,6 +2362,87 @@
                 }
             }
         },
+        "appconfig.ChatbotClaudeConfig": {
+            "type": "object",
+            "properties": {
+                "api_key": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                }
+            }
+        },
+        "appconfig.ChatbotConfig": {
+            "type": "object",
+            "properties": {
+                "claude": {
+                    "$ref": "#/definitions/appconfig.ChatbotClaudeConfig"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "gemini": {
+                    "$ref": "#/definitions/appconfig.ChatbotGeminiConfig"
+                },
+                "mcp": {
+                    "$ref": "#/definitions/appconfig.ChatbotMCPConfig"
+                },
+                "openai": {
+                    "$ref": "#/definitions/appconfig.ChatbotOpenAIConfig"
+                },
+                "provider": {
+                    "type": "string"
+                }
+            }
+        },
+        "appconfig.ChatbotGeminiConfig": {
+            "type": "object",
+            "properties": {
+                "api_key": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                }
+            }
+        },
+        "appconfig.ChatbotMCPConfig": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "command": {
+                    "type": "string"
+                },
+                "tool_name": {
+                    "description": "MCP tool invoked for completion",
+                    "type": "string"
+                },
+                "transport": {
+                    "description": "\"stdio\" | \"http\"",
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "appconfig.ChatbotOpenAIConfig": {
+            "type": "object",
+            "properties": {
+                "api_key": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                }
+            }
+        },
         "appconfig.Config": {
             "type": "object",
             "properties": {
@@ -2156,6 +2457,9 @@
                 },
                 "api_keys": {
                     "$ref": "#/definitions/appconfig.APIKeysConfig"
+                },
+                "chatbot": {
+                    "$ref": "#/definitions/appconfig.ChatbotConfig"
                 },
                 "directory_scanner": {
                     "$ref": "#/definitions/appconfig.DirectoryScannerConfig"
@@ -2466,6 +2770,37 @@
                     "items": {
                         "$ref": "#/definitions/mongostore.Workflow"
                     }
+                }
+            }
+        },
+        "handlers.postChatMessageRequest": {
+            "type": "object",
+            "properties": {
+                "context": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "page_key": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.postChatMessageResponse": {
+            "type": "object",
+            "properties": {
+                "context_sent": {
+                    "$ref": "#/definitions/pagecontext.ContextSentRecord"
+                },
+                "message_id": {
+                    "type": "string"
                 }
             }
         },
@@ -2962,6 +3297,54 @@
                 }
             }
         },
+        "mongostore.ChatMessage": {
+            "type": "object",
+            "properties": {
+                "context_sent": {
+                    "description": "ContextSent is set only on a user message that had an active page\ncontext at send time — JSON-encoded pagecontext.ContextSentRecord,\nso it's re-encoded as a raw JSON value rather than a base64 string\nwhen this document itself is marshaled to JSON for the API.",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "tool_call": {
+                    "description": "ToolCall is set only on an assistant message whose completion\nproduced one — JSON-encoded provider.ToolCall.",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "mongostore.SessionSummary": {
+            "type": "object",
+            "properties": {
+                "last_message_at": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                }
+            }
+        },
         "mongostore.Workflow": {
             "type": "object",
             "properties": {
@@ -2987,11 +3370,15 @@
                     "type": "string"
                 },
                 "nodes": {
-                    "description": "React Flow's own toObject() shape, stored as-is and re-rendered with\nwhatever the current node/edge components are. Deliberately untyped\n(bson.M, not a Go struct): the node/edge schema is still being\ndesigned on the frontend and is expected to keep changing without a\nbackend release in lockstep — see the no-migration-logic note on\nreading old versions.",
+                    "description": "The canonical graph shape (workflow.Node / workflow.Edge), stored\nloosely as bson.M rather than the typed Go structs: Mongo doesn't need\nit typed, and keeping it loose here means a catalog-driven schema\nchange on the frontend never needs a backend release in lockstep — see\nthe no-migration-logic note on reading old-SchemaVersion documents.",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/bson.M"
                     }
+                },
+                "schema_version": {
+                    "description": "SchemaVersion identifies which shape Nodes/Edges are in — see\nworkflow.SchemaVersion. A document without one (the zero value) predates\nthe control/data-edge redesign and is opened read-only in the editor\nrather than guessed at.",
+                    "type": "integer"
                 },
                 "tags": {
                     "type": "array",
@@ -3004,6 +3391,40 @@
                 },
                 "viewport": {
                     "$ref": "#/definitions/bson.M"
+                }
+            }
+        },
+        "pagecontext.ContextSentItem": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "detail": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "label": {
+                    "type": "string"
+                },
+                "token_estimate": {
+                    "type": "integer"
+                }
+            }
+        },
+        "pagecontext.ContextSentRecord": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pagecontext.ContextSentItem"
+                    }
+                },
+                "page_key": {
+                    "type": "string"
                 }
             }
         },
@@ -3683,6 +4104,11 @@
                 "kind": {
                     "$ref": "#/definitions/workflow.EdgeKind"
                 },
+                "settings": {
+                    "description": "Settings holds per-edge configuration — e.g. \"recursive\" on a data\nedge delivering a path, opened via double-clicking the edge in the\neditor. Unlike Node's Settings, this isn't catalog-declared (there is\nno per-type edge schema); each setting is a one-off the UI knows how\nto render for the edge's own data type.",
+                    "type": "object",
+                    "additionalProperties": {}
+                },
                 "to": {
                     "$ref": "#/definitions/workflow.Endpoint"
                 },
@@ -3783,6 +4209,10 @@
         "workflow.Node": {
             "type": "object",
             "properties": {
+                "catalogId": {
+                    "description": "CatalogID names the exact catalog entry this instance was placed from\n— several entries may share Type (variations of one plugin, e.g. two\ncore/start entries with different dataOut shapes), so this is what\nresolves it unambiguously. Empty on graphs saved before catalog\nentries carried an id; those fall back to an arbitrary match by Type.",
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -3806,9 +4236,6 @@
                     "additionalProperties": {}
                 },
                 "type": {
-                    "type": "string"
-                },
-                "typeVersion": {
                     "type": "string"
                 }
             }
@@ -3848,6 +4275,7 @@
             "type": "object",
             "properties": {
                 "category": {
+                    "description": "Category and Subcategory are the palette's two accordion levels —\nCategory is the outer group (e.g. \"workflow\"), Subcategory the inner\none (e.g. \"start\"). Both are presentation-only, like the single\ncategory field they replaced: never dispatch behavior on either, only\non Type. Subcategory is not yet assigned catalog-wide — an entry with\nno Category renders under a palette-level \"Uncategorized\" top group.",
                     "type": "string"
                 },
                 "control": {
@@ -3871,6 +4299,9 @@
                 "exec": {
                     "$ref": "#/definitions/workflow.ExecSpec"
                 },
+                "id": {
+                    "type": "string"
+                },
                 "kind": {
                     "$ref": "#/definitions/workflow.NodeKind"
                 },
@@ -3883,10 +4314,10 @@
                         "$ref": "#/definitions/workflow.Setting"
                     }
                 },
-                "type": {
+                "subcategory": {
                     "type": "string"
                 },
-                "typeVersion": {
+                "type": {
                     "type": "string"
                 }
             }
@@ -3966,6 +4397,10 @@
                 "from": {
                     "$ref": "#/definitions/workflow.Type"
                 },
+                "implies_iteration": {
+                    "description": "ImpliesIteration marks a transform whose value production is\none-to-many at the data level — eachFile fans a directory out to one\nrun per file, the way a SQL UNNEST fans a column out to one row per\nelement, without the graph author drawing an explicit loop. This is\ndeliberately NOT a control-flow construct: neither side is a list\u003cT\u003e,\nno new frame or token is created, and no whole-graph analysis\n(parallel/join arity, MustHaveRun) needs to reason about it — it's\nlocal detail on one edge, the same category as a future string-\u003edate\ntransform needing a format parameter. The engine does not yet execute\nthe implied fan-out (design.md §13); today this is UI/documentation\nmetadata that drives the editor's iteration badge.",
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -3983,25 +4418,18 @@
                 "any",
                 "bool",
                 "number",
-                "number.int",
                 "string",
-                "string.enum",
-                "duration",
-                "bytes",
-                "timestamp",
+                "datetime",
                 "path",
                 "path.dir",
                 "path.file",
-                "path.file.video",
-                "path.file.image",
-                "path.file.subtitle",
-                "path.file.nfo",
-                "media.item",
+                "media",
                 "media.file",
-                "media.sidecar",
-                "metadata.nfo",
-                "metadata.stream",
+                "tvseries",
+                "movie",
+                "agent",
                 "agent.slug",
+                "scanner",
                 "scanner.slug",
                 "error"
             ],
@@ -4009,25 +4437,18 @@
                 "TypeAny",
                 "TypeBool",
                 "TypeNumber",
-                "TypeNumberInt",
                 "TypeString",
-                "TypeStringEnum",
-                "TypeDuration",
-                "TypeBytes",
-                "TypeTimestamp",
+                "TypeDatetime",
                 "TypePath",
                 "TypePathDir",
                 "TypePathFile",
-                "TypePathFileVideo",
-                "TypePathFileImage",
-                "TypePathFileSubtitle",
-                "TypePathFileNFO",
-                "TypeMediaItem",
+                "TypeMedia",
                 "TypeMediaFile",
-                "TypeMediaSidecar",
-                "TypeMetadataNFO",
-                "TypeMetadataStream",
+                "TypeTVSeries",
+                "TypeMovie",
+                "TypeAgent",
                 "TypeAgentSlug",
+                "TypeScanner",
                 "TypeScannerSlug",
                 "TypeError"
             ]
