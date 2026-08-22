@@ -1,7 +1,7 @@
 FROM asciidoctor/docker-asciidoctor:latest
 
 RUN apk add nodejs npm rsync openssh
-RUN npm install -g antora @antora/cli @antora/pdf-extension @antora/lunr-extension antora-shiki-extension
+RUN npm install -g antora @antora/cli @antora/site-generator @antora/pdf-extension @antora/lunr-extension antora-shiki-extension
 RUN npm update
 RUN gem install bundle
 
