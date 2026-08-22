@@ -142,14 +142,14 @@ role-hr-rw
 
 Users go into these groups as secondary group memberships. A person doing two jobs just belongs to two groups. This is your entire "role assignment" mechanism — /etc/group (or usermod -aG) is the role-assignment database, no LDAP required.
 
-2. Never ACL a username. Always ACL a group.
+1. Never ACL a username. Always ACL a group.
 
 setfacl -m g:role-finance-rw:rwx /data/finance
 setfacl -m g:role-finance-ro:r-x /data/finance
 
 If you ever find yourself typing setfacl -m u:jsmith:..., stop — that's a sign the role model is missing a group, not a reason to special-case a user.
 
-3. Set default ACLs on every directory, not just the current ACL
+1. Set default ACLs on every directory, not just the current ACL
 
 This is the step people forget, and it's the one that makes the system actually behave like RBAC over time instead of just at setup:
 
@@ -158,7 +158,7 @@ setfacl -d -m g:role-finance-ro:r-x /data/finance
 
 Without -d (default ACL), new files created tomorrow inherit nothing and silently fall back to normal owner/group/other bits. With it, every new file and subdirectory automatically picks up the role grants.
 
-4. Combine with setgid, not in place of it
+1. Combine with setgid, not in place of it
 
 chmod g+s on directories so new files inherit the group owner, and pair it with a sane base mode and no other access:
 
@@ -167,11 +167,11 @@ setfacl -m d:o::--- /data/finance   # kill default "other" grant explicitly
 
 Belt-and-suspenders: even if someone strips the ACL, the underlying group ownership still isn't world-readable.
 
-5. Manage the ACL mask deliberately
+1. Manage the ACL mask deliberately
 
 POSIX ACLs have a mask entry that caps the effective permission of every named group/user entry. setfacl recalculates it automatically most of the time, but when you're debugging "why doesn't this permission take effect," getfacl and check the mask line before anything else — it's the #1 source of "I set the ACL and it didn't work" confusion.
 
-6. Treat the ACL state as code, not as a pile of manual commands
+1. Treat the ACL state as code, not as a pile of manual commands
 
 Since you have no central directory to enforce this, drift across machines/directories is the real risk. The clean approach: write the desired state as a small manifest (YAML/JSON — path → group → permission), and a script that applies it idempotently with setfacl and verifies with getfacl -R --absolute-names. Keep that manifest in git. This gets you:
 
@@ -179,11 +179,11 @@ an audit trail of who has access to what and why
 a diffable "desired vs actual" check you can cron
 no hand-typed one-off ACL commands that nobody remembers six months later
 
-7. If more than one host is involved, solve UID/GID consistency first
+1. If more than one host is involved, solve UID/GID consistency first
 
 POSIX ACLs store numeric UID/GID under the hood. If role-finance-rw is GID 5001 on one box and GID 5002 on another (because groups were created in different orders), your ACLs silently break the moment files move between hosts or go over NFS. Without AD/LDAP, fix this by keeping a static UID/GID allocation table and pushing /etc/group consistently with whatever config management you already have (Ansible/Puppet/Chef, or even a simple synced file + script). This is the part people skip and then debug for hours later.
 
-8. Know the one real limitation: no deny entries
+1. Know the one real limitation: no deny entries
 
 POSIX.1e ACLs are allow-only — there's no explicit "deny" ACE like NFSv4/Windows ACLs have. If you need "everyone in finance except contractors," you can't express that as a deny; you model it by not putting contractors in role-finance-rw and instead giving them a separate, narrower role/group. If that kind of exception logic is common in your org, and you're on a filesystem that supports it (ZFS, or Linux with richacl), NFSv4-style ACLs give you real allow/deny + inheritance flags and are arguably a cleaner fit for RBAC — worth considering if you're not locked into ext4/xfs.
 

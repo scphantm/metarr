@@ -22,7 +22,7 @@ docs-serve: docs_build
 #
 # Usage: make docs-shell
 # Inside the container, you can run: npx antora generate antora-playbook.yml
-docs-shell:
+docs_shell:
 	@echo "=== Building documentation container ===" && \
 	docker build -f Dockerfile.documentation -t metarr-docs-shell:latest . && \
 	echo "=== Launching shell in documentation container ===" && \
