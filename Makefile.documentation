@@ -49,5 +49,8 @@ subtree_docs_theme-pull:
 subtree_docs_theme-push:
 	git subtree push --prefix documentation-theme git@github.com:scphantm/metarr-documentation-theme.git metarr-main
 
-docs_theme_pack:
+docs_theme_init:
+	cd documentation-theme && nom install
+
+docs_theme_pack: docs_theme_init
 	cd documentation-theme && gulp pack
