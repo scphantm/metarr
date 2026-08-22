@@ -1,9 +1,11 @@
-docs_initialize:
+docs_initialize: docs_theme_init
 	npm update
 	gem install bundle
 	bundle update
 
-docs_build:
+docs_build: docs_initialize docs_theme_pack docs_antora_run
+
+docs_antora_run:
 	npx antora generate antora-playbook.yml --stacktrace
 
 # Serve the built documentation site (build/site) locally over HTTP.
