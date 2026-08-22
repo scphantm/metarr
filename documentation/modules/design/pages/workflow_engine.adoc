@@ -74,11 +74,13 @@ The catalog is a hand-edited JSON file **owned by the server**, read at startup 
 
 This splits three concepts that are currently mashed into `parameters` plus a free-form `data` bag:
 
-| Concept | Field | Meaning |
-|---|---|---|
-| Control ports | `control` | Execution wiring. Not values. |
-| Data sockets | `dataIn` / `dataOut` | Typed values, wired on the canvas. |
-| Settings | `settings` | Literals entered in the node's editor. Never wired. |
+|===
+| Concept | Field | Meaning
+
+| Control ports | `control` | Execution wiring. Not values.
+| Data sockets | `dataIn` / `dataOut` | Typed values, wired on the canvas.
+| Settings | `settings` | Literals entered in the node's editor. Never wired.
+|===
 
 Two structural consequences:
 
@@ -146,26 +148,28 @@ A **dotted-prefix nominal hierarchy** plus one generic constructor. `a.b` is a s
 
 The table below is a separate, independent fact about each type: what real Go value a value of it actually holds at runtime, the same way a struct field's declared type names what's stored in it. A type's dotted name determines its place in the hierarchy above; its row here determines its representation. Neither is derived from the other.
 
-| Type         | Represented as                            |
-|--------------|-------------------------------------------|
-| any          | (top)                                     |
-| bool         | primitive.bool                            |
-| number       | primitive.number                          |
-| string       | primitive.string                          |
-| datetime     | primitive.datetime                        |
-| media        | (scanmodel.MediaFile)                     |
-| media.file   | (io/fs.File)                              |
-| path         | os.path (not yet built)                   |
-| path.file    | (io/fs.File)                              |
-| path.dir     | (io/fs.DirEntry)                          |
-| tvseries     | (scanmodel.TVSeries)                      |
-| movie        | (scanmodel.Movie — not yet built)         |
-| agent        | (agent.Agent)                             |
-| agent.slug   | primitive.string                          |
-| scanner      | (scanner.Scanner)                         |
-| scanner.slug | primitive.string                          |
-| error        | ({node, frame, code, message, agent, at}) |
-| list<T>      | (covariant in T)                          |
+|===
+| Type         | Represented as
+
+| any          | (top)
+| bool         | primitive.bool
+| number       | primitive.number
+| string       | primitive.string
+| datetime     | primitive.datetime
+| media        | (scanmodel.MediaFile)
+| media.file   | (io/fs.File)
+| path         | os.path (not yet built)
+| path.file    | (io/fs.File)
+| path.dir     | (io/fs.DirEntry)
+| tvseries     | (scanmodel.TVSeries)
+| movie        | (scanmodel.Movie — not yet built)
+| agent        | (agent.Agent)
+| agent.slug   | primitive.string
+| scanner      | (scanner.Scanner)
+| scanner.slug | primitive.string
+| error        | ({node, frame, code, message, agent, at})
+| list<T>      | (covariant in T)
+|===
 
 **Two types sharing a representation need no transform, in either direction — there's nothing to convert, because there's only one shape of value.** `media.file` and `path.file` are both represented as `io/fs.File`: an output of `media.file` connects straight to an input of `path.file`, and back, with nothing recorded on the edge. `string`, `agent.slug`, and `scanner.slug` are the same case — all `primitive.string` underneath, so any of the three connects directly to any other. This is formalized as an implicit rule in §4.3, alongside `T → T` and `T → any supertype of T`: it's a fact about representation, not about the dotted-prefix hierarchy those other rules key off, which is why `media.file`/`path.file` qualify despite sharing no dotted prefix and neither being a subtype of the other.
 
@@ -206,6 +210,7 @@ A runtime check falls out of this: a node dispatched to agent X that receives a 
 
 |===
 | From         | To          | transform
+
 | `path.file`  | `path.dir`  | `parentDir`
 | `path.dir`   | `path.file` | `eachFile`
 | `path.*`     | `string`    | `toString`
@@ -626,11 +631,13 @@ These are not built in v1. Each is listed because the schema must not foreclose 
 
 Every catalog entry therefore **must** declare `exec.effects`, in v1, not later:
 
-| `effects` | Meaning |
-|---|---|
-| `read` | Inspects only. Unaffected by dry-run. |
-| `write` | Creates or modifies files. Neutered in dry-run. |
-| `destructive` | Deletes or overwrites existing library content. Neutered in dry-run, and badged in the editor. |
+|===
+| `effects` | Meaning
+
+| `read` | Inspects only. Unaffected by dry-run.
+| `write` | Creates or modifies files. Neutered in dry-run.
+| `destructive` | Deletes or overwrites existing library content. Neutered in dry-run, and badged in the editor.
+|===
 
 This cannot be retrofitted — adding it later means re-auditing every handler ever written — which is why it is mandatory from the first entry.
 
@@ -664,12 +671,14 @@ Two consequences worth stating plainly:
 
 `mode` is a separate axis from `dry_run`, and conflating them would be a mistake: a production run may still be a dry run (a rehearsal), and that must remain expressible.
 
-| | `development` | `production` |
-|---|---|---|
-| Real-time node highlighting | yes | no |
-| Breakpoints and stepping | yes | no |
-| Log window attached | yes | on demand |
-| Typical `dry_run` | `true` | `false`, deliberately |
+|===
+| | `development` | `production`
+
+| Real-time node highlighting | yes | no
+| Breakpoints and stepping | yes | no
+| Log window attached | yes | on demand
+| Typical `dry_run` | `true` | `false`, deliberately
+|===
 
 **Development mode** is what the editor's "run" button uses: pick an input media file, simulate the flow, watch it execute. Node status streams live over the existing WebSocket topic layer (`wsbus` + `useTopic`) on a per-run topic — that infrastructure already exists and needs no new transport.
 
@@ -696,15 +705,17 @@ A workflow run is the unit people debug, and its work is spread across the serve
 
 Every log record emitted during a run carries these as **structured key-value attributes**, never interpolated into the message (per the existing logging rules — the pipeline indexes attributes, and a flattened message string is not searchable the same way):
 
-| Field | Purpose |
-|---|---|
-| `workflow_run_id` | The one field that makes a run queryable end-to-end |
-| `workflow_id`, `workflow_version` | Which flow, pinned to which version |
-| `node_id`, `node_type` | Which step |
-| `frame` | Which loop iteration / parallel branch (`/n7#3`) |
-| `attempt` | Distinguishes retries |
-| `agent` | Which machine, absent for server-side |
-| `dry_run`, `mode` | So a simulated action is never mistaken for a real one |
+|===
+| Field | Purpose
+
+| `workflow_run_id` | The one field that makes a run queryable end-to-end
+| `workflow_id`, `workflow_version` | Which flow, pinned to which version
+| `node_id`, `node_type` | Which step
+| `frame` | Which loop iteration / parallel branch (`/n7#3`)
+| `attempt` | Distinguishes retries
+| `agent` | Which machine, absent for server-side
+| `dry_run`, `mode` | So a simulated action is never mistaken for a real one
+|===
 
 `source` (`metarr-server` / `metarr-agent-+{slug}+`) is already mandatory everywhere and is unchanged.Because both server and agent publish to the same `logs.app` channel, a single query on `workflow_run_id` returns the complete story of a run regardless of which machine did the work — which is exactly the requirement.
 

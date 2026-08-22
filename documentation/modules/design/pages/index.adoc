@@ -1,3 +1,3 @@
 = Metarr Design Documentation
 
-This module of the documentation is mantained for 2 reasons, The first is the obvious, we need to document how this works because its very complex.  Second is so AI agents have a source of truth to reference if its attempting to design something.
+This module of the documentation is maintained for 2 reasons, The first is the obvious, we need to document how this works because its very complex.  The second is so AI agents have a source of truth to reference for the design.
