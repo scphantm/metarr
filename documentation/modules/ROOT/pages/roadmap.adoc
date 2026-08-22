@@ -8,6 +8,8 @@ The UI will consist of 3 critical pieces.
 * Searches
 * Workflows
 * Automations
+* Tools
+** FFMpeg
 
 Searches will use [React Query Builder](https://react-querybuilder.js.org/docs/utils/import#custom-operators) to query the mongodb.
 
@@ -24,14 +26,29 @@ allow workflows being worked on to write.
 
 metadata management itself will include a scraper system.  the one that grabs from all the different areas.
 
+== Examples as code
+
+Once the workflow is setup, i need to build out a system that allows for including default workflows on deployement
+in addition, i need a way in my dev environment where I can paste a workflow json and the system does its best to unit test it.
+Those will be included in the deployment.
+
+create a cdn on github pages that has other example workflows to download.  can offer it to tdarr as well, similar principals.  (metarr-cloud project maybe?)
+
+Workflows to start with
+
+* Workflows that download and maintain trailers for your collection.  including multiple trailers for a movie and such.
+* My yt-dlp system as a workflow.  Its a perfect workflow.
+
 == List manager
-The search bar will have the abilty to search and filter by parameters simlar to how tunarr does.  In addition, external lists can be added as selection parameters so you can say, "items in this list" etc.
+The search bar will have the abilty to search and filter by parameters simlar to how tunarr does.  In addition, external lists can be added as selection parameters so you can say, "items in this list" etc.  Metarr works by allowing you to execute workflows on search results so I can use this to build workflows that tag items based on lists.
 
 == Digital fingerprinting
 
 The system shall consist of two subsystems, an ingest pipeline and a search pipeline, sharing a common fingerprint store. During ingest, each video file shall be processed once to compute and persist a layered set of fingerprints: the file size, a high-speed digital fingerprint (a cryptographic or near-cryptographic hash sampled from the file's bytes) sufficient to detect simple binary duplicates such as renamed but otherwise identical copies, an audio fingerprint capturing the content of the audio track independent of its container or codec, and a video content fingerprint (perceptual frame hashes and/or scene-cut timing) capable of matching the same underlying movie across differing codecs, framerates, and color depths. The search pipeline shall evaluate a candidate file against the fingerprint store as a staged cascade, with each stage narrowing the candidate set before the next, more computationally expensive stage runs: first filtering by file size, then by digital fingerprint to identify exact binary duplicates without further processing, then by audio fingerprint to identify same-content files with differing video encodings, and finally by video content fingerprint to confirm matches where audio alone is insufficient or absent. This staged design ensures that inexpensive comparisons eliminate the majority of non-matching candidates before expensive content-based analysis is performed, so that search cost scales with the degree of ambiguity between files rather than with the full cost of content comparison on every candidate.
 
-=== High speed digital fingerprinting
+=== Binary fingerprinting
+
+This allows you to compare two binary files to see if they are "probably" the same file, dispite the filename.  This is used by Metarr primarily for duplicate detection and to attempt to identify a file again after something renamed it.
 
 Fingerprint{Size, Hash} — Hash is SHA-256 over the file's exact size followed by a handful of fixed-size byte windows sampled at evenly spaced offsets (always including the very first and last bytes).
 The window count and size are bounded (Config{SampleSize, NumSamples}, default 5 × 1MiB = 5MiB max), so I/O and hashing time stay constant no matter how big the movie file is — a 500MB file and a 50GB file fingerprint in roughly the same time.
@@ -39,12 +56,20 @@ Since only a few MB are ever hashed regardless of file size, the hash algorithm'
 Small files (below the sample threshold) fall back to hashing the whole thing in one window — still cheap, and avoids weird overlapping-window edge cases.
 Nothing here ever reads the filename, path, or mtime, so renames are free by construction.
 
+=== Video fingerprinting
+
+This is higher up the chain.  First we extract and fingerprint by the audio track, then we fingerprint by the video.  Claude says the video fingerprinting is expensive.
+
+The media search system will search in this order, digital fingerprint, audio fingerprint, video fingerprint because each requires considerably more to search.
+
+This whole concept needs to be driven in further.  but i want to be able to identify a movie file after tdarr transcodes it to something else.  Thats what started this.
+
 === cross-media linking
 
 Once all the media scrapers are done, I want to be able to build cross media dashboards.  Think a transformers dashboard that shows all the transformers books from calibre, comics from your comics system, movides, and tv shows all associated with each other and in one place.
 
 === Safe rename
-I want a system where you can run reports on different naming conventions to see what would change.  When you come up
+I want a system where you can run reports on different naming conventions to see what would change (workflow simulations?).  When you come up
 with a standard pattern for naming your media, it should do the rename, AND update the correct darr to the new path
 so things line up.  It should update jellyfin too if the api has the ability.
 
@@ -61,7 +86,7 @@ I want to snapshot the metadata library.  That way i can compare what changed ov
 I want to backup the metadata library.  all of it, everything except the video files themselves.
 
 === Security
-I want to implement a security system that will lock out everything else from editing the metadata using file permissions.  basically metarr will be the only user allowed to write.
+
 
 === Metadata proxy.
 everything here is cached and versioned.  I want to build this so all other systems can point to it and
@@ -74,3 +99,117 @@ This should have a way to update the other metadata registries if its possible t
 === Poster manager
 Think Kometa poster manager, you can build one or more poster and image profiles for a media item.  those poster bundles
 will be stored somewhere and swapped in at will.  The different poster places will be huge for that.
+
+== Metadata Lockdown
+
+Since this the metadata is the system of record, i want to implement a way to lock down other systems from changing it.
+I want to implement a security system that will lock out everything else from editing the metadata using file permissions.  
+
+These are crucial for everything to work:
+
+* Network file permissions have to be in place.  This doesn't work if everything has 777 access to everything and everything runs as the same user.
+* The agent runs as a user with root permissions on the file system of the nas. (uid:100, gid:0) (may be root, may not, need to think)
+* Your other systems, Jellyfin, Radarr, etc. access the Nas as a different user.  (uid:200, gid:200)
+* Each role will be defined in the ACL
+
+The lockdown screen will have different things that you can do.  we are going to create groups to act as roles and assign users to those roles
+
+* nfo_only_writable_by_metarr
+* Jellyfin can still create trickplay but everything else is read only
+* Sonarr can create new but not edit metadata
+* complete read only.  metarr is the only thing allowed to write to the collection
+
+need a button that will reset everything to 655 or whatever it may be.
+
+Things to figure out
+
+* if other systems are creating things like trickplay, how does the ACL get applied to it?
+* Linux/Windows.
+
+Need to document how to configure everything and use ACL's.  probably compile some youtubes and such to put in the docs.
+
+The cleanest pattern for this — and it's a well-worn one, used long before centralized directory services were common — is to treat groups as roles and never put a user's name directly into an ACL. Everything else follows from that one rule.
+
+1. Roles are POSIX groups, one group per (function × permission level), not per person
+
+Don't create role-finance and dump read/write/admin folks all into it. Split by access level so you can grant precisely:
+
+role-finance-ro
+role-finance-rw
+role-finance-admin
+role-hr-ro
+role-hr-rw
+
+Users go into these groups as secondary group memberships. A person doing two jobs just belongs to two groups. This is your entire "role assignment" mechanism — /etc/group (or usermod -aG) is the role-assignment database, no LDAP required.
+
+2. Never ACL a username. Always ACL a group.
+
+setfacl -m g:role-finance-rw:rwx /data/finance
+setfacl -m g:role-finance-ro:r-x /data/finance
+
+If you ever find yourself typing setfacl -m u:jsmith:..., stop — that's a sign the role model is missing a group, not a reason to special-case a user.
+
+3. Set default ACLs on every directory, not just the current ACL
+
+This is the step people forget, and it's the one that makes the system actually behave like RBAC over time instead of just at setup:
+
+setfacl -d -m g:role-finance-rw:rwx /data/finance
+setfacl -d -m g:role-finance-ro:r-x /data/finance
+
+Without -d (default ACL), new files created tomorrow inherit nothing and silently fall back to normal owner/group/other bits. With it, every new file and subdirectory automatically picks up the role grants.
+
+4. Combine with setgid, not in place of it
+
+chmod g+s on directories so new files inherit the group owner, and pair it with a sane base mode and no other access:
+
+chmod 2750 /data/finance
+setfacl -m d:o::--- /data/finance   # kill default "other" grant explicitly
+
+Belt-and-suspenders: even if someone strips the ACL, the underlying group ownership still isn't world-readable.
+
+5. Manage the ACL mask deliberately
+
+POSIX ACLs have a mask entry that caps the effective permission of every named group/user entry. setfacl recalculates it automatically most of the time, but when you're debugging "why doesn't this permission take effect," getfacl and check the mask line before anything else — it's the #1 source of "I set the ACL and it didn't work" confusion.
+
+6. Treat the ACL state as code, not as a pile of manual commands
+
+Since you have no central directory to enforce this, drift across machines/directories is the real risk. The clean approach: write the desired state as a small manifest (YAML/JSON — path → group → permission), and a script that applies it idempotently with setfacl and verifies with getfacl -R --absolute-names. Keep that manifest in git. This gets you:
+
+an audit trail of who has access to what and why
+a diffable "desired vs actual" check you can cron
+no hand-typed one-off ACL commands that nobody remembers six months later
+
+7. If more than one host is involved, solve UID/GID consistency first
+
+POSIX ACLs store numeric UID/GID under the hood. If role-finance-rw is GID 5001 on one box and GID 5002 on another (because groups were created in different orders), your ACLs silently break the moment files move between hosts or go over NFS. Without AD/LDAP, fix this by keeping a static UID/GID allocation table and pushing /etc/group consistently with whatever config management you already have (Ansible/Puppet/Chef, or even a simple synced file + script). This is the part people skip and then debug for hours later.
+
+8. Know the one real limitation: no deny entries
+
+POSIX.1e ACLs are allow-only — there's no explicit "deny" ACE like NFSv4/Windows ACLs have. If you need "everyone in finance except contractors," you can't express that as a deny; you model it by not putting contractors in role-finance-rw and instead giving them a separate, narrower role/group. If that kind of exception logic is common in your org, and you're on a filesystem that supports it (ZFS, or Linux with richacl), NFSv4-style ACLs give you real allow/deny + inheritance flags and are arguably a cleaner fit for RBAC — worth considering if you're not locked into ext4/xfs.
+
+If it'd help, I can turn this into a reference doc (with the manifest format and a working apply/audit script) you can keep alongside your infra repo — just say the word.
+
+
+== Agents
+
+The first version of the agents system is done, but it needs to be expanded to make it more usable.
+
+=== Auto Install
+
+In the future, we are going to build an automated install and update system.  Here's how it will worked
+
+* you shell into the machine you want to run the agent on.  
+* Metarr will publish a curl command you can copy and paste into the shell on the agent machine and run.  This will pull down a script that will create the directories, download the binary from the server, setup the config file, create the service to start automatically, and start the agent
+** That curl command can include the redis connection information in some kind of cypher so its truely one shot.  or that can be done in the script, whatever.
+* If the Agent detects that its out of sync version wise from the server, the agent will execute a routine that will bring it down, download a new copy from the server, and bring it back up.
+
+to do this, a build routine needs to be created that builds the binary and puts it in a spot that can be gotten from curl.  
+
+=== Agent Version Check
+
+some kind of build number needs to be compiled into the binaries.  when an agent comes online, it needs to transmit its build number to the server.  If the version is out of sync with the server, the server needs to flag it as a warning.  
+
+=== capability filters
+
+agents are going to have a list of capabilities.  like ffmpeg, ffprobe, and yt-dlp.  When the agent spins up, it will detect if those can be run on that agent, if it is it will notify the server it can run those jobs and be available for the workflow to send jobs to it.
+
