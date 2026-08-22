@@ -4,7 +4,7 @@ docs_initialize:
 	bundle update
 
 docs_build:
-	npx antora generate antora-playbook.yml
+	npx antora generate antora-playbook.yml --stacktrace
 
 # Serve the built documentation site (build/site) locally over HTTP.
 # Uses `npx http-server`, fetched on demand the same way `docs_build` fetches antora via npx.
