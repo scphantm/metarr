@@ -39,6 +39,7 @@ import (
 	"Metarr/internal/shared/logging"
 	"Metarr/internal/shared/redisclient"
 	"Metarr/internal/shared/scanmodel"
+	"Metarr/internal/shared/version"
 )
 
 const (
@@ -85,6 +86,8 @@ func run() error {
 	}
 
 	logger, logShipper := logging.New("metarr-server")
+
+	logger.Info("server starting", "version", version.Raw)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

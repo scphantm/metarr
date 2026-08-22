@@ -7,11 +7,13 @@ import (
 	"time"
 
 	"Metarr/internal/shared/eventbus"
+	"Metarr/internal/shared/version"
 )
 
 type heartbeatReply struct {
 	Time          string `json:"time"`
 	CorrelationID string `json:"correlation_id"`
+	Version       string `json:"version"`
 }
 
 // RunHeartbeatListener subscribes to the heartbeat request channel and, for
@@ -44,6 +46,7 @@ func RunHeartbeatListener(ctx context.Context, bus *eventbus.PubSubBus, logger *
 			payload, err := json.Marshal(heartbeatReply{
 				Time:          now.Format(time.RFC3339),
 				CorrelationID: requestEvent.CorrelationID,
+				Version:       version.Raw,
 			})
 			if err != nil {
 				logger.Error("heartbeat listener: failed to marshal reply", "correlation_id", requestEvent.CorrelationID, "error", err)

@@ -31,11 +31,8 @@ import (
 	"Metarr/internal/shared/eventbus"
 	"Metarr/internal/shared/logging"
 	"Metarr/internal/shared/redisclient"
+	"Metarr/internal/shared/version"
 )
-
-// version identifies the build. Set with -ldflags "-X main.version=..." at
-// release time; a development build says so rather than claiming a number.
-var version = "dev"
 
 func main() {
 	if err := run(); err != nil {
@@ -73,7 +70,7 @@ func run() error {
 
 	logShipper.Attach(redisClient)
 
-	identity := hostinfo.Identity(cfg.Slug, uuid.NewString(), version, time.Now().UTC())
+	identity := hostinfo.Identity(cfg.Slug, uuid.NewString(), version.Raw, time.Now().UTC())
 
 	presence := runtime.NewPresence(redisClient, logger, identity)
 	if err := presence.Claim(connectCtx); err != nil {
@@ -96,7 +93,7 @@ func run() error {
 		"uid", identity.UID,
 		"user", identity.Username,
 		"platform", identity.OS+"/"+identity.Arch,
-		"version", version,
+		"version", version.Raw,
 	)
 
 	streamBus, err := eventbus.NewStreamBus(redisClient, eventbus.NewSlogAdapter(logger))

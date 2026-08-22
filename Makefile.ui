@@ -1,7 +1,7 @@
 # UI (Vite/React) build and development tasks for the Metarr web frontend.
 # Included by the main Makefile.
 
-.PHONY: ui-install ui-dev ui-build ui-test ui-test-watch lint-ui
+.PHONY: ui-install ui-dev ui-build ui-sync-version ui-test ui-test-watch lint-ui
 
 # Install UI dependencies via npm.
 # Reads from ui/package-lock.json to ensure reproducible installs.
@@ -18,10 +18,15 @@ ui-install:
 ui-dev:
 	cd ui && npm run dev
 
+# Sync ui/package.json's version field from the repo-root VERSION file.
+# Runs before ui-build so package.json is never hand-edited/out of sync.
+ui-sync-version:
+	npm --prefix ui pkg set version=$$(cat VERSION) --silent
+
 # Build the production bundle.
 # Runs TypeScript type-checking and Vite bundling, producing optimized assets in ui/dist/.
 # Use this to test production builds locally or before deploying.
-ui-build:
+ui-build: ui-sync-version
 	cd ui && npm run build
 
 # Run the UI unit test suite once.

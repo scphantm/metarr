@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { readFileSync } from 'node:fs'
 
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -9,8 +10,14 @@ import tailwindcss from '@tailwindcss/vite'
 // localhost.
 const apiTarget = process.env.METARR_API_URL ?? 'http://localhost:8080'
 
+// Read the app version from the repo-root VERSION file.
+const appVersion = readFileSync(path.resolve(__dirname, '../VERSION'), 'utf-8').trim()
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },

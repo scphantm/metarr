@@ -25,7 +25,7 @@ ARG TARGETARCH
 # CGO off is what makes the result static and therefore runnable on scratch.
 # The agent's own dependencies are pure Go, so nothing is lost by it.
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
-    go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" \
+    go build -trimpath -ldflags "-s -w -X Metarr/internal/shared/version.Raw=${VERSION}" \
     -o /out/metarr-agent ./cmd/metarr-agent
 
 FROM scratch
