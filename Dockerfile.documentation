@@ -9,6 +9,7 @@ RUN npm install -g antora \
     @antora/lunr-extension \
     antora-shiki-extension \
     @asciidoctor/tabs \
-    asciidoctor-kroki
+    asciidoctor-kroki \
+    gulp
 RUN gem install bundle
 
