@@ -8,6 +8,7 @@ RUN npm install -g antora \
     @antora/pdf-extension \
     @antora/lunr-extension \
     antora-shiki-extension \
-    @asciidoctor/tabs
+    @asciidoctor/tabs \
+    asciidoctor-kroki
 RUN gem install bundle
 
