@@ -56,3 +56,7 @@ See `documentation/modules/design/pages/workflow_engine.adoc` for the full spec 
 * Dry-run is enforced by capability, not convention: a node handler never imports `os`/`os/exec` — it gets filesystem/process capability from the executor harness (`workflow.NodeContext`), and under dry-run those ops log-and-no-op rather than touch disk. A handler that forgets a flag check still can't write — it has no path to the filesystem. Never give a handler direct filesystem access "just this once."
 * Every catalog entry must declare `exec.effects` (`read`|`write`|`destructive`) — missing it is a load error. Dry-run keys off this field; it can't be retrofitted without re-auditing every handler.
 * The agent enforces dry-run itself too (the handler runs there) rather than trusting the server's decision.
+
+# Testing
+* During verification, promote token-efficient candidates to unit tests.
+* Unit tests are designed for token efficiency in subsequent runs
