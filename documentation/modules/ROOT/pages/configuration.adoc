@@ -3,7 +3,7 @@
 Metarr splits its settings across two layers, and knowing which layer a setting
 lives in tells you how to change it.
 
-[cols="1,2,2"]
+[cols="1,2,2",stripes=all]
 |===
 | |Layer 1 — `config.yaml` |Layer 2 — the settings database
 
@@ -30,7 +30,7 @@ Everything else can be, and is.
 The file is read once at startup. Its location can be overridden with
 `METARR_CONFIG_FILE`. Only these keys are read:
 
-[cols="1,1,3"]
+[cols="1,1,3",stripes=all]
 |===
 |Key |Required |Meaning
 
@@ -100,7 +100,7 @@ xref:agents.adoc[Agents].
 These live in a single document in MongoDB and are edited from the UI. They are
 organized into seven areas:
 
-[cols="1,3"]
+[cols="1,3",stripes=all]
 |===
 |Area |Managed at
 
@@ -174,7 +174,7 @@ per user, and no registration.
 
 Programmatic access uses API keys, which fall into four categories:
 
-[cols="1,3"]
+[cols="1,3",stripes=all]
 |===
 |Category |Reach
 

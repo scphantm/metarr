@@ -20,7 +20,7 @@ docker compose up -d
 
 That brings up:
 
-[cols="1,1,3"]
+[cols="1,1,3",stripes=all]
 |===
 |Service |Port |Purpose
 

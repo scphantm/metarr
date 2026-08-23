@@ -8,7 +8,7 @@ scanning is a read-only operation.
 
 In *System → Configuration → Directory Scanner*, add a scan directory:
 
-[cols="1,3"]
+[cols="1,3",stripes=all]
 |===
 |Field |Meaning
 

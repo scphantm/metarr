@@ -1,6 +1,6 @@
 'use strict'
 
-const Asciidoctor = require('@asciidoctor/core')()
+const Asciidoctor = require('@asciidoctor/core')
 const fs = require('fs-extra')
 const handlebars = require('handlebars')
 const merge = require('merge-stream')
@@ -13,6 +13,31 @@ const vfs = require('vinyl-fs')
 const yaml = require('js-yaml')
 
 const ASCIIDOC_ATTRIBUTES = { experimental: '', icons: 'font', sectanchors: '', 'source-highlighter': 'highlight.js' }
+
+let highlighter = null
+
+async function initHighlighter () {
+  if (!highlighter) {
+    const { createHighlighter } = await import('shiki')
+    highlighter = await createHighlighter({ themes: ['solarized-dark'], langs: ['json', 'js', 'ts', 'asciidoc', 'bash', 'shell'] })
+  }
+  return highlighter
+}
+
+async function highlightCodeBlocks (html) {
+  const highlighter = await initHighlighter()
+
+  return html.replace(/<pre[^>]*><code[^>]*data-lang="([^"]*)"[^>]*>([\s\S]*?)<\/code><\/pre>/g, (match, lang, code) => {
+    const language = lang || 'text'
+    const decodedCode = code.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/<[^>]+>/g, '')
+
+    try {
+      return highlighter.codeToHtml(decodedCode, { lang: language, theme: 'solarized-dark' })
+    } catch (e) {
+      return match
+    }
+  })
+}
 
 module.exports = (src, previewSrc, previewDest, sink = () => map()) => (done) =>
   Promise.all([
@@ -41,33 +66,37 @@ module.exports = (src, previewSrc, previewDest, sink = () => map()) => (done) =>
         .src('**/*.adoc', { base: previewSrc, cwd: previewSrc })
         .pipe(
           map((file, enc, next) => {
-            const siteRootPath = path.relative(ospath.dirname(file.path), ospath.resolve(previewSrc))
-            const uiModel = { ...baseUiModel }
-            uiModel.page = { ...uiModel.page }
-            uiModel.siteRootPath = siteRootPath
-            uiModel.uiRootPath = path.join(siteRootPath, '_')
-            if (file.stem === '404') {
-              uiModel.page = { layout: '404', title: 'Page Not Found' }
-            } else {
-              const doc = Asciidoctor.load(file.contents, { safe: 'safe', attributes: ASCIIDOC_ATTRIBUTES })
-              uiModel.page.attributes = Object.entries(doc.getAttributes())
-                .filter(([name, val]) => name.startsWith('page-'))
-                .reduce((accum, [name, val]) => {
-                  accum[name.slice(5)] = val
-                  return accum
-                }, {})
-              uiModel.page.description = doc.getAttribute('description')
-              uiModel.page.layout = doc.getAttribute('page-layout', 'default')
-              uiModel.page.title = doc.getDocumentTitle()
-              uiModel.page.contents = Buffer.from(doc.convert())
-            }
-            file.extname = '.html'
-            try {
-              file.contents = Buffer.from(layouts.get(uiModel.page.layout)(uiModel))
-              next(null, file)
-            } catch (e) {
-              next(transformHandlebarsError(e, uiModel.page.layout))
-            }
+            Promise.resolve().then(async () => {
+              const siteRootPath = path.relative(ospath.dirname(file.path), ospath.resolve(previewSrc))
+              const uiModel = { ...baseUiModel }
+              uiModel.page = { ...uiModel.page }
+              uiModel.siteRootPath = siteRootPath
+              uiModel.uiRootPath = path.join(siteRootPath, '_')
+              if (file.stem === '404') {
+                uiModel.page = { layout: '404', title: 'Page Not Found' }
+              } else {
+                const doc = await Asciidoctor.load(file.contents, { safe: 'safe', attributes: ASCIIDOC_ATTRIBUTES })
+                uiModel.page.attributes = Object.entries(doc.getAttributes())
+                  .filter(([name, val]) => name.startsWith('page-'))
+                  .reduce((accum, [name, val]) => {
+                    accum[name.slice(5)] = val
+                    return accum
+                  }, {})
+                uiModel.page.description = doc.getAttribute('description')
+                uiModel.page.layout = doc.getAttribute('page-layout', 'default')
+                uiModel.page.title = doc.getDocumentTitle()
+                let html = await doc.convert()
+                html = await highlightCodeBlocks(html || '')
+                uiModel.page.contents = Buffer.from(html)
+              }
+              file.extname = '.html'
+              try {
+                file.contents = Buffer.from(layouts.get(uiModel.page.layout)(uiModel))
+                next(null, file)
+              } catch (e) {
+                next(transformHandlebarsError(e, uiModel.page.layout))
+              }
+            }).catch(next)
           })
         )
         .pipe(vfs.dest(previewDest))
@@ -76,7 +105,7 @@ module.exports = (src, previewSrc, previewDest, sink = () => map()) => (done) =>
     )
 
 function loadSampleUiModel (src) {
-  return fs.readFile(ospath.join(src, 'ui-model.yml'), 'utf8').then((contents) => yaml.safeLoad(contents))
+  return fs.readFile(ospath.join(src, 'ui-model.yml'), 'utf8').then((contents) => yaml.load(contents))
 }
 
 function registerPartials (src) {

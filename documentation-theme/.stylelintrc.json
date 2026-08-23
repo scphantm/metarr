@@ -1,0 +1,15 @@
+{
+  "rules": {
+    "color-no-invalid-hex": true,
+    "font-family-no-duplicate-names": true,
+    "function-linear-gradient-no-nonstandard-direction": true,
+    "property-no-unknown": true,
+    "selector-type-no-unknown": true,
+    "unit-no-unknown": true,
+    "comment-empty-line-before": null,
+    "no-descending-specificity": null,
+    "declaration-block-trailing-semicolon": null,
+    "declaration-colon-space-after": null,
+    "selector-list-comma-newline-after": null
+  }
+}

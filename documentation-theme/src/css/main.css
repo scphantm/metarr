@@ -37,3 +37,25 @@ body.-toc aside.toc.sidebar {
     flex-basis: var(--toc-width--widescreen);
   }
 }
+
+/* Widescreen mode toggle */
+@media screen and (min-width: 1024px) {
+  body:has(#widescreen-toggle:checked) main > .content {
+    position: relative;
+  }
+
+  body:has(#widescreen-toggle:checked) article.doc {
+    flex: 1 1 auto;
+    margin-right: var(--toc-width);
+  }
+
+  body:has(#widescreen-toggle:checked) aside.toc.sidebar {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: var(--toc-width);
+    height: 100%;
+    order: unset;
+    flex: none;
+  }
+}

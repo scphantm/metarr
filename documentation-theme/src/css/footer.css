@@ -1,5 +1,5 @@
 footer.footer {
-  background-color: var(--footer-background);
+  background: var(--footer-background);
   color: var(--footer-font-color);
   font-size: calc(15 / var(--rem-base) * 1rem);
   line-height: var(--footer-line-height);

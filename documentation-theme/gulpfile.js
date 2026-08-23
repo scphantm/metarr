@@ -18,7 +18,8 @@ const task = require('./gulp.d/tasks')
 const glob = {
   all: [srcDir, previewSrcDir],
   css: `${srcDir}/css/**/*.css`,
-  js: ['gulpfile.js', 'gulp.d/**/*.js', `${srcDir}/helpers/*.js`, `${srcDir}/js/**/+([^.])?(.bundle).js`],
+  js: ['gulpfile.js', 'gulp.d/**/*.js', `${srcDir}/helpers/*.js`],
+  // TODO: Re-add src/js scanning after updating highlight.bundle.js for highlight.js v11+
 }
 
 const cleanTask = createTask({

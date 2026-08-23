@@ -28,7 +28,12 @@
   --hl: var(--base02); /* Body highlight color, border colors and such */
   --emph: var(--base1); /* Bright font color */
   --comment: var(--base01); /* font color */
-  --body-background-image: url("../img/background-dark.png");
+
+  /* gloss sheen overlay */
+  --gloss-sheen-down: linear-gradient(to bottom, var(--hl), var(--bg) 30%);
+  --gloss-sheen-up: linear-gradient(to top, var(--hl), var(--bg) 30%);
+  --gloss-sheen-right: linear-gradient(to right, var(--hl), var(--bg) 30%);
+  --gloss-sheen-left: linear-gradient(to left, var(--hl), var(--bg) 30%);
 
   /* solarized light */
   /* --fg: var(--base00); */
@@ -49,14 +54,15 @@
   --monospace-font-family: "Roboto Mono", monospace;
   --monospace-font-weight-bold: 600;
   /* base */
+  --html-background: var(--bg);
   --body-background: var(--bg);
-  --panel-background: var(--hl);
-  --panel-border-color: var(--hl);
+  --panel-background: var(--hl); /* (--bg); */
+  --panel-border-color: var(--bg);
   --scrollbar-track-color: var(--hl);
   --scrollbar-thumb-color: var(--fg);
   --scrollbar_hover-thumb-color: var(--hl);
   /* navbar */
-  --navbar-background: var(--bg);
+  --navbar-background: var(--gloss-sheen-up), var(--bg);
   --navbar-font-color: var(--emph);
   --navbar_hover-background: var(--hl);
   --navbar-button-background: var(--hl);
@@ -67,7 +73,7 @@
   --navbar-menu-font-color: var(--body-font-color);
   --navbar-menu_hover-background: var(--hl);
   /* nav */
-  --nav-background: var(--panel-background);
+  --nav-background: var(--gloss-sheen-left), var(--body-background);
   --nav-border-color: var(--panel-border-color);
   --nav-line-height: 1.35;
   --nav-heading-font-color: var(--emph);
@@ -109,7 +115,7 @@
   --abstract-background: var(--panel-background);
   --abstract-font-color: var(--comment);
   --abstract-border-color: var(--panel-border-color);
-  --admonition-background: var(--panel-background);
+  --admonition-background: var(--gloss-sheen-down), var(--panel-background);
   --admonition-label-font-weight: var(--body-font-weight-bold);
   --caption-font-color: var(--emph);
   --caption-font-style: italic;
@@ -121,15 +127,16 @@
   --kbd-background: var(--panel-background);
   --kbd-border-color: var(--panel-border-color);
   --pre-background: var(--panel-background);
-  --pre-border-color: var(--panel-border-color);
+  --pre-border-color: var(--hl);
   --pre-annotation-font-color: var(--emph);
   --quote-background: var(--panel-background);
   --quote-border-color: var(--panel-border-color);
   --quote-font-color: var(--emph);
   --quote-attribution-font-color: var(--emph);
   --sidebar-background: var(--panel-background);
-  --table-border-color: var(--panel-border-color);
-  --table-stripe-background: var(--panel-background);
+  --table-border-color: var(--hl);
+  --table-stripe-background-a: var(--bg);
+  --table-stripe-background-b: var(--hl);
   --table-footer-background: linear-gradient(to bottom, var(--emph) 0%, var(--comment) 100%);
   /* toc */
   --toc-font-color: var(--comment);

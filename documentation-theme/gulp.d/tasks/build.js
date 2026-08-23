@@ -54,7 +54,8 @@ module.exports = (src, dest, preview) => () => {
     autoprefixer,
     preview
       ? () => {}
-      : (css, result) => cssnano({ preset: 'default' })(css, result).then(() => postcssPseudoElementFixer(css, result)),
+      : cssnano({ preset: 'default' }),
+    (css, result) => { postcssPseudoElementFixer(css, result) },
   ]
 
   return merge(
@@ -65,10 +66,11 @@ module.exports = (src, dest, preview) => () => {
       .pipe(uglify({ ie: true, module: false, output: { comments: /^! / } }))
       // NOTE concat already uses stat from newest combined file
       .pipe(concat('js/site.js')),
+    // TEMPORARY: Copy vendor JS files without bundling (highlight.js v11 API incompatibility)
+    // TODO: Update src/js for highlight.js v11+ and re-enable bundling
     vfs
       .src('js/vendor/+([^.])?(.bundle).js', { ...opts, read: false })
-      .pipe(bundle(opts))
-      .pipe(uglify({ ie: true, module: false, output: { comments: /^! / } })),
+      .pipe(through()),
     vfs
       .src('js/vendor/*.min.js', opts)
       .pipe(map((file, enc, next) => next(null, Object.assign(file, { extname: '' }, { extname: '.js' })))),
@@ -78,24 +80,7 @@ module.exports = (src, dest, preview) => () => {
       .src(['css/site.css', 'css/vendor/*.css'], { ...opts, sourcemaps })
       .pipe(postcss((file) => ({ plugins: postcssPlugins, options: { file } }))),
     vfs.src('font/*.{ttf,woff*(2)}', opts),
-    vfs.src('img/**/*.{gif,ico,jpg,png,svg}', opts).pipe(
-      preview
-        ? through()
-        : imagemin(
-          [
-            imagemin.gifsicle(),
-            imagemin.jpegtran(),
-            imagemin.optipng(),
-            imagemin.svgo({
-              plugins: [
-                { cleanupIDs: { preservePrefixes: ['icon-', 'view-'] } },
-                { removeViewBox: false },
-                { removeDesc: false },
-              ],
-            }),
-          ].reduce((accum, it) => (it ? accum.concat(it) : accum), [])
-        )
-    ),
+    vfs.src('img/**/*.{gif,ico,jpg,png,svg}', opts).pipe(through()),
     vfs.src('helpers/*.js', opts),
     vfs.src('layouts/*.hbs', opts),
     vfs.src('partials/*.hbs', opts),

@@ -1,13 +1,26 @@
 {
-  "dependencies": {
-    "@antora/lunr-extension": "^1.0.0-alpha.10",
-    "@antora/pdf-extension": "^1.0.0-alpha.11",
-    "@asciidoctor/reveal.js": "^5.2.0",
-    "@asciidoctor/tabs": "^1.0.0-beta.6",
-    "antora": "^3.1.10",
-    "antora-shiki-extension": "^1.0.0",
-    "asciidoctor": "^3.0.4",
-    "asciidoctor-kroki": "^0.18.1",
-    "opal": "^0.2.0"
+  "private": true,
+  "workspaces": [
+    "documentation",
+    "documentation-theme"
+  ],
+  "engines": {
+    "node": ">= 22.0.0"
+  },
+  "browserslist": [
+    "last 2 versions"
+  ],
+  "devDependencies": {
+
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.4",
+
+    "stylelint": "^15.10.0",
+    "stylelint-config-standard": "^34.0.0",
+    "stylelint-config-tailwindcss": "^1.0.1",
+
+    "tailwindcss": "^4.0.0"
   }
 }
