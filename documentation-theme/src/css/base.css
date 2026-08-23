@@ -9,7 +9,7 @@ html {
   font-size: var(--body-font-size);
   height: 100%;
   scroll-behavior: smooth;
-  background-color: var(--hl);
+  background-color: var(--html-background);
   color: var(--fg);
 }
 
@@ -20,11 +20,10 @@ html {
 }
 
 body {
-  background-image: var(--body-background-image);
   background-attachment: fixed;
   background-repeat: no-repeat;
   background-size: cover;
-  /* background: var(--body-background); */
+  background: var(--body-background);
   color: var(--body-font-color);
   font-family: var(--body-font-family);
   line-height: var(--body-line-height);

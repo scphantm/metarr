@@ -42,7 +42,7 @@ that is written down.
 
 == Where to start
 
-[cols="1,3"]
+[cols="1,3",stripes=all]
 |===
 |Page |What it covers
 

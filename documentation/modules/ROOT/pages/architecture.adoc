@@ -87,7 +87,7 @@ enforced by a test rather than by convention.
 packages and the agent binary, then fails if any package in the resulting
 *transitive build graph* matches either of:
 
-[cols="2,3"]
+[cols="2,3",stripes=all]
 |===
 |Forbidden dependency |Reason
 
@@ -113,7 +113,7 @@ no safety gain — without the client packages there is nothing to connect with.
 Redis offers several mechanisms and Metarr uses three of them. Which one carries
 what is a rule, not a habit:
 
-[cols="1,2,3"]
+[cols="1,2,3",stripes=all]
 |===
 |Mechanism |Carries |Why
 
@@ -156,7 +156,7 @@ type Event struct {
 
 === Streams
 
-[cols="2,1,2"]
+[cols="2,1,2",stripes=all]
 |===
 |Stream |Consumer group |Purpose
 
@@ -180,7 +180,7 @@ exists on the machine that has it mounted.
 
 === Event names
 
-[cols="1,3"]
+[cols="1,3",stripes=all]
 |===
 |Name |Direction and meaning
 
@@ -203,7 +203,7 @@ stale records.
 
 === Pub/Sub channels and keys
 
-[cols="2,3"]
+[cols="2,3",stripes=all]
 |===
 |Channel or key |Purpose
 
@@ -262,7 +262,7 @@ backslash as an ordinary character.
 Five MongoDB collections, all reached exclusively through
 `internal/server/mongostore`:
 
-[cols="1,3"]
+[cols="1,3",stripes=all]
 |===
 |Collection |Contents
 
@@ -304,7 +304,7 @@ otherwise the key is matched against the four configured categories.
 Authorization is a `Role × Group × Method` decision. A "group" is an
 authorization concept attached to each route, not a mount point:
 
-[cols="1,3"]
+[cols="1,3",stripes=all]
 |===
 |Role |May reach
 

@@ -329,11 +329,18 @@
   border-right-width: 0;
 }
 
-.doc table.stripes-all > tbody > tr,
-.doc table.stripes-odd > tbody > tr:nth-of-type(odd),
-.doc table.stripes-even > tbody > tr:nth-of-type(even),
+.doc table.stripes-all > tbody > tr:nth-of-type(odd),
+.doc table.stripes-odd > tbody > tr:nth-of-type(odd) {
+  background: var(--table-stripe-background-a);
+}
+
+.doc table.stripes-all > tbody > tr:nth-of-type(even),
+.doc table.stripes-even > tbody > tr:nth-of-type(even) {
+  background: var(--table-stripe-background-b);
+}
+
 .doc table.stripes-hover > tbody > tr:hover {
-  background: var(--table-stripe-background);
+  background: var(--table-stripe-background-a);
 }
 
 .doc table.tableblock > tfoot {
@@ -806,7 +813,7 @@
 .doc .literalblock pre {
   background: var(--pre-background);
   border-radius: 0.35rem;
-  box-shadow: inset 0 0 1.75px var(--pre-border-color), inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow: inset 0 0 10px var(--pre-border-color), inset 0 1px 0 rgba(255,255,255,0.08);
   display: block;
   overflow-x: auto;
   padding: 0.875em;
