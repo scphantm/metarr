@@ -27,7 +27,7 @@ saved. Drag node types from the palette onto the canvas and connect their ports.
 The palette is driven by a catalog of 36 node types, grouped into two levels and
 filterable by name. The groups:
 
-[cols="1,3"]
+[cols="1,3",stripes=all]
 |===
 |Group |Nodes
 

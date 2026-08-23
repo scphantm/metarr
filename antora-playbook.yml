@@ -24,7 +24,6 @@ antora:
   # https://github.com/lask79/antora-shiki-extension
   # https://github.com/shikijs/shiki/
   extensions:
-    - '@antora/pdf-extension'
     - require: '@antora/lunr-extension'
     - require: 'antora-shiki-extension'
       languages: # default: see this list

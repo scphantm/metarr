@@ -1,8 +1,8 @@
 .toolbar {
   color: var(--toolbar-font-color);
   align-items: center;
-  background-color: var(--toolbar-background);
-  box-shadow: 0 1px 0 var(--toolbar-border-color);
+  background: var(--toolbar-background);
+  box-shadow: 0 1px 0 var(--toolbar-border-color), inset 0 1px 0 rgba(255,255,255,0.12);
   display: flex;
   font-size: calc(15 / var(--rem-base) * 1rem);
   height: var(--toolbar-height);
@@ -65,4 +65,36 @@
 
 .toolbar .edit-this-page a {
   color: var(--toolbar-muted-color);
+}
+
+.widescreen-toggle-label {
+  display: none;
+  margin-left: auto;
+  padding-right: 0.5rem;
+  cursor: pointer;
+  align-items: center;
+}
+
+.widescreen-toggle {
+  display: none;
+}
+
+.widescreen-toggle-icon {
+  display: block;
+  width: calc(var(--toolbar-height) * 0.6);
+  height: calc(var(--toolbar-height) * 0.6);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Crect x='2' y='3' width='20' height='14' rx='2'/%3E%3Cline x1='2' y1='20' x2='22' y2='20'/%3E%3C/svg%3E") no-repeat center;
+  background-size: contain;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.widescreen-toggle-label:hover .widescreen-toggle-icon {
+  opacity: 1;
+}
+
+@media screen and (min-width: 1024px) {
+  .widescreen-toggle-label {
+    display: flex;
+  }
 }

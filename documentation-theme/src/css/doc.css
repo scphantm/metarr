@@ -329,11 +329,18 @@
   border-right-width: 0;
 }
 
-.doc table.stripes-all > tbody > tr,
-.doc table.stripes-odd > tbody > tr:nth-of-type(odd),
-.doc table.stripes-even > tbody > tr:nth-of-type(even),
+.doc table.stripes-all > tbody > tr:nth-of-type(odd),
+.doc table.stripes-odd > tbody > tr:nth-of-type(odd) {
+  background: var(--table-stripe-background-a);
+}
+
+.doc table.stripes-all > tbody > tr:nth-of-type(even),
+.doc table.stripes-even > tbody > tr:nth-of-type(even) {
+  background: var(--table-stripe-background-b);
+}
+
 .doc table.stripes-hover > tbody > tr:hover {
-  background: var(--table-stripe-background);
+  background: var(--table-stripe-background-a);
 }
 
 .doc table.tableblock > tfoot {
@@ -391,6 +398,8 @@
 .doc .admonitionblock td.content {
   padding: 1rem 1rem 0.75rem;
   background: var(--admonition-background);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  border-radius: 0 0.35rem 0.35rem 0;
   width: 100%;
   word-wrap: anywhere;
 }
@@ -512,6 +521,7 @@
 .doc .verseblock {
   background: var(--quote-background);
   border-left: 5px solid var(--quote-border-color);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
   color: var(--quote-font-color);
 }
 
@@ -756,6 +766,7 @@
   background: var(--example-background);
   border: 0.25rem solid var(--example-border-color);
   border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.08);
   padding: 0.75rem;
 }
 
@@ -774,6 +785,7 @@
 .doc .sidebarblock {
   background: var(--sidebar-background);
   border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
   padding: 0.75rem 1.5rem;
 }
 
@@ -800,7 +812,8 @@
 .doc .listingblock pre:not(.highlight),
 .doc .literalblock pre {
   background: var(--pre-background);
-  box-shadow: inset 0 0 1.75px var(--pre-border-color);
+  border-radius: 0.35rem;
+  box-shadow: inset 0 0 10px var(--pre-border-color), inset 0 1px 0 rgba(255,255,255,0.08);
   display: block;
   overflow-x: auto;
   padding: 0.875em;
@@ -1084,4 +1097,9 @@
   margin-left: -2em;
   text-align: right;
   width: 1.5em;
+}
+
+/* Widescreen mode: full-width article */
+body:has(#widescreen-toggle:checked) .doc {
+  max-width: none;
 }

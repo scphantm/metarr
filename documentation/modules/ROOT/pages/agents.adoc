@@ -72,7 +72,7 @@ telemetry.
 Choose *Configure this agent* to set a display name and, for each scan directory
 you have defined, the path by which *that machine* knows it.
 
-[cols="1,1"]
+[cols="1,1",stripes=all]
 |===
 |The server calls it |`nas-01` calls it
 
@@ -96,7 +96,7 @@ xref:logging.adoc[Logging].
 The server does not send an agent its configuration document. It sends a
 deliberately narrow projection, built as an allow-list:
 
-[cols="1,3"]
+[cols="1,3",stripes=all]
 |===
 |Field |Purpose
 
@@ -138,7 +138,7 @@ rather than passed through.
 
 What can be recorded about a file varies by platform:
 
-[cols="1,1,3"]
+[cols="1,1,3",stripes=all]
 |===
 |Platform |Ownership and inode |Notes
 

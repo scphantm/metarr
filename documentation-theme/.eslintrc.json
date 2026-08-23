@@ -1,5 +1,12 @@
 {
-  "extends": "standard",
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module"
+  },
+  "env": {
+    "node": true,
+    "es6": true
+  },
   "rules": {
     "arrow-parens": ["error", "always"],
     "comma-dangle": ["error", {
@@ -14,6 +21,10 @@
     }],
     "max-len": [1, 120, 2],
     "spaced-comment": "off",
-    "radix": ["error", "always"]
+    "radix": ["error", "always"],
+    "no-unused-vars": "off",
+    "indent": ["error", 2],
+    "quotes": ["error", "single"],
+    "semi": ["error", "never"]
   }
 }
