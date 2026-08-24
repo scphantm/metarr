@@ -56,8 +56,8 @@ the NAS itself or on a machine with a GPU. It performs every filesystem
 operation: walking libraries, reading NFO files, inspecting artwork. Its only
 outbound connection is to Redis.
 
-The web UI:: A React application, *not* embedded in the server binary. In
-development it is served by Vite on port 5173, which proxies `/api` through to
+Typescript/React UI:: An immensely popular stack with an entire ecosystem of components available.  A React application, *not* embedded in the server binary. In
+development, it is served by Vite on port 5173, which proxies `/api` through to
 the server. The Go API emits no CORS headers, so that proxy is required rather
 than a convenience.
 
@@ -71,11 +71,9 @@ presence.
 Fluent Bit and OpenObserve:: Optional. If you do not configure log forwarding,
 everything else still works. See xref:logging.adoc[Logging].
 
-Typescript/React for front end:: Chosen because its a standard language for web interfaces
+GoLang:: Go's IO is substantially faster than most common languages, and Metarr relies heavily on IO. Its concurrency model is purpose-built for event-driven applications like this.  A secondary benefit is it compiles into a binary, which simplifies deploying and updating agents.
 
-GoLang:: The server is written in Go for performance and concurrency.  It's designed to write these types of apps.  Go's IO is substantially faster than other languages
-
-Antora:: The documentation is done in AsciiDoc, which is a more advanced variation of Markdown.  Antora is the tool that takes individual AsciiDoc files and compiles them into a website.
+Antora:: The documentation is done in https://asciidoctor.org/[AsciiDoc], which is a more advanced cousin of Markdown.  https://antora.org/[Antora] is the tool that takes individual AsciiDoc files and compiles them into a website.
 
 == The agent boundary
 

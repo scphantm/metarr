@@ -1,132 +1,170 @@
-= Future feature Roadmap
+= Future Features Roadmap
 
-These are features I want to put into the system.
+The basic principle of Metarr is: users create a search, create a workflow, and then create an automation that takes search results and executes that workflow on them. Metarr has a long way to go.
+This roadmap outlines features planned for the system.
 
 == UI
 
-The UI will consist of 3 critical pieces.
-* Searches
+The UI will consist of several critical pieces:
+
 * Workflows
+* Searches
 * Automations
 * Tools
 ** FFMpeg
 
-Searches will use [React Query Builder](https://react-querybuilder.js.org/docs/utils/import#custom-operators) to query the mongodb.
+== Search System
 
-going to use
-https://tunarr.com/misc/search/ for the compare operators.  pretty good list
+Search is crucial to Metarr. Metarr scrapes information from all over the internet, but that information is useless without a way to query it.
 
-Automations are mapping search results, workflows, and some kind of trigger.  cron, event bus hook, webhook, etc and what agent to run on
+The API must include a call to seed data that serves two purposes. First, the system needs schema information to drive autocomplete in the UI. Second, Metarr will integrate a chatbot that requires access to the schema to generate queries for users.
 
-Things like what i just wrote as a downloader will become workflows.  Thats going to be my first big task, taking my youtube downloader and making
-it a workflow in metarr.
+There are 3 different search systems (easy, advanced, expert).
 
-Workflows will be dry-run only to begin with.  There will be some kind of combination lock that puts the system into write mode that will
-allow workflows being worked on to write.
+1. Natural Language search (Not Savable).  I have to enable the index in Mongo and it will search against titles and descriptions.
+2. Filter search (savable). https://tunarr.com/misc/search[Tunarr] This is basically what Tunarr does
+3. Query search (savable). https://react-querybuilder.js.org/docs/utils/import#custom-operators[React Query Builder] You are constructing Mongo where clauses by hand.
 
-metadata management itself will include a scraper system.  the one that grabs from all the different areas.
+== External Lists
 
-== Examples as code
+The search bar will have the ability to search and filter by parameters exactly how other systems do it, where external lists are simply a filter parameter whose result is a list. External lists can be added as selection parameters, so you can say "items in this list," etc.
 
-Once the workflow is setup, i need to build out a system that allows for including default workflows on deployement
-in addition, i need a way in my dev environment where I can paste a workflow json and the system does its best to unit test it.
-Those will be included in the deployment.
+== Chatbot
 
-create a cdn on github pages that has other example workflows to download.  can offer it to tdarr as well, similar principals.  (metarr-cloud project maybe?)
+The chatbot requires context to function effectively:
 
-Workflows to start with
+* Workflow Node metadata describing what nodes do and their capabilities, enabling questions like "how do you replicate this...?"
+* Data schema information that the chatbot uses to understand available data structures.
 
-* Workflows that download and maintain trailers for your collection.  including multiple trailers for a movie and such.
-* My yt-dlp system as a workflow.  Its a perfect workflow.
 
-== List manager
-The search bar will have the abilty to search and filter by parameters simlar to how tunarr does.  In addition, external lists can be added as selection parameters so you can say, "items in this list" etc.  Metarr works by allowing you to execute workflows on search results so I can use this to build workflows that tag items based on lists.
+== Automations
 
-== Digital fingerprinting
+Automations map search results, workflows, and triggers (cron, event bus hook, webhook, etc.) to specific agents for execution.
 
-The system shall consist of two subsystems, an ingest pipeline and a search pipeline, sharing a common fingerprint store. During ingest, each video file shall be processed once to compute and persist a layered set of fingerprints: the file size, a high-speed digital fingerprint (a cryptographic or near-cryptographic hash sampled from the file's bytes) sufficient to detect simple binary duplicates such as renamed but otherwise identical copies, an audio fingerprint capturing the content of the audio track independent of its container or codec, and a video content fingerprint (perceptual frame hashes and/or scene-cut timing) capable of matching the same underlying movie across differing codecs, framerates, and color depths. The search pipeline shall evaluate a candidate file against the fingerprint store as a staged cascade, with each stage narrowing the candidate set before the next, more computationally expensive stage runs: first filtering by file size, then by digital fingerprint to identify exact binary duplicates without further processing, then by audio fingerprint to identify same-content files with differing video encodings, and finally by video content fingerprint to confirm matches where audio alone is insufficient or absent. This staged design ensures that inexpensive comparisons eliminate the majority of non-matching candidates before expensive content-based analysis is performed, so that search cost scales with the degree of ambiguity between files rather than with the full cost of content comparison on every candidate.
+Existing workflows, such as download systems, will be refactored into the workflow framework. Initial implementation will focus on converting common patterns like YouTube download workflows into reusable Metarr workflows.
 
-=== Binary fingerprinting
+Workflows will operate in dry-run mode by default. The system will include a safety mechanism to transition into write mode for testing and production execution.
 
-This allows you to compare two binary files to see if they are "probably" the same file, dispite the filename.  This is used by Metarr primarily for duplicate detection and to attempt to identify a file again after something renamed it.
+Metadata management will include a comprehensive scraper system that aggregates information from all available sources.
+
+== Workflow/Search/Automation Sharing
+
+Rather than building a centralized community platform, Metarr will enable sharing through direct text export. All editing pages will include a "text" button that opens a modal displaying the item in text format. Users can edit and update directly, with copy/paste serving as the sharing mechanism.
+
+Metarr will support external workflow repositories. Users can paste a URL to a GitHub repository, and Metarr will automatically download and install workflows in a standard format.
+
+Once the workflow system is complete, Metarr will support default workflows included on deployment and updated with new versions. These workflows become part of the system's source. The development environment will support workflow testing, allowing developers to paste workflows and have the system perform validation and unit testing.
+
+Workflows to Start With
+
+* Workflows that download and maintain trailers and themes for your media collection, including multiple trailers per movie.
+* My yt-dlp download system as a workflow. That's actually going to be my first workflow.
+
+== Digital Fingerprinting
+
+Metarr will implement media file fingerprinting to serve two purposes: duplicate detection and identifying when files are replaced with different versions (different resolution, codec, etc.). This enables the system to flag when a file is changed and alert users to potential issues.
+
+The system shall consist of two subsystems, an ingest pipeline and a search pipeline, sharing a common fingerprint store. During ingest, each video file shall be processed once to compute and persist a layered set of fingerprints:
+
+* the file size
+* a high-speed digital fingerprint (a cryptographic or near-cryptographic hash sampled from the file's bytes) sufficient to detect simple binary duplicates such as renamed but otherwise identical copies
+* an audio fingerprint capturing the content of the audio track independent of its container or codec, and a video content fingerprint (perceptual frame hashes and/or scene-cut timing) capable of matching the same underlying movie across differing codecs, framerates, and color depths.
+
+The search pipeline shall evaluate a candidate file against the fingerprint store as a staged cascade, with each stage narrowing the candidate set before the next, more computationally expensive stage runs:
+
+* first filtering by file size,
+* then by digital fingerprint to identify exact binary duplicates without further processing,
+* then by audio fingerprint to identify same-content files with differing video encodings,
+* and finally by video content fingerprint to confirm matches where audio alone is insufficient or absent.
+
+This staged design ensures that inexpensive comparisons eliminate the majority of non-matching candidates before expensive content-based analysis is performed, so that search cost scales with the degree of ambiguity between files rather than with the full cost of content comparison on every candidate.
+
+=== Binary Fingerprinting
+
+Binary fingerprinting enables comparison of two binary files to determine if they are "probably" the same file, regardless of filename. This is used by Metarr for duplicate detection and file identification after renaming.
 
 Fingerprint{Size, Hash} — Hash is SHA-256 over the file's exact size followed by a handful of fixed-size byte windows sampled at evenly spaced offsets (always including the very first and last bytes).
-The window count and size are bounded (Config{SampleSize, NumSamples}, default 5 × 1MiB = 5MiB max), so I/O and hashing time stay constant no matter how big the movie file is — a 500MB file and a 50GB file fingerprint in roughly the same time.
-Since only a few MB are ever hashed regardless of file size, the hash algorithm's own speed stops mattering — SHA-256 on 5MB is a couple milliseconds, so the package needs zero external dependencies. (The doc comment notes where to swap in BLAKE3/xxhash if you ever want to widen the sample window a lot.)
-Small files (below the sample threshold) fall back to hashing the whole thing in one window — still cheap, and avoids weird overlapping-window edge cases.
-Nothing here ever reads the filename, path, or mtime, so renames are free by construction.
 
-=== Video fingerprinting
+The window count and size are bounded (Config{SampleSize, NumSamples}, default 5 × 1MiB = 5MiB max), so I/O and hashing time stay constant no matter how large the media file is — a 500MB file and a 50GB file fingerprint in roughly the same time.
 
-This is higher up the chain.  First we extract and fingerprint by the audio track, then we fingerprint by the video.  Claude says the video fingerprinting is expensive.
+Since only a few MB are ever hashed regardless of file size, the hash algorithm's own speed becomes negligible — SHA-256 on 5MB is a couple milliseconds, so the package needs zero external dependencies. (The doc comment notes where to swap in BLAKE3/xxhash if broader sample windows are desired.)
 
-The media search system will search in this order, digital fingerprint, audio fingerprint, video fingerprint because each requires considerably more to search.
+Small files (below the sample threshold) fall back to hashing the entire file in one window — still cheap, and avoids edge cases from overlapping windows.
 
-This whole concept needs to be driven in further.  but i want to be able to identify a movie file after tdarr transcodes it to something else.  Thats what started this.
+Since the fingerprinting process reads only file content and not filename, path, or mtime, file renames are handled transparently by construction.
 
-=== cross-media linking
+This approach is being extended to identify files after transcoding or other transformations, enabling detection of re-encoded media (different codec, resolution, bitrate, etc.).
 
-Once all the media scrapers are done, I want to be able to build cross media dashboards.  Think a transformers dashboard that shows all the transformers books from calibre, comics from your comics system, movides, and tv shows all associated with each other and in one place.
+== Cross-Media Linking
 
-=== Safe rename
-I want a system where you can run reports on different naming conventions to see what would change (workflow simulations?).  When you come up
-with a standard pattern for naming your media, it should do the rename, AND update the correct darr to the new path
-so things line up.  It should update jellyfin too if the api has the ability.
+Once all the media scrapers are done, I want to be able to build cross-media dashboards. Think a Transformers dashboard that shows all the Transformers books from Calibre, comics from your comics system, movies, and TV shows all associated with each other in one place.
 
-I want the rename system to have conditionals.  Like scripts.  Maybe Lua?  I don't know.  But the rename will not be
-a simple regex pattern, it will have conditionals.
+== Rename
 
-=== git style diff
-show a diff between what metarr believes the it should change like git
+Metarr's rename system will use templates instead of patterns. Users can specify a rename template using Go template, Handlebars, or similar templating languages. Workflows can reference specific templates, and the system will strip special characters and generate valid filenames.
 
-=== moment in time snapshot
-I want to snapshot the metadata library.  That way i can compare what changed over time.
+=== Safe Rename
 
-=== Backup
-I want to backup the metadata library.  all of it, everything except the video files themselves.
+The rename system will include a simulation mode allowing users to preview how different naming conventions would affect their media (workflow simulations). Once a standard naming pattern is established, the system can apply renames and automatically update the correct *arr application to reflect the new paths. If available, Metarr will also update Jellyfin to maintain consistency.
 
-=== Security
+The rename system will support conditional logic, similar to scripting languages. This enables complex rename rules beyond simple regex patterns, potentially using Lua or similar for dynamic renaming decisions.
 
+== Backup
 
-=== Metadata proxy.
-everything here is cached and versioned.  I want to build this so all other systems can point to it and
-they get cached results and versioned so you can see how a document changed over a period of time.  That
-data will be used along side our data just like any other.
+Metarr will include a comprehensive backup system for the metadata library—all content except video files themselves.
 
-=== Metadata update
-This should have a way to update the other metadata registries if its possible thru their api.
+The backup system will differ from traditional backup approaches. Backups will operate on a directory-by-directory basis across the entire media collection, enabling selective restoration of specific directory versions at any time, rather than requiring full system restores via downloadable archives.
 
-=== Poster manager
-Think Kometa poster manager, you can build one or more poster and image profiles for a media item.  those poster bundles
-will be stored somewhere and swapped in at will.  The different poster places will be huge for that.
+The system will also support metadata snapshots, allowing users to compare how metadata changes over time. This requires a UI capable of managing tens of thousands of individual backups efficiently.
+
+=== Auto-Restore
+
+The backup system will include directory protection features. Users can enable protection for a directory, which snapshots it and monitors for changes. If modifications are detected, the directory is automatically reverted to the snapshot state.
+
+=== Metadata Proxy
+
+A metadata proxy will provide cached and versioned access to all metadata. External systems can point to this proxy to retrieve cached results, with versioning enabled so users can track how documents change over time. This metadata becomes a canonical source alongside native Metarr data.
+
+== Metadata Update
+
+The system will provide automatic updates to external metadata registries when their APIs support it, keeping external systems synchronized with Metarr's data.
+
+== Poster Manager
+
+Metarr's poster manager combines Kometa-like poster creation with a rule system enabling users to switch between different pre-built image packs. Users can create multiple poster and image profiles for each media item, storing them and swapping profiles as needed. Integration with external poster repositories will be crucial to this feature.
+
+Workflows enable sophisticated image pack creation. For example, a workflow can create a Criterion Collection image pack by pulling the source image, applying Criterion branding overlays, adding award indicators, and saving as a pack. Users can apply these packs to their media and easily revert to previous versions if needed. Version control (git-based snapshots and tags) provides an efficient implementation approach.
+
+The key innovation is building the overlay system as a WYSIWYG editor rather than configuration files, making it accessible to non-technical users.
 
 == Metadata Lockdown
 
-Since this the metadata is the system of record, i want to implement a way to lock down other systems from changing it.
-I want to implement a security system that will lock out everything else from editing the metadata using file permissions.  
+Since metadata is the system of record, Metarr will implement a security system that prevents external systems from modifying it using file-level permissions.
 
-These are crucial for everything to work:
+This requires several key components:
 
-* Network file permissions have to be in place.  This doesn't work if everything has 777 access to everything and everything runs as the same user.
-* The agent runs as a user with root permissions on the file system of the nas. (uid:100, gid:0) (may be root, may not, need to think)
-* Your other systems, Jellyfin, Radarr, etc. access the Nas as a different user.  (uid:200, gid:200)
-* Each role will be defined in the ACL
+* Network file permissions must be configured properly. The system requires restrictive permissions; permissive access (777) with unified user credentials defeats the purpose.
+* The Metarr agent operates with elevated permissions on the NAS filesystem (uid:100, gid:0 or root).
+* External systems (Jellyfin, Radarr, etc.) access the NAS with different, restricted credentials (uid:200, gid:200).
+* Role-based access controls (ACLs) define permissions for each system.
 
-The lockdown screen will have different things that you can do.  we are going to create groups to act as roles and assign users to those roles
+The lockdown configuration screen enables administrators to manage access. Groups are created to represent roles, and users/services are assigned to these groups.
 
-* nfo_only_writable_by_metarr
-* Jellyfin can still create trickplay but everything else is read only
-* Sonarr can create new but not edit metadata
-* complete read only.  metarr is the only thing allowed to write to the collection
+Example roles:
 
-need a button that will reset everything to 655 or whatever it may be.
+* `metarr_nfo_write`: Read/write access for NFO files
+* `jellyfin_trickplay`: Create and manage trickplay, read-only on metadata
+* `sonarr_create`: Create new items, read-only on metadata
+* `external_readonly`: Complete read-only access for external systems
 
-Things to figure out
+A reset function will restore default permissions to all directories.
 
-* if other systems are creating things like trickplay, how does the ACL get applied to it?
-* Linux/Windows.
+=== Open Questions
 
-Need to document how to configure everything and use ACL's.  probably compile some youtubes and such to put in the docs.
+* How are ACLs applied to files created by external systems (e.g., trickplay)?
+* What is the required Windows support approach?
+
+Documentation will include configuration guides and video tutorials for setting up and managing ACLs.
 
 The cleanest pattern for this — and it's a well-worn one, used long before centralized directory services were common — is to treat groups as roles and never put a user's name directly into an ACL. Everything else follows from that one rule.
 
@@ -187,29 +225,49 @@ POSIX ACLs store numeric UID/GID under the hood. If role-finance-rw is GID 5001 
 
 POSIX.1e ACLs are allow-only — there's no explicit "deny" ACE like NFSv4/Windows ACLs have. If you need "everyone in finance except contractors," you can't express that as a deny; you model it by not putting contractors in role-finance-rw and instead giving them a separate, narrower role/group. If that kind of exception logic is common in your org, and you're on a filesystem that supports it (ZFS, or Linux with richacl), NFSv4-style ACLs give you real allow/deny + inheritance flags and are arguably a cleaner fit for RBAC — worth considering if you're not locked into ext4/xfs.
 
-If it'd help, I can turn this into a reference doc (with the manifest format and a working apply/audit script) you can keep alongside your infra repo — just say the word.
-
-
 == Agents
 
 The first version of the agents system is done, but it needs to be expanded to make it more usable.
 
 === Auto Install
 
-In the future, we are going to build an automated install and update system.  Here's how it will worked
+Metarr will provide an automated installation and update system:
 
-* you shell into the machine you want to run the agent on.  
-* Metarr will publish a curl command you can copy and paste into the shell on the agent machine and run.  This will pull down a script that will create the directories, download the binary from the server, setup the config file, create the service to start automatically, and start the agent
-** That curl command can include the redis connection information in some kind of cypher so its truely one shot.  or that can be done in the script, whatever.
-* If the Agent detects that its out of sync version wise from the server, the agent will execute a routine that will bring it down, download a new copy from the server, and bring it back up.
+* Users shell into the target machine and run a Metarr-provided curl command.
+* The curl command downloads a script that creates necessary directories, retrieves the agent binary from the server, configures the agent, and starts it as a system service.
+** Redis connection information can be encoded in the curl command or provided interactively during the script execution.
+* When an agent detects a version mismatch with the server, it automatically downloads and applies updates, maintaining uptime.
 
-to do this, a build routine needs to be created that builds the binary and puts it in a spot that can be gotten from curl.  
+Implementation requires a build system that compiles agent binaries and hosts them on a server accessible via curl.  
 
 === Agent Version Check
 
-some kind of build number needs to be compiled into the binaries.  when an agent comes online, it needs to transmit its build number to the server.  If the version is out of sync with the server, the server needs to flag it as a warning.  
+Agent binaries will include a build number. When an agent connects to the server, it transmits its version information. The server monitors version mismatches and alerts administrators when agents are out of sync.  
 
-=== capability filters
+=== Capability Filters
 
-agents are going to have a list of capabilities.  like ffmpeg, ffprobe, and yt-dlp.  When the agent spins up, it will detect if those can be run on that agent, if it is it will notify the server it can run those jobs and be available for the workflow to send jobs to it.
+Agents are going to have a list of capabilities, like FFmpeg, FFprobe, and yt-dlp. When the agent starts, it will detect which of those can be run on that host and notify the server if it's possible to run those jobs. That can be used to determine which agent to run a task on.
 
+== UI Task Nodes
+
+Workflows will support interactive UI nodes that render output using templates. These nodes prompt users for input and collect responses. Input types will include text fields, yes/no buttons, and list selections. Response types include:
+
+* Boolean confirmation (ok/cancel)
+* String responses
+* Rejection/cancellation
+
+== Task Payload Streaming
+
+Some workflows require agents with specialized capabilities (e.g., GPU-only agents) without direct file system access. Metarr will support binary data streaming between server and agents without intermediate file system writes.
+
+When agents process binary data (e.g., FFmpeg thumbnail generation), they produce output streamed directly to the server. The server persists this data to workspace and continues processing, eliminating inefficient intermediate storage.
+
+=== The core pattern
+
+Producer side: hold the data as an io.Reader (whatever is generating or already holding it in memory — a buffer, a pipe from an upstream socket, whatever), open a net.Listener or dial out to the consumer, and io.Copy(conn, reader). Consumer side: io.Copy(destination, conn) where destination is again just an in-memory sink or a forward-on writer. No os.Create, no ioutil.WriteFile, nothing hits the filesystem. io.Copy internally uses a 32KB buffer by default, which is too small for multi-gig transfers — use io.CopyBuffer with a much larger buffer (1–4MB is a reasonable starting point) to cut down on syscall overhead.
+
+=== Putting it together with your event-driven flow
+
+A clean shape: producer publishes a Redis Stream entry (XADD) with transfer metadata (id, size, host:port to dial, maybe a checksum). Consumer, driven by that event, dials the producer directly and starts reading. When the copy finishes, the consumer (or producer) publishes a completion event back through Redis with the checksum/status — small, cheap, and keeps your event-driven architecture intact without ever asking Redis to carry the payload.
+
+If both processes happen to live on the same host, skip the network entirely and use io.Pipe or a shared net.Conn over a Unix domain socket — same code shape, lower overhead than loopback TCP.
