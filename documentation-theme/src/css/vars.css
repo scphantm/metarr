@@ -49,9 +49,9 @@
   --body-font-size--print: 0.9375em; /* 15px */
   --body-line-height: 1.15;
   --body-font-color: var(--comment);
-  --body-font-family: "Roboto", sans-serif;
+  --body-font-family: "Book Antiqua";
   --body-font-weight-bold: 600;
-  --monospace-font-family: "Roboto Mono", monospace;
+  --monospace-font-family: "JetBrains Mono";
   --monospace-font-weight-bold: 600;
   /* base */
   --html-background: var(--bg);

@@ -1,5 +1,7 @@
 # Metarr
 
+![Markdown Logo](documentation/modules/ROOT/images/logo.png)
+
 Media collection metadata management system.
 
 **[📖 Read the full documentation](https://scphantm.github.io/metarr/)** — built and published automatically to GitHub Pages.
