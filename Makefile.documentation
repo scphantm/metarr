@@ -29,6 +29,21 @@ docs_antora_run: docs_install
 docs_serve: docs_build
 	npx http-server build/site -p 8090
 
+# Serve the built documentation site (build/site) locally over HTTP, watching
+# the documentation/ directory and regenerating the site automatically.
+#
+# Uses `npx browser-sync` (static server + auto browser reload) and
+# `npx nodemon` (source watcher that reruns `docs_antora_run` on change),
+# fetched on demand the same way `docs_build` fetches antora via npx.
+#
+# Usage: make docs_serve
+# Then navigate to http://localhost:8090 in your browser.
+docs_watch: docs_build
+	trap 'kill 0 2>/dev/null; exit' EXIT INT TERM; \
+	npx browser-sync start --server build/site --files "build/site/**/*" --port 8090 --no-open --no-ui & \
+	npx nodemon --watch documentation --ext adoc,yml,yaml,png,jpg,jpeg,gif,svg --ignore documentation/node_modules --exec 'make docs_antora_run' & \
+	wait
+
 # Launch an interactive shell inside the Dockerfile.documentation container.
 # Useful for debugging Antora builds, testing asciidoctor extensions, or running commands
 # in the exact environment the CI uses. The repo is mounted at /workspace with the same
