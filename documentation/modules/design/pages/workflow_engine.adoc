@@ -1,4 +1,6 @@
 = Metarr Workflow Design
+:toc:
+:sectnums:
 
 The design record for visually-designed, engine-executed workflows.
 
@@ -6,7 +8,7 @@ The design record for visually-designed, engine-executed workflows.
 
 '''
 
-== 1. What a workflow is
+== What a workflow is
 
 A workflow is a graph the user draws. It describes work done to media: read a path, inspect it, branch on what was found, invoke ffmpeg or a built-in function, write results back.
 
@@ -23,7 +25,7 @@ The cost is honest: more handles per node and more wires to draw than Tdarr requ
 
 '''
 
-== 2. Engine: build a custom executor
+== Engine: build a custom executor
 
 Surveyed Temporal, Cadence, `go-workflows`, Conductor, Argo, Flyte, Prefect, Airflow, Dagger, and the small Go DAG libraries.
 
@@ -37,9 +39,9 @@ The decisive argument is that **none of them execute this model**. They all run 
 
 '''
 
-== 3. Schema
+== Schema
 
-=== 3.1 Node type definition (the catalog)
+=== Node type definition (the catalog)
 
 The catalog is a hand-edited JSON file **owned by the server**, read at startup and served over `GET /api/workflows/catalog`. The UI palette, server-side validation, and the engine all read that one source of truth. It currently lives in the UI bundle, where the server cannot see it — that must move.
 
@@ -93,7 +95,7 @@ Two structural consequences:
 
 **`exec.effects` is mandatory on every entry**, not optional and not deferred — it is what the engine's dry-run enforcement keys off (§14.1). An entry without it is a catalog load error.
 
-=== 3.2 Node instance and edges
+=== Node instance and edges
 
 [source,json]
 ----
@@ -125,7 +127,7 @@ Two structural consequences:
 
 `settings` on an edge (e3 above) is per-edge configuration with no catalog schema behind it — unlike a node's settings, there's no per-type declaration listing what an edge of a given data type may configure. `recursive` is the first and, so far, only one: shown in the editor by double-clicking a path-typed data edge, opening a small `Recursive` checkbox. It exists because a directory-to-directory connection needs to say whether descending into subdirectories is intended, and that's a property of the connection, not of either endpoint node.
 
-=== 3.3 Workflow document
+=== Workflow document
 
 Persisted shape gains a schema version:
 
@@ -141,9 +143,9 @@ Store the **canonical shape above**, not React Flow's `toObject()` output, with 
 
 '''
 
-== 4. Type system
+== Type system
 
-=== 4.1 The lattice
+=== The lattice
 
 A **dotted-prefix nominal hierarchy** plus one generic constructor. `a.b` is a subtype of `a`; the subtype test is `sub == super || strings.HasPrefix(sub, super+".")`. Three lines in Go, three in TypeScript, no lattice structure to maintain, and new types need no release. That's the whole of subtyping — a fact about a type's *name*, nothing else.
 
@@ -183,7 +185,7 @@ This is exactly the choice between the catalog's two `core/start` variants (§3.
 
 `list<path>`, `list<path.dir>`, and `list<path.file>` are not new leaf types — they are the existing generic `list<T>` applied to `path`, `path.dir`, and `path.file`. Covariance already gives the intended behaviour for free: a socket declared `list<path>` accepts either a `list<path.dir>` or a `list<path.file>` value with no extra rule, because both are already subtypes of `list<path>`. In the editor these are labelled path list, directory list, and file list; directory list holds only subdirectories of a path, file list holds only its files.
 
-=== 4.2 Paths are always server-canonical
+=== Paths are always server-canonical
 
 `CLAUDE.md` already requires that records are stored under server-canonical paths and that agent-reported paths are translated by `agentregistry.PathTranslator` on arrival. That rule is extended to the graph: **every `path.*` value inside a workflow is in server-canonical space, always.** Translation to agent space happens once, in the dispatch layer, at the boundary.
 
@@ -193,7 +195,7 @@ This means the type needs no "which machine" parameter, and transforms like `par
 
 A runtime check falls out of this: a node dispatched to agent X that receives a path not under a library mapped to X fails loudly, rather than executing against a path that does not exist on that machine.
 
-=== 4.3 Coercion
+=== Coercion
 
 **Implicit** — engine-inserted, no `transform` recorded, no UI:
 
@@ -239,7 +241,7 @@ A runtime check falls out of this: a node dispatched to agent X that receives a 
 
 Transforms are expected to eventually need their own configuration — the clearest case is a future `string → date` transform, which cannot be unambiguous without a caller-supplied date-format string. That parameter mechanism is not designed or built here; this round only adds a boolean classification flag (`ImpliesIteration`) to `Transform`. Nothing here forecloses adding a `Params` shape to `Transform` later — the struct already has room to grow the same way `Ambiguous` and `Summary` were added without disturbing existing entries.
 
-=== 4.4 Connect-time behaviour
+=== Connect-time behaviour
 
 1. **During drag** — `isValidConnection` greys out every incompatible handle. Compatible means an implicit coercion exists, or at least one explicit transform does.
 2. **Implicit match** — edge created silently, no `transform`. If the match is a narrowing (supertype → subtype) rather than the safe covariant direction, the connection still succeeds but the editor marks it `TypeUnsafe` (§4.3) with a warning badge — still silent in the sense that no `transform` is recorded.
@@ -249,11 +251,11 @@ Transforms are expected to eventually need their own configuration — the clear
 
 '''
 
-== 5. Execution semantics
+== Execution semantics
 
 A **multi-token control-flow interpreter**. A token is `(nodeID, frame)`.
 
-=== 5.1 Frames
+=== Frames
 
 A frame is the scope holding loop-iteration bindings and recorded node outputs.
 
@@ -278,7 +280,7 @@ Resolving data-in port `P` on node `N` in frame `F`:
 
 Nested loops need no extra machinery — step 3 walks as far as necessary, giving the "closure over enclosing scope" behaviour users expect.
 
-=== 5.2 Parallelism is explicit; fan-out is forbidden
+=== Parallelism is explicit; fan-out is forbidden
 
 **A control out-port has arity exactly one.** A second edge from the same port is a validation error:
 
@@ -311,7 +313,7 @@ Join state is keyed `(joinNodeID, frameID)` — a parallel inside a loop joins p
 
 **The more useful parallelism is `forEach.parallelism`** — "transcode four episodes at once" is the actual user need. Parallel/join is for the rarer "do these two *different* things concurrently".
 
-=== 5.3 Loops
+=== Loops
 
 [source]
 ----
@@ -333,7 +335,7 @@ core/forEach
 
 An iteration ends when its frame's token count reaches zero — leaving a control-out unwired *is* `continue`. There is no end-of-body node. `core/break` (control-in, no control-out, legal only inside a body) terminates the enclosing loop and fires `done`.
 
-=== 5.4 Values escaping a loop: `core/collect`
+=== Values escaping a loop: `core/collect`
 
 [source]
 ----
@@ -353,7 +355,7 @@ Alternatives rejected:
 
 `collect` writes into `slot[iterationIndex]`, never appends — `collected` materialises in **collection order, never completion order**. Non-deterministic output ordering produces bug reports nobody can reproduce. Empty collection yields `[]`, never null.
 
-=== 5.5 Errors
+=== Errors
 
 Every node's `error` control-out carries an implicit companion data-out typed `error`. Because it is produced by the error exit, it is only readable downstream of that port — which falls out of §6 with no new rule.
 
@@ -371,11 +373,11 @@ There is deliberately **no workflow-level "on error, continue"**. Silently conti
 
 '''
 
-== 6. Validation
+== Validation
 
 Three independent checks per data edge, plus local arity rules.
 
-=== 6.1 Check 1 — `MustHaveRun`
+=== Check 1 — `MustHaveRun`
 
 The intuition "the source must be guaranteed to have run before the target" is right. **Classical dominance is the wrong relation for it**, because it models fan-out as a *choice* (OR) when parallel fan-out is a *concurrency* (AND).
 
@@ -396,17 +398,17 @@ Intersection at ordinary merges is textbook dominance (only one predecessor ran)
 
 One necessary carve-out: **pure data-source nodes are exempt.** A literal path, a library selector, a constant — these have *no control ports at all*, are not execution steps, and their value is always available.
 
-=== 6.2 Check 2 — frame visibility
+=== Check 2 — frame visibility
 
 `scope(source)` must be an ancestor-or-equal of `scope(target)` in the loop-nesting tree.
 
 This is not implied by Check 1. Check 1 establishes that *some* value exists; this establishes that *this iteration's* value exists. It also produces a far better error message than a dominance failure would.
 
-=== 6.3 Check 3 — type compatibility
+=== Check 3 — type compatibility
 
 Per §4, including transform resolution.
 
-=== 6.4 Arity
+=== Arity
 
 - A `dataIn` socket accepts **exactly one** inbound data edge (two is ambiguity).
 - A `dataOut` may feed **many**.
@@ -415,7 +417,7 @@ Per §4, including transform resolution.
 
 Data-graph acyclicity within a frame is implied by Check 1 — a cycle would require each node in the other's `MustHaveRun` — so it needs no separate check.
 
-=== 6.5 Diagnostics
+=== Diagnostics
 
 A generic "dominance violation" is useless. Every failure carries a **witness**: a BFS from `start` to `target` avoiding `source`, highlighted on the canvas.
 
@@ -425,7 +427,7 @@ A generic "dominance violation" is useless. Every failure carries a **witness**:
 
 > Cannot connect **Probe → duration** to **Summary → text**. *Probe* runs once per item inside **For each episode**; *Summary* runs once, after the loop. Insert a **Collect** node inside the loop. [Insert Collect]
 
-=== 6.6 Where checks run
+=== Where checks run
 
 **Do not implement the graph analysis twice.**
 
@@ -436,7 +438,7 @@ A generic "dominance violation" is useless. Every failure carries a **witness**:
 
 '''
 
-== 7. Run state
+== Run state
 
 Two collections. **Not** the versioned store — that is for user-authored documents where every save is a new immutable version; a run is mutated hundreds of times. And **not** embedded node executions — a `forEach` over 5,000 episodes with six nodes each is 30,000 subdocuments, far past the 16MB BSON limit.
 
@@ -496,7 +498,7 @@ TTL on `expires_at`, window configurable in `appconfig`, failed runs pinned long
 
 '''
 
-== 8. Agent dispatch
+== Agent dispatch
 
 === Package layout
 
@@ -563,7 +565,7 @@ Follows the existing three-transport split exactly:
 
 '''
 
-== 9. Catalog versioning and drift
+== Catalog versioning and drift
 
 - **Catalog entries are immutable per `id`.** The server hashes each entry at load and stores seen hashes; a changed hash on an unchanged `id` is a **startup error**. This matters more than usual because the catalog is a hand-edited file with no review process. A behaviour change gets a new `id` (a new JSON object in catalog.json), not a content edit to an existing one.
 - **Compatible changes**: adding an optional data-in, adding a data-out, adding a setting with a default — safe to make as a content edit under the same `id`, since nothing an existing node instance depends on changes shape. **Incompatible**: removing or renaming a port, making an input required, narrowing a type — these require a new `id` (`typeVersion` was retired from the schema; `id` alone is the catalog's identity now).
@@ -573,7 +575,7 @@ Follows the existing three-transport split exactly:
 
 '''
 
-== 10. Node anatomy (UI contract)
+== Node anatomy (UI contract)
 
 Amending `CLAUDE.md`'s existing pattern for the four-category split while keeping its spirit — all inputs on top, all outputs on the bottom, error to the side:
 
@@ -594,13 +596,13 @@ When a connection is `TypeUnsafe` (§4.3 — a supertype narrowing into one of i
 
 '''
 
-== 11. Migration
+== Migration
 
 Existing saved workflows are junk data and can be deleted.
 
 '''
 
-== 12. Build order
+== Build order
 
 1. **`internal/shared/workflow`** — catalog types, type lattice, transform registry, **plus the `NodeContext` handler contract, the `effects` classification, and the run-scoped logger** (§14–§15). These are contract rather than runtime, and every handler's shape depends on them, so they cannot be deferred. Nothing works before this.
 2. **Catalog loader + `GET /api/workflows/catalog`**, with immutability hashing. Point the palette at it; delete the client-side JSON.
@@ -611,7 +613,7 @@ Existing saved workflows are junk data and can be deleted.
 
 '''
 
-== 13. Deferred, but reserved in the schema
+== Deferred, but reserved in the schema
 
 These are not built in v1. Each is listed because the schema must not foreclose it:
 
@@ -627,9 +629,9 @@ These are not built in v1. Each is listed because the schema must not foreclose 
 
 '''
 
-== 14. Run modes, dry-run, and debugging
+== Run modes, dry-run, and debugging
 
-=== 14.1 Dry-run is the default and is engine-enforced
+=== Dry-run is the default and is engine-enforced
 
 **Every run is a dry run unless explicitly told otherwise.** `dry_run` defaults to `true`. It is cleared only by a deliberate act: a human choosing "run for real", or an automation executing the workflow in production mode. A workflow can never mutate a library by accident, by default, or because a node was written carelessly.
 
@@ -646,7 +648,7 @@ Every catalog entry therefore **must** declare `exec.effects`, in v1, not later:
 
 This cannot be retrofitted — adding it later means re-auditing every handler ever written — which is why it is mandatory from the first entry.
 
-=== 14.2 Dry-run is enforced by capability, not by convention
+=== Dry-run is enforced by capability, not by convention
 
 The obvious implementation — the engine passes a `dryRun` flag and each handler checks it — is **handler discipline, not enforcement**. It fails the first time someone writes a handler that forgets, and the failure mode is silently deleting a user's media.
 
@@ -672,7 +674,7 @@ Two consequences worth stating plainly:
 - **Enforcement is duplicated on the agent, not delegated to it.** The dispatch envelope carries `dry_run`, and the agent-side executor applies the identical gate before invoking the handler. The server deciding is not sufficient, because the handler runs on the agent. As a belt-and-braces check the agent executor refuses outright to invoke a `destructive` handler when `dry_run` is set.
 - **A dry run must still produce plausible outputs**, or nothing downstream can be simulated. A write-effect handler in dry-run computes and returns its output values (the path it *would* have written) exactly as normal — only the side effect is suppressed. Skipping the node instead would break every downstream data edge and make simulation useless.
 
-=== 14.3 Development and production mode
+=== Development and production mode
 
 `mode` is a separate axis from `dry_run`, and conflating them would be a mistake: a production run may still be a dry run (a rehearsal), and that must remain expressible.
 
@@ -695,7 +697,7 @@ Two interactions that must not be overlooked:
 - **A paused run must suspend node timeouts and the join watchdog.** Otherwise sitting on a breakpoint for five minutes trips `exec.timeout` and fails the run — a debugger that kills the program it is debugging.
 - **Pausing is only legal in development mode.** A production run ignores `breakpoints` entirely rather than trusting the field to be empty.
 
-=== 14.4 The engine waits for remote nodes
+=== The engine waits for remote nodes
 
 Nodes run on the server by default; a node type declares `exec.runsOn: "agent"` when it must run elsewhere. **For agent nodes the engine does not advance that token until the remote result arrives.**
 
@@ -703,11 +705,11 @@ To be precise about what this does *not* mean: it does not make the transport sy
 
 '''
 
-== 15. Logging and observability
+== Logging and observability
 
 A workflow run is the unit people debug, and its work is spread across the server and one or more agents. The logging pipeline already carries structured records from every process to OpenObserve; what this adds is the discipline that makes a run queryable as a single thing.
 
-=== 15.1 Mandatory fields
+=== Mandatory fields
 
 Every log record emitted during a run carries these as **structured key-value attributes**, never interpolated into the message (per the existing logging rules — the pipeline indexes attributes, and a flattened message string is not searchable the same way):
 
@@ -726,11 +728,11 @@ Every log record emitted during a run carries these as **structured key-value at
 
 `source` (`metarr-server` / `metarr-agent-+{slug}+`) is already mandatory everywhere and is unchanged.Because both server and agent publish to the same `logs.app` channel, a single query on `workflow_run_id` returns the complete story of a run regardless of which machine did the work — which is exactly the requirement.
 
-=== 15.2 Every effect is logged
+=== Every effect is logged
 
 Handlers do not choose what to log about their side effects, because they do not perform their side effects directly (§14.2). The harness logs every `WorkFS` and `Runner` operation — files read, written, renamed, deleted, and every process invoked with its arguments — including in dry-run, where the record states the action was simulated. This makes "what would this actually have done?" answerable without running it for real.
 
-=== 15.3 Per-run log level
+=== Per-run log level
 
 A run carries its own `log_level`, overriding the process level for that run only. Setting one workflow to `debug` must not put the whole server into `debug`.
 
@@ -740,7 +742,7 @@ The override applies in both development and production mode; being able to turn
 
 '''
 
-== 16. Working directories
+== Working directories
 
 Workflows need scratch space — the temp file that a transcode writes before being renamed into place (§8), extracted artwork, probe output.
 
@@ -758,7 +760,7 @@ This gives the temp-file-plus-rename rule from §8 a defined home rather than le
 
 '''
 
-== 17. Consequences of these additions
+== Consequences of these additions
 
 Folding §14–§16 in changes earlier sections rather than merely appending to them:
 

@@ -4,6 +4,9 @@ An agent is a small static binary that runs next to your storage and does every
 filesystem operation on Metarr's behalf. The server never touches your media
 library; it asks an agent to.
 
+TODO:: Lorevault can only run on an agent thats on the same machine as metarr-server.
+TODO:: Only one agent per host
+
 == Why the split exists
 
 Walking a large library is I/O-bound, and doing it across a network share is

@@ -7,6 +7,8 @@ Metarr was designed from the beginning to be a distributed application, with sep
 The problem Metarr exposes is that the execution of a workflow may not happen on one computer and trying to debug issues using logs from two different machines
 gets complicated quick.  By integrating OpenObserve into the stack early, all logs show up on one searchable screen no matter how many agents you are running.
 
+TODO:: Build out documentation and process to pump Darr and jellyfin logs into openobserve so you can respond to alerts with workflows.
+
 == The pipeline
 
 [graphviz,log-pipeline,svg]
