@@ -1,28 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
+import { Form, Input, InputNumber, Select, Space } from 'antd'
 
 import { SaveIndicator } from './SaveState'
 import { useSaveState } from './useSaveState'
 
 /*
- * Edit in place: a value reads as text until you click it, becomes an input,
- * and commits on Enter or blur. Escape always abandons the edit — that is the
- * contract that makes clicking a value safe to do out of curiosity.
- *
- * Nothing here knows how to save. Each field is handed an onSave that performs
- * the write, and useSaveState owns what happens between accepting it and the
- * server confirming it.
+ * Edit-in-place fields, each a genuine antd form control at all times rather
+ * than a text/input toggle — commits on blur or Enter, Escape reverts the
+ * draft. Nothing here knows how to save: each field is handed an onSave that
+ * performs the write, and useSaveState owns what happens between accepting
+ * it and the server confirming it.
  */
-
-// No width here on purpose: each field sets its own. Putting w-full in the
-// shared base and overriding it per field does not work — both are width
-// utilities, and which one wins depends on their order in the generated
-// stylesheet rather than in the class string, so a narrow field would silently
-// render full width and jump size the moment it was clicked.
-const displayClasses =
-  'cursor-text rounded border border-transparent px-2 py-1 text-left text-sm hover:border-edge-strong/40 hover:bg-surface-hover'
-
-const inputClasses =
-  'rounded border border-blue bg-canvas px-2 py-1 text-sm text-ink-strong'
 
 type CommonProps = {
   label: string
@@ -46,9 +34,10 @@ export function EditableText({
   onSave: (next: string) => Promise<unknown>
   placeholder?: string
   monospace?: boolean
-  // secret masks the value until revealed. The config API returns API keys in
-  // cleartext, so anything credential-shaped is masked by default rather than
-  // sitting on screen for whoever walks past.
+  // secret masks the value behind antd Input.Password's own reveal toggle.
+  // The config API returns API keys in cleartext, so anything
+  // credential-shaped is masked by default rather than sitting on screen for
+  // whoever walks past.
   secret?: boolean
   multiline?: boolean
   validate?: (next: string) => string | null
@@ -56,125 +45,105 @@ export function EditableText({
   const { state, error, displayValue, save, dismissError } =
     useSaveState<string>({ serverValue: value, queryKey })
 
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-  const [revealed, setRevealed] = useState(false)
+  const [draft, setDraft] = useState(displayValue)
+  const [focused, setFocused] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null)
 
+  // Kept in sync when the confirmed server value changes underneath an
+  // untouched field (e.g. another tab wrote it) — but never while the user
+  // has the field open with unsaved keystrokes.
   useEffect(() => {
-    if (editing) {
-      inputRef.current?.focus()
-      inputRef.current?.select()
-    }
-  }, [editing])
-
-  function begin() {
-    if (disabled) return
-    setDraft(displayValue)
-    setValidationError(null)
-    setEditing(true)
-  }
+    if (!focused) setDraft(displayValue)
+  }, [displayValue, focused])
 
   async function commit() {
-    if (!editing) return
     const next = draft.trim()
-    if (next === displayValue) {
-      setEditing(false)
-      return
-    }
+    if (next === displayValue) return
 
     const problem = validate?.(next) ?? null
     if (problem) {
       setValidationError(problem)
       return
     }
-
-    setEditing(false)
+    setValidationError(null)
     await save(next, () => onSave(next))
   }
 
-  function cancel() {
-    setEditing(false)
+  function revert() {
+    setDraft(displayValue)
     setValidationError(null)
   }
 
-  if (editing) {
-    const shared = {
-      ref: inputRef as never,
-      value: draft,
-      onChange: (
-        event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-      ) => setDraft(event.target.value),
-      onBlur: () => void commit(),
-      'aria-label': label,
-      className: `${inputClasses} w-full ${monospace ? 'font-mono' : ''}`,
-    }
+  const onChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setDraft(event.target.value)
 
-    return (
-      <div className="flex flex-col gap-1">
-        {multiline ? (
-          <textarea
-            {...shared}
-            rows={3}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') cancel()
-            }}
-          />
-        ) : (
-          <input
-            {...shared}
-            type={secret && !revealed ? 'text' : 'text'}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault()
-                void commit()
-              }
-              if (event.key === 'Escape') cancel()
-            }}
-          />
-        )}
-        {validationError ? (
-          <span className="text-xs text-red">{validationError}</span>
-        ) : (
-          <span className="text-xs text-ink-muted">
-            Enter to save, Escape to cancel
-          </span>
-        )}
-      </div>
-    )
-  }
-
-  const isEmpty = displayValue === ''
-  const shown =
-    secret && !revealed && !isEmpty ? '•'.repeat(Math.min(displayValue.length, 32)) : displayValue
+  const monospaceClass = monospace ? 'editable-field-mono' : ''
 
   return (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={begin}
-        disabled={disabled}
-        aria-label={`Edit ${label}`}
-        className={`${displayClasses} w-full ${monospace ? 'font-mono' : ''} ${
-          isEmpty ? 'text-ink-muted italic' : 'text-ink-strong'
-        } ${disabled ? 'cursor-not-allowed opacity-60' : ''} ${
-          multiline ? 'whitespace-pre-wrap' : 'truncate'
-        }`}
-      >
-        {isEmpty ? placeholder : shown}
-      </button>
-      {secret && !isEmpty ? (
-        <button
-          type="button"
-          onClick={() => setRevealed((current) => !current)}
-          className="shrink-0 text-xs text-ink-muted hover:text-ink-strong"
-        >
-          {revealed ? 'hide' : 'show'}
-        </button>
-      ) : null}
-      <SaveIndicator state={state} error={error} onDismissError={dismissError} />
-    </div>
+    <Form.Item
+      validateStatus={validationError ? 'error' : undefined}
+      help={validationError ?? undefined}
+      style={{ marginBottom: 0 }}
+    >
+      <Space direction="vertical" size={2} style={{ width: '100%' }}>
+        {multiline ? (
+          <Input.TextArea
+            aria-label={label}
+            className={monospaceClass}
+            value={draft}
+            placeholder={placeholder}
+            disabled={disabled}
+            rows={3}
+            onChange={onChange}
+            onFocus={() => setFocused(true)}
+            onBlur={() => {
+              setFocused(false)
+              void commit()
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') revert()
+            }}
+          />
+        ) : secret ? (
+          <Input.Password
+            aria-label={label}
+            className={monospaceClass}
+            value={draft}
+            placeholder={placeholder}
+            disabled={disabled}
+            onChange={onChange}
+            onFocus={() => setFocused(true)}
+            onBlur={() => {
+              setFocused(false)
+              void commit()
+            }}
+            onPressEnter={() => void commit()}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') revert()
+            }}
+          />
+        ) : (
+          <Input
+            aria-label={label}
+            className={monospaceClass}
+            value={draft}
+            placeholder={placeholder}
+            disabled={disabled}
+            onChange={onChange}
+            onFocus={() => setFocused(true)}
+            onBlur={() => {
+              setFocused(false)
+              void commit()
+            }}
+            onPressEnter={() => void commit()}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') revert()
+            }}
+          />
+        )}
+        <SaveIndicator state={state} error={error} onDismissError={dismissError} />
+      </Space>
+    </Form.Item>
   )
 }
 
@@ -195,84 +164,62 @@ export function EditableNumber({
   const { state, error, displayValue, save, dismissError } =
     useSaveState<number>({ serverValue: value, queryKey })
 
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(String(value))
+  const [draft, setDraft] = useState<number>(displayValue)
+  const [focused, setFocused] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (editing) {
-      inputRef.current?.focus()
-      inputRef.current?.select()
-    }
-  }, [editing])
+    if (!focused) setDraft(displayValue)
+  }, [displayValue, focused])
 
   async function commit() {
-    if (!editing) return
-    const parsed = Number(draft)
-
-    if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+    if (!Number.isFinite(draft) || !Number.isInteger(draft)) {
       setValidationError('Must be a whole number')
       return
     }
-    if (min !== undefined && parsed < min) {
+    if (min !== undefined && draft < min) {
       setValidationError(`Must be ${min} or more`)
       return
     }
-    const problem = validate?.(parsed) ?? null
+    const problem = validate?.(draft) ?? null
     if (problem) {
       setValidationError(problem)
       return
     }
-
-    setEditing(false)
-    if (parsed === displayValue) return
-    await save(parsed, () => onSave(parsed))
-  }
-
-  if (editing) {
-    return (
-      <div className="flex flex-col gap-1">
-        <input
-          ref={inputRef}
-          type="number"
-          value={draft}
-          aria-label={label}
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={() => void commit()}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault()
-              void commit()
-            }
-            if (event.key === 'Escape') setEditing(false)
-          }}
-          className={`${inputClasses} w-32`}
-        />
-        {validationError ? (
-          <span className="text-xs text-red">{validationError}</span>
-        ) : null}
-      </div>
-    )
+    setValidationError(null)
+    if (draft === displayValue) return
+    await save(draft, () => onSave(draft))
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        disabled={disabled}
-        aria-label={`Edit ${label}`}
-        onClick={() => {
-          setDraft(String(displayValue))
-          setValidationError(null)
-          setEditing(true)
-        }}
-        className={`${displayClasses} w-32 text-ink-strong tabular-nums`}
-      >
-        {displayValue}
-      </button>
-      <SaveIndicator state={state} error={error} onDismissError={dismissError} />
-    </div>
+    <Form.Item
+      validateStatus={validationError ? 'error' : undefined}
+      help={validationError ?? undefined}
+      style={{ marginBottom: 0 }}
+    >
+      <Space direction="vertical" size={2}>
+        <InputNumber
+          aria-label={label}
+          value={draft}
+          min={min}
+          disabled={disabled}
+          onChange={(next) => setDraft(next ?? 0)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => {
+            setFocused(false)
+            void commit()
+          }}
+          onPressEnter={() => void commit()}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              setDraft(displayValue)
+              setValidationError(null)
+            }
+          }}
+        />
+        <SaveIndicator state={state} error={error} onDismissError={dismissError} />
+      </Space>
+    </Form.Item>
   )
 }
 
@@ -291,32 +238,32 @@ export function EditableSelect({
   const { state, error, displayValue, save, dismissError } =
     useSaveState<string>({ serverValue: value, queryKey })
 
+  // A stored value outside the vocabulary still has to be selectable, or the
+  // select would silently rewrite it on the next save.
+  const selectOptions = options.includes(displayValue)
+    ? options
+    : [displayValue, ...options]
+
   return (
-    <div className="flex items-center gap-2">
-      <select
-        value={displayValue}
-        aria-label={label}
-        disabled={disabled}
-        onChange={(event) => {
-          const next = event.target.value
-          if (next !== displayValue) {
-            void save(next, () => onSave(next))
-          }
-        }}
-        className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong hover:border-edge-strong"
-      >
-        {/* A stored value outside the vocabulary still has to be selectable,
-            or the select would silently rewrite it on the next save. */}
-        {!options.includes(displayValue) ? (
-          <option value={displayValue}>{displayValue || '—'}</option>
-        ) : null}
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-      <SaveIndicator state={state} error={error} onDismissError={dismissError} />
-    </div>
+    <Form.Item style={{ marginBottom: 0 }}>
+      <Space direction="vertical" size={2}>
+        <Select
+          aria-label={label}
+          value={displayValue}
+          disabled={disabled}
+          style={{ minWidth: 160 }}
+          options={selectOptions.map((option) => ({
+            value: option,
+            label: option || '—',
+          }))}
+          onChange={(next) => {
+            if (next !== displayValue) {
+              void save(next, () => onSave(next))
+            }
+          }}
+        />
+        <SaveIndicator state={state} error={error} onDismissError={dismissError} />
+      </Space>
+    </Form.Item>
   )
 }

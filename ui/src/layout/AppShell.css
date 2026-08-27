@@ -1,0 +1,32 @@
+.app-shell {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  background: var(--surface-canvas);
+}
+
+.app-shell-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.app-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--surface-edge);
+  padding: 1.25rem 1.5rem;
+}
+
+.app-page-header-title.app-page-header-title {
+  margin: 0;
+}
+
+.app-page-header-description {
+  display: block;
+  margin-top: 0.25rem;
+  max-width: 42rem;
+}

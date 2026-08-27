@@ -1,0 +1,49 @@
+.nav-column {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+
+.nav-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 0.75rem 0.75rem 1rem;
+}
+
+.nav-column-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.nav-column-brand {
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.nav-column-version {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.nav-column-menu {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  border-inline-end: none !important;
+  background: transparent !important;
+}
+
+.nav-column-coming-soon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.nav-column-soon-tag {
+  font-size: 0.625rem;
+  line-height: 1.2;
+  padding: 0 0.3rem;
+}

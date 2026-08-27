@@ -1,0 +1,42 @@
+.transform-picker-type {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.transform-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+}
+
+.transform-picker-option {
+  border: 1px solid color-mix(in srgb, var(--surface-edge-strong) 40%, transparent);
+  border-radius: 6px;
+  background: transparent;
+  padding: 0.375rem 0.625rem;
+  text-align: left;
+  color: var(--ink-strong);
+  cursor: pointer;
+  transition: border-color 0.15s ease-out;
+}
+
+.transform-picker-option:hover {
+  border-color: var(--color-blue);
+}
+
+.transform-picker-option.is-current {
+  border-color: var(--color-blue);
+  background: color-mix(in srgb, var(--color-blue) 10%, transparent);
+}
+
+.transform-picker-option-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+.transform-picker-option-summary {
+  margin-top: 0.125rem;
+  font-size: 0.6875rem;
+  color: var(--ink-muted);
+}

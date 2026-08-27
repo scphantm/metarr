@@ -1,0 +1,59 @@
+.external-tool-link {
+  display: block;
+  text-decoration: none;
+}
+
+.external-tool-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.external-tool-icon {
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.external-tool-title {
+  min-width: 0;
+}
+
+.external-tool-name {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-strong);
+}
+
+.external-tool-href {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+}
+
+.external-tool-description {
+  display: block;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.external-tool-credential {
+  margin-top: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--surface-edge) 60%, transparent);
+  border-radius: 6px;
+  background: var(--surface-canvas);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}

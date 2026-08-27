@@ -2,7 +2,7 @@ import { useIsFetching, useQueryClient } from '@tanstack/react-query'
 
 import { useSidecarTypes } from '../../api/queries'
 import { Button } from '../../components/Card'
-import { Spinner } from '../../components/SaveState'
+import { PageError, PageLoading } from '../../components/PageState'
 import { PageHeader } from '../../layout/AppShell'
 import { SavingInfoSidebar } from './SavingInfoSidebar'
 import { SidecarTypesSection } from './SidecarTypesSection'
@@ -17,13 +17,7 @@ export function SidecarsPage() {
     return (
       <>
         <PageHeader title="Sidecars" />
-        <div className="px-6 py-5">
-          <p className="rounded border border-red/40 bg-red/10 px-4 py-3 text-sm text-red">
-            {sidecarTypes.error instanceof Error
-              ? sidecarTypes.error.message
-              : String(sidecarTypes.error)}
-          </p>
-        </div>
+        <PageError error={sidecarTypes.error} />
       </>
     )
   }
@@ -32,10 +26,7 @@ export function SidecarsPage() {
     return (
       <>
         <PageHeader title="Sidecars" />
-        <div className="flex items-center gap-2 px-6 py-5 text-sm text-ink-muted">
-          <Spinner />
-          Loading configuration…
-        </div>
+        <PageLoading />
       </>
     )
   }
@@ -57,7 +48,7 @@ export function SidecarsPage() {
         }
       />
 
-      <div className="flex flex-col gap-5 px-6 py-5">
+      <div className="page-body">
         <SidecarTypesSection types={sidecarTypes.data ?? []} />
       </div>
     </>

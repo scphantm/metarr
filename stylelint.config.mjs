@@ -3,12 +3,9 @@ export const baseConfig = {
   extends: ['stylelint-config-standard'],
 }
 
-// UI-specific config with Tailwind CSS support
+// UI-specific config
 export const uiConfig = {
-  extends: [
-    'stylelint-config-standard',
-    'stylelint-config-tailwindcss',
-  ],
+  extends: ['stylelint-config-standard'],
 }
 
 // Documentation theme config with relaxed rules

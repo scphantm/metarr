@@ -1,14 +1,27 @@
 import { useState } from 'react'
+import { Input, Space, Typography } from 'antd'
 
 import { queryKeys, useUpdateConfig } from '../../api/queries'
-import { apiKeyGroups, type APIKeyGroup, type Config } from '../../api/types'
+import type { APIKeyEntry, APIKeysConfig, Config } from '../../gen/metarr/v1/config_pb'
 import { Button, Card, EmptyState } from '../../components/Card'
 import { EditableText } from '../../components/Editable'
+import './ApiKeysSection.css'
+
+// Not `keyof APIKeysConfig` — that also picks up $typeName/$unknown from the
+// branded message type, neither of which is a real key group.
+type APIKeyGroup = 'admin' | 'user' | 'webhook' | 'readOnly'
+
+const apiKeyGroups: { key: APIKeyGroup; label: string; hint: string }[] = [
+  { key: 'admin', label: 'Admin', hint: 'Full access to every endpoint' },
+  { key: 'user', label: 'User', hint: 'Tasks and library reads' },
+  { key: 'webhook', label: 'Webhook', hint: 'For inbound automation' },
+  { key: 'readOnly', label: 'Read only', hint: 'Library reads only' },
+]
 
 /*
  * API keys have no endpoint of their own — they live inside the config
  * document, so every edit here read-modify-writes the whole thing through
- * PUT /api/config.
+ * ConfigService.Update.
  *
  * The keys come back from the server in cleartext, so they are masked until
  * asked for. Editing one in place is genuinely useful: this is where a key is
@@ -19,13 +32,25 @@ export function ApiKeysSection({ config }: { config: Config }) {
   const [addingTo, setAddingTo] = useState<APIKeyGroup | null>(null)
   const [draftName, setDraftName] = useState('')
 
-  function writeGroup(
-    group: APIKeyGroup,
-    entries: Config['api_keys'][APIKeyGroup],
-  ) {
+  const apiKeys: APIKeysConfig = config.apiKeys ?? {
+    $typeName: 'metarr.v1.APIKeysConfig',
+    admin: [],
+    user: [],
+    webhook: [],
+    readOnly: [],
+  }
+
+  // Never spread a branded protobuf message into a create() payload (breaks
+  // MessageInitShape union inference) — build the next document field by
+  // field instead, reusing every untouched top-level field as-is.
+  function writeGroup(group: APIKeyGroup, entries: APIKeyEntry[]) {
     return updateConfig.mutateAsync({
-      ...config,
-      api_keys: { ...config.api_keys, [group]: entries },
+      apiKeys: { ...apiKeys, [group]: entries },
+      admin: config.admin,
+      interfaces: config.interfaces,
+      directoryScanner: config.directoryScanner,
+      agents: config.agents,
+      logging: config.logging,
     })
   }
 
@@ -34,16 +59,18 @@ export function ApiKeysSection({ config }: { config: Config }) {
       title="API keys"
       description="Static keys, grouped by the access each grants. A key is shown only when you ask for it."
     >
-      <div className="flex flex-col gap-6">
+      <Space direction="vertical" size={24} style={{ width: '100%' }}>
         {apiKeyGroups.map(({ key: group, label, hint }) => {
-          const entries = config.api_keys[group] ?? []
+          const entries = apiKeys[group] ?? []
 
           return (
             <div key={group}>
-              <div className="mb-2 flex items-baseline justify-between gap-3">
+              <div className="api-key-group-header">
                 <div>
-                  <h3 className="text-sm text-ink-strong">{label}</h3>
-                  <p className="text-xs text-ink-muted">{hint}</p>
+                  <Typography.Text className="api-key-group-label">{label}</Typography.Text>
+                  <Typography.Text type="secondary" className="api-key-group-hint">
+                    {hint}
+                  </Typography.Text>
                 </div>
                 <Button
                   onClick={() => {
@@ -58,13 +85,10 @@ export function ApiKeysSection({ config }: { config: Config }) {
               {entries.length === 0 && addingTo !== group ? (
                 <EmptyState>No {label.toLowerCase()} keys</EmptyState>
               ) : (
-                <div className="flex flex-col gap-1">
+                <Space direction="vertical" size={4} style={{ width: '100%' }}>
                   {entries.map((entry, index) => (
-                    <div
-                      key={`${group}-${index}`}
-                      className="flex flex-wrap items-center gap-2 rounded border border-edge px-2 py-1.5"
-                    >
-                      <div className="w-40 shrink-0">
+                    <div key={`${group}-${index}`} className="api-key-row">
+                      <div className="api-key-row-name">
                         <EditableText
                           label="Key name"
                           queryKey={queryKeys.config}
@@ -77,17 +101,17 @@ export function ApiKeysSection({ config }: { config: Config }) {
                           }}
                         />
                       </div>
-                      <div className="min-w-0 flex-1">
+                      <div className="api-key-row-value">
                         <EditableText
                           label="API key"
                           queryKey={queryKeys.config}
-                          value={entry.api_key}
+                          value={entry.apiKey}
                           placeholder="No key set"
                           monospace
                           secret
-                          onSave={(api_key) => {
+                          onSave={(apiKey) => {
                             const next = [...entries]
-                            next[index] = { ...entry, api_key }
+                            next[index] = { ...entry, apiKey }
                             return writeGroup(group, next)
                           }}
                         />
@@ -106,12 +130,12 @@ export function ApiKeysSection({ config }: { config: Config }) {
                       </Button>
                     </div>
                   ))}
-                </div>
+                </Space>
               )}
 
               {addingTo === group ? (
-                <div className="mt-2 flex items-center gap-2 rounded border border-dashed border-blue/60 px-2 py-1.5">
-                  <input
+                <div className="api-key-add-row">
+                  <Input
                     autoFocus
                     value={draftName}
                     placeholder="Name for the new key"
@@ -121,12 +145,11 @@ export function ApiKeysSection({ config }: { config: Config }) {
                       if (event.key === 'Enter' && draftName.trim()) {
                         void writeGroup(group, [
                           ...entries,
-                          { name: draftName.trim(), api_key: '' },
+                          { $typeName: 'metarr.v1.APIKeyEntry', name: draftName.trim(), apiKey: '' },
                         ])
                         setAddingTo(null)
                       }
                     }}
-                    className="flex-1 rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong focus:border-blue"
                   />
                   <Button
                     variant="primary"
@@ -134,7 +157,7 @@ export function ApiKeysSection({ config }: { config: Config }) {
                     onClick={() => {
                       void writeGroup(group, [
                         ...entries,
-                        { name: draftName.trim(), api_key: '' },
+                        { $typeName: 'metarr.v1.APIKeyEntry', name: draftName.trim(), apiKey: '' },
                       ])
                       setAddingTo(null)
                     }}
@@ -149,7 +172,7 @@ export function ApiKeysSection({ config }: { config: Config }) {
             </div>
           )
         })}
-      </div>
+      </Space>
     </Card>
   )
 }

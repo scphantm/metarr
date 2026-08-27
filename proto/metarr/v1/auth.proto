@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+message AuthServiceLoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message AuthServiceLoginResponse {
+  string api_key = 1;
+  int32 expires_in_seconds = 2;
+}
+
+message AuthServiceLogoutRequest {}
+
+message AuthServiceLogoutResponse {
+  string status = 1;
+}
+
+service AuthService {
+  // Login is callable without an API key — see connect_auth.go's NoAuth
+  // policy. Rate-limited independently from Logout, matching the REST
+  // routes' separate throttle(...) budgets.
+  rpc Login(AuthServiceLoginRequest) returns (AuthServiceLoginResponse);
+  rpc Logout(AuthServiceLogoutRequest) returns (AuthServiceLogoutResponse);
+}

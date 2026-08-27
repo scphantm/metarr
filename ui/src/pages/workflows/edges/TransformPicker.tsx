@@ -1,7 +1,7 @@
-import { createPortal } from 'react-dom'
+import { Modal, Typography } from 'antd'
 
-import { Button } from '../../../components/Card'
 import type { Transform, Type } from '../catalogTypes'
+import './TransformPicker.css'
 
 /*
  * design.md §4.4, "several candidates": an inline picker with nothing
@@ -27,41 +27,28 @@ export function TransformPicker({
   onPick: (name: string) => void
   onClose: () => void
 }) {
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div
-        className="w-full max-w-sm rounded-lg border border-edge bg-surface p-4 shadow-lg"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2 className="text-sm font-semibold text-ink-strong">Choose a conversion</h2>
-        <p className="mt-1 text-xs text-ink-muted">
-          <span className="font-mono">{fromType}</span> does not connect directly to{' '}
-          <span className="font-mono">{toType}</span>. Pick how to convert it:
-        </p>
-        <div className="mt-3 flex flex-col gap-1.5">
-          {candidates.map((transform) => (
-            <button
-              key={transform.name}
-              type="button"
-              onClick={() => onPick(transform.name)}
-              className={`rounded border px-2.5 py-1.5 text-left text-xs transition-colors ${
-                transform.name === current
-                  ? 'border-blue bg-blue/10 text-ink-strong'
-                  : 'border-edge-strong/40 text-ink-strong hover:border-blue'
-              }`}
-            >
-              <div className="font-mono font-medium">{transform.name}</div>
-              {transform.summary ? <div className="mt-0.5 text-[11px] text-ink-muted">{transform.summary}</div> : null}
-            </button>
-          ))}
-        </div>
-        <div className="mt-4 flex justify-end">
-          <Button variant="default" onClick={onClose}>
-            Cancel
-          </Button>
-        </div>
+  return (
+    <Modal open title="Choose a conversion" onCancel={onClose} footer={null} width={384}>
+      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        <span className="transform-picker-type">{fromType}</span> does not connect directly to{' '}
+        <span className="transform-picker-type">{toType}</span>. Pick how to convert it:
+      </Typography.Text>
+
+      <div className="transform-picker-list">
+        {candidates.map((transform) => (
+          <button
+            key={transform.name}
+            type="button"
+            onClick={() => onPick(transform.name)}
+            className={`transform-picker-option ${transform.name === current ? 'is-current' : ''}`}
+          >
+            <div className="transform-picker-option-name">{transform.name}</div>
+            {transform.summary ? (
+              <div className="transform-picker-option-summary">{transform.summary}</div>
+            ) : null}
+          </button>
+        ))}
       </div>
-    </div>,
-    document.body,
+    </Modal>
   )
 }

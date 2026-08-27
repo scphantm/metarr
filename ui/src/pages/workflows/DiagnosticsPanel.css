@@ -1,0 +1,106 @@
+.diagnostics-panel {
+  width: 18rem;
+  border-radius: 8px;
+  border: 1px solid var(--surface-edge);
+  background: var(--surface-raised);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 25%);
+}
+
+.diagnostics-panel-header {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: none;
+  background: transparent;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-strong);
+  cursor: pointer;
+}
+
+.diagnostics-panel-body {
+  max-height: 16rem;
+  overflow-y: auto;
+  border-top: 1px solid color-mix(in srgb, var(--surface-edge) 60%, transparent);
+}
+
+.diagnostics-panel-empty {
+  display: block;
+  padding: 0.75rem;
+  font-size: 0.75rem;
+}
+
+.diagnostics-panel-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diagnostics-panel-item {
+  border-bottom: 1px solid color-mix(in srgb, var(--surface-edge) 60%, transparent);
+  padding: 0.5rem 0.75rem;
+}
+
+.diagnostics-panel-item:last-child {
+  border-bottom: none;
+}
+
+.diagnostics-panel-item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+}
+
+.diagnostics-panel-item-dot {
+  margin-top: 0.125rem;
+  height: 0.375rem;
+  width: 0.375rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+}
+
+.diagnostics-panel-item-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.diagnostics-panel-item-message {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--ink-strong);
+}
+
+.diagnostics-panel-node-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.diagnostics-panel-node-chip.diagnostics-panel-node-chip {
+  height: auto;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.625rem;
+}
+
+.diagnostics-panel-witness-path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  font-size: 0.625rem;
+  color: var(--ink-muted);
+}
+
+.diagnostics-panel-witness-step {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}

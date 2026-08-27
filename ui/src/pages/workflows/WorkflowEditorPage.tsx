@@ -2,11 +2,11 @@ import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { ReactFlowProvider, type ReactFlowInstance, type Viewport } from '@xyflow/react'
+import { Input, Spin, Typography } from 'antd'
 
 import type { Workflow } from '../../api/types'
 import { queryKeys, useSaveWorkflow, useWorkflow, useWorkflowVersion, useWorkflowVersions } from '../../api/queries'
 import { Button } from '../../components/Card'
-import { useRegisterPageContext } from '../../pagecontext/PageContextRegistry'
 import { DnDProvider } from './DnDContext'
 import { fromRFGraph, toRFGraph } from './graphAdapter'
 import { NodePalette } from './NodePalette'
@@ -15,7 +15,8 @@ import { TagsInput } from './TagsInput'
 import { VersionHistory } from './VersionHistory'
 import { WorkflowCanvas } from './WorkflowCanvas'
 import { clearStashedDraft, readStashedDraft, stashDraft, type StashedDraft } from './draftStorage'
-import { SchemaVersion, type Graph } from './catalogTypes'
+import { SchemaVersion } from './catalogTypes'
+import './WorkflowEditorPage.css'
 
 const emptyViewport: Viewport = { x: 0, y: 0, zoom: 1 }
 const emptySnapshot: StashedDraft = { name: '', description: '', tags: [], nodes: [], edges: [], viewport: emptyViewport }
@@ -164,15 +165,15 @@ export function WorkflowEditorPage() {
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+    <div className="workflow-editor-page">
+      <div className="workflow-editor-main">
         {outdatedSchema ? (
-          <div className="p-6 text-sm text-ink-muted">
+          <div className="workflow-editor-outdated">
             <p>
               This workflow was saved in an older format that predates control/data edges and can&rsquo;t be opened in
               this editor.
             </p>
-            <p className="mt-2">Delete it and rebuild it from scratch — this project makes no promise to migrate saved workflows yet.</p>
+            <p>Delete it and rebuild it from scratch — this project makes no promise to migrate saved workflows yet.</p>
           </div>
         ) : ready ? (
           <EditorBody
@@ -186,12 +187,14 @@ export function WorkflowEditorPage() {
             onSaved={handleSaved}
           />
         ) : (
-          <p className="p-6 text-sm text-ink-muted">Loading…</p>
+          <div className="workflow-editor-loading">
+            <Spin size="small" /> Loading…
+          </div>
         )}
       </div>
 
       {id ? (
-        <div className="w-48 shrink-0 overflow-y-auto">
+        <div className="workflow-editor-history">
           <VersionHistory
             versions={versionsQuery.data ?? []}
             viewingVersion={viewingVersion}
@@ -222,34 +225,6 @@ const EditorBody = forwardRef<
 
   const rfInstanceRef = useRef<ReactFlowInstance | null>(null)
   const saveWorkflow = useSaveWorkflow()
-
-  // The chat widget's page context, read wherever it's actually rendered
-  // (the globally-mounted ChatWidget, not this component's own tree) — see
-  // pagecontext/PageContextRegistry.tsx. graph reuses the exact fromRFGraph
-  // adapter handleSave already uses, so what the AI sees matches what a
-  // real save would send. applyToolResult is how ProposedEditCard pushes
-  // an approved propose_workflow_edit onto the live canvas — never to
-  // Mongo directly; the user still presses Save Workflow to persist it,
-  // which is what already, unconditionally, creates a new version.
-  useRegisterPageContext(
-    'workflow',
-    () => ({
-      documentId,
-      meta: { name, description, tags },
-      graph: rfInstanceRef.current
-        ? fromRFGraph(rfInstanceRef.current.getNodes(), rfInstanceRef.current.getEdges(), rfInstanceRef.current.getViewport())
-        : null,
-    }),
-    (toolName, args) => {
-      if (toolName !== 'propose_workflow_edit') return
-      const instance = rfInstanceRef.current
-      if (!instance) return
-      const { graph } = args as { graph: Graph; summary: string }
-      const { nodes, edges } = toRFGraph(graph, registeredTypes)
-      instance.setNodes(nodes)
-      instance.setEdges(edges)
-    },
-  )
 
   useImperativeHandle(ref, () => ({
     getSnapshot: () => ({
@@ -292,34 +267,40 @@ const EditorBody = forwardRef<
 
   return (
     <>
-      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-edge px-6 py-4">
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <input
+      <header className="workflow-editor-header">
+        <div className="workflow-editor-header-fields">
+          <div className="workflow-editor-header-inputs">
+            <Input
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Workflow name"
               disabled={readOnly}
-              className="min-w-48 rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm font-semibold text-ink-strong focus:border-blue disabled:opacity-60"
+              className="workflow-editor-name-input"
             />
-            <input
+            <Input
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Description"
               disabled={readOnly}
-              className="min-w-64 flex-1 rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong focus:border-blue disabled:opacity-60"
+              className="workflow-editor-description-input"
             />
           </div>
-          <div className={readOnly ? 'pointer-events-none opacity-60' : ''}>
+          <div className={readOnly ? 'workflow-editor-tags is-read-only' : 'workflow-editor-tags'}>
             <TagsInput value={tags} onChange={setTags} />
           </div>
-          {error ? <p className="text-xs text-red">{error}</p> : null}
+          {error ? (
+            <Typography.Text type="danger" style={{ fontSize: 12 }}>
+              {error}
+            </Typography.Text>
+          ) : null}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="workflow-editor-header-actions">
           {readOnly ? (
             <>
-              <span className="text-xs text-ink-muted">Viewing v{viewingVersion} (read-only)</span>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                Viewing v{viewingVersion} (read-only)
+              </Typography.Text>
               <Button variant="default" onClick={onBackToEditing}>
                 Back to editing
               </Button>
@@ -332,13 +313,13 @@ const EditorBody = forwardRef<
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
+      <div className="workflow-editor-body">
         <DnDProvider>
           <ReactFlowProvider>
-            <div className="w-56 shrink-0">
+            <div className="workflow-editor-palette">
               <NodePalette />
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="workflow-editor-canvas">
               <WorkflowCanvas
                 initialNodes={initial.nodes}
                 initialEdges={initial.edges}

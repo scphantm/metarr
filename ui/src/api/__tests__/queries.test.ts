@@ -19,11 +19,6 @@ describe('queryKeys', () => {
       expect(queryKeys.logTail).toEqual(['stats', 'log-tail'])
     })
 
-    it('defines chatbot keys', () => {
-      expect(queryKeys.chatbot).toEqual(['config', 'chatbot'])
-      expect(queryKeys.chatSessions).toEqual(['chatbot', 'sessions'])
-    })
-
     it('defines workflow catalog key', () => {
       expect(queryKeys.workflowCatalog).toEqual(['workflows', 'catalog'])
       expect(queryKeys.workflows).toEqual(['workflows'])
@@ -31,16 +26,6 @@ describe('queryKeys', () => {
   })
 
   describe('dynamic keys', () => {
-    it('generates chat message keys', () => {
-      const sessionId = 'session-123'
-      expect(queryKeys.chatMessages(sessionId)).toEqual([
-        'chatbot',
-        'sessions',
-        sessionId,
-        'messages',
-      ])
-    })
-
     it('generates workflow keys by id', () => {
       const workflowId = 'workflow-456'
       expect(queryKeys.workflow(workflowId)).toEqual(['workflows', workflowId])
@@ -53,7 +38,6 @@ describe('queryKeys', () => {
 
     it('handles different ids independently', () => {
       expect(queryKeys.workflow('id-a')).not.toEqual(queryKeys.workflow('id-b'))
-      expect(queryKeys.chatMessages('session-1')).not.toEqual(queryKeys.chatMessages('session-2'))
     })
   })
 })

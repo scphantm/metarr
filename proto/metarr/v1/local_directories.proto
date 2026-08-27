@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// Every response here carries the exact JSON the REST handlers already
+// produced (scanmodel.TVSeries, scanmodel.MediaFile, metadata.Metadata),
+// kept opaque rather than modeled field-for-field: these are read-only scan
+// results with no forward-compat requirement forcing strong typing (unlike
+// workflow.Graph's Node.Extra), and the types are large (~2,150 lines
+// across scanmodel + metadata) for a domain nothing here ever constructs or
+// partially updates. Decided together with workflow_catalog.proto's
+// opaque catalog for the same reason.
+
+message LocalDirectoryServiceListDirectoriesRequest {
+  string type = 1;
+  string scan_root = 2;
+  int32 limit = 3;
+  int32 skip = 4;
+}
+
+message LocalDirectoryServiceListDirectoriesResponse {
+  bytes directories_json = 1;
+}
+
+message LocalDirectoryServiceGetDirectoryRequest {
+  string id = 1;
+}
+
+message LocalDirectoryServiceGetDirectoryResponse {
+  bytes directory_json = 1;
+}
+
+message LocalDirectoryServiceListMediaFilesRequest {
+  string directory_id = 1;
+}
+
+message LocalDirectoryServiceListMediaFilesResponse {
+  bytes media_files_json = 1;
+}
+
+message LocalDirectoryServiceGetMediaFileRequest {
+  string id = 1;
+}
+
+message LocalDirectoryServiceGetMediaFileResponse {
+  bytes media_file_json = 1;
+}
+
+message LocalDirectoryServiceGetDirectoryNFORequest {
+  string directory_id = 1;
+  string path = 2;
+}
+
+message LocalDirectoryServiceGetDirectoryNFOResponse {
+  bytes metadata_json = 1;
+}
+
+service LocalDirectoryService {
+  rpc ListDirectories(LocalDirectoryServiceListDirectoriesRequest) returns (LocalDirectoryServiceListDirectoriesResponse);
+  rpc GetDirectory(LocalDirectoryServiceGetDirectoryRequest) returns (LocalDirectoryServiceGetDirectoryResponse);
+  rpc ListMediaFiles(LocalDirectoryServiceListMediaFilesRequest) returns (LocalDirectoryServiceListMediaFilesResponse);
+  rpc GetMediaFile(LocalDirectoryServiceGetMediaFileRequest) returns (LocalDirectoryServiceGetMediaFileResponse);
+  rpc GetDirectoryNFO(LocalDirectoryServiceGetDirectoryNFORequest) returns (LocalDirectoryServiceGetDirectoryNFOResponse);
+}

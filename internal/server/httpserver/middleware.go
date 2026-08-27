@@ -6,16 +6,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"Metarr/internal/server/auth"
-	"Metarr/internal/server/session"
-	"Metarr/internal/shared/appconfig"
 	"Metarr/internal/shared/correlation"
 )
 
-const (
-	apiKeyHeaderName = "X-Api-Key"
-	apiKeyQueryParam = "apikey"
-)
+// apiKeyHeaderName is also the header connectAuthInterceptor reads — every
+// gRPC-Web call and the REST-era key both carry it the same way.
+const apiKeyHeaderName = "X-Api-Key"
 
 // withCorrelationID ensures every request has a correlation ID — reusing one
 // supplied by the caller via the X-Correlation-ID header, or minting a new
@@ -30,41 +26,6 @@ func withCorrelationID(next http.Handler) http.Handler {
 
 		w.Header().Set(correlation.HeaderName, correlationID)
 		ctx := correlation.WithID(r.Context(), correlationID)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-// requireAPIKey wraps next so it only runs for requests carrying a valid
-// API key (via the X-Api-Key header, or an apikey query parameter as a
-// fallback) whose role is authorized for group. Callers with no key, an
-// unrecognized key, or a key whose role isn't authorized for group are
-// rejected before next ever runs. A key currently valid in sessions (i.e.
-// issued by POST /api/auth/login) always carries admin rights, checked
-// before falling back to the static config-based key categories.
-func requireAPIKey(sessions *session.Store, group auth.Group, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		apiKey := r.Header.Get(apiKeyHeaderName)
-		if apiKey == "" {
-			apiKey = r.URL.Query().Get(apiKeyQueryParam)
-		}
-
-		role := auth.RoleAdmin
-		if !sessions.Valid(r.Context(), apiKey) {
-			resolvedRole, ok := auth.Resolve(appconfig.Get(), apiKey)
-			if !ok {
-				http.Error(w, "missing or invalid API key", http.StatusUnauthorized)
-				return
-			}
-			role = resolvedRole
-		}
-
-		if !auth.Authorized(role, group, r.Method) {
-			http.Error(w, "API key not authorized for this endpoint", http.StatusForbidden)
-			return
-		}
-
-		ctx := auth.WithAPIKey(r.Context(), apiKey)
-		ctx = auth.WithRole(ctx, role)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

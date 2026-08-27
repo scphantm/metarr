@@ -1,0 +1,114 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+import "google/protobuf/timestamp.proto";
+import "metarr/v1/common.proto";
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// AgentConfig mirrors internal/shared/appconfig.AgentConfig — the operator's
+// side of one agent's configuration.
+message AgentConfig {
+  string slug = 1;
+  string display_name = 2;
+  repeated AgentDirectoryMapping mappings = 3;
+  string log_level = 4;
+}
+
+// AgentDirectoryMapping mirrors internal/shared/appconfig.AgentDirectoryMapping.
+message AgentDirectoryMapping {
+  string scanner_slug = 1;
+  string agent_path = 2;
+}
+
+// GPUTelemetry mirrors internal/shared/agentproto.GPUTelemetry.
+message GPUTelemetry {
+  string name = 1;
+  double utilization_percent = 2;
+  uint64 memory_used_bytes = 3;
+  uint64 memory_total_bytes = 4;
+}
+
+// AgentTelemetry mirrors internal/shared/agentproto.AgentTelemetry.
+message AgentTelemetry {
+  double cpu_percent = 1;
+  uint64 memory_used_bytes = 2;
+  uint64 memory_total_bytes = 3;
+  repeated GPUTelemetry gpus = 4;
+}
+
+// AgentIdentity mirrors internal/shared/agentproto.AgentIdentity.
+message AgentIdentity {
+  string slug = 1;
+  string instance_id = 2;
+  string hostname = 3;
+  string ip = 4;
+  int32 uid = 5;
+  string username = 6;
+  string os = 7;
+  string arch = 8;
+  string version = 9;
+  google.protobuf.Timestamp started = 10;
+}
+
+// AgentMappingView mirrors internal/server/agentregistry.MappingView — one
+// library mapping shown in both machines' terms.
+message AgentMappingView {
+  string scanner_slug = 1;
+  string scan_type = 2;
+  string server_path = 3;
+  string agent_path = 4;
+}
+
+// AgentView mirrors internal/server/agentregistry.AgentView — what List
+// returns: configuration merged with live presence.
+message AgentView {
+  string slug = 1;
+  string display_name = 2;
+  bool online = 3;
+  bool configured = 4;
+  AgentIdentity identity = 5;
+  AgentTelemetry telemetry = 6;
+  google.protobuf.Timestamp reported_at = 7;
+  repeated AgentMappingView mappings = 8;
+  string log_level = 9;
+}
+
+message AgentServiceListRequest {}
+
+message AgentServiceListResponse {
+  repeated AgentView agents = 1;
+}
+
+message AgentServiceUpsertRequest {
+  AgentConfig agent = 1;
+}
+
+message AgentServiceDeleteRequest {
+  string slug = 1;
+}
+
+message AgentServiceSetLogLevelRequest {
+  string slug = 1;
+  string log_level = 2;
+}
+
+message AgentServiceStreamPresenceRequest {}
+
+message AgentServiceStreamPresenceResponse {
+  repeated AgentView agents = 1;
+}
+
+// AgentService is the config half of agent management: List merges configured
+// agents with whoever is currently present in Redis. StreamPresence is the
+// exact same merged view pushed continuously, replacing the agents.presence
+// wsbus topic — reusing AgentView rather than an opaque payload since it's
+// already fully modeled for List.
+service AgentService {
+  rpc List(AgentServiceListRequest) returns (AgentServiceListResponse);
+  rpc StreamPresence(AgentServiceStreamPresenceRequest) returns (stream AgentServiceStreamPresenceResponse);
+  rpc Upsert(AgentServiceUpsertRequest) returns (metarr.v1.AcceptedResponse);
+  rpc Delete(AgentServiceDeleteRequest) returns (metarr.v1.AcceptedResponse);
+  rpc SetLogLevel(AgentServiceSetLogLevelRequest) returns (metarr.v1.AcceptedResponse);
+}

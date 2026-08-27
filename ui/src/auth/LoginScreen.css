@@ -1,0 +1,26 @@
+.login-screen {
+  display: flex;
+  min-height: 100%;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-canvas);
+  padding: 1rem;
+}
+
+.login-screen-panel {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.login-screen-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.login-screen-title.login-screen-title {
+  margin: 0;
+}
+
+.login-screen-theme-toggle {
+  margin-top: 1.5rem;
+}

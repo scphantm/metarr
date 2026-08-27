@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+import "metarr/v1/common.proto";
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// SonarrInstance mirrors internal/shared/appconfig.SonarrInstance
+// field-for-field.
+message SonarrInstance {
+  string instance_name = 1;
+  string instance_slug = 2;
+  string sonarr_url = 3;
+  string sonarr_api_key = 4;
+  repeated RootDirMapping root_dir_map = 5;
+  StorageConfig storage = 6;
+}
+
+message RootDirMapping {
+  string sonarr_path = 1;
+  string local_path = 2;
+}
+
+message StorageConfig {
+  string mode = 1;
+  string ttl = 2;
+  int32 max_count = 3;
+}
+
+message SonarrInterfaceServiceListRequest {}
+
+message SonarrInterfaceServiceListResponse {
+  repeated SonarrInstance instances = 1;
+}
+
+message SonarrInterfaceServiceGetRequest {
+  string slug = 1;
+}
+
+message SonarrInterfaceServiceGetResponse {
+  SonarrInstance instance = 1;
+}
+
+message SonarrInterfaceServiceUpsertRequest {
+  SonarrInstance instance = 1;
+}
+
+message SonarrInterfaceServiceDeleteRequest {
+  string slug = 1;
+}
+
+service SonarrInterfaceService {
+  rpc List(SonarrInterfaceServiceListRequest) returns (SonarrInterfaceServiceListResponse);
+  rpc Get(SonarrInterfaceServiceGetRequest) returns (SonarrInterfaceServiceGetResponse);
+  rpc Upsert(SonarrInterfaceServiceUpsertRequest) returns (metarr.v1.AcceptedResponse);
+  rpc Delete(SonarrInterfaceServiceDeleteRequest) returns (metarr.v1.AcceptedResponse);
+}

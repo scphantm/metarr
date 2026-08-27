@@ -1,0 +1,75 @@
+/* No explicit height: as a row-flex child, it fills the cross axis via the
+ * parent's default align-items: stretch. A percentage height here doesn't
+ * reliably resolve in every browser when the parent's own height itself
+ * comes from a percentage chain rather than a literal CSS length. */
+.hover-pin-panel {
+  position: relative;
+  flex: 0 0 0.75rem;
+}
+
+.hover-pin-panel.is-pinned {
+  flex: 0 0 var(--hover-pin-panel-width);
+}
+
+.hover-pin-panel-strip {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.hover-pin-panel-strip-handle {
+  height: 2rem;
+  width: 2px;
+  border-radius: 9999px;
+  background: var(--surface-edge-strong);
+  opacity: 0.4;
+  transform: scale(1);
+  transition:
+    opacity 0.15s ease-out,
+    transform 0.15s ease-out,
+    background-color 0.15s ease-out;
+}
+
+.hover-pin-panel-strip:hover .hover-pin-panel-strip-handle {
+  opacity: 1;
+  transform: scale(1.5);
+  background: var(--color-blue);
+}
+
+.hover-pin-panel-content {
+  display: flex;
+  height: 100%;
+  width: var(--hover-pin-panel-width);
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--surface-raised);
+}
+
+.hover-pin-panel-content.is-overlay {
+  position: absolute;
+  top: 0;
+  z-index: 20;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 35%);
+}
+
+.hover-pin-panel-left .hover-pin-panel-content {
+  border-right: 1px solid var(--surface-edge);
+}
+
+.hover-pin-panel-right .hover-pin-panel-content {
+  border-left: 1px solid var(--surface-edge);
+}
+
+.hover-pin-panel-left .hover-pin-panel-content.is-overlay {
+  left: 0;
+}
+
+.hover-pin-panel-right .hover-pin-panel-content.is-overlay {
+  right: 0;
+}

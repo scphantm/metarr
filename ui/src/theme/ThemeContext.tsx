@@ -7,6 +7,9 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { App as AntdApp, ConfigProvider } from 'antd'
+
+import { antdThemeFor } from './antdTheme'
 
 export type Theme = 'dark' | 'light'
 
@@ -54,7 +57,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [theme, setTheme, toggleTheme],
   )
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  return (
+    <ThemeContext.Provider value={value}>
+      <ConfigProvider theme={antdThemeFor(theme)}>
+        <AntdApp>{children}</AntdApp>
+      </ConfigProvider>
+    </ThemeContext.Provider>
+  )
 }
 
 export function useTheme(): ThemeContextValue {

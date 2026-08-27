@@ -18,62 +18,6 @@ type Config struct {
 	DirectoryScanner DirectoryScannerConfig `bson:"directory_scanner" json:"directory_scanner"`
 	Agents           []AgentConfig          `bson:"agents" json:"agents"`
 	Logging          LoggingConfig          `bson:"logging" json:"logging"`
-	Chatbot          ChatbotConfig          `bson:"chatbot" json:"chatbot"`
-}
-
-// The four chat providers a ChatbotConfig.Provider may select. "mcp" rather
-// than "local" — MCP is transport-agnostic (stdio or HTTP), so the model it
-// talks to isn't necessarily local.
-const (
-	ChatbotProviderClaude = "claude"
-	ChatbotProviderOpenAI = "openai"
-	ChatbotProviderGemini = "gemini"
-	ChatbotProviderMCP    = "mcp"
-)
-
-// ChatbotConfig configures the chat widget. Exactly one provider is active
-// at a time (Provider), but settings for all four stay stored so switching
-// the active provider back and forth never loses what was entered — only
-// the active one is read at completion time.
-type ChatbotConfig struct {
-	Enabled  bool   `bson:"enabled"  json:"enabled"`
-	Provider string `bson:"provider" json:"provider"`
-
-	Claude ChatbotClaudeConfig `bson:"claude" json:"claude"`
-	OpenAI ChatbotOpenAIConfig `bson:"openai" json:"openai"`
-	Gemini ChatbotGeminiConfig `bson:"gemini" json:"gemini"`
-	MCP    ChatbotMCPConfig    `bson:"mcp"    json:"mcp"`
-}
-
-// ChatbotClaudeConfig, ChatbotOpenAIConfig, and ChatbotGeminiConfig store a
-// plaintext API key, matching SonarrInstance.SonarrAPIKey's precedent
-// exactly — no redaction on GET.
-type ChatbotClaudeConfig struct {
-	APIKey string `bson:"api_key" json:"api_key"`
-	Model  string `bson:"model"   json:"model"`
-}
-
-// ChatbotOpenAIConfig configures the OpenAI provider.
-type ChatbotOpenAIConfig struct {
-	APIKey string `bson:"api_key" json:"api_key"`
-	Model  string `bson:"model"   json:"model"`
-}
-
-// ChatbotGeminiConfig configures the Gemini provider.
-type ChatbotGeminiConfig struct {
-	APIKey string `bson:"api_key" json:"api_key"`
-	Model  string `bson:"model"   json:"model"`
-}
-
-// ChatbotMCPConfig connects Metarr, as an MCP client, to a model exposed
-// over MCP at any URI — a local process reached over stdio, or a remote
-// server reached over HTTP.
-type ChatbotMCPConfig struct {
-	Transport string   `bson:"transport" json:"transport"` // "stdio" | "http"
-	Command   string   `bson:"command,omitempty" json:"command,omitempty"`
-	Args      []string `bson:"args,omitempty"    json:"args,omitempty"`
-	URL       string   `bson:"url,omitempty"     json:"url,omitempty"`
-	ToolName  string   `bson:"tool_name" json:"tool_name"` // MCP tool invoked for completion
 }
 
 // LogLevelInfo and LogLevelDebug are the two levels the System > Logging
@@ -327,9 +271,6 @@ func Default() *Config {
 			ServerLevel: LogLevelInfo,
 			Sink:        "openobserve",
 			Stream:      "metarr_app",
-		},
-		Chatbot: ChatbotConfig{
-			Provider: ChatbotProviderClaude,
 		},
 	}
 }

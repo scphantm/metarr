@@ -2,11 +2,9 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 
 import { useAuth } from './auth/AuthContext'
 import { LoginScreen } from './auth/LoginScreen'
-import { ChatWidget } from './chatbot/ChatWidget'
 import { AppShell } from './layout/AppShell'
 import { PageContextProvider } from './pagecontext/PageContextRegistry'
 import { AgentsPage, AgentsSidebar } from './pages/system/AgentsPage'
-import { ChatbotSettingsPage, ChatbotSidebar } from './pages/system/ChatbotSettingsPage'
 import { LoggingPage, LoggingSidebar } from './pages/system/LoggingPage'
 import { ConfigurationPage } from './pages/system/ConfigurationPage'
 import {
@@ -94,14 +92,6 @@ export function App() {
           }
         />
         <Route
-          path="/system/chatbot"
-          element={
-            <AppShell sidebar={<ChatbotSidebar />}>
-              <ChatbotSettingsPage />
-            </AppShell>
-          }
-        />
-        <Route
           path="/system/external-tools"
           element={
             <AppShell sidebar={<ExternalToolsSidebar />}>
@@ -145,7 +135,6 @@ export function App() {
             goes there. */}
         <Route path="*" element={<Navigate to="/system" replace />} />
       </Routes>
-      <ChatWidget />
     </PageContextProvider>
   )
 }

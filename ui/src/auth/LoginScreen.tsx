@@ -1,98 +1,76 @@
 import { useState } from 'react'
+import { Button, Card, Form, Input, Typography } from 'antd'
 
-import { Spinner } from '../components/SaveState'
 import { useTheme } from '../theme/ThemeContext'
 import { useAuth } from './AuthContext'
+import './LoginScreen.css'
+
+type LoginFormValues = {
+  username: string
+  password: string
+}
 
 export function LoginScreen() {
   const { login } = useAuth()
   const { theme, toggleTheme } = useTheme()
-
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [form] = Form.useForm<LoginFormValues>()
   const [submitting, setSubmitting] = useState(false)
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault()
+  async function submit(values: LoginFormValues) {
     setSubmitting(true)
-    setError(null)
     try {
-      await login({ username, password })
+      await login(values)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      form.setFields([
+        {
+          name: 'password',
+          errors: [cause instanceof Error ? cause.message : String(cause)],
+        },
+      ])
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-canvas px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-ink-strong">
+    <div className="login-screen">
+      <div className="login-screen-panel">
+        <div className="login-screen-header">
+          <Typography.Title level={2} className="login-screen-title">
             Metarr
-          </h1>
-          <p className="mt-1 text-sm text-ink-muted">
-            Sign in with the admin account
-          </p>
+          </Typography.Title>
+          <Typography.Text type="secondary">Sign in with the admin account</Typography.Text>
         </div>
 
-        <form
-          onSubmit={submit}
-          className="rounded-lg border border-edge bg-surface p-6"
-        >
-          <label className="block">
-            <span className="text-xs tracking-wide text-ink-muted uppercase">
-              Username
-            </span>
-            <input
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              autoComplete="username"
-              autoFocus
-              required
-              className="mt-1 w-full rounded border border-edge-strong/40 bg-canvas px-3 py-2 text-sm text-ink-strong focus:border-blue"
-            />
-          </label>
+        <Card>
+          <Form form={form} layout="vertical" onFinish={(values) => void submit(values)}>
+            <Form.Item
+              name="username"
+              label="Username"
+              rules={[{ required: true, message: 'Username is required' }]}
+            >
+              <Input autoComplete="username" autoFocus />
+            </Form.Item>
 
-          <label className="mt-4 block">
-            <span className="text-xs tracking-wide text-ink-muted uppercase">
-              Password
-            </span>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="current-password"
-              required
-              className="mt-1 w-full rounded border border-edge-strong/40 bg-canvas px-3 py-2 text-sm text-ink-strong focus:border-blue"
-            />
-          </label>
+            <Form.Item
+              name="password"
+              label="Password"
+              rules={[{ required: true, message: 'Password is required' }]}
+            >
+              <Input.Password autoComplete="current-password" />
+            </Form.Item>
 
-          {error ? (
-            <p className="mt-4 rounded border border-red/40 bg-red/10 px-3 py-2 text-sm text-red">
-              {error}
-            </p>
-          ) : null}
+            <Form.Item style={{ marginBottom: 0 }}>
+              <Button type="primary" htmlType="submit" block loading={submitting}>
+                Sign in
+              </Button>
+            </Form.Item>
+          </Form>
+        </Card>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded border border-blue bg-blue px-3 py-2 text-sm text-canvas transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {submitting ? <Spinner /> : null}
-            {submitting ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="mt-6 w-full text-center text-xs text-ink-muted hover:text-ink-strong"
-        >
+        <Button type="text" block className="login-screen-theme-toggle" onClick={toggleTheme}>
           Switch to Solarized {theme === 'dark' ? 'Light' : 'Dark'}
-        </button>
+        </Button>
       </div>
     </div>
   )

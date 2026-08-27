@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
+import { Badge, Segmented, Typography } from 'antd'
 
 import {
   useAgents,
   useLoggingConfig,
   useLogTail,
+  useLogTailStreamStatus,
   useSetAgentLogLevel,
   useUpdateLoggingConfig,
 } from '../../api/queries'
-import { useSocketStatus } from '../../api/useTopic'
 import {
   logLevels,
   type LogLevel,
@@ -15,8 +16,9 @@ import {
   type LogTailEntry,
 } from '../../api/types'
 import { Card, EmptyState } from '../../components/Card'
-import { Spinner } from '../../components/SaveState'
+import { PageError, PageLoading } from '../../components/PageState'
 import { PageHeader } from '../../layout/AppShell'
+import './LoggingPage.css'
 
 /*
  * System > Logging.
@@ -34,19 +36,13 @@ import { PageHeader } from '../../layout/AppShell'
 export function LoggingPage() {
   const logging = useLoggingConfig()
   const agents = useAgents()
-  const socketStatus = useSocketStatus()
+  const socketStatus = useLogTailStreamStatus()
 
   if (logging.error && !logging.data) {
     return (
       <>
         <PageHeader title="Logging" />
-        <div className="px-6 py-5">
-          <p className="rounded border border-red/40 bg-red/10 px-4 py-3 text-sm text-red">
-            {logging.error instanceof Error
-              ? logging.error.message
-              : String(logging.error)}
-          </p>
-        </div>
+        <PageError error={logging.error} />
       </>
     )
   }
@@ -55,10 +51,7 @@ export function LoggingPage() {
     return (
       <>
         <PageHeader title="Logging" />
-        <div className="flex items-center gap-2 px-6 py-5 text-sm text-ink-muted">
-          <Spinner />
-          Loading configuration…
-        </div>
+        <PageLoading />
       </>
     )
   }
@@ -70,7 +63,7 @@ export function LoggingPage() {
         description="Every log line from the server and every agent ships to one place. Switch verbosity here, live — no restart."
       />
 
-      <div className="flex flex-col gap-5 px-6 py-5">
+      <div className="page-body">
         <ServerLevelCard config={logging.data} />
 
         <Card
@@ -78,16 +71,13 @@ export function LoggingPage() {
           description="One toggle per agent. An agent with no libraries mapped yet can still be switched to debug — useful while working out why it isn't configuring."
         >
           {!agents.data ? (
-            <div className="flex items-center gap-2 py-2 text-sm text-ink-muted">
-              <Spinner />
-              Loading agents…
-            </div>
+            <PageLoading>Loading agents…</PageLoading>
           ) : agents.data.length === 0 ? (
             <EmptyState>
               No agents yet. They will appear here once one connects.
             </EmptyState>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="logging-agent-list">
               {agents.data.map((agent) => (
                 <AgentLevelRow
                   key={agent.slug}
@@ -143,14 +133,16 @@ function ServerLevelCard({ config }: { config: LoggingConfig }) {
       title="Server level"
       description="Applies to metarr-server immediately."
     >
-      <div className="flex items-center gap-3">
-        <LevelPill
-          value={config.server_level}
-          disabled={update.isPending}
-          onChange={(level) => void setLevel(level)}
-        />
-      </div>
-      {error ? <p className="mt-2 text-xs text-red">{error}</p> : null}
+      <LevelPill
+        value={config.server_level}
+        disabled={update.isPending}
+        onChange={(level) => void setLevel(level)}
+      />
+      {error ? (
+        <Typography.Text type="danger" style={{ display: 'block', marginTop: 8, fontSize: 12 }}>
+          {error}
+        </Typography.Text>
+      ) : null}
     </Card>
   )
 }
@@ -180,32 +172,27 @@ function AgentLevelRow({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded border border-edge px-3 py-2">
-      <span
-        aria-hidden="true"
-        className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-green' : 'bg-ink-muted'}`}
-        title={online ? 'online' : 'offline'}
-      />
-      <div className="min-w-32 flex-1">
-        <div className="font-mono text-sm text-ink-strong">
-          {displayName || slug}
-        </div>
-        {displayName ? (
-          <div className="font-mono text-xs text-ink-muted">{slug}</div>
-        ) : null}
+    <div className="logging-agent-row">
+      <Badge status={online ? 'success' : 'default'} />
+      <div className="logging-agent-name">
+        <div className="logging-agent-name-primary">{displayName || slug}</div>
+        {displayName ? <div className="logging-agent-name-slug">{slug}</div> : null}
       </div>
       <LevelPill
         value={level}
         disabled={setLevel.isPending}
         onChange={(next) => void change(next)}
       />
-      {error ? <span className="text-xs text-red">{error}</span> : null}
+      {error ? (
+        <Typography.Text type="danger" style={{ fontSize: 12 }}>
+          {error}
+        </Typography.Text>
+      ) : null}
     </div>
   )
 }
 
-// The two-button segmented pill used for the dark/light theme toggle
-// (layout/Sidebar.tsx) — same pattern, different two values.
+// Same segmented-pill pattern as the theme toggle (layout/Sidebar.tsx).
 function LevelPill({
   value,
   disabled,
@@ -216,23 +203,15 @@ function LevelPill({
   onChange: (level: LogLevel) => void
 }) {
   return (
-    <div className="flex gap-1 rounded border border-edge bg-surface p-1">
-      {logLevels.map((level) => (
-        <button
-          key={level}
-          type="button"
-          disabled={disabled}
-          onClick={() => onChange(level)}
-          className={`flex-1 rounded px-2.5 py-1 text-xs capitalize transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-            value === level
-              ? 'bg-surface-hover text-ink-strong'
-              : 'text-ink-muted hover:text-ink-strong'
-          }`}
-        >
-          {level}
-        </button>
-      ))}
-    </div>
+    <Segmented
+      value={value}
+      disabled={disabled}
+      onChange={(next) => onChange(next as LogLevel)}
+      options={logLevels.map((level) => ({
+        label: level.charAt(0).toUpperCase() + level.slice(1),
+        value: level,
+      }))}
+    />
   )
 }
 
@@ -246,52 +225,40 @@ function PipelineInfo({
   stream: string
 }) {
   return (
-    <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+    <div className="logging-pipeline-grid">
       <div>
-        <dt className="text-xs text-ink-muted">Sink</dt>
-        <dd className="text-sm text-ink-strong capitalize">{sink || '—'}</dd>
+        <div className="logging-pipeline-label">Sink</div>
+        <div className="logging-pipeline-value" style={{ textTransform: 'capitalize' }}>
+          {sink || '—'}
+        </div>
       </div>
       <div>
-        <dt className="text-xs text-ink-muted">Stream</dt>
-        <dd className="font-mono text-sm text-ink-strong">{stream || '—'}</dd>
+        <div className="logging-pipeline-label">Stream</div>
+        <div className="logging-pipeline-value editable-field-mono">{stream || '—'}</div>
       </div>
       <div>
-        <dt className="text-xs text-ink-muted">Endpoint</dt>
-        <dd className="text-sm">
+        <div className="logging-pipeline-label">Endpoint</div>
+        <div className="logging-pipeline-value">
           {endpoint ? (
-            <a
-              href={endpoint}
-              target="_blank"
-              rel="noreferrer"
-              className="text-blue hover:underline"
-            >
+            <Typography.Link href={endpoint} target="_blank" rel="noreferrer">
               Open in OpenObserve →
-            </a>
+            </Typography.Link>
           ) : (
-            <span className="text-ink-muted">not set</span>
+            <Typography.Text type="secondary">not set</Typography.Text>
           )}
-        </dd>
+        </div>
       </div>
-    </dl>
+    </div>
   )
 }
 
 function ConnectionIndicator({ status }: { status: string }) {
   const label =
     status === 'open' ? 'Live' : status === 'connecting' ? 'Connecting' : 'Stale'
-  const tone =
-    status === 'open'
-      ? 'text-green'
-      : status === 'connecting'
-        ? 'text-yellow'
-        : 'text-orange'
+  const badgeStatus =
+    status === 'open' ? 'success' : status === 'connecting' ? 'processing' : 'warning'
 
-  return (
-    <span className={`flex items-center gap-1.5 text-xs ${tone}`}>
-      <span aria-hidden="true">●</span>
-      {label}
-    </span>
-  )
+  return <Badge status={badgeStatus} text={label} />
 }
 
 function LiveTail() {
@@ -307,7 +274,7 @@ function LiveTail() {
   }
 
   return (
-    <div className="max-h-96 overflow-y-auto rounded border border-edge bg-canvas font-mono text-xs">
+    <div className="logging-live-tail">
       {tail.data.map((entry, index) => (
         <TailLine key={index} entry={entry} />
       ))}
@@ -317,53 +284,49 @@ function LiveTail() {
 }
 
 function TailLine({ entry }: { entry: LogTailEntry }) {
-  const tone =
+  const toneVar =
     entry.level === 'ERROR'
-      ? 'text-red'
+      ? 'var(--color-red)'
       : entry.level === 'WARN'
-        ? 'text-yellow'
+        ? 'var(--color-yellow)'
         : entry.level === 'DEBUG'
-          ? 'text-ink-muted'
-          : 'text-ink'
+          ? 'var(--ink-muted)'
+          : 'var(--ink-body)'
 
   return (
-    <div className="flex flex-wrap gap-2 border-b border-edge/60 px-3 py-1.5 last:border-b-0">
-      <span className="shrink-0 text-ink-muted">
-        {new Date(entry.time).toLocaleTimeString()}
+    <div className="logging-tail-line">
+      <span className="logging-tail-time">{new Date(entry.time).toLocaleTimeString()}</span>
+      <span className="logging-tail-level" style={{ color: toneVar }}>
+        {entry.level}
       </span>
-      <span className={`w-14 shrink-0 ${tone}`}>{entry.level}</span>
-      <span className="shrink-0 text-ink-muted">{entry.source}</span>
-      <span className="min-w-0 flex-1 text-ink-strong">{entry.message}</span>
+      <span className="logging-tail-source">{entry.source}</span>
+      <span className="logging-tail-message">{entry.message}</span>
     </div>
   )
 }
 
 export function LoggingSidebar() {
   return (
-    <section>
-      <h2 className="mb-2 text-xs font-semibold tracking-wide text-ink-muted uppercase">
-        How this works
-      </h2>
-      <div className="rounded border border-edge bg-surface px-3 py-2.5 text-xs leading-relaxed text-ink-muted">
-        <p>
-          The server and every agent publish structured log records to Redis;
-          Fluent Bit ships them to OpenObserve from there. Neither binary talks
-          to OpenObserve directly.
-        </p>
-        <p className="mt-2">
-          Logging never blocks the app: if the pipeline falls behind, records
-          are dropped rather than slowing anything down, and the process
-          reports how many it dropped.
-        </p>
+    <div className="saving-info-sidebar">
+      <div>
+        <Typography.Title level={5}>How this works</Typography.Title>
+        <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
+          The server and every agent publish structured log records to Redis; Fluent Bit ships
+          them to OpenObserve from there. Neither binary talks to OpenObserve directly.
+        </Typography.Paragraph>
+        <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
+          Logging never blocks the app: if the pipeline falls behind, records are dropped rather
+          than slowing anything down, and the process reports how many it dropped.
+        </Typography.Paragraph>
       </div>
 
-      <h2 className="mt-6 mb-2 text-xs font-semibold tracking-wide text-ink-muted uppercase">
-        Switching vendors
-      </h2>
-      <div className="rounded border border-edge bg-surface px-3 py-2.5 text-xs leading-relaxed text-ink-muted">
-        Moving to Splunk or ELK is a Fluent Bit configuration change, not a
-        Metarr one — nothing here or in either binary needs to change.
+      <div>
+        <Typography.Title level={5}>Switching vendors</Typography.Title>
+        <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
+          Moving to Splunk or ELK is a Fluent Bit configuration change, not a Metarr one —
+          nothing here or in either binary needs to change.
+        </Typography.Paragraph>
       </div>
-    </section>
+    </div>
   )
 }

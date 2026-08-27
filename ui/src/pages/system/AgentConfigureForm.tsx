@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { Input, Space, Typography } from 'antd'
 
 import { useDeleteAgent, useUpsertAgent } from '../../api/queries'
 import type { AgentView } from '../../api/types'
 import { Button } from '../../components/Card'
+import './AgentConfigureForm.css'
 
 /*
  * Configuring an agent is one question asked once per library: what does this
@@ -77,76 +79,70 @@ export function AgentConfigureForm({
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded border border-blue/50 px-4 py-3">
-      <div className="flex max-w-sm flex-col gap-1">
-        <label className="text-xs text-ink-muted" htmlFor={`name-${agent.slug}`}>
+    <div className="agent-configure-form">
+      <div className="agent-configure-name">
+        <label className="agent-configure-name-label" htmlFor={`name-${agent.slug}`}>
           Display name
         </label>
-        <input
+        <Input
           id={`name-${agent.slug}`}
           value={displayName}
           placeholder={agent.slug}
           onChange={(event) => setDisplayName(event.target.value)}
-          className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong focus:border-blue"
         />
       </div>
 
       <div>
-        <h3 className="mb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">
+        <Typography.Text type="secondary" className="agent-configure-section-heading">
           Libraries
-        </h3>
-        <p className="mb-2 text-xs text-ink-muted">
-          Enter the path each library has on this agent&apos;s machine. Leave one
-          blank if the agent cannot reach it.
-        </p>
+        </Typography.Text>
+        <Typography.Text type="secondary" className="agent-configure-section-hint">
+          Enter the path each library has on this agent&apos;s machine. Leave one blank if the
+          agent cannot reach it.
+        </Typography.Text>
 
         {scanDirectories.length === 0 ? (
-          <p className="text-sm text-ink-muted italic">
-            No scan directories configured yet — add one under Directory
-            Scanner first.
-          </p>
+          <Typography.Text type="secondary" italic style={{ fontSize: 14 }}>
+            No scan directories configured yet — add one under Directory Scanner first.
+          </Typography.Text>
         ) : (
-          <div className="flex flex-col gap-2">
+          <Space direction="vertical" size={8} style={{ width: '100%' }}>
             {scanDirectories.map((directory) => (
-              <div
-                key={directory.scanner_slug}
-                className="flex flex-wrap items-center gap-2"
-              >
-                <div className="w-40 shrink-0">
-                  <div className="font-mono text-sm text-ink-strong">
-                    {directory.scanner_slug}
-                  </div>
-                  <div
-                    className="truncate font-mono text-xs text-ink-muted"
-                    title={directory.directory}
-                  >
+              <div key={directory.scanner_slug} className="agent-configure-row">
+                <div className="agent-configure-row-label">
+                  <div className="agent-configure-row-slug">{directory.scanner_slug}</div>
+                  <div className="agent-configure-row-path" title={directory.directory}>
                     {directory.directory}
                   </div>
                 </div>
-                <span aria-hidden="true" className="text-ink-muted">
+                <Typography.Text type="secondary" aria-hidden="true">
                   →
-                </span>
-                <input
+                </Typography.Text>
+                <Input
                   value={paths[directory.scanner_slug] ?? ''}
                   placeholder="not reachable from this agent"
                   aria-label={`Path for ${directory.scanner_slug} on ${agent.slug}`}
+                  className="editable-field-mono agent-configure-row-input"
                   onChange={(event) =>
                     setPaths((current) => ({
                       ...current,
                       [directory.scanner_slug]: event.target.value,
                     }))
                   }
-                  className="min-w-0 flex-1 rounded border border-edge-strong/40 bg-canvas px-2 py-1 font-mono text-sm text-ink-strong focus:border-blue"
                 />
               </div>
             ))}
-          </div>
+          </Space>
         )}
       </div>
 
-      {error ? <p className="text-xs text-red">{error}</p> : null}
+      {error ? (
+        <Typography.Text type="danger" style={{ fontSize: 12 }}>
+          {error}
+        </Typography.Text>
+      ) : null}
 
-      <div className="flex flex-wrap gap-2">
+      <Space wrap>
         <Button variant="primary" disabled={saving} onClick={() => void save()}>
           {saving ? 'Saving…' : 'Save'}
         </Button>
@@ -158,7 +154,7 @@ export function AgentConfigureForm({
             Remove agent
           </Button>
         ) : null}
-      </div>
+      </Space>
     </div>
   )
 }

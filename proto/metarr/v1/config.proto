@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+import "metarr/v1/agents.proto";
+import "metarr/v1/common.proto";
+import "metarr/v1/directory_scanner.proto";
+import "metarr/v1/logging.proto";
+import "metarr/v1/sonarr_interfaces.proto";
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// AdminUser mirrors internal/shared/appconfig.AdminUser, deliberately
+// omitting password_salt/password_hash: those never cross the wire in
+// either direction. GetConfig's REST equivalent redacts them to "" before
+// responding, and UpdateAdmin is the only write path for a new password.
+message AdminUser {
+  string username = 1;
+  string email = 2;
+}
+
+// APIKeyEntry mirrors internal/shared/appconfig.APIKeyEntry.
+message APIKeyEntry {
+  string name = 1;
+  string api_key = 2;
+}
+
+// APIKeysConfig mirrors internal/shared/appconfig.APIKeysConfig.
+message APIKeysConfig {
+  repeated APIKeyEntry admin = 1;
+  repeated APIKeyEntry user = 2;
+  repeated APIKeyEntry webhook = 3;
+  repeated APIKeyEntry read_only = 4;
+}
+
+// InterfacesConfig mirrors internal/shared/appconfig.InterfacesConfig.
+message InterfacesConfig {
+  repeated SonarrInstance sonarr = 1;
+}
+
+// Config mirrors internal/shared/appconfig.Config field-for-field — the
+// whole application configuration document.
+message Config {
+  APIKeysConfig api_keys = 1;
+  AdminUser admin = 2;
+  InterfacesConfig interfaces = 3;
+  DirectoryScannerConfig directory_scanner = 4;
+  repeated AgentConfig agents = 5;
+  LoggingConfig logging = 6;
+}
+
+message ConfigServiceGetRequest {}
+
+message ConfigServiceGetResponse {
+  Config config = 1;
+}
+
+message ConfigServiceUpdateRequest {
+  Config config = 1;
+}
+
+// ConfigServiceUpdateAdminRequest is a partial update: only the fields set
+// are changed. An explicitly-empty string for a set field is rejected
+// rather than silently clearing it — see UpdateAdmin's implementation.
+message ConfigServiceUpdateAdminRequest {
+  optional string username = 1;
+  optional string email = 2;
+  optional string password = 3;
+}
+
+service ConfigService {
+  rpc Get(ConfigServiceGetRequest) returns (ConfigServiceGetResponse);
+  rpc Update(ConfigServiceUpdateRequest) returns (metarr.v1.AcceptedResponse);
+  rpc UpdateAdmin(ConfigServiceUpdateAdminRequest) returns (metarr.v1.AcceptedResponse);
+}
