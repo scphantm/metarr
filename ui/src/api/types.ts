@@ -8,64 +8,7 @@
 
 import type { GraphEdge, GraphNode } from '../pages/workflows/catalogTypes'
 
-// AdminUser is the single administrative account. The password salt and hash
-// are redacted by GetConfig before they reach a client, so they are absent
-// here by design rather than by omission.
-export type AdminUser = {
-  username: string
-  email: string
-}
-
-export type APIKeyEntry = {
-  name: string
-  api_key: string
-}
-
-export type APIKeysConfig = {
-  admin: APIKeyEntry[]
-  user: APIKeyEntry[]
-  webhook: APIKeyEntry[]
-  read_only: APIKeyEntry[]
-}
-
-export type APIKeyGroup = keyof APIKeysConfig
-
-export const apiKeyGroups: { key: APIKeyGroup; label: string; hint: string }[] =
-  [
-    { key: 'admin', label: 'Admin', hint: 'Full access to every endpoint' },
-    { key: 'user', label: 'User', hint: 'Tasks and library reads' },
-    { key: 'webhook', label: 'Webhook', hint: 'For inbound automation' },
-    { key: 'read_only', label: 'Read only', hint: 'Library reads only' },
-  ]
-
-export type RootDirMapping = {
-  sonarr_path: string
-  local_path: string
-}
-
-// StorageConfig controls retention: "cache" expires after ttl, "versioned"
-// keeps up to max_count revisions. Only the field belonging to the active mode
-// is meaningful.
-export type StorageConfig = {
-  mode: string
-  ttl?: string
-  max_count?: number
-}
-
 export const storageModes = ['cache', 'versioned'] as const
-
-export type SonarrInstance = {
-  instance_name: string
-  instance_slug: string
-  sonarr_url: string
-  sonarr_api_key: string
-  root_dir_map: RootDirMapping[]
-  storage: StorageConfig
-}
-
-export type InterfacesConfig = {
-  sonarr: SonarrInstance[]
-}
 
 // DirectoryType is the closed vocabulary from mediascan.ParseDirectoryType.
 export const directoryTypes = ['movie', 'tv', 'music_video'] as const
@@ -112,21 +55,6 @@ export type DirectoryScannerConfig = {
   sidecar_types: SidecarTypeDefinition[]
 }
 
-export type Config = {
-  api_keys: APIKeysConfig
-  admin: AdminUser
-  interfaces: InterfacesConfig
-  directory_scanner: DirectoryScannerConfig
-}
-
-// UpdateAdminRequest sends only what changed: an omitted field is left alone,
-// and an explicitly empty one is rejected rather than silently clearing.
-export type UpdateAdminRequest = {
-  username?: string
-  email?: string
-  password?: string
-}
-
 export type UpdateDirectoryScannerRequest = {
   parallel_count?: number
 }
@@ -140,21 +68,6 @@ export type ReorderSidecarTypesRequest = Record<string, number>
 export type AcceptedResponse = {
   status: string
   event: string
-  correlation_id: string
-}
-
-export type LoginRequest = {
-  username: string
-  password: string
-}
-
-export type LoginResponse = {
-  api_key: string
-  expires_in_seconds: number
-}
-
-export type HeartbeatResponse = {
-  time: string
   correlation_id: string
 }
 
@@ -321,101 +234,6 @@ export type LogTailEntry = {
   message: string
   source: string
   attrs?: Record<string, unknown>
-}
-
-/*
- * Chatbot — exactly one provider is active at a time (provider), but
- * settings for all four stay stored so switching back and forth never
- * drops what was entered. "mcp" rather than "local": MCP is
- * transport-agnostic (stdio or HTTP), so the model it talks to isn't
- * necessarily local.
- */
-
-export const chatbotProviders = ['claude', 'openai', 'gemini', 'mcp'] as const
-export type ChatbotProvider = (typeof chatbotProviders)[number]
-
-export type ChatbotProviderKeyConfig = {
-  api_key: string
-  model: string
-}
-
-export type ChatbotMCPConfig = {
-  transport: 'stdio' | 'http'
-  command?: string
-  args?: string[]
-  url?: string
-  tool_name: string
-}
-
-export type ChatbotConfig = {
-  enabled: boolean
-  provider: ChatbotProvider
-  claude: ChatbotProviderKeyConfig
-  openai: ChatbotProviderKeyConfig
-  gemini: ChatbotProviderKeyConfig
-  mcp: ChatbotMCPConfig
-}
-
-/*
- * Chat sessions/messages — mirrors mongostore.ChatMessage /
- * mongostore.SessionSummary / pagecontext.ContextSentRecord field-for-field.
- * The generation-input fields (page_key/system/history/tools) are
- * internal-only on the Go side (json:"-") and never reach the client.
- */
-
-export type ContextSentItem = {
-  label: string
-  description: string
-  token_estimate: number
-  detail: unknown
-}
-
-export type ContextSentRecord = {
-  page_key: string
-  items: ContextSentItem[]
-}
-
-export type ChatToolCall = {
-  name: string
-  arguments: unknown
-}
-
-export type ChatMessage = {
-  id: string
-  session_id: string
-  role: 'user' | 'assistant'
-  text?: string
-  status: 'complete' | 'pending' | 'failed'
-  context_sent?: ContextSentRecord
-  tool_call?: ChatToolCall
-  created_at: string
-}
-
-export type ChatSessionSummary = {
-  session_id: string
-  last_message_at: string
-}
-
-export type SendChatMessageRequest = {
-  session_id: string
-  page_key?: string
-  context?: unknown
-  text: string
-}
-
-export type SendChatMessageResponse = {
-  message_id: string
-  context_sent?: ContextSentRecord
-}
-
-// One increment of a streamed reply, read off the WS frames
-// GET /api/chatbot/stream/{id} sends — mirrors provider.Delta's
-// MarshalJSON output.
-export type ChatDelta = {
-  text?: string
-  tool_call?: ChatToolCall
-  done?: boolean
-  error?: string
 }
 
 /*

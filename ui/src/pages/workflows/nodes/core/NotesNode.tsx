@@ -1,6 +1,7 @@
 import { useReactFlow, type Node, type NodeProps } from '@xyflow/react'
 
 import type { CatalogNodeData } from '../../catalogTypes'
+import './NotesNode.css'
 
 /*
  * core/note declares zero ports in the catalog — notes are stripped before
@@ -18,14 +19,14 @@ export function NotesNode({ id, data }: NodeProps<Node<CatalogNodeData>>) {
   const notes = typeof data.settings.notes === 'string' ? data.settings.notes : ''
 
   return (
-    <div className="min-w-[160px] max-w-[240px] rounded border border-edge-strong/40 border-l-4 border-l-orange bg-surface px-3 py-2 shadow-sm">
+    <div className="notes-node">
       <textarea
         value={notes}
         onChange={(event) => updateNodeData(id, { settings: { ...data.settings, notes: event.target.value } })}
         placeholder="Note…"
         disabled={data.readOnly}
         rows={3}
-        className="nodrag w-full resize-none rounded border border-transparent bg-transparent text-xs text-ink-strong placeholder:text-ink-muted focus:border-edge-strong/40 focus:bg-canvas focus:outline-none disabled:opacity-60"
+        className="nodrag notes-node-textarea"
       />
     </div>
   )

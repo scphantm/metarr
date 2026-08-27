@@ -1,0 +1,24 @@
+version: v2
+inputs:
+  - directory: proto
+plugins:
+  - local:
+      - go
+      - tool
+      - protoc-gen-go
+    out: internal/genproto
+    opt: paths=source_relative
+  - local:
+      - go
+      - tool
+      - protoc-gen-connect-go
+    out: internal/genproto
+    opt: paths=source_relative
+  # Connect-ES v2's protoc-gen-es already emits the service descriptor
+  # (GenService) directly in each _pb.ts file — there is no separate
+  # protoc-gen-connect-es plugin for v2 (that plugin tops out at v1.x and
+  # produces an incompatible legacy ServiceType shape). One plugin covers
+  # both messages and services.
+  - remote: buf.build/bufbuild/es
+    out: ui/src/gen
+    opt: target=ts

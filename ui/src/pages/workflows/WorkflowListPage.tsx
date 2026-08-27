@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Alert, Space, Spin, Tag, Typography } from 'antd'
 
 import { useWorkflowList } from '../../api/queries'
 import { Button, Card, EmptyState } from '../../components/Card'
 import { PageHeader } from '../../layout/AppShell'
+import './WorkflowListPage.css'
 
 /*
  * The first infinite-scroll list in this codebase — everywhere else pages a
@@ -46,11 +48,13 @@ export function WorkflowListPage() {
         }
       />
 
-      <div className="flex flex-col gap-3 px-6 py-5">
+      <div className="page-body">
         {isError ? (
-          <p className="text-sm text-red">
-            {error instanceof Error ? error.message : 'Failed to load workflows'}
-          </p>
+          <Alert
+            type="error"
+            showIcon
+            message={error instanceof Error ? error.message : 'Failed to load workflows'}
+          />
         ) : null}
 
         {!isLoading && workflows.length === 0 ? (
@@ -68,25 +72,24 @@ export function WorkflowListPage() {
               </Button>
             }
           >
-            <div className="flex flex-wrap items-center gap-1.5">
-              {workflow.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded border border-edge-strong/40 bg-surface-hover px-2 py-0.5 text-xs text-ink-strong"
-                >
-                  {tag}
-                </span>
-              ))}
-              <span className="ml-auto text-xs text-ink-muted">
+            <div className="workflow-list-tags-row">
+              <Space size={4} wrap>
+                {workflow.tags.map((tag) => (
+                  <Tag key={tag}>{tag}</Tag>
+                ))}
+              </Space>
+              <Typography.Text type="secondary" className="workflow-list-meta">
                 v{workflow.version} · {new Date(workflow.created_at).toLocaleString()}
-              </span>
+              </Typography.Text>
             </div>
           </Card>
         ))}
 
         <div ref={sentinelRef} />
         {isFetchingNextPage ? (
-          <p className="py-2 text-center text-xs text-ink-muted">Loading more…</p>
+          <div className="workflow-list-loading-more">
+            <Spin size="small" /> Loading more…
+          </div>
         ) : null}
       </div>
     </>

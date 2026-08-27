@@ -16,6 +16,7 @@ import {
   type Accent,
 } from './nodeVisual'
 import { errorHandleTitle, handleOffset, useNodeHandles, type ArrangedHandles } from './useNodeHandles'
+import './NodeShell.css'
 
 /*
  * The common chrome every catalog-driven node is built on: a transparent,
@@ -39,7 +40,7 @@ import { errorHandleTitle, handleOffset, useNodeHandles, type ArrangedHandles } 
 // control-edge color, so a control socket and the wire it connects to read
 // as one visual family. The error control port is styled separately, below
 // (red, matching ControlEdge.tsx's error-branch color).
-const controlHandleClass = '!rounded-[3px] !h-2.5 !w-2.5 !border-cyan !bg-cyan'
+const controlHandleClass = 'node-handle-control'
 
 // Orange, matching DataEdge.tsx's data-edge-path color, same reasoning as
 // controlHandleClass above. Flat rather than colored per type
@@ -47,16 +48,16 @@ const controlHandleClass = '!rounded-[3px] !h-2.5 !w-2.5 !border-cyan !bg-cyan'
 // (iconClassForType) is what conveys a specific type now, not the dot's
 // fill color.
 //
-// !border-0 overrides React Flow's own base CSS, which puts a 1px border
-// (a light theme color, not ours) on every handle by default. That border
-// sits outside the mask-image entirely — mask-image only clips the
-// background fill, never the border — so it's invisible only where the
-// icon's own opaque area happens to reach the box edge. An icon that
-// doesn't fill its box on every side (most of them, once "contain"-fit
-// into a square) leaves that stretch of default border exposed as a stray
-// pale line. controlHandleClass doesn't have this problem: it sets an
-// explicit border color matching its own fill, so the border and the mask
-// gaps are the same color either way.
+// node-handle-data's !important border/background overrides React Flow's
+// own base CSS, which puts a 1px border (a light theme color, not ours) on
+// every handle by default. That border sits outside the mask-image
+// entirely — mask-image only clips the background fill, never the border —
+// so it's invisible only where the icon's own opaque area happens to reach
+// the box edge. An icon that doesn't fill its box on every side (most of
+// them, once "contain"-fit into a square) leaves that stretch of default
+// border exposed as a stray pale line. controlHandleClass doesn't have this
+// problem: it sets an explicit border color matching its own fill, so the
+// border and the mask gaps are the same color either way.
 //
 // Shape depends on whether an icon is showing. React Flow's own base CSS
 // also sets every handle to a circle (border-radius: 100%) by default,
@@ -70,9 +71,9 @@ const controlHandleClass = '!rounded-[3px] !h-2.5 !w-2.5 !border-cyan !bg-cyan'
 // default, since a library default silently changing shape out from under
 // us would be easy to miss: square/rounded whenever the icon mask is
 // visible, circular only when zoomed out and there's no icon to protect.
-const dataHandleClass = '!border-0 !bg-orange !h-3 !w-3'
-const dataHandleIconShape = '!rounded-[3px]'
-const dataHandleDotShape = '!rounded-full'
+const dataHandleClass = 'node-handle-data'
+const dataHandleIconShape = 'is-icon-shape'
+const dataHandleDotShape = 'is-dot-shape'
 
 // A data handle's flat color (dataHandleClass) and, when its type has one
 // registered, an icon mask on top (iconClassForType) — see lib/typeIcons.ts.
@@ -120,11 +121,7 @@ export function NodeShell({
     // The catalog hasn't loaded yet, or (should not happen if
     // nodes/registry.ts is generated from the same catalog) this type has
     // vanished from it since the page loaded.
-    return (
-      <div className="min-w-[140px] rounded border border-dashed border-edge-strong/40 bg-surface px-3 py-3 text-xs text-ink-muted shadow-sm">
-        {typeKey}
-      </div>
-    )
+    return <div className="node-shell-fallback">{typeKey}</div>
   }
 
   const label = data.label ?? nodeType.name
@@ -153,9 +150,7 @@ export function NodeShell({
   const quadrantColors = data.quadrantColors ?? []
 
   return (
-    <div
-      className={`rounded border border-base02 ${hoverBorderClass} bg-transparent p-1.5 shadow-sm transition-colors`}
-    >
+    <div className={`node-shell ${hoverBorderClass}`}>
       {handles.top.map((handle, index) => (
         <Handle
           key={handle.id}
@@ -191,13 +186,13 @@ export function NodeShell({
           id={controlHandleId('error')}
           type="source"
           position={Position.Right}
-          className={`!rounded-[3px] !border-red !bg-red ${showSmallIcons ? (iconClassForControlPort('error') ?? '') : ''}`.trim()}
+          className={`node-handle-error ${showSmallIcons ? (iconClassForControlPort('error') ?? '') : ''}`.trim()}
           title={errorHandleTitle}
         />
       ) : null}
 
       <div
-        className={`box relative mx-auto overflow-hidden ${shapeColorClass}`}
+        className={`box node-shell-shape-box ${shapeColorClass}`}
         style={SHAPE_BOX_SIZE}
         title={nodeType.description ? `${label} — ${nodeType.description}` : label}
       >
@@ -209,42 +204,31 @@ export function NodeShell({
          * for the shape, edit button, or the box's own title tooltip.
          */}
         <div
-          className={`pointer-events-none absolute top-0 left-0 h-1/2 w-1/2 ${quadrantColors[0] ? accentTintClassForAccent(quadrantColors[0] as Accent, 40) : ''}`}
+          className={`node-shell-quadrant top-left ${quadrantColors[0] ? accentTintClassForAccent(quadrantColors[0] as Accent, 40) : ''}`}
         />
         <div
-          className={`pointer-events-none absolute top-0 right-0 h-1/2 w-1/2 ${quadrantColors[1] ? accentTintClassForAccent(quadrantColors[1] as Accent, 40) : ''}`}
+          className={`node-shell-quadrant top-right ${quadrantColors[1] ? accentTintClassForAccent(quadrantColors[1] as Accent, 40) : ''}`}
         />
         <div
-          className={`pointer-events-none absolute bottom-0 left-0 h-1/2 w-1/2 ${quadrantColors[2] ? accentTintClassForAccent(quadrantColors[2] as Accent, 40) : ''}`}
+          className={`node-shell-quadrant bottom-left ${quadrantColors[2] ? accentTintClassForAccent(quadrantColors[2] as Accent, 40) : ''}`}
         />
         <div
-          className={`pointer-events-none absolute right-0 bottom-0 h-1/2 w-1/2 ${quadrantColors[3] ? accentTintClassForAccent(quadrantColors[3] as Accent, 40) : ''}`}
+          className={`node-shell-quadrant bottom-right ${quadrantColors[3] ? accentTintClassForAccent(quadrantColors[3] as Accent, 40) : ''}`}
         />
         {visual.shapeIsIcon ? (
           <div className={`shape-icon ${visual.shapeClassName} ${visual.shapeExtraClassName ?? ''}`} />
         ) : (
           <div className={`shape ${visual.shapeClassName} ${visual.shapeExtraClassName ?? ''}`} />
         )}
-        <div className="absolute inset-0 flex items-center justify-center px-1.5">
-          <span
-            className="text-center text-[10px] leading-tight font-semibold text-ink-strong"
-            style={{
-              textShadow: '0 1px 2px rgba(0, 0, 0, 0.7)',
-              display: '-webkit-box',
-              WebkitBoxOrient: 'vertical',
-              WebkitLineClamp: 2,
-              overflow: 'hidden',
-            }}
-          >
-            {label}
-          </span>
+        <div className="node-shell-label-wrap">
+          <span className="node-shell-label">{label}</span>
         </div>
         {canEdit ? (
           <button
             type="button"
             onClick={() => setEditing(true)}
             aria-label={`Edit ${label} settings`}
-            className="absolute top-0.5 right-0.5 text-ink-muted transition-colors hover:text-blue"
+            className="node-shell-edit-button"
           >
             <EditIcon />
           </button>
@@ -252,7 +236,7 @@ export function NodeShell({
         {nodeType.exec.effects === 'destructive' ? (
           <span
             title="Destructive: deletes or overwrites existing content"
-            className="absolute top-0.5 left-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red"
+            className="node-shell-destructive-dot"
           />
         ) : null}
       </div>

@@ -1,0 +1,29 @@
+.system-dashboard-tile {
+  border-radius: 8px;
+  border: 1px solid var(--surface-edge);
+  background: var(--surface-raised);
+  padding: 0.75rem 1rem;
+}
+
+.system-dashboard-tile-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-strong);
+}
+
+.system-dashboard-tile-label {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.system-dashboard-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--ink-strong);
+}
+
+.system-dashboard-error-note {
+  font-size: 0.75rem;
+  color: var(--color-red);
+}

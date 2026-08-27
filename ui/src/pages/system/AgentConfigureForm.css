@@ -1,0 +1,66 @@
+.agent-configure-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-blue) 50%, transparent);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+.agent-configure-name {
+  display: flex;
+  max-width: 24rem;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.agent-configure-name-label {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.agent-configure-section-heading {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.agent-configure-section-hint {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.agent-configure-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.agent-configure-row-label {
+  width: 10rem;
+  flex-shrink: 0;
+}
+
+.agent-configure-row-slug {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+  color: var(--ink-strong);
+}
+
+.agent-configure-row-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.agent-configure-row-input {
+  min-width: 0;
+  flex: 1;
+}

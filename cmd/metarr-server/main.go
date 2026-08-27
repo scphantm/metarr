@@ -15,12 +15,11 @@ import (
 	"syscall"
 	"time"
 
+	"connectrpc.com/grpcreflect"
 	"github.com/google/uuid"
 
+	metarrv1connect "Metarr/internal/genproto/metarr/v1/metarrv1connect"
 	"Metarr/internal/server/agentregistry"
-	"Metarr/internal/server/auth"
-	"Metarr/internal/server/chatbot"
-	"Metarr/internal/server/chatbot/pagecontext"
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/server/httpserver"
 	"Metarr/internal/server/listeners"
@@ -29,10 +28,10 @@ import (
 	"Metarr/internal/server/mongostore"
 	"Metarr/internal/server/passwordhash"
 	"Metarr/internal/server/redisstats"
+	"Metarr/internal/server/services"
 	"Metarr/internal/server/session"
 	"Metarr/internal/server/webui"
 	workflowcatalog "Metarr/internal/server/workflow/catalog"
-	"Metarr/internal/server/wsbus"
 	"Metarr/internal/shared/appconfig"
 	"Metarr/internal/shared/config"
 	"Metarr/internal/shared/eventbus"
@@ -122,7 +121,6 @@ func run() error {
 	appConfigRepo := mongostore.NewAppConfigRepo(mongoClient, cfg.MongoDatabase)
 	localDirectoryRepo := mongostore.NewLocalDirectoryRepo(mongoClient, cfg.MongoDatabase)
 	workflowRepo := mongostore.NewWorkflowRepo(mongoClient, cfg.MongoDatabase)
-	chatbotRepo := mongostore.NewChatbotRepo(mongoClient, cfg.MongoDatabase)
 	sessions := session.NewStore(redisClient)
 
 	// The local_directory indexes include the unique index on path that makes a
@@ -132,9 +130,6 @@ func run() error {
 		return err
 	}
 	if err := workflowRepo.EnsureIndexes(connectCtx); err != nil {
-		return err
-	}
-	if err := chatbotRepo.EnsureIndexes(connectCtx); err != nil {
 		return err
 	}
 
@@ -150,16 +145,6 @@ func run() error {
 		"path", workflowCatalogLoader.Path(),
 		"node_types", workflowCatalog.Len(),
 	)
-
-	// The generic page-context registry a chat message's page_key looks up
-	// into — only the workflow page is wired up so far; a future page (e.g.
-	// Search) adds its own Assembler here with no other changes required.
-	pageContextRegistry := pagecontext.Registry{
-		"workflow": pagecontext.NewWorkflowAssembler(workflowCatalog),
-	}
-	chatbotService := chatbot.NewService(chatbotRepo, pageContextRegistry, func() appconfig.ChatbotConfig {
-		return appconfig.Get().Chatbot
-	})
 
 	// Warm the in-memory config singleton from MongoDB before serving any
 	// requests, so it reflects the persisted config from process start.
@@ -281,12 +266,6 @@ func run() error {
 		bootstrapped = true
 	}
 
-	// A database predating the chatbot feature has no Provider set at all.
-	if startupCfg.Chatbot.Provider == "" {
-		startupCfg.Chatbot = appconfig.Default().Chatbot
-		bootstrapped = true
-	}
-
 	// A built-in type added after this database was seeded would otherwise never
 	// reach it, since the seed above only fires on an empty table. Note this
 	// also means a built-in deleted through the API comes back on the next
@@ -368,26 +347,121 @@ func run() error {
 		go listeners.RunLogForwardListener(ctx, pubsubBus, forwarder, logger)
 	}
 
-	// The streaming layer. Topics are registered here rather than inside the
-	// hub so what the server can stream is visible in one place; each
-	// producer only runs while a client is subscribed to it.
-	hub := wsbus.New(ctx, logger)
-	hub.Register("stats.redis", auth.GroupConfig, time.Second, func(ctx context.Context) (any, error) {
-		return statsCollector.Collect(ctx)
-	})
-	hub.Register("agents.presence", auth.GroupConfig, 2*time.Second, func(ctx context.Context) (any, error) {
-		return agentRegistry.List(ctx, appconfig.Get())
-	})
-	hub.Register("logging.tail", auth.GroupConfig, 2*time.Second, func(ctx context.Context) (any, error) {
-		return logTailBuffer.Recent(), nil
-	})
+	// The streaming layer: stats.redis, agents.presence and logging.tail all
+	// migrated to their own server-streaming gRPC-Web RPCs — see
+	// metarr.v1.StatsService.Stream, metarr.v1.AgentService.StreamPresence,
+	// metarr.v1.LoggingService.StreamTail (internal/server/services), mounted
+	// via connectServices below. wsbus.Hub and GET /api/ws are retired.
 
-	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, workflowRepo, workflowCatalog, chatbotRepo, chatbotService, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
+	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
 	uiFS, uiEmbedded := webui.FS()
 	if uiEmbedded {
 		logger.Info("ui embed", "enabled", true)
 	}
-	router := httpserver.NewRouter(apiHandlers, hub, sessions, logger, uiFS)
+
+	// gRPC-Web (Connect) services, migrated off internal/server/handlers one
+	// domain at a time — see the REST->gRPC-Web migration plan. Each entry's
+	// path comes from its generated NewXServiceHandler; router.go just mounts
+	// whatever's in this slice, so a new domain never touches router.go.
+	connectServices := []httpserver.ConnectService{
+		newConnectService[metarrv1connect.SonarrInterfaceServiceHandler](
+			metarrv1connect.NewSonarrInterfaceServiceHandler,
+			&services.SonarrInterfaceServer{Handlers: apiHandlers},
+			sessions,
+			services.SonarrInterfaceAuthPolicies,
+		),
+		newConnectService[metarrv1connect.AuthServiceHandler](
+			metarrv1connect.NewAuthServiceHandler,
+			&services.AuthServer{Handlers: apiHandlers},
+			sessions,
+			services.AuthAuthPolicies,
+			httpserver.NewConnectRateLimitInterceptor(map[string]time.Duration{
+				"Login":  httpserver.ThrottledInterval,
+				"Logout": httpserver.ThrottledInterval,
+			}),
+		),
+		newConnectService[metarrv1connect.ConfigServiceHandler](
+			metarrv1connect.NewConfigServiceHandler,
+			&services.ConfigServer{Handlers: apiHandlers},
+			sessions,
+			services.ConfigAuthPolicies,
+		),
+		newConnectService[metarrv1connect.AgentServiceHandler](
+			metarrv1connect.NewAgentServiceHandler,
+			&services.AgentServer{Handlers: apiHandlers},
+			sessions,
+			services.AgentAuthPolicies,
+		),
+		newConnectService[metarrv1connect.DirectoryScannerServiceHandler](
+			metarrv1connect.NewDirectoryScannerServiceHandler,
+			&services.DirectoryScannerServer{Handlers: apiHandlers},
+			sessions,
+			services.DirectoryScannerAuthPolicies,
+		),
+		newConnectService[metarrv1connect.LoggingServiceHandler](
+			metarrv1connect.NewLoggingServiceHandler,
+			&services.LoggingServer{Handlers: apiHandlers},
+			sessions,
+			services.LoggingAuthPolicies,
+		),
+		newConnectService[metarrv1connect.TaskServiceHandler](
+			metarrv1connect.NewTaskServiceHandler,
+			&services.TaskServer{Handlers: apiHandlers},
+			sessions,
+			services.TaskAuthPolicies,
+		),
+		newConnectService[metarrv1connect.WorkflowCatalogServiceHandler](
+			metarrv1connect.NewWorkflowCatalogServiceHandler,
+			&services.WorkflowCatalogServer{Handlers: apiHandlers},
+			sessions,
+			services.WorkflowCatalogAuthPolicies,
+		),
+		newConnectService[metarrv1connect.LocalDirectoryServiceHandler](
+			metarrv1connect.NewLocalDirectoryServiceHandler,
+			&services.LocalDirectoryServer{Handlers: apiHandlers},
+			sessions,
+			services.LocalDirectoryAuthPolicies,
+		),
+		newConnectService[metarrv1connect.WorkflowServiceHandler](
+			metarrv1connect.NewWorkflowServiceHandler,
+			&services.WorkflowServer{Handlers: apiHandlers},
+			sessions,
+			services.WorkflowAuthPolicies,
+		),
+		newConnectService[metarrv1connect.StatsServiceHandler](
+			metarrv1connect.NewStatsServiceHandler,
+			&services.StatsServer{Handlers: apiHandlers},
+			sessions,
+			services.StatsAuthPolicies,
+		),
+	}
+
+	// gRPC server reflection — lets grpcurl/grpcui/Postman introspect and call
+	// any migrated service without needing the .proto files locally. One
+	// name per service registered above; grows the same way connectServices
+	// does as domains migrate. Both v1 and v1alpha are mounted since not
+	// every client has caught up to the finalized v1 reflection API yet.
+	reflector := grpcreflect.NewStaticReflector(
+		metarrv1connect.SonarrInterfaceServiceName,
+		metarrv1connect.AuthServiceName,
+		metarrv1connect.ConfigServiceName,
+		metarrv1connect.AgentServiceName,
+		metarrv1connect.DirectoryScannerServiceName,
+		metarrv1connect.LoggingServiceName,
+		metarrv1connect.TaskServiceName,
+		metarrv1connect.WorkflowCatalogServiceName,
+		metarrv1connect.LocalDirectoryServiceName,
+		metarrv1connect.WorkflowServiceName,
+		metarrv1connect.StatsServiceName,
+	)
+	reflectPathV1, reflectHandlerV1 := grpcreflect.NewHandlerV1(reflector)
+	reflectPathV1Alpha, reflectHandlerV1Alpha := grpcreflect.NewHandlerV1Alpha(reflector)
+	connectServices = append(connectServices,
+		httpserver.ConnectService{Path: reflectPathV1, Handler: reflectHandlerV1},
+		httpserver.ConnectService{Path: reflectPathV1Alpha, Handler: reflectHandlerV1Alpha},
+	)
+
+	router := httpserver.NewRouter(apiHandlers, sessions, logger, uiFS, connectServices)
 	server := httpserver.New(cfg.Host, cfg.Port, router)
 
 	serverErr := make(chan error, 1)

@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+import "metarr/v1/common.proto";
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// TaskServiceRunSonarrCacheDataRequest mirrors the REST TaskRequest body —
+// command must be "run", kept as an explicit field (rather than a bare
+// trigger) so the wire shape matches what the handler already validates.
+message TaskServiceRunSonarrCacheDataRequest {
+  string command = 1;
+}
+
+message TaskServiceRunDirectoryScanRequest {
+  string scanner_slug = 1;
+  string command = 2;
+}
+
+// TaskService fires the same durable event-bus commands the REST /api/tasks
+// routes did — see internal/server/handlers/tasks.go for the async listener
+// side, which is unchanged by this migration.
+service TaskService {
+  rpc RunSonarrCacheData(TaskServiceRunSonarrCacheDataRequest) returns (metarr.v1.AcceptedResponse);
+  rpc RunDirectoryScan(TaskServiceRunDirectoryScanRequest) returns (metarr.v1.AcceptedResponse);
+}

@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+message WorkflowCatalogServiceGetRequest {}
+
+// WorkflowCatalogServiceGetResponse carries the same JSON
+// internal/server/handlers/workflow_catalog.go's CatalogResponse already
+// produced — node types (with their sockets, settings, exec specs) and the
+// transform registry. Kept opaque rather than modeled field-for-field: it's
+// read-only, changes only on redeploy, deeply nested, and the frontend
+// already treats it as loosely-typed JSON (catalogTypes.ts is hand-written
+// against the JSON shape, not generated) — same reasoning as
+// local_directories.proto's opaque records, decided together.
+message WorkflowCatalogServiceGetResponse {
+  bytes catalog_json = 1;
+}
+
+// WorkflowCatalogServiceValidateRequest carries a workflow.Graph as the same
+// opaque bytes workflows.proto's Workflow message will carry (Step 7) —
+// Node.Extra must survive a round-trip losslessly, which a modeled proto
+// message can't guarantee, so the graph is never decoded into a typed
+// message on the wire at all.
+message WorkflowCatalogServiceValidateRequest {
+  bytes graph_json = 1;
+}
+
+// Diagnostic mirrors internal/server/workflow/validate.Diagnostic — small,
+// structured, and painted directly onto the canvas, so unlike the catalog
+// and the graph it gets real fields rather than opaque bytes.
+message Diagnostic {
+  string severity = 1;
+  string code = 2;
+  string message = 3;
+  repeated string node_ids = 4;
+  repeated string edge_ids = 5;
+  repeated string witness_path = 6;
+}
+
+message WorkflowCatalogServiceValidateResponse {
+  repeated Diagnostic diagnostics = 1;
+  bool runnable = 2;
+}
+
+service WorkflowCatalogService {
+  rpc Get(WorkflowCatalogServiceGetRequest) returns (WorkflowCatalogServiceGetResponse);
+  rpc Validate(WorkflowCatalogServiceValidateRequest) returns (WorkflowCatalogServiceValidateResponse);
+}

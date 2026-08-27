@@ -8,6 +8,7 @@ import { useCatalogEntry, useTransforms } from '../useCatalogEntry'
 import { useIconZoomVisibility } from '../useIconZoomVisibility'
 import { EdgeSettingsEditor } from './EdgeSettingsEditor'
 import { TransformPicker } from './TransformPicker'
+import './DataEdge.css'
 
 // The unit direction a handle's own position "faces" — used to slide an
 // endpoint icon along the edge, away from its node, toward the middle (see
@@ -136,7 +137,7 @@ export function DataEdge({
             <button
               type="button"
               onClick={() => setPickerOpen(true)}
-              className="rounded border border-edge-strong/50 bg-surface px-1.5 py-0.5 font-mono text-[10px] text-ink-strong shadow-sm hover:border-blue"
+              className="data-edge-chip-button"
             >
               {data.transform}
             </button>
@@ -151,8 +152,8 @@ export function DataEdge({
               style={{ '--edge-x': `${sourceX}px`, '--edge-y': `${sourceY}px`, '--edge-ux': sourceUnit.ux, '--edge-uy': sourceUnit.uy } as CSSProperties}
               className="data-edge-endpoint"
             >
-              <span className={`${sourceIconClass} block h-2.5 w-2.5`} />
-              {activeTransform?.implies_iteration ? <span className={`${ITERATE_ICON_CLASS} block h-2.5 w-2.5`} /> : null}
+              <span className={`${sourceIconClass} data-edge-icon`} />
+              {activeTransform?.implies_iteration ? <span className={`${ITERATE_ICON_CLASS} data-edge-icon`} /> : null}
             </div>
           ) : null}
           {targetIconClass ? (
@@ -160,16 +161,16 @@ export function DataEdge({
               style={{ '--edge-x': `${targetX}px`, '--edge-y': `${targetY}px`, '--edge-ux': targetUnit.ux, '--edge-uy': targetUnit.uy } as CSSProperties}
               className="data-edge-endpoint"
             >
-              <span className={`${targetIconClass} block h-2.5 w-2.5`} />
+              <span className={`${targetIconClass} data-edge-icon`} />
               {connectionInfo?.typeUnsafe ? (
                 <span
-                  className={`${TYPE_UNSAFE_ICON_CLASS} block h-2.5 w-2.5 pointer-events-auto`}
+                  className={`${TYPE_UNSAFE_ICON_CLASS} data-edge-icon pointer-events-auto`}
                   title="Not rigidly type safe — the connected value's actual type isn't guaranteed to match."
                 />
               ) : null}
               {isRecursive ? (
                 <span
-                  className={`${RECURSIVE_ICON_CLASS} block h-2.5 w-2.5 pointer-events-auto`}
+                  className={`${RECURSIVE_ICON_CLASS} data-edge-icon pointer-events-auto`}
                   title="Path destinations are recursive"
                 />
               ) : null}

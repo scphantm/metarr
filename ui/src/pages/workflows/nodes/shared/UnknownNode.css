@@ -1,0 +1,27 @@
+.unknown-node {
+  min-width: 160px;
+  border-radius: 4px;
+  border: 2px dashed color-mix(in srgb, var(--color-red) 60%, transparent);
+  background: var(--surface-raised);
+  padding: 0.5rem 0.75rem;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 15%);
+}
+
+.unknown-node-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-red);
+}
+
+.unknown-node-type {
+  margin-top: 0.125rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  color: var(--ink-muted);
+}
+
+.unknown-node-label {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--ink-strong);
+}

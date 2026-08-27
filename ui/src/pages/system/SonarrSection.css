@@ -1,0 +1,41 @@
+.sonarr-instance-card {
+  border: 1px solid var(--surface-edge);
+  border-radius: 6px;
+  padding: 0 1rem;
+}
+
+.sonarr-instance-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--surface-edge) 60%, transparent);
+  padding: 0.5rem 0;
+}
+
+.sonarr-instance-slug {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--ink-strong);
+}
+
+.sonarr-root-dir-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sonarr-root-dir-field {
+  min-width: 0;
+  flex: 1;
+}
+
+.new-sonarr-instance {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  border: 1px dashed color-mix(in srgb, var(--color-blue) 60%, transparent);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}

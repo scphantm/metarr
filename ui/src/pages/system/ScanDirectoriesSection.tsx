@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Input, Select, Space, Typography } from 'antd'
 
 import {
   queryKeys,
@@ -11,6 +12,7 @@ import {
   EditableSelect,
   EditableText,
 } from '../../components/Editable'
+import './ScanDirectoriesSection.css'
 
 /*
  * Scan directories are keyed by scanner_slug, which the upsert endpoint matches
@@ -43,16 +45,13 @@ export function ScanDirectoriesSection({
         </EmptyState>
       ) : null}
 
-      <div className="flex flex-col gap-3">
+      <Space direction="vertical" size={12} style={{ width: '100%' }}>
         {directories.map((directory) => (
-          <div
-            key={directory.scanner_slug}
-            className="rounded border border-edge px-4 py-2"
-          >
-            <div className="flex items-center justify-between gap-3 border-b border-edge/60 pb-2">
-              <span className="font-mono text-sm text-ink-strong">
+          <div key={directory.scanner_slug} className="scan-directory-card">
+            <div className="scan-directory-card-header">
+              <Typography.Text className="scan-directory-slug">
                 {directory.scanner_slug}
-              </span>
+              </Typography.Text>
               <Button
                 variant="danger"
                 onClick={() => {
@@ -98,7 +97,7 @@ export function ScanDirectoriesSection({
             </Row>
           </div>
         ))}
-      </div>
+      </Space>
 
       {adding ? (
         <NewScanDirectory
@@ -150,42 +149,41 @@ function NewScanDirectory({
   }
 
   return (
-    <div className="mt-3 flex flex-col gap-2 rounded border border-dashed border-blue/60 px-4 py-3">
-      <input
+    <div className="new-scan-directory">
+      <Input
         autoFocus
         value={slug}
         placeholder="Slug, e.g. movies-4k"
+        className="editable-field-mono"
         onChange={(event) => setSlug(event.target.value)}
-        className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 font-mono text-sm text-ink-strong focus:border-blue"
       />
-      <input
+      <Input
         value={directory}
         placeholder="/media/movies"
+        className="editable-field-mono"
         onChange={(event) => setDirectory(event.target.value)}
-        className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 font-mono text-sm text-ink-strong focus:border-blue"
       />
-      <select
+      <Select
         value={scanType}
-        onChange={(event) => setScanType(event.target.value)}
-        className="w-48 rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong"
-      >
-        {directoryTypes.map((type) => (
-          <option key={type} value={type}>
-            {type}
-          </option>
-        ))}
-      </select>
+        style={{ width: 192 }}
+        onChange={setScanType}
+        options={directoryTypes.map((type) => ({ value: type, label: type }))}
+      />
 
-      {error ? <span className="text-xs text-red">{error}</span> : null}
+      {error ? (
+        <Typography.Text type="danger" style={{ fontSize: 12 }}>
+          {error}
+        </Typography.Text>
+      ) : null}
 
-      <div className="flex gap-2">
+      <Space>
         <Button variant="primary" onClick={() => void submit()}>
           Add
         </Button>
         <Button variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
-      </div>
+      </Space>
     </div>
   )
 }

@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import { Badge, Button, Space, Typography } from 'antd'
+import { DownOutlined, RightOutlined } from '@ant-design/icons'
 
 import type { Diagnostic } from './catalogTypes'
+import './DiagnosticsPanel.css'
 
 /*
  * Renders the debounced POST /api/workflows/validate result as a collapsible
@@ -28,74 +31,72 @@ export function DiagnosticsPanel({
   const warningCount = diagnostics.length - errorCount
 
   return (
-    <div className="w-72 rounded-lg border border-edge bg-surface shadow-lg">
+    <div className="diagnostics-panel">
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs font-semibold text-ink-strong"
+        className="diagnostics-panel-header"
       >
         <span>Diagnostics</span>
-        <span className="flex items-center gap-1.5">
-          {errorCount > 0 ? (
-            <span className="rounded-full bg-red/15 px-1.5 py-0.5 text-[10px] font-medium text-red">{errorCount}</span>
+        <Space size={6} align="center">
+          {errorCount > 0 ? <Badge count={errorCount} color="var(--color-red)" /> : null}
+          {warningCount > 0 ? <Badge count={warningCount} color="var(--color-yellow)" /> : null}
+          {diagnostics.length === 0 ? (
+            <Typography.Text type="secondary" style={{ fontSize: 10 }}>
+              clean
+            </Typography.Text>
           ) : null}
-          {warningCount > 0 ? (
-            <span className="rounded-full bg-yellow/15 px-1.5 py-0.5 text-[10px] font-medium text-yellow">
-              {warningCount}
-            </span>
-          ) : null}
-          {diagnostics.length === 0 ? <span className="text-[10px] text-ink-muted">clean</span> : null}
-          <span className="text-ink-muted">{open ? '▾' : '▸'}</span>
-        </span>
+          {open ? <DownOutlined style={{ fontSize: 10 }} /> : <RightOutlined style={{ fontSize: 10 }} />}
+        </Space>
       </button>
 
       {open ? (
-        <div className="max-h-64 overflow-y-auto border-t border-edge/60">
+        <div className="diagnostics-panel-body">
           {diagnostics.length === 0 ? (
-            <p className="px-3 py-3 text-xs text-ink-muted">No issues.</p>
+            <Typography.Text type="secondary" className="diagnostics-panel-empty">
+              No issues.
+            </Typography.Text>
           ) : (
-            <ul className="flex flex-col divide-y divide-edge/60">
+            <ul className="diagnostics-panel-list">
               {diagnostics.map((diagnostic, index) => (
                 <li
                   key={`${diagnostic.code}-${index}`}
-                  className="px-3 py-2"
+                  className="diagnostics-panel-item"
                   onMouseEnter={() => onHoverDiagnostic(diagnostic.edge_ids ?? [])}
                   onMouseLeave={() => onHoverDiagnostic([])}
                 >
-                  <div className="flex items-start gap-1.5">
+                  <div className="diagnostics-panel-item-row">
                     <span
-                      className={`mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full ${
-                        diagnostic.severity === 'error' ? 'bg-red' : 'bg-yellow'
-                      }`}
+                      className="diagnostics-panel-item-dot"
+                      style={{
+                        backgroundColor:
+                          diagnostic.severity === 'error' ? 'var(--color-red)' : 'var(--color-yellow)',
+                      }}
                     />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs text-ink-strong">{diagnostic.message}</p>
+                    <div className="diagnostics-panel-item-main">
+                      <p className="diagnostics-panel-item-message">{diagnostic.message}</p>
                       {diagnostic.node_ids && diagnostic.node_ids.length > 0 ? (
-                        <div className="mt-1 flex flex-wrap gap-1">
+                        <div className="diagnostics-panel-node-chips">
                           {diagnostic.node_ids.map((nodeId) => (
-                            <button
+                            <Button
                               key={nodeId}
-                              type="button"
+                              size="small"
                               onClick={() => onSelectNode(nodeId)}
-                              className="rounded border border-edge-strong/40 bg-canvas px-1.5 py-0.5 text-[10px] text-ink-strong hover:border-blue"
+                              className="diagnostics-panel-node-chip"
                             >
                               {nodeLabel(nodeId)}
-                            </button>
+                            </Button>
                           ))}
                         </div>
                       ) : null}
                       {diagnostic.witness_path && diagnostic.witness_path.length > 0 ? (
-                        <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] text-ink-muted">
+                        <div className="diagnostics-panel-witness-path">
                           {diagnostic.witness_path.map((nodeId, pathIndex) => (
-                            <span key={`${nodeId}-${pathIndex}`} className="flex items-center gap-1">
+                            <span key={`${nodeId}-${pathIndex}`} className="diagnostics-panel-witness-step">
                               {pathIndex > 0 ? <span>→</span> : null}
-                              <button
-                                type="button"
-                                onClick={() => onSelectNode(nodeId)}
-                                className="underline decoration-dotted hover:text-blue"
-                              >
+                              <Typography.Link onClick={() => onSelectNode(nodeId)} style={{ fontSize: 10 }}>
                                 {nodeLabel(nodeId)}
-                              </button>
+                              </Typography.Link>
                             </span>
                           ))}
                         </div>

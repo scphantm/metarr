@@ -1,0 +1,20 @@
+.configuration-section-link {
+  display: block;
+  text-decoration: none;
+}
+
+.configuration-section-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-strong);
+}
+
+.configuration-section-description {
+  display: block;
+  margin-top: 0.25rem;
+  max-width: 42rem;
+  font-size: 0.875rem;
+}

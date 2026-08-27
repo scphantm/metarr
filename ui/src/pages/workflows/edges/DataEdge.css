@@ -1,0 +1,21 @@
+.data-edge-chip-button {
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--surface-edge-strong) 50%, transparent);
+  background: var(--surface-raised);
+  padding: 0.125rem 0.375rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  color: var(--ink-strong);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 15%);
+  cursor: pointer;
+}
+
+.data-edge-chip-button:hover {
+  border-color: var(--color-blue);
+}
+
+.data-edge-icon {
+  display: block;
+  height: 10px;
+  width: 10px;
+}

@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { Input, Space, Typography } from 'antd'
 
 import { queryKeys, useUpdateAdmin } from '../../api/queries'
-import type { AdminUser } from '../../api/types'
+import type { AdminUser } from '../../gen/metarr/v1/config_pb'
 import { Button, Card, Row } from '../../components/Card'
 import { EditableText } from '../../components/Editable'
 import { SaveIndicator } from '../../components/SaveState'
+import './AdminSection.css'
 
 /*
  * The admin account. Username and email edit in place; the password does not —
@@ -84,30 +86,29 @@ function PasswordChanger() {
 
   if (!open) {
     return (
-      <div className="flex items-center gap-3">
+      <Space align="center">
         <Button onClick={() => setOpen(true)}>Change password</Button>
         {done ? (
           <SaveIndicator state="pending" />
         ) : (
-          <span className="text-xs text-ink-muted">••••••••</span>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            ••••••••
+          </Typography.Text>
         )}
-      </div>
+      </Space>
     )
   }
 
   return (
-    <div className="flex max-w-sm flex-col gap-2">
-      <input
-        type="password"
+    <div className="admin-password-form">
+      <Input.Password
         autoFocus
         value={password}
         placeholder="New password"
         autoComplete="new-password"
         onChange={(event) => setPassword(event.target.value)}
-        className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong focus:border-blue"
       />
-      <input
-        type="password"
+      <Input.Password
         value={confirmation}
         placeholder="Confirm password"
         autoComplete="new-password"
@@ -116,25 +117,20 @@ function PasswordChanger() {
           if (event.key === 'Enter') void submit()
           if (event.key === 'Escape') setOpen(false)
         }}
-        className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong focus:border-blue"
       />
-      {error ? <span className="text-xs text-red">{error}</span> : null}
-      <div className="flex gap-2">
+      {error ? (
+        <Typography.Text type="danger" style={{ fontSize: 12 }}>
+          {error}
+        </Typography.Text>
+      ) : null}
+      <Space>
         <Button variant="primary" onClick={() => void submit()}>
-          Update password
+          Save password
         </Button>
-        <Button
-          variant="ghost"
-          onClick={() => {
-            setOpen(false)
-            setError(null)
-            setPassword('')
-            setConfirmation('')
-          }}
-        >
+        <Button variant="ghost" onClick={() => setOpen(false)}>
           Cancel
         </Button>
-      </div>
+      </Space>
     </div>
   )
 }

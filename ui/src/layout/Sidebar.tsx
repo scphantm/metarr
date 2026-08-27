@@ -1,64 +1,79 @@
 import type { ReactNode } from 'react'
+import { Button, Segmented, Typography } from 'antd'
+import { PushpinFilled, PushpinOutlined } from '@ant-design/icons'
 
 import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../theme/ThemeContext'
+import './Sidebar.css'
 
 /*
- * The right column. Pages fill it through the SidebarContent slot; what lives
- * here permanently is the session and the theme switch.
+ * The right column. Pages fill it through the SidebarContent slot; what
+ * lives here permanently is the pin control, the session, and the theme
+ * switch.
  */
-
-export function Sidebar({ children }: { children?: ReactNode }) {
+export function Sidebar({
+  children,
+  pinned,
+  onTogglePin,
+}: {
+  children?: ReactNode
+  pinned?: boolean
+  onTogglePin?: () => void
+}) {
   const { theme, toggleTheme } = useTheme()
   const { username, expiresAt, logout } = useAuth()
 
   return (
-    <aside
-      className="flex h-full flex-col gap-6 overflow-y-auto p-4"
-      aria-label="Sidebar"
-    >
-      <section>
-        <h2 className="mb-2 text-xs font-semibold tracking-wide text-ink-muted uppercase">
+    <aside className="sidebar" aria-label="Sidebar">
+      <div className="sidebar-header">
+        <Typography.Text type="secondary" className="sidebar-header-label">
+          Panel
+        </Typography.Text>
+        {onTogglePin ? (
+          <Button
+            type="text"
+            size="small"
+            icon={pinned ? <PushpinFilled /> : <PushpinOutlined />}
+            onClick={onTogglePin}
+            aria-label={pinned ? 'Unpin panel' : 'Pin panel open'}
+            title={pinned ? 'Unpin' : 'Pin open'}
+          />
+        ) : null}
+      </div>
+
+      <section className="sidebar-section">
+        <Typography.Text type="secondary" className="sidebar-section-title">
           Session
-        </h2>
-        <div className="rounded border border-edge bg-surface px-3 py-2.5 text-sm">
-          <div className="text-ink-strong">{username ?? 'Signed in'}</div>
+        </Typography.Text>
+        <div className="sidebar-session-card">
+          <div className="sidebar-session-name">{username ?? 'Signed in'}</div>
           {expiresAt ? (
-            <div className="mt-0.5 text-xs text-ink-muted">
+            <Typography.Text type="secondary" className="sidebar-session-expiry">
               Expires {new Date(expiresAt).toLocaleTimeString()}
-            </div>
+            </Typography.Text>
           ) : null}
-          <button
-            type="button"
-            onClick={() => void logout()}
-            className="mt-2 text-xs text-ink-muted underline underline-offset-2 hover:text-red"
-          >
+          <Button type="link" size="small" danger onClick={() => void logout()} className="sidebar-signout">
             Sign out
-          </button>
+          </Button>
         </div>
       </section>
 
-      <section>
-        <h2 className="mb-2 text-xs font-semibold tracking-wide text-ink-muted uppercase">
+      <section className="sidebar-section">
+        <Typography.Text type="secondary" className="sidebar-section-title">
           Appearance
-        </h2>
-        <div className="flex gap-1 rounded border border-edge bg-surface p-1">
-          {(['dark', 'light'] as const).map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => option !== theme && toggleTheme()}
-              className={`flex-1 rounded px-2 py-1.5 text-xs capitalize transition-colors ${
-                theme === option
-                  ? 'bg-surface-hover text-ink-strong'
-                  : 'text-ink-muted hover:text-ink-strong'
-              }`}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-        <p className="mt-1.5 text-xs text-ink-muted">Solarized</p>
+        </Typography.Text>
+        <Segmented
+          block
+          value={theme}
+          onChange={(value) => value !== theme && toggleTheme()}
+          options={[
+            { label: 'Dark', value: 'dark' },
+            { label: 'Light', value: 'light' },
+          ]}
+        />
+        <Typography.Text type="secondary" className="sidebar-appearance-note">
+          Solarized
+        </Typography.Text>
       </section>
 
       {children}

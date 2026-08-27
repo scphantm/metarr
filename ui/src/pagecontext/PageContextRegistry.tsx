@@ -10,32 +10,30 @@ import {
 } from 'react'
 
 /*
- * The generic mechanism by which whichever page is currently mounted tells
- * the chat widget what context it can supply — not chatbot- or
- * workflow-specific. A page calls useRegisterPageContext(pageKey, collect,
- * applyToolResult?) on mount; the chat widget reads useActivePageContext()
- * to know what's available right now, calls collect() at send time, and
- * (if the page registered one) calls applyToolResult() when the user
- * approves a proposed tool call — e.g. the workflow page's
- * propose_workflow_edit, applied to the live canvas from
- * ProposedEditCard.tsx, wherever it's rendered (inside the globally-mounted
- * chat widget, not the page's own component tree).
+ * A generic mechanism by which whichever page is currently mounted can
+ * publish context (and an optional tool-result handler) for some other
+ * globally-mounted consumer to read. A page calls
+ * useRegisterPageContext(pageKey, collect, applyToolResult?) on mount;
+ * a consumer reads useActivePageContext() to know what's available right
+ * now, calls collect() when it needs the data, and (if the page registered
+ * one) calls applyToolResult() to hand a result back to the page.
  *
  * Both are supplier/handler functions, not data: calling them always
- * reflects live state (e.g. the workflow canvas's current, possibly-unsaved
- * graph) rather than a snapshot taken at registration time — a page can
- * pass fresh closures on every render without that re-triggering
- * registration, because the registered functions are stable per-mount
- * wrappers that read the latest closures through refs, and those refs are
- * only ever written inside an effect (never during render, which React's
- * rules of hooks forbid).
+ * reflects live state rather than a snapshot taken at registration time —
+ * a page can pass fresh closures on every render without that
+ * re-triggering registration, because the registered functions are stable
+ * per-mount wrappers that read the latest closures through refs, and those
+ * refs are only ever written inside an effect (never during render, which
+ * React's rules of hooks forbid).
  *
  * Only one page is ever mounted at a time (this is routing, not tabs), so
  * "the active entry" is unambiguous — a page that registers nothing (most
- * pages, today) just leaves the chat widget with no page context, sending
- * general-purpose messages only. If the user navigates away before acting
- * on a tool call, applyToolResult simply becomes unavailable again — there
- * is nothing left to apply it to.
+ * pages, today) just leaves consumers with no page context. If the user
+ * navigates away before a tool result is applied, applyToolResult simply
+ * becomes unavailable again — there is nothing left to apply it to.
+ *
+ * No current consumer is registered — this is currently unused generic
+ * infrastructure, kept for a future page/feature to adopt.
  */
 
 type ActiveEntry = {

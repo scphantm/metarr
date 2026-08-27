@@ -9,15 +9,17 @@ import {
 } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
-import { getApiKey, onUnauthorized, request, setApiKey } from '../api/client'
-import { resetSocket } from '../api/socket'
-import type { LoginRequest, LoginResponse } from '../api/types'
+import { authClient } from '../api/clients'
+import { getApiKey, onUnauthorized, setApiKey } from '../api/client'
+import { resetStreams } from '../api/streams'
+
+type LoginCredentials = { username: string; password: string }
 
 type AuthContextValue = {
   isAuthenticated: boolean
   username: string | null
   expiresAt: number | null
-  login: (credentials: LoginRequest) => Promise<void>
+  login: (credentials: LoginCredentials) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -46,10 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
 
   const clearSession = useCallback(() => {
-    // The socket authenticated with the key being discarded, so it has to go
-    // too — otherwise it keeps streaming as the previous user, and reconnects
-    // with a key that is no longer valid.
-    resetSocket()
+    // Every stream authenticated with the key being discarded, so they have
+    // to go too — otherwise they keep streaming as the previous user, and
+    // reconnect with a key that is no longer valid.
+    resetStreams()
     setApiKey(null)
     setIsAuthenticated(false)
     setUsername(null)
@@ -69,15 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => onUnauthorized(clearSession), [clearSession])
 
   const login = useCallback(
-    async (credentials: LoginRequest) => {
-      const response = await request<LoginResponse>('/api/auth/login', {
-        method: 'POST',
-        body: credentials,
-        anonymous: true,
-      })
+    async (credentials: LoginCredentials) => {
+      const response = await authClient.login(credentials)
 
-      setApiKey(response.api_key)
-      const expiry = Date.now() + response.expires_in_seconds * 1000
+      setApiKey(response.apiKey)
+      const expiry = Date.now() + response.expiresInSeconds * 1000
       setIsAuthenticated(true)
       setUsername(credentials.username)
       setExpiresAt(expiry)
@@ -93,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await request('/api/auth/logout', { method: 'POST' })
+      await authClient.logout({})
     } catch {
       // The key is being discarded either way — a failed revoke should not
       // strand someone in a session they asked to leave.

@@ -1,0 +1,64 @@
+.ui-card-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.ui-card-description {
+  display: block;
+  margin-top: 0.25rem;
+  max-width: 42rem;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.ui-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--surface-edge) 60%, transparent);
+  padding: 0.75rem 0;
+}
+
+.ui-row:last-child {
+  border-bottom: none;
+}
+
+.ui-row-label-col {
+  flex-shrink: 0;
+}
+
+.ui-row-label {
+  font-size: 0.875rem;
+  color: var(--ink-strong);
+}
+
+.ui-row-hint {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+}
+
+.ui-row-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.ui-empty-state {
+  padding: 1.5rem 0;
+}
+
+@media (width >= 40rem) {
+  .ui-row {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 1rem;
+  }
+
+  .ui-row-label-col {
+    width: 13rem;
+  }
+}

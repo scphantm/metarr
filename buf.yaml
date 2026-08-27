@@ -1,0 +1,16 @@
+version: v2
+modules:
+  - path: proto
+lint:
+  use:
+    - STANDARD
+  except:
+    # Deliberate: Upsert/Delete RPCs across every domain share the one
+    # AcceptedResponse message (mirrors the existing Go handlers' shared
+    # AcceptedResponse struct, see proto/metarr/v1/common.proto) rather than
+    # each minting its own identical-shaped wrapper type.
+    - RPC_REQUEST_RESPONSE_UNIQUE
+    - RPC_RESPONSE_STANDARD_NAME
+breaking:
+  use:
+    - FILE

@@ -40,8 +40,8 @@ export type Accent = 'red' | 'orange' | 'yellow' | 'green' | 'cyan' | 'blue' | '
 
 export type NodeVisual = {
   shapeClassName: string
-  // Tailwind utility appended alongside the shape class — e.g. rotate-180
-  // for Parallel, which reuses Join's .merge shape flipped.
+  // A CSS class appended alongside the shape class — e.g. a rotation
+  // utility for a node that reuses another's shape flipped.
   shapeExtraClassName?: string
   shapeAccent: Accent
   // Independent of shapeAccent, even though every entry below currently
@@ -56,50 +56,15 @@ export type NodeVisual = {
   shapeIsIcon?: boolean
 }
 
-// Literal so Tailwind's scanner can find every possible result written out
-// as source text — a template-literal-constructed class name is invisible
-// to Tailwind's scanner. Three separate maps because each is a different
-// Tailwind/CSS utility family, not three copies of one idea.
-const BORDER_CLASS: Record<Accent, string> = {
-  red: 'border-red',
-  orange: 'border-orange',
-  yellow: 'border-yellow',
-  green: 'border-green',
-  cyan: 'border-cyan',
-  blue: 'border-blue',
-  violet: 'border-violet',
-  magenta: 'border-magenta',
-}
-
-// The /40 is Tailwind's own opacity modifier, applied to border-color —
-// no new CSS needed here the way the background tints below did, since
-// Tailwind already generates an opacity-mixed variant for any color
-// utility, border-color included.
-const HOVER_BORDER_CLASS: Record<Accent, string> = {
-  red: 'hover:border-red/40',
-  orange: 'hover:border-orange/40',
-  yellow: 'hover:border-yellow/40',
-  green: 'hover:border-green/40',
-  cyan: 'hover:border-cyan/40',
-  blue: 'hover:border-blue/40',
-  violet: 'hover:border-violet/40',
-  magenta: 'hover:border-magenta/40',
-}
-
-// Unlike the two maps above, these are safe to build from a template —
-// color-<token> and accent-<token>-<opacity> are both hand-written classes
-// in index.css, not Tailwind utilities, so they were never subject to the
-// "must appear verbatim in source" scanning rule.
+// color-<token>, hover-border-<token>, and accent-<token>-<opacity> are all
+// hand-written classes in index.css, so — unlike when these were Tailwind
+// utilities — building the name from a template is fine here.
 export function shapeColorClassForAccent(accent: Accent): string {
   return `color-${accent}`
 }
 
-export function borderColorClassForAccent(accent: Accent): string {
-  return BORDER_CLASS[accent]
-}
-
 export function hoverBorderColorClassForAccent(accent: Accent): string {
-  return HOVER_BORDER_CLASS[accent]
+  return `hover-border-${accent}`
 }
 
 // The 32 accent-<accent>-<opacity> tints defined in index.css — for a

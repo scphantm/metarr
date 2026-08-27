@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { Button as AntButton, Input, List, Select, Space, Switch, Tag, Typography } from 'antd'
+import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons'
 
 import {
   queryKeys,
@@ -15,6 +17,7 @@ import { Button, Card, Row } from '../../components/Card'
 import { EditableSelect, EditableText } from '../../components/Editable'
 import { EditableList } from '../../components/EditableList'
 import { SaveIndicator } from '../../components/SaveState'
+import './SidecarTypesSection.css'
 
 /*
  * The sidecar classification table: the rules deciding what a non-media file
@@ -136,91 +139,76 @@ export function SidecarTypesSection({
         </>
       }
     >
-      <div className="mb-3 flex items-center gap-3 text-xs text-ink-muted">
-        <span>
+      <Space size={12} align="center" className="sidecar-types-summary">
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
           {enabledCount} enabled, {sorted.length - enabledCount} disabled
-        </span>
+        </Typography.Text>
         {reorder.isPending ? <SaveIndicator state="saving" /> : null}
-      </div>
+      </Space>
 
-      <div className="flex flex-col gap-1.5">
-        {sorted.map((entry, index) => {
+      <List
+        dataSource={sorted}
+        renderItem={(entry, index) => {
           const isEnabled = entry.order !== 0
           const enabledIndex = sorted
             .filter((item) => item.order !== 0)
             .findIndex((item) => item.id === entry.id)
 
           return (
-            <div
-              key={entry.id}
-              className={`rounded border ${
-                isEnabled ? 'border-edge' : 'border-edge/50 opacity-60'
-              }`}
-            >
-              <div className="flex flex-wrap items-center gap-2 px-3 py-2">
+            <List.Item className={`sidecar-type-row ${isEnabled ? '' : 'is-disabled'}`}>
+              <div className="sidecar-type-row-main">
                 {/* Stacked with a gap and their own hit areas: butted together
-                    the two triangles read as a single glyph, and the reorder
+                    the two arrows read as a single glyph, and the reorder
                     affordance disappears. */}
-                <div className="flex shrink-0 flex-col gap-1">
-                  <button
-                    type="button"
+                <Space direction="vertical" size={0} className="sidecar-type-reorder">
+                  <AntButton
+                    type="text"
+                    size="small"
                     aria-label={`Move ${entry.type} earlier`}
                     disabled={!isEnabled || enabledIndex === 0}
+                    icon={<ArrowUpOutlined style={{ fontSize: 10 }} />}
                     onClick={() => move(entry.id, -1)}
-                    className="flex h-4 w-5 items-center justify-center rounded text-[9px] leading-none text-ink-muted hover:bg-surface-hover hover:text-ink-strong disabled:opacity-25 disabled:hover:bg-transparent"
-                  >
-                    ▲
-                  </button>
-                  <button
-                    type="button"
+                  />
+                  <AntButton
+                    type="text"
+                    size="small"
                     aria-label={`Move ${entry.type} later`}
                     disabled={!isEnabled || enabledIndex === enabledCount - 1}
+                    icon={<ArrowDownOutlined style={{ fontSize: 10 }} />}
                     onClick={() => move(entry.id, 1)}
-                    className="flex h-4 w-5 items-center justify-center rounded text-[9px] leading-none text-ink-muted hover:bg-surface-hover hover:text-ink-strong disabled:opacity-25 disabled:hover:bg-transparent"
-                  >
-                    ▼
-                  </button>
-                </div>
+                  />
+                </Space>
 
-                <span className="w-8 shrink-0 text-right font-mono text-xs text-ink-muted tabular-nums">
+                <Typography.Text type="secondary" className="sidecar-type-order">
                   {isEnabled ? entry.order : '—'}
-                </span>
+                </Typography.Text>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setExpanded(expanded === entry.id ? null : entry.id)
-                  }
-                  className="min-w-32 flex-1 text-left text-sm text-ink-strong hover:text-blue"
+                <AntButton
+                  type="link"
+                  className="sidecar-type-name"
+                  onClick={() => setExpanded(expanded === entry.id ? null : entry.id)}
                 >
                   {entry.type}
-                </button>
+                </AntButton>
 
-                <span className="shrink-0 rounded bg-surface-hover px-1.5 py-0.5 text-xs text-ink-muted">
-                  {entry.category}
-                </span>
+                <Tag>{entry.category}</Tag>
 
-                <span className="hidden shrink-0 font-mono text-xs text-ink-muted sm:inline">
-                  {entry.patterns.length} pattern
-                  {entry.patterns.length === 1 ? '' : 's'}
-                </span>
+                <Typography.Text type="secondary" className="sidecar-type-pattern-count">
+                  {entry.patterns.length} pattern{entry.patterns.length === 1 ? '' : 's'}
+                </Typography.Text>
 
-                <label className="flex shrink-0 items-center gap-1.5 text-xs text-ink-muted">
-                  <input
-                    type="checkbox"
+                <label className="sidecar-type-enabled">
+                  <Switch
+                    size="small"
                     checked={isEnabled}
-                    onChange={(event) =>
-                      setEnabled(entry, event.target.checked)
-                    }
+                    onChange={(checked) => setEnabled(entry, checked)}
                   />
                   Enabled
                 </label>
 
                 <Button
                   variant="ghost"
-                  onClick={() =>
-                    setExpanded(expanded === entry.id ? null : entry.id)
-                  }
+                  onClick={() => setExpanded(expanded === entry.id ? null : entry.id)}
                 >
                   {expanded === entry.id ? 'Close' : 'Edit'}
                 </Button>
@@ -243,10 +231,10 @@ export function SidecarTypesSection({
                   }}
                 />
               ) : null}
-            </div>
+            </List.Item>
           )
-        })}
-      </div>
+        }}
+      />
 
       {adding ? (
         <NewSidecarType
@@ -276,7 +264,7 @@ function SidecarTypeDetail({
   const key = queryKeys.sidecarTypes
 
   return (
-    <div className="border-t border-edge bg-canvas/40 px-4 py-2">
+    <div className="sidecar-type-detail">
       <Row label="Type name" hint="Written onto every file classified this way">
         <EditableText
           label="Type name"
@@ -341,10 +329,10 @@ function SidecarTypeDetail({
         />
       </Row>
 
-      <div className="flex items-center justify-between gap-3 py-2">
-        <span className="font-mono text-xs text-ink-muted">
+      <div className="sidecar-type-detail-footer">
+        <Typography.Text type="secondary" className="sidecar-type-id">
           id {entry.id} · position {position + 1}
-        </span>
+        </Typography.Text>
         <Button variant="danger" onClick={onRemove}>
           Delete type
         </Button>
@@ -398,46 +386,43 @@ function NewSidecarType({
   }
 
   return (
-    <div className="mt-3 flex flex-col gap-2 rounded border border-dashed border-blue/60 px-4 py-3">
-      <input
+    <div className="new-sidecar-type">
+      <Input
         autoFocus
         value={type}
         placeholder="Type name, e.g. storyboard"
         onChange={(event) => setType(event.target.value)}
-        className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong focus:border-blue"
       />
-      <select
+      <Select
         value={category}
-        onChange={(event) => setCategory(event.target.value)}
-        className="w-56 rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong"
-      >
-        {sidecarCategories.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-      <input
+        style={{ width: 224 }}
+        onChange={setCategory}
+        options={sidecarCategories.map((option) => ({ value: option, label: option }))}
+      />
+      <Input
         value={pattern}
         placeholder="(?i)^storyboard$"
+        className="editable-field-mono"
         onChange={(event) => setPattern(event.target.value)}
-        className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 font-mono text-sm text-ink-strong focus:border-blue"
       />
 
-      {error ? <span className="text-xs text-red">{error}</span> : null}
-      <p className="text-xs text-ink-muted">
-        Added disabled. Enable it once you have placed it in the evaluation
-        order.
-      </p>
+      {error ? (
+        <Typography.Text type="danger" style={{ fontSize: 12 }}>
+          {error}
+        </Typography.Text>
+      ) : null}
+      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        Added disabled. Enable it once you have placed it in the evaluation order.
+      </Typography.Text>
 
-      <div className="flex gap-2">
+      <Space>
         <Button variant="primary" onClick={() => void submit()}>
           Add
         </Button>
         <Button variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
-      </div>
+      </Space>
     </div>
   )
 }

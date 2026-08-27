@@ -1,0 +1,101 @@
+.workflow-editor-page {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+.workflow-editor-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workflow-editor-outdated {
+  padding: 1.5rem;
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+}
+
+.workflow-editor-outdated p {
+  margin: 0 0 0.5rem;
+}
+
+.workflow-editor-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+}
+
+.workflow-editor-history {
+  width: 12rem;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.workflow-editor-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--surface-edge);
+  padding: 1rem 1.5rem;
+}
+
+.workflow-editor-header-fields {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.workflow-editor-header-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.workflow-editor-name-input {
+  min-width: 12rem;
+  width: auto;
+  font-weight: 600;
+}
+
+.workflow-editor-description-input {
+  min-width: 16rem;
+  flex: 1;
+}
+
+.workflow-editor-tags.is-read-only {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.workflow-editor-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.workflow-editor-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+
+.workflow-editor-palette {
+  width: 14rem;
+  flex-shrink: 0;
+}
+
+.workflow-editor-canvas {
+  min-width: 0;
+  flex: 1;
+}

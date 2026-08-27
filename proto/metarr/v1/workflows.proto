@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// Workflow mirrors mongostore.Workflow — the versioned document type, with
+// nodes/edges/viewport carried as one opaque graph_json blob rather than
+// modeled proto fields.
+//
+// mongostore.Workflow itself already stores Nodes/Edges/Viewport as loose
+// bson.M rather than typed Go structs specifically so a catalog-driven
+// schema change on the frontend never needs a backend release in lockstep
+// (see its doc comment) — the server has never round-tripped these fields
+// through a typed model. graph_json is exactly {"nodes": [...], "edges":
+// [...], "viewport": {...}} as JSON, matching the REST body/response shape
+// exactly, so nothing about that design changes here.
+message Workflow {
+  string id = 1;
+  string document_id = 2;
+  int32 version = 3;
+  google.protobuf.Timestamp created_at = 4;
+  string name = 5;
+  string description = 6;
+  repeated string tags = 7;
+  int32 schema_version = 8;
+  bytes graph_json = 9;
+}
+
+message WorkflowServiceListRequest {
+  int32 limit = 1;
+  string cursor = 2;
+}
+
+message WorkflowServiceListResponse {
+  repeated Workflow workflows = 1;
+  string next_cursor = 2;
+  bool has_more = 3;
+}
+
+message WorkflowServiceGetRequest {
+  string id = 1;
+}
+
+message WorkflowServiceGetResponse {
+  Workflow workflow = 1;
+}
+
+message WorkflowServiceListVersionsRequest {
+  string id = 1;
+}
+
+message WorkflowServiceListVersionsResponse {
+  repeated Workflow versions = 1;
+}
+
+message WorkflowServiceGetVersionRequest {
+  string id = 1;
+  int32 version = 2;
+}
+
+message WorkflowServiceGetVersionResponse {
+  Workflow workflow = 1;
+}
+
+// WorkflowServiceUpsertRequest omits id/version/created_at — Upsert decides
+// those. document_id empty creates a new workflow (version 1); set, it
+// appends a new version. Nothing is ever overwritten in place.
+message WorkflowServiceUpsertRequest {
+  string document_id = 1;
+  string name = 2;
+  string description = 3;
+  repeated string tags = 4;
+  int32 schema_version = 5;
+  bytes graph_json = 6;
+}
+
+message WorkflowServiceUpsertResponse {
+  Workflow workflow = 1;
+}
+
+// WorkflowService is a direct, synchronous Mongo read/write with no
+// system_config_update event behind it (see UpsertWorkflow's doc comment on
+// the Go side) — unlike every config-mutation service so far, Upsert
+// returns the persisted Workflow directly rather than AcceptedResponse.
+service WorkflowService {
+  rpc List(WorkflowServiceListRequest) returns (WorkflowServiceListResponse);
+  rpc Get(WorkflowServiceGetRequest) returns (WorkflowServiceGetResponse);
+  rpc ListVersions(WorkflowServiceListVersionsRequest) returns (WorkflowServiceListVersionsResponse);
+  rpc GetVersion(WorkflowServiceGetVersionRequest) returns (WorkflowServiceGetVersionResponse);
+  rpc Upsert(WorkflowServiceUpsertRequest) returns (WorkflowServiceUpsertResponse);
+}
