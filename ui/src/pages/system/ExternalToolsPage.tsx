@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
+import { Alert, Card, Col, Row, Typography } from 'antd'
 
 import { PageHeader } from '../../layout/AppShell'
+import './ExternalToolsPage.css'
 
 /*
  * System > External Tools.
@@ -77,40 +79,40 @@ export function ExternalToolsPage() {
         description="The infrastructure UIs behind Metarr. Each has its own login, separate from your Metarr account."
       />
 
-      <div className="grid grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2">
-        {cards.map((tool) => (
-          <a
-            key={tool.name}
-            href={tool.href}
-            target="_blank"
-            rel="noreferrer"
-            className="flex flex-col gap-3 rounded-lg border border-edge bg-surface px-5 py-4 transition-colors hover:border-edge-strong hover:bg-surface-hover"
-          >
-            <div className="flex items-center gap-3">
-              <span
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded"
-                style={{ color: tool.color }}
-                aria-hidden="true"
-              >
-                {tool.icon}
-              </span>
-              <div className="min-w-0">
-                <h2 className="text-sm font-semibold tracking-wide text-ink-strong uppercase">
-                  {tool.name}
-                </h2>
-                <p className="truncate font-mono text-xs text-ink-muted">
-                  {tool.href}
-                </p>
-              </div>
-            </div>
+      <div className="page-body">
+        <Row gutter={[16, 16]}>
+          {cards.map((tool) => (
+            <Col key={tool.name} xs={24} sm={12}>
+              <a href={tool.href} target="_blank" rel="noreferrer" className="external-tool-link">
+                <Card hoverable size="small">
+                  <div className="external-tool-header">
+                    <span
+                      className="external-tool-icon"
+                      style={{ color: tool.color }}
+                      aria-hidden="true"
+                    >
+                      {tool.icon}
+                    </span>
+                    <div className="external-tool-title">
+                      <Typography.Text className="external-tool-name">
+                        {tool.name}
+                      </Typography.Text>
+                      <Typography.Text type="secondary" className="external-tool-href">
+                        {tool.href}
+                      </Typography.Text>
+                    </div>
+                  </div>
 
-            <p className="text-sm text-ink-muted">{tool.description}</p>
+                  <Typography.Text type="secondary" className="external-tool-description">
+                    {tool.description}
+                  </Typography.Text>
 
-            <p className="rounded border border-edge/60 bg-canvas px-3 py-2 text-xs leading-relaxed text-ink-muted">
-              {tool.credential}
-            </p>
-          </a>
-        ))}
+                  <div className="external-tool-credential">{tool.credential}</div>
+                </Card>
+              </a>
+            </Col>
+          ))}
+        </Row>
       </div>
     </>
   )
@@ -184,22 +186,24 @@ function SwaggerIcon() {
 
 export function ExternalToolsSidebar() {
   return (
-    <section>
-      <h2 className="mb-2 text-xs font-semibold tracking-wide text-ink-muted uppercase">
-        About these tools
-      </h2>
-      <div className="rounded border border-edge bg-surface px-3 py-2.5 text-xs leading-relaxed text-ink-muted">
-        <p>
-          Each panel links to infrastructure Metarr runs alongside itself —
-          the database, the cache, the log pipeline, and the API&apos;s own docs.
-          None of them check your Metarr login; each has its own credential,
-          noted on its card.
-        </p>
-        <p className="mt-2">
-          These addresses assume the tool is reachable on the same host you&apos;re
-          viewing Metarr from, at the port docker-compose publishes it on.
-        </p>
-      </div>
-    </section>
+    <div className="saving-info-sidebar">
+      <Alert
+        type="info"
+        message="About these tools"
+        description={
+          <>
+            <p>
+              Each panel links to infrastructure Metarr runs alongside itself — the database,
+              the cache, the log pipeline, and the API&apos;s own docs. None of them check your
+              Metarr login; each has its own credential, noted on its card.
+            </p>
+            <p>
+              These addresses assume the tool is reachable on the same host you&apos;re viewing
+              Metarr from, at the port docker-compose publishes it on.
+            </p>
+          </>
+        }
+      />
+    </div>
   )
 }

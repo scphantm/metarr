@@ -1,0 +1,115 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+import "metarr/v1/common.proto";
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// DirectoryScannerConfig mirrors internal/shared/appconfig.DirectoryScannerConfig.
+message DirectoryScannerConfig {
+  int32 parallel_count = 1;
+  repeated ScanDirectory scan_directories = 2;
+  repeated SidecarTypeDefinition sidecar_types = 3;
+}
+
+// ScanDirectory mirrors internal/shared/appconfig.ScanDirectory.
+message ScanDirectory {
+  string scanner_slug = 1;
+  string scan_type = 2;
+  string directory = 3;
+}
+
+// SidecarTypeDefinition mirrors internal/shared/appconfig.SidecarTypeDefinition.
+message SidecarTypeDefinition {
+  string id = 1;
+  string type = 2;
+  string category = 3;
+  int32 order = 4;
+  repeated string patterns = 5;
+  repeated string extensions = 6;
+}
+
+message DirectoryScannerServiceGetRequest {}
+
+message DirectoryScannerServiceGetResponse {
+  DirectoryScannerConfig config = 1;
+}
+
+// DirectoryScannerServiceUpdateRequest is a partial update: only
+// parallel_count, if set, is changed. scan_directories is managed through
+// the dedicated Upsert/DeleteDirectory RPCs instead.
+message DirectoryScannerServiceUpdateRequest {
+  optional int32 parallel_count = 1;
+}
+
+message DirectoryScannerServiceListDirectoriesRequest {}
+
+message DirectoryScannerServiceListDirectoriesResponse {
+  repeated ScanDirectory directories = 1;
+}
+
+message DirectoryScannerServiceGetDirectoryRequest {
+  string slug = 1;
+}
+
+message DirectoryScannerServiceGetDirectoryResponse {
+  ScanDirectory directory = 1;
+}
+
+message DirectoryScannerServiceUpsertDirectoryRequest {
+  ScanDirectory directory = 1;
+}
+
+message DirectoryScannerServiceDeleteDirectoryRequest {
+  string slug = 1;
+}
+
+message DirectoryScannerServiceListSidecarTypesRequest {}
+
+message DirectoryScannerServiceListSidecarTypesResponse {
+  repeated SidecarTypeDefinition types = 1;
+}
+
+message DirectoryScannerServiceGetSidecarTypeRequest {
+  string id = 1;
+}
+
+message DirectoryScannerServiceGetSidecarTypeResponse {
+  SidecarTypeDefinition type = 1;
+}
+
+message DirectoryScannerServiceUpsertSidecarTypeRequest {
+  SidecarTypeDefinition type = 1;
+}
+
+message DirectoryScannerServiceDeleteSidecarTypeRequest {
+  string id = 1;
+}
+
+// DirectoryScannerServiceReorderSidecarTypesRequest maps every sidecar type
+// id to its evaluation order in one transaction — see
+// ReorderSidecarTypes's doc comment on the Go side for why this can't be a
+// per-entry field.
+message DirectoryScannerServiceReorderSidecarTypesRequest {
+  map<string, int32> orders = 1;
+}
+
+message DirectoryScannerServiceResetSidecarTypesRequest {}
+
+service DirectoryScannerService {
+  rpc Get(DirectoryScannerServiceGetRequest) returns (DirectoryScannerServiceGetResponse);
+  rpc Update(DirectoryScannerServiceUpdateRequest) returns (metarr.v1.AcceptedResponse);
+
+  rpc ListDirectories(DirectoryScannerServiceListDirectoriesRequest) returns (DirectoryScannerServiceListDirectoriesResponse);
+  rpc GetDirectory(DirectoryScannerServiceGetDirectoryRequest) returns (DirectoryScannerServiceGetDirectoryResponse);
+  rpc UpsertDirectory(DirectoryScannerServiceUpsertDirectoryRequest) returns (metarr.v1.AcceptedResponse);
+  rpc DeleteDirectory(DirectoryScannerServiceDeleteDirectoryRequest) returns (metarr.v1.AcceptedResponse);
+
+  rpc ListSidecarTypes(DirectoryScannerServiceListSidecarTypesRequest) returns (DirectoryScannerServiceListSidecarTypesResponse);
+  rpc GetSidecarType(DirectoryScannerServiceGetSidecarTypeRequest) returns (DirectoryScannerServiceGetSidecarTypeResponse);
+  rpc UpsertSidecarType(DirectoryScannerServiceUpsertSidecarTypeRequest) returns (metarr.v1.AcceptedResponse);
+  rpc DeleteSidecarType(DirectoryScannerServiceDeleteSidecarTypeRequest) returns (metarr.v1.AcceptedResponse);
+  rpc ReorderSidecarTypes(DirectoryScannerServiceReorderSidecarTypesRequest) returns (metarr.v1.AcceptedResponse);
+  rpc ResetSidecarTypes(DirectoryScannerServiceResetSidecarTypesRequest) returns (metarr.v1.AcceptedResponse);
+}

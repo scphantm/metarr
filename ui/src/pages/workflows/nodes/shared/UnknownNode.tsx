@@ -1,6 +1,7 @@
 import type { NodeProps, Node } from '@xyflow/react'
 
 import type { UnknownNodeData } from '../../catalogTypes'
+import './UnknownNode.css'
 
 /*
  * Catalog drift, design.md §9: a saved node whose type isn't in the loaded
@@ -13,10 +14,10 @@ import type { UnknownNodeData } from '../../catalogTypes'
  */
 export function UnknownNode({ data }: NodeProps<Node<UnknownNodeData>>) {
   return (
-    <div className="min-w-[160px] rounded border-2 border-dashed border-red/60 bg-surface px-3 py-2 shadow-sm">
-      <div className="text-xs font-semibold text-red">Unknown node type</div>
-      <div className="mt-0.5 font-mono text-[11px] text-ink-muted">{data.catalogType}</div>
-      {data.label ? <div className="mt-1 text-xs text-ink-strong">{data.label}</div> : null}
+    <div className="unknown-node">
+      <div className="unknown-node-title">Unknown node type</div>
+      <div className="unknown-node-type">{data.catalogType}</div>
+      {data.label ? <div className="unknown-node-label">{data.label}</div> : null}
     </div>
   )
 }

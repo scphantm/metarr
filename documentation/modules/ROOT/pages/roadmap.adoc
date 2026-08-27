@@ -1,4 +1,7 @@
 = Future Features Roadmap
+:toc:
+:toclevels: 3
+:sectnums:
 
 The basic principle of Metarr is: users create a search, create a workflow, and then create an automation that takes search results and executes that workflow on them. Metarr has a long way to go.
 This roadmap outlines features planned for the system.
@@ -10,6 +13,7 @@ The UI will consist of several critical pieces:
 * Workflows
 * Searches
 * Automations
+* Lorevault
 * Tools
 ** FFMpeg
 
@@ -109,19 +113,7 @@ The rename system will include a simulation mode allowing users to preview how d
 
 The rename system will support conditional logic, similar to scripting languages. This enables complex rename rules beyond simple regex patterns, potentially using Lua or similar for dynamic renaming decisions.
 
-== Backup
-
-Metarr will include a comprehensive backup system for the metadata library—all content except video files themselves.
-
-The backup system will differ from traditional backup approaches. Backups will operate on a directory-by-directory basis across the entire media collection, enabling selective restoration of specific directory versions at any time, rather than requiring full system restores via downloadable archives.
-
-The system will also support metadata snapshots, allowing users to compare how metadata changes over time. This requires a UI capable of managing tens of thousands of individual backups efficiently.
-
-=== Auto-Restore
-
-The backup system will include directory protection features. Users can enable protection for a directory, which snapshots it and monitors for changes. If modifications are detected, the directory is automatically reverted to the snapshot state.
-
-=== Metadata Proxy
+== Metadata Proxy
 
 A metadata proxy will provide cached and versioned access to all metadata. External systems can point to this proxy to retrieve cached results, with versioning enabled so users can track how documents change over time. This metadata becomes a canonical source alongside native Metarr data.
 
@@ -136,6 +128,8 @@ Metarr's poster manager combines Kometa-like poster creation with a rule system 
 Workflows enable sophisticated image pack creation. For example, a workflow can create a Criterion Collection image pack by pulling the source image, applying Criterion branding overlays, adding award indicators, and saving as a pack. Users can apply these packs to their media and easily revert to previous versions if needed. Version control (git-based snapshots and tags) provides an efficient implementation approach.
 
 The key innovation is building the overlay system as a WYSIWYG editor rather than configuration files, making it accessible to non-technical users.
+
+TODO:: image bundles will be tar balls with a manifest describing whats in the tar.  thats how i keep the file count down.
 
 == Metadata Lockdown
 
@@ -271,3 +265,7 @@ Producer side: hold the data as an io.Reader (whatever is generating or already 
 A clean shape: producer publishes a Redis Stream entry (XADD) with transfer metadata (id, size, host:port to dial, maybe a checksum). Consumer, driven by that event, dials the producer directly and starts reading. When the copy finishes, the consumer (or producer) publishes a completion event back through Redis with the checksum/status — small, cheap, and keeps your event-driven architecture intact without ever asking Redis to carry the payload.
 
 If both processes happen to live on the same host, skip the network entirely and use io.Pipe or a shared net.Conn over a Unix domain socket — same code shape, lower overhead than loopback TCP.
+
+== Workflow debugging system
+
+When building workflows, we need a debugging system to test those workflows.  I want to be able to go into debug mode and assign say a tv series as the start.  The debugger will snapshot the directory and you can restore it after runs.  Not sure what to do for things that get copied out, maybe if there's a file copy thats tracked somehow and reversed?  more thought needed there.

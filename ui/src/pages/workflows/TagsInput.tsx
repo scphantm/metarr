@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Input, Space, Tag } from 'antd'
 
 /*
  * A plain controlled multi-value input, visually modeled on
@@ -25,28 +26,28 @@ export function TagsInput({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <Space size={6} wrap align="center">
       {value.map((tag) => (
-        <span
-          key={tag}
-          className="group inline-flex items-center gap-1 rounded border border-edge-strong/40 bg-surface-hover px-2 py-0.5 text-xs"
-        >
-          <span className="text-ink-strong">{tag}</span>
-          <button
-            type="button"
-            aria-label={`Remove ${tag}`}
-            onClick={() => onChange(value.filter((t) => t !== tag))}
-            className="text-ink-muted hover:text-red"
-          >
-            ×
-          </button>
-        </span>
+        <Tag key={tag} closable onClose={(event) => {
+          event.preventDefault()
+          onChange(value.filter((t) => t !== tag))
+        }}>
+          {tag}
+        </Tag>
       ))}
 
-      <input
+      <Input
         value={draft}
         placeholder="Add a tag"
         aria-label="Add a tag"
+        size="small"
+        variant="borderless"
+        style={{
+          width: 112,
+          borderStyle: 'dashed',
+          borderWidth: 1,
+          borderColor: 'var(--surface-edge-strong)',
+        }}
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === 'Enter') {
@@ -57,8 +58,7 @@ export function TagsInput({
         onBlur={() => {
           if (draft.trim()) add()
         }}
-        className="min-w-28 flex-1 rounded border border-dashed border-edge-strong/40 bg-transparent px-2 py-0.5 text-xs text-ink-strong placeholder:text-ink-muted focus:border-blue focus:border-solid"
       />
-    </div>
+    </Space>
   )
 }

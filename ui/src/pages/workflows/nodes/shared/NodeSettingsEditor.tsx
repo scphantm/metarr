@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { createPortal } from 'react-dom'
+import { Checkbox, Input, InputNumber, Modal, Select, Typography } from 'antd'
 
-import { Button } from '../../../../components/Card'
 import type { Setting } from '../../catalogTypes'
+import './NodeSettingsEditor.css'
 
 /*
  * The edit form for one node's settings, opened from that node's Edit
- * button. Rendered through a portal to document.body — the node card lives
- * inside React Flow's zoomed/panned canvas transform, and a modal positioned
- * relative to that would be scaled and clipped along with it.
+ * button. Rendered through antd's Modal, which portals to document.body —
+ * the node card lives inside React Flow's zoomed/panned canvas transform,
+ * and a modal positioned relative to that would be scaled and clipped along
+ * with it.
  *
  * Generalized from the old NodeParameterEditor: fields now come from the
  * catalog's Setting[] (name/type/default/ui/description) rather than the
@@ -29,6 +30,8 @@ import type { Setting } from '../../catalogTypes'
 // fallback used for data handles, not a semantic accent a user would pick.
 const COLOR_TOKENS = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet', 'magenta'] as const
 
+// No antd component picks from a fixed palette of semantic tokens (its own
+// ColorPicker is a full HSB dialog) — this stays a small bespoke swatch row.
 function ColorPicker({
   label,
   value,
@@ -39,17 +42,15 @@ function ColorPicker({
   onChange: (next: string | undefined) => void
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs text-ink-muted">{label}</span>
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="node-settings-color-picker">
+      <span className="node-settings-color-picker-label">{label}</span>
+      <div className="node-settings-color-swatches">
         <button
           type="button"
           onClick={() => onChange(undefined)}
           aria-label={`Use the default ${label.toLowerCase()} for this node type`}
           title="Default"
-          className={`flex h-6 w-6 items-center justify-center rounded-full border-2 text-[10px] text-ink-muted ${
-            value === undefined ? 'border-blue' : 'border-edge-strong/40'
-          }`}
+          className={`node-settings-color-swatch is-default ${value === undefined ? 'is-selected' : ''}`}
         >
           ✕
         </button>
@@ -60,7 +61,7 @@ function ColorPicker({
             onClick={() => onChange(token)}
             aria-label={token}
             title={token}
-            className={`h-6 w-6 rounded-full border-2 ${value === token ? 'border-blue' : 'border-transparent'}`}
+            className={`node-settings-color-swatch ${value === token ? 'is-selected' : ''}`}
             style={{ backgroundColor: `var(--color-${token})` }}
           />
         ))}
@@ -103,109 +104,106 @@ export function NodeSettingsEditor({
     return current === undefined ? setting.default : current
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onCancel}>
-      <div
-        className="w-full max-w-md rounded-lg border border-edge bg-surface p-5 shadow-lg"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2 className="text-sm font-semibold text-ink-strong">{nodeName}</h2>
-        <div className="mt-0.5 font-mono text-xs text-ink-muted">{typeKey}</div>
-        {description ? <p className="mt-1.5 text-[11px] text-ink-muted">{description}</p> : null}
-
-        <div className="mt-4 flex flex-col gap-3 border-t border-edge/60 pt-4">
-          <ColorPicker label="Shape color" value={shapeColorDraft} onChange={setShapeColorDraft} />
-          <ColorPicker label="Border color" value={borderColorDraft} onChange={setBorderColorDraft} />
+  return (
+    <Modal
+      open
+      title={
+        <div>
+          <div>{nodeName}</div>
+          <Typography.Text type="secondary" className="node-settings-type-key">
+            {typeKey}
+          </Typography.Text>
         </div>
+      }
+      onCancel={onCancel}
+      onOk={() => onSave({ settings: draft, shapeColor: shapeColorDraft, borderColor: borderColorDraft })}
+      okText="Save"
+    >
+      {description ? (
+        <Typography.Text type="secondary" className="node-settings-description">
+          {description}
+        </Typography.Text>
+      ) : null}
 
-        <div className="mt-4 flex flex-col gap-3 border-t border-edge/60 pt-4">
-          {settings.length === 0 ? (
-            <p className="text-xs text-ink-muted">This node has no configurable settings.</p>
-          ) : null}
-          {settings.map((setting) => {
-            const fieldId = `setting-${setting.name}`
-            const widget = setting.ui?.widget as string | undefined
-            const options = Array.isArray(setting.ui?.options) ? (setting.ui?.options as string[]) : []
-            const value = valueFor(setting)
-
-            return (
-              <div key={setting.name} className="flex flex-col gap-1">
-                <label className="text-xs text-ink-muted" htmlFor={fieldId}>
-                  {setting.label ?? setting.name}
-                </label>
-
-                {setting.type === 'bool' ? (
-                  <input
-                    id={fieldId}
-                    type="checkbox"
-                    checked={Boolean(value)}
-                    onChange={(event) => setValue(setting.name, event.target.checked)}
-                    className="h-4 w-4 self-start"
-                  />
-                ) : widget === 'dropdown' && options.length > 0 ? (
-                  <select
-                    id={fieldId}
-                    value={value == null ? '' : String(value)}
-                    onChange={(event) => setValue(setting.name, event.target.value)}
-                    className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong focus:border-blue"
-                  >
-                    {options.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                ) : widget === 'textarea' ? (
-                  <textarea
-                    id={fieldId}
-                    value={value == null ? '' : String(value)}
-                    onChange={(event) => setValue(setting.name, event.target.value)}
-                    rows={3}
-                    className="resize-none rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong focus:border-blue"
-                  />
-                ) : (
-                  (() => {
-                    // number.int was retired from the type lattice (design.md
-                    // §4.1) — those settings now declare "any", so the
-                    // declared type alone can no longer pick the number
-                    // widget. Falling back to the resolved value's actual JS
-                    // type keeps former-number.int settings (tile width,
-                    // branch count, ...) rendering as a number input rather
-                    // than regressing to plain text.
-                    const isNumeric = setting.type === 'number' || typeof value === 'number'
-                    return (
-                      <input
-                        id={fieldId}
-                        type={isNumeric ? 'number' : 'text'}
-                        value={value == null ? '' : String(value)}
-                        onChange={(event) =>
-                          setValue(setting.name, isNumeric ? Number(event.target.value) : event.target.value)
-                        }
-                        className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong focus:border-blue"
-                      />
-                    )
-                  })()
-                )}
-
-                {setting.description ? <p className="text-[11px] text-ink-muted">{setting.description}</p> : null}
-              </div>
-            )
-          })}
-        </div>
-
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="default" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => onSave({ settings: draft, shapeColor: shapeColorDraft, borderColor: borderColorDraft })}
-          >
-            Save
-          </Button>
-        </div>
+      <div className="node-settings-section">
+        <ColorPicker label="Shape color" value={shapeColorDraft} onChange={setShapeColorDraft} />
+        <ColorPicker label="Border color" value={borderColorDraft} onChange={setBorderColorDraft} />
       </div>
-    </div>,
-    document.body,
+
+      <div className="node-settings-section">
+        {settings.length === 0 ? (
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            This node has no configurable settings.
+          </Typography.Text>
+        ) : null}
+        {settings.map((setting) => {
+          const fieldId = `setting-${setting.name}`
+          const widget = setting.ui?.widget as string | undefined
+          const options = Array.isArray(setting.ui?.options) ? (setting.ui?.options as string[]) : []
+          const value = valueFor(setting)
+
+          return (
+            <div key={setting.name} className="node-settings-field">
+              <label className="node-settings-field-label" htmlFor={fieldId}>
+                {setting.label ?? setting.name}
+              </label>
+
+              {setting.type === 'bool' ? (
+                <Checkbox
+                  id={fieldId}
+                  checked={Boolean(value)}
+                  onChange={(event) => setValue(setting.name, event.target.checked)}
+                />
+              ) : widget === 'dropdown' && options.length > 0 ? (
+                <Select
+                  id={fieldId}
+                  value={value == null ? '' : String(value)}
+                  onChange={(next) => setValue(setting.name, next)}
+                  options={options.map((option) => ({ value: option, label: option }))}
+                />
+              ) : widget === 'textarea' ? (
+                <Input.TextArea
+                  id={fieldId}
+                  value={value == null ? '' : String(value)}
+                  onChange={(event) => setValue(setting.name, event.target.value)}
+                  rows={3}
+                />
+              ) : (
+                (() => {
+                  // number.int was retired from the type lattice (design.md
+                  // §4.1) — those settings now declare "any", so the
+                  // declared type alone can no longer pick the number
+                  // widget. Falling back to the resolved value's actual JS
+                  // type keeps former-number.int settings (tile width,
+                  // branch count, ...) rendering as a number input rather
+                  // than regressing to plain text.
+                  const isNumeric = setting.type === 'number' || typeof value === 'number'
+                  return isNumeric ? (
+                    <InputNumber
+                      id={fieldId}
+                      value={value == null ? undefined : Number(value)}
+                      onChange={(next) => setValue(setting.name, next ?? 0)}
+                      style={{ width: '100%' }}
+                    />
+                  ) : (
+                    <Input
+                      id={fieldId}
+                      value={value == null ? '' : String(value)}
+                      onChange={(event) => setValue(setting.name, event.target.value)}
+                    />
+                  )
+                })()
+              )}
+
+              {setting.description ? (
+                <Typography.Text type="secondary" className="node-settings-field-hint">
+                  {setting.description}
+                </Typography.Text>
+              ) : null}
+            </div>
+          )
+        })}
+      </div>
+    </Modal>
   )
 }

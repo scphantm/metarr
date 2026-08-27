@@ -9,136 +9,51 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 
 	_ "Metarr/api"
-	"Metarr/internal/server/auth"
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/server/session"
-	"Metarr/internal/server/wsbus"
 )
 
-// throttledInterval caps the heartbeat and auth (login/logout) endpoints at
+// ThrottledInterval caps the heartbeat and auth (login/logout) endpoints at
 // one call each per this duration — each gets its own independent budget.
-const throttledInterval = 500 * time.Millisecond
+// Exported so cmd/metarr-server can apply the exact same budget to the
+// gRPC-Web AuthService's rate-limit interceptor.
+const ThrottledInterval = 500 * time.Millisecond
+
+// ConnectService is one gRPC-Web (Connect) service ready to mount: the path
+// its generated NewXServiceHandler(...) returned, and the handler itself
+// (already wrapped with that service's own auth interceptor). Each REST->
+// Connect migration step just appends one more entry in main.go — router.go
+// itself never needs to change as domains move over.
+type ConnectService struct {
+	Path    string
+	Handler http.Handler
+}
 
 // NewRouter builds the application's HTTP route table, wrapped with
-// correlation ID and request logging middleware. Every route requires an
-// API key except the heartbeat, login, and the Swagger UI.
+// correlation ID and request logging middleware.
+//
+// GET /api/heartbeat is the only REST API endpoint left — every other
+// domain, including the former WebSocket streaming topics
+// (stats.redis/agents.presence/logging.tail, previously served by
+// wsbus.Hub at GET /api/ws, now retired), has migrated to gRPC-Web; see the
+// migration plan and internal/server/services for each domain's service.
 // If uiFS is provided (non-nil), the router also serves the embedded UI
 // at the root path (/) with SPA fallback.
-func NewRouter(h *handlers.Handlers, hub *wsbus.Hub, sessions *session.Store, logger *slog.Logger, uiFS fs.FS) http.Handler {
+func NewRouter(h *handlers.Handlers, sessions *session.Store, logger *slog.Logger, uiFS fs.FS, connectServices []ConnectService) http.Handler {
 	mux := http.NewServeMux()
 
-	protect := func(group auth.Group, handler http.HandlerFunc) http.Handler {
-		return requireAPIKey(sessions, group, handler)
+	for _, svc := range connectServices {
+		mux.Handle(svc.Path, svc.Handler)
 	}
+
 	throttle := func(handler http.Handler) http.Handler {
-		return rateLimit(throttledInterval, handler)
+		return rateLimit(ThrottledInterval, handler)
 	}
 
-	// Heartbeat and login are the only API endpoints callable without a key.
+	// Heartbeat is the only REST API endpoint remaining; every gRPC-Web
+	// service (including login/logout) carries its own auth interceptor and
+	// is mounted above via connectServices.
 	mux.Handle("GET /api/heartbeat", throttle(http.HandlerFunc(h.Heartbeat)))
-	mux.Handle("POST /api/auth/login", throttle(http.HandlerFunc(h.Login)))
-
-	mux.Handle("POST /api/auth/logout", throttle(protect(auth.GroupConfig, h.Logout)))
-
-	mux.Handle("POST /api/tasks/sonarr_cache_data", protect(auth.GroupTasks, h.SonarrCacheData))
-	mux.Handle("POST /api/tasks/directory-scan/{slug}", protect(auth.GroupTasks, h.DirectoryScan))
-
-	// Statistics. The REST form is what a dashboard paints before its socket
-	// is up; the streaming form is the same data over the topic below.
-	mux.Handle("GET /api/stats/redis", protect(auth.GroupConfig, h.GetRedisStats))
-
-	// The streaming layer. One connection carries every topic a client asks
-	// for, so this is gated on the least restrictive group and each topic
-	// re-checks the caller's role against its own requirement at subscribe
-	// time — see wsbus.Hub.Register.
-	mux.Handle("GET /api/ws", protect(auth.GroupTasks, hub.ServeHTTP))
-
-	mux.Handle("GET /api/config", protect(auth.GroupConfig, h.GetConfig))
-	mux.Handle("PUT /api/config", protect(auth.GroupConfig, h.UpdateConfig))
-	mux.Handle("PUT /api/config/admin", protect(auth.GroupConfig, h.UpdateAdmin))
-
-	mux.Handle("GET /api/config/interfaces/sonarr", protect(auth.GroupConfig, h.ListSonarrInterfaces))
-	mux.Handle("POST /api/config/interfaces/sonarr", protect(auth.GroupConfig, h.UpsertSonarrInterface))
-	mux.Handle("GET /api/config/interfaces/sonarr/{slug}", protect(auth.GroupConfig, h.GetSonarrInterface))
-	mux.Handle("DELETE /api/config/interfaces/sonarr/{slug}", protect(auth.GroupConfig, h.DeleteSonarrInterface))
-
-	// Agents. An agent announces itself by connecting to Redis; these routes
-	// are where someone says what it is allowed to see.
-	mux.Handle("GET /api/config/agents", protect(auth.GroupConfig, h.ListAgents))
-	mux.Handle("POST /api/config/agents", protect(auth.GroupConfig, h.UpsertAgent))
-	mux.Handle("DELETE /api/config/agents/{slug}", protect(auth.GroupConfig, h.DeleteAgent))
-	mux.Handle("POST /api/config/agents/{slug}/log-level", protect(auth.GroupConfig, h.SetAgentLogLevel))
-
-	// Logging: the server's own level, plus the informational fields the
-	// System > Logging screen shows about the Fluent Bit -> OpenObserve
-	// pipeline. See appconfig.LoggingConfig for what these fields do and
-	// don't control.
-	mux.Handle("GET /api/config/logging", protect(auth.GroupConfig, h.GetLoggingConfig))
-	mux.Handle("POST /api/config/logging", protect(auth.GroupConfig, h.UpsertLoggingConfig))
-
-	// The live log tail on the Logging screen. GET is the first-paint
-	// fallback; logging.tail is the same buffer streamed over the socket.
-	mux.Handle("GET /api/logging/tail", protect(auth.GroupConfig, h.GetLogTail))
-
-	// Chatbot: which of the four providers is active, plus each one's
-	// settings (all four stay stored so switching providers never drops
-	// what was entered). See appconfig.ChatbotConfig.
-	mux.Handle("GET /api/config/chatbot", protect(auth.GroupConfig, h.GetChatbotConfig))
-	mux.Handle("POST /api/config/chatbot", protect(auth.GroupConfig, h.UpsertChatbotConfig))
-
-	// Chat messages/sessions are a plain REST resource; the reply itself is
-	// a dedicated WS connection (not a wsbus topic — see ChatStream's doc
-	// comment) opened against the message id this POST returns.
-	mux.Handle("POST /api/chatbot/messages", protect(auth.GroupTasks, h.PostChatMessage))
-	mux.Handle("GET /api/chatbot/stream/{id}", protect(auth.GroupTasks, h.ChatStream))
-	mux.Handle("GET /api/chatbot/sessions", protect(auth.GroupTasks, h.ListChatSessions))
-	mux.Handle("GET /api/chatbot/sessions/{id}/messages", protect(auth.GroupTasks, h.ListChatMessages))
-
-	mux.Handle("GET /api/config/directory-scanner", protect(auth.GroupConfig, h.GetDirectoryScannerConfig))
-	mux.Handle("PUT /api/config/directory-scanner", protect(auth.GroupConfig, h.UpdateDirectoryScannerConfig))
-
-	mux.Handle("GET /api/config/directory-scanner/directories", protect(auth.GroupConfig, h.ListScanDirectories))
-	mux.Handle("POST /api/config/directory-scanner/directories", protect(auth.GroupConfig, h.UpsertScanDirectory))
-	mux.Handle("GET /api/config/directory-scanner/directories/{slug}", protect(auth.GroupConfig, h.GetScanDirectory))
-	mux.Handle("DELETE /api/config/directory-scanner/directories/{slug}", protect(auth.GroupConfig, h.DeleteScanDirectory))
-
-	// The sidecar classification table: the rules deciding what a non-media
-	// file found next to a movie or episode is.
-	mux.Handle("GET /api/config/directory-scanner/sidecar-types", protect(auth.GroupConfig, h.ListSidecarTypes))
-	mux.Handle("POST /api/config/directory-scanner/sidecar-types", protect(auth.GroupConfig, h.UpsertSidecarType))
-	// Evaluation order is its own transaction: it covers the whole table at once
-	// and is the only place an entry can be enabled or disabled.
-	mux.Handle("POST /api/config/directory-scanner/sidecar-types/order", protect(auth.GroupConfig, h.ReorderSidecarTypes))
-	mux.Handle("POST /api/config/directory-scanner/sidecar-types/reset", protect(auth.GroupConfig, h.ResetSidecarTypes))
-	mux.Handle("GET /api/config/directory-scanner/sidecar-types/{id}", protect(auth.GroupConfig, h.GetSidecarType))
-	mux.Handle("DELETE /api/config/directory-scanner/sidecar-types/{id}", protect(auth.GroupConfig, h.DeleteSidecarType))
-
-	// Scan results. These are data reads rather than configuration, so they sit
-	// in the tasks group alongside the scan trigger that produces them, which
-	// also lets the read-only role query the library.
-	mux.Handle("GET /api/local-directories", protect(auth.GroupTasks, h.ListLocalDirectories))
-	mux.Handle("GET /api/local-directories/{id}", protect(auth.GroupTasks, h.GetLocalDirectory))
-	mux.Handle("GET /api/local-directories/{id}/media-files", protect(auth.GroupTasks, h.ListDirectoryMediaFiles))
-	mux.Handle("GET /api/local-directories/{id}/nfo", protect(auth.GroupTasks, h.GetLocalDirectoryNFO))
-	mux.Handle("GET /api/media-files/{id}", protect(auth.GroupTasks, h.GetMediaFile))
-
-	// Workflows: a versioned document type (internal/server/mongostore/versioned)
-	// applied to graph-editor workflows. Every POST creates a new version rather
-	// than overwriting one in place — see mongostore.WorkflowRepo. Data reads and
-	// writes, not admin configuration, so this sits in the tasks group like
-	// local-directories above.
-	// The catalog and the validator sit above the stored-workflow routes
-	// because they are what the editor needs before it can draw anything.
-	// Note the catalog route is registered before /api/workflows/{id} so the
-	// literal path wins over the wildcard.
-	mux.Handle("GET /api/workflows/catalog", protect(auth.GroupTasks, h.GetWorkflowCatalog))
-	mux.Handle("POST /api/workflows/validate", protect(auth.GroupTasks, h.ValidateWorkflow))
-
-	mux.Handle("GET /api/workflows", protect(auth.GroupTasks, h.ListWorkflows))
-	mux.Handle("POST /api/workflows", protect(auth.GroupTasks, h.UpsertWorkflow))
-	mux.Handle("GET /api/workflows/{id}", protect(auth.GroupTasks, h.GetWorkflow))
-	mux.Handle("GET /api/workflows/{id}/versions", protect(auth.GroupTasks, h.ListWorkflowVersions))
-	mux.Handle("GET /api/workflows/{id}/versions/{version}", protect(auth.GroupTasks, h.GetWorkflowVersion))
 
 	// Documentation, not part of the authenticated API surface.
 	mux.HandleFunc("GET /swagger/", httpSwagger.WrapHandler)

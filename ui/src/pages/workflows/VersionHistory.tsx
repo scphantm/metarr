@@ -1,4 +1,7 @@
+import { Menu } from 'antd'
+
 import type { Workflow } from '../../api/types'
+import './VersionHistory.css'
 
 export function VersionHistory({
   versions,
@@ -12,25 +15,26 @@ export function VersionHistory({
   if (versions.length === 0) return null
 
   return (
-    <div className="flex flex-col gap-1 border-l border-edge px-3 py-2">
-      <h3 className="px-1 text-[11px] tracking-wide text-ink-muted uppercase">History</h3>
-      {versions.map((version) => (
-        <button
-          key={version.version}
-          type="button"
-          onClick={() => onSelect(version.version)}
-          className={`rounded px-2 py-1 text-left text-xs transition-colors ${
-            viewingVersion === version.version
-              ? 'bg-surface-hover font-medium text-blue'
-              : 'text-ink hover:bg-surface-hover hover:text-ink-strong'
-          }`}
-        >
-          v{version.version}
-          <span className="ml-1.5 text-ink-muted">
-            {new Date(version.created_at).toLocaleString()}
-          </span>
-        </button>
-      ))}
+    <div className="version-history">
+      <div className="version-history-heading">History</div>
+      <Menu
+        mode="vertical"
+        selectable
+        selectedKeys={viewingVersion !== null ? [String(viewingVersion)] : []}
+        onClick={({ key }) => onSelect(Number(key))}
+        className="version-history-menu"
+        items={versions.map((version) => ({
+          key: String(version.version),
+          label: (
+            <>
+              v{version.version}
+              <span className="version-history-timestamp">
+                {new Date(version.created_at).toLocaleString()}
+              </span>
+            </>
+          ),
+        }))}
+      />
     </div>
   )
 }

@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+import "metarr/v1/common.proto";
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// LoggingConfig mirrors internal/shared/appconfig.LoggingConfig.
+message LoggingConfig {
+  string server_level = 1;
+  string sink = 2;
+  string endpoint = 3;
+  string stream = 4;
+}
+
+message LoggingServiceGetConfigRequest {}
+
+message LoggingServiceGetConfigResponse {
+  LoggingConfig config = 1;
+}
+
+message LoggingServiceUpdateConfigRequest {
+  LoggingConfig config = 1;
+}
+
+message LoggingServiceGetTailRequest {}
+
+// LoggingServiceGetTailResponse/StreamTailResponse carry the exact JSON
+// logging.Record already produced over REST/WebSocket, kept opaque — its
+// Attrs field is a free-form map[string]any with no fixed shape to model.
+message LoggingServiceGetTailResponse {
+  bytes records_json = 1;
+}
+
+message LoggingServiceStreamTailRequest {}
+
+message LoggingServiceStreamTailResponse {
+  bytes records_json = 1;
+}
+
+// LoggingService covers the whole Logging screen: config (server level,
+// pipeline info), GetTail (first-paint fallback for the live tail), and
+// StreamTail (the same tail buffer pushed continuously, replacing the
+// logging.tail wsbus topic).
+service LoggingService {
+  rpc GetConfig(LoggingServiceGetConfigRequest) returns (LoggingServiceGetConfigResponse);
+  rpc UpdateConfig(LoggingServiceUpdateConfigRequest) returns (metarr.v1.AcceptedResponse);
+  rpc GetTail(LoggingServiceGetTailRequest) returns (LoggingServiceGetTailResponse);
+  rpc StreamTail(LoggingServiceStreamTailRequest) returns (stream LoggingServiceStreamTailResponse);
+}

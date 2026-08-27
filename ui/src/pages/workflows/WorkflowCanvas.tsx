@@ -27,6 +27,7 @@ import { nodeTypes as catalogNodeTypes, registeredTypes, unknownNodeType } from 
 import type { Accent } from './nodes/shared/nodeVisual'
 import { useWorkflowValidation } from './useWorkflowValidation'
 import type { NodeType, Transform } from './catalogTypes'
+import './WorkflowCanvas.css'
 
 const nodeTypes = { ...catalogNodeTypes, ...unknownNodeType }
 const edgeTypes = { controlEdge: ControlEdge, dataEdge: DataEdge }
@@ -276,7 +277,7 @@ export function WorkflowCanvas({
   )
 
   return (
-    <div className="h-full w-full" onDrop={onDrop} onDragOver={onDragOver}>
+    <div className="workflow-canvas" onDrop={onDrop} onDragOver={onDragOver}>
       <ReactFlow
         nodes={displayNodes}
         edges={displayEdges}
@@ -297,19 +298,18 @@ export function WorkflowCanvas({
         <Background />
         <Controls />
         <Panel position="top-left">
-          <label className="flex items-center gap-1.5 rounded border border-edge-strong/40 bg-surface px-2.5 py-1.5 text-xs text-ink-strong shadow-sm">
+          <label className="workflow-canvas-test-animate">
             <input
               type="checkbox"
               checked={testAnimate}
               onChange={(event) => setTestAnimate(event.target.checked)}
-              className="h-3.5 w-3.5"
             />
             Test animate
           </label>
         </Panel>
         {connectionError ? (
           <Panel position="top-center">
-            <div className="rounded border border-red/50 bg-surface px-3 py-1.5 text-xs text-red shadow-lg">
+            <div className="workflow-canvas-connection-error">
               {connectionError}
             </div>
           </Panel>

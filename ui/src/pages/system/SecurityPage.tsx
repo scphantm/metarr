@@ -2,7 +2,7 @@ import { useIsFetching, useQueryClient } from '@tanstack/react-query'
 
 import { useConfig } from '../../api/queries'
 import { Button } from '../../components/Card'
-import { Spinner } from '../../components/SaveState'
+import { PageError, PageLoading } from '../../components/PageState'
 import { PageHeader } from '../../layout/AppShell'
 import { AdminSection } from './AdminSection'
 import { ApiKeysSection } from './ApiKeysSection'
@@ -18,25 +18,16 @@ export function SecurityPage() {
     return (
       <>
         <PageHeader title="Security" />
-        <div className="px-6 py-5">
-          <p className="rounded border border-red/40 bg-red/10 px-4 py-3 text-sm text-red">
-            {config.error instanceof Error
-              ? config.error.message
-              : String(config.error)}
-          </p>
-        </div>
+        <PageError error={config.error} />
       </>
     )
   }
 
-  if (config.isLoading || !config.data) {
+  if (config.isLoading || !config.data || !config.data.admin) {
     return (
       <>
         <PageHeader title="Security" />
-        <div className="flex items-center gap-2 px-6 py-5 text-sm text-ink-muted">
-          <Spinner />
-          Loading configuration…
-        </div>
+        <PageLoading />
       </>
     )
   }
@@ -58,7 +49,7 @@ export function SecurityPage() {
         }
       />
 
-      <div className="flex flex-col gap-5 px-6 py-5">
+      <div className="page-body">
         <AdminSection admin={config.data.admin} />
 
         <ApiKeysSection config={config.data} />

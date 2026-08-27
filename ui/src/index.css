@@ -1,5 +1,4 @@
-@import 'tailwindcss';
-@import '@xyflow/react/dist/style.css' layer(base);
+@import url('@xyflow/react/dist/style.css') layer(base);
 
 /*
  * Solarized, by Ethan Schoonover (https://ethanschoonover.com/solarized/).
@@ -13,7 +12,7 @@
  * --surface, --ink, --edge and so on — so a theme swap is a change of eight
  * variables rather than a sweep through the components.
  */
-@theme {
+:root {
   --color-base03: #002b36;
   --color-base02: #073642;
   --color-base01: #586e75;
@@ -40,6 +39,25 @@
   --color-ink: var(--ink-body);
   --color-ink-strong: var(--ink-strong);
   --color-ink-muted: var(--ink-muted);
+
+  /*
+   * Workflow node shape chrome (nodes/shared/NodeShell.tsx, nodeVisual.ts) —
+   * migrated here from the now-deleted shapes.css once every node's shape
+   * became a generated icon (lib/icons/typeIcons.css) and the standalone
+   * clip-path shape library it used to hold had nothing left using it.
+   * --accent/--accent-dim/--page-bg are meant to be overridden per node
+   * instance by whatever consumes them; the defaults below are just a sane
+   * fallback, kept on the app's real Solarized tokens so an unstyled shape
+   * is never a jarring off-palette color and stays dark/light-theme-correct
+   * automatically.
+   */
+  --accent: color-mix(in srgb, var(--color-blue) 80%, transparent);
+  --accent-dim: var(--color-cyan);
+  --page-bg: var(--color-canvas);
+
+  /* Distance a data edge's endpoint type icon (edges/DataEdge.tsx) sits off
+     its handle, slid along the edge so it doesn't overlap the handle dot. */
+  --data-edge-icon-offset: 10px;
 }
 
 .theme-dark {
@@ -117,27 +135,6 @@
 .accent-magenta-60 { background-color: color-mix(in srgb, var(--color-magenta) 60%, transparent); }
 .accent-magenta-80 { background-color: color-mix(in srgb, var(--color-magenta) 80%, transparent); }
 
-/*
- * Workflow node shape chrome (nodes/shared/NodeShell.tsx, nodeVisual.ts) —
- * migrated here from the now-deleted shapes.css once every node's shape
- * became a generated icon (lib/icons/typeIcons.css) and the standalone
- * clip-path shape library it used to hold had nothing left using it.
- * --accent/--accent-dim/--page-bg are meant to be overridden per node
- * instance by whatever consumes them; the defaults below are just a sane
- * fallback, kept on the app's real Solarized tokens so an unstyled shape is
- * never a jarring off-palette color and stays dark/light-theme-correct
- * automatically.
- */
-:root {
-  --accent: color-mix(in srgb, var(--color-blue) 80%, transparent);
-  --accent-dim: var(--color-cyan);
-  --page-bg: var(--color-canvas);
-
-  /* Distance a data edge's endpoint type icon (edges/DataEdge.tsx) sits off
-     its handle, slid along the edge so it doesn't overlap the handle dot. */
-  --data-edge-icon-offset: 10px;
-}
-
 /* Per-node color as a class, not an inline style — see nodeVisual.ts's
  * shapeColorClassForAccent. A shape's primary fill sits at 80% opacity
  * rather than the fully-opaque accent, to match this file's own
@@ -183,9 +180,27 @@
   color: var(--accent);
 }
 
+/* NodeShell.tsx's hover-reveal border: neutral at rest, a 40%-opacity tint
+ * of the node's (independently overridable) accent on hover — see
+ * nodeVisual.ts's hoverBorderColorClassForAccent. */
+.hover-border-red:hover { border-color: color-mix(in srgb, var(--color-red) 40%, transparent); }
+.hover-border-orange:hover { border-color: color-mix(in srgb, var(--color-orange) 40%, transparent); }
+.hover-border-yellow:hover { border-color: color-mix(in srgb, var(--color-yellow) 40%, transparent); }
+.hover-border-green:hover { border-color: color-mix(in srgb, var(--color-green) 40%, transparent); }
+.hover-border-cyan:hover { border-color: color-mix(in srgb, var(--color-cyan) 40%, transparent); }
+.hover-border-blue:hover { border-color: color-mix(in srgb, var(--color-blue) 40%, transparent); }
+.hover-border-violet:hover { border-color: color-mix(in srgb, var(--color-violet) 40%, transparent); }
+.hover-border-magenta:hover { border-color: color-mix(in srgb, var(--color-magenta) 40%, transparent); }
+
 html,
 body,
-#root {
+#root,
+/* antd's <App> context wrapper (ThemeContext.tsx) sits between #root and
+   AppShell with no height of its own by default, which breaks the
+   height:100% chain every full-bleed layout (AppShell, the workflow canvas)
+   depends on — same class of bug as the flex-item percentage-height issue
+   fixed during the antd migration. */
+.ant-app {
   height: 100%;
 }
 
@@ -196,6 +211,76 @@ body {
   font-family:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* The content padding + vertical stack every pages/system page renders its
+   sections into (components/PageState.tsx, and every rebuilt system page). */
+.page-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.page-state-body {
+  padding: 1.25rem 1.5rem;
+}
+
+.page-state-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.25rem 1.5rem;
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+}
+
+/* A stack of informational Alert blurbs, used by the various per-page
+   Sidebar components (pages/system/SavingInfoSidebar.tsx and others). */
+.saving-info-sidebar,
+.system-dashboard-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.saving-info-sidebar p,
+.system-dashboard-sidebar p {
+  margin: 0 0 0.5rem;
+}
+
+.saving-info-sidebar p:last-child,
+.system-dashboard-sidebar p:last-child {
+  margin-bottom: 0;
+}
+
+.saving-info-sidebar ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.saving-info-sidebar kbd {
+  color: var(--ink-strong);
+  font-family: inherit;
+}
+
+/* Monospace variant of an edit-in-place field (components/Editable.tsx) —
+   applied to antd's Input/TextArea/Password wrapper, so it also has to reach
+   the actual <input>/<textarea> nested inside. */
+.editable-field-mono,
+.editable-field-mono input,
+.editable-field-mono textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* React Flow's EdgeLabelRenderer portal sits above the canvas's own
+ * pointer-events:none layer — content inside it opts back in per-element,
+ * same convention as its own "nodrag"/"nopan" classes (edges/DataEdge.tsx). */
+.pointer-events-auto {
+  pointer-events: auto;
 }
 
 /* Each column scrolls on its own, so scrollbars are a permanent part of the

@@ -1,17 +1,30 @@
 import { useState } from 'react'
+import type { MessageInitShape } from '@bufbuild/protobuf'
+import { Input, Space, Typography } from 'antd'
 
 import {
   queryKeys,
   useDeleteSonarrInstance,
   useUpsertSonarrInstance,
 } from '../../api/queries'
-import { storageModes, type SonarrInstance } from '../../api/types'
+import { storageModes } from '../../api/types'
+import { SonarrInstanceSchema, type SonarrInstance } from '../../gen/metarr/v1/sonarr_interfaces_pb'
 import { Button, Card, EmptyState, Row } from '../../components/Card'
 import {
   EditableNumber,
   EditableSelect,
   EditableText,
 } from '../../components/Editable'
+import './SonarrSection.css'
+
+// onSave/onCreate below hand off to useUpsertSonarrInstance, whose
+// parameter is MessageInitShape<typeof SonarrInstanceSchema> (a plain
+// object, not a branded Message) — but every *read* here always comes back
+// as a real SonarrInstance from the List RPC, and typing props/state as the
+// branded message keeps each nested field a single concrete type rather
+// than the (Message | plain-init-shape) union MessageInitShape produces,
+// which otherwise stops TS from simplifying `{...instance, field}` spreads.
+type SonarrInstanceInit = MessageInitShape<typeof SonarrInstanceSchema>
 
 /*
  * Sonarr instances. Like scan directories these are keyed by a slug the upsert
@@ -44,28 +57,28 @@ export function SonarrSection({
         <EmptyState>No Sonarr instances configured</EmptyState>
       ) : null}
 
-      <div className="flex flex-col gap-4">
+      <Space direction="vertical" size={16} style={{ width: '100%' }}>
         {instances.map((instance) => (
           <InstanceCard
-            key={instance.instance_slug}
+            key={instance.instanceSlug}
             instance={instance}
             onSave={(next) => upsert.mutateAsync(next)}
             onRemove={() => {
               if (
                 window.confirm(
-                  `Remove the Sonarr instance "${instance.instance_name || instance.instance_slug}"?`,
+                  `Remove the Sonarr instance "${instance.instanceName || instance.instanceSlug}"?`,
                 )
               ) {
-                void remove.mutateAsync(instance.instance_slug)
+                void remove.mutateAsync(instance.instanceSlug)
               }
             }}
           />
         ))}
-      </div>
+      </Space>
 
       {adding ? (
         <NewInstance
-          existingSlugs={instances.map((entry) => entry.instance_slug)}
+          existingSlugs={instances.map((entry) => entry.instanceSlug)}
           onCancel={() => setAdding(false)}
           onCreate={async (entry) => {
             await upsert.mutateAsync(entry)
@@ -83,17 +96,49 @@ function InstanceCard({
   onRemove,
 }: {
   instance: SonarrInstance
-  onSave: (next: SonarrInstance) => Promise<unknown>
+  onSave: (next: SonarrInstanceInit) => Promise<unknown>
   onRemove: () => void
 }) {
   const key = queryKeys.sonarr
 
+  // A plain object built field-by-field, never {...instance, field}: once a
+  // spread carries instance's own literal $typeName, TS resolves
+  // MessageInit<SonarrInstance>'s union to the strict branded branch even
+  // for THIS object, which then demands nested fields (storage, rootDirMap)
+  // be full branded messages too, not plain field bags. Omitting $typeName
+  // entirely keeps the whole object in the loose branch, where nested
+  // fields stay plain. Not a runtime concern either way — create() accepts
+  // a plain field-only object fine.
+  function nextInstance(
+    fields: Partial<{
+      instanceName: string
+      sonarrUrl: string
+      sonarrApiKey: string
+      storage: { mode: string; ttl: string; maxCount: number }
+      rootDirMap: { sonarrPath: string; localPath: string }[]
+    }>,
+  ): SonarrInstanceInit {
+    return {
+      instanceSlug: instance.instanceSlug,
+      instanceName: instance.instanceName ?? '',
+      sonarrUrl: instance.sonarrUrl ?? '',
+      sonarrApiKey: instance.sonarrApiKey ?? '',
+      rootDirMap: instance.rootDirMap ?? [],
+      storage: {
+        mode: instance.storage?.mode ?? 'cache',
+        ttl: instance.storage?.ttl ?? '',
+        maxCount: instance.storage?.maxCount ?? 0,
+      },
+      ...fields,
+    }
+  }
+
   return (
-    <div className="rounded border border-edge px-4 py-2">
-      <div className="flex items-center justify-between gap-3 border-b border-edge/60 pb-2">
-        <span className="font-mono text-sm text-ink-strong">
-          {instance.instance_slug}
-        </span>
+    <div className="sonarr-instance-card">
+      <div className="sonarr-instance-card-header">
+        <Typography.Text className="sonarr-instance-slug">
+          {instance.instanceSlug}
+        </Typography.Text>
         <Button variant="danger" onClick={onRemove}>
           Remove
         </Button>
@@ -103,9 +148,9 @@ function InstanceCard({
         <EditableText
           label="Instance name"
           queryKey={key}
-          value={instance.instance_name}
+          value={instance.instanceName ?? ''}
           placeholder="Unnamed instance"
-          onSave={(instance_name) => onSave({ ...instance, instance_name })}
+          onSave={(instanceName) => onSave(nextInstance({ instanceName }))}
         />
       </Row>
 
@@ -113,7 +158,7 @@ function InstanceCard({
         <EditableText
           label="Sonarr URL"
           queryKey={key}
-          value={instance.sonarr_url}
+          value={instance.sonarrUrl ?? ''}
           monospace
           placeholder="http://localhost:8989"
           validate={(next) =>
@@ -121,7 +166,7 @@ function InstanceCard({
               ? null
               : 'Must start with http:// or https://'
           }
-          onSave={(sonarr_url) => onSave({ ...instance, sonarr_url })}
+          onSave={(sonarrUrl) => onSave(nextInstance({ sonarrUrl }))}
         />
       </Row>
 
@@ -129,11 +174,11 @@ function InstanceCard({
         <EditableText
           label="Sonarr API key"
           queryKey={key}
-          value={instance.sonarr_api_key}
+          value={instance.sonarrApiKey ?? ''}
           monospace
           secret
           placeholder="No key set"
-          onSave={(sonarr_api_key) => onSave({ ...instance, sonarr_api_key })}
+          onSave={(sonarrApiKey) => onSave(nextInstance({ sonarrApiKey }))}
         />
       </Row>
 
@@ -146,9 +191,7 @@ function InstanceCard({
           queryKey={key}
           value={instance.storage?.mode ?? 'cache'}
           options={storageModes}
-          onSave={(mode) =>
-            onSave({ ...instance, storage: { ...instance.storage, mode } })
-          }
+          onSave={(mode) => onSave(nextInstance({ storage: { mode, ttl: instance.storage?.ttl ?? '', maxCount: instance.storage?.maxCount ?? 0 } }))}
         />
       </Row>
 
@@ -160,13 +203,10 @@ function InstanceCard({
           <EditableNumber
             label="Max count"
             queryKey={key}
-            value={instance.storage?.max_count ?? 0}
+            value={instance.storage?.maxCount ?? 0}
             min={1}
-            onSave={(max_count) =>
-              onSave({
-                ...instance,
-                storage: { ...instance.storage, max_count },
-              })
+            onSave={(maxCount) =>
+              onSave(nextInstance({ storage: { mode: instance.storage?.mode ?? 'cache', ttl: instance.storage?.ttl ?? '', maxCount } }))
             }
           />
         </Row>
@@ -181,9 +221,7 @@ function InstanceCard({
             value={instance.storage?.ttl ?? ''}
             monospace
             placeholder="24h"
-            onSave={(ttl) =>
-              onSave({ ...instance, storage: { ...instance.storage, ttl } })
-            }
+            onSave={(ttl) => onSave(nextInstance({ storage: { mode: instance.storage?.mode ?? 'cache', ttl, maxCount: instance.storage?.maxCount ?? 0 } }))}
           />
         </Row>
       )}
@@ -203,50 +241,66 @@ function RootDirMap({
   onSave,
 }: {
   instance: SonarrInstance
-  onSave: (next: SonarrInstance) => Promise<unknown>
+  onSave: (next: SonarrInstanceInit) => Promise<unknown>
 }) {
-  const mappings = instance.root_dir_map ?? []
+  const mappings = instance.rootDirMap ?? []
   const [adding, setAdding] = useState(false)
   const [sonarrPath, setSonarrPath] = useState('')
   const [localPath, setLocalPath] = useState('')
 
-  function write(root_dir_map: SonarrInstance['root_dir_map']) {
-    return onSave({ ...instance, root_dir_map })
+  // Built field-by-field rather than {...instance, rootDirMap} — see
+  // InstanceCard's nextInstance for why spreading the branded instance
+  // defeats the loose-init-shape typing for nested fields.
+  function write(rootDirMap: { sonarrPath: string; localPath: string }[]): Promise<unknown> {
+    return onSave({
+      instanceSlug: instance.instanceSlug,
+      instanceName: instance.instanceName ?? '',
+      sonarrUrl: instance.sonarrUrl ?? '',
+      sonarrApiKey: instance.sonarrApiKey ?? '',
+      storage: {
+        mode: instance.storage?.mode ?? 'cache',
+        ttl: instance.storage?.ttl ?? '',
+        maxCount: instance.storage?.maxCount ?? 0,
+      },
+      rootDirMap,
+    })
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <Space direction="vertical" size={8} style={{ width: '100%' }}>
       {mappings.length === 0 && !adding ? (
-        <span className="text-sm text-ink-muted italic">No mappings</span>
+        <Typography.Text type="secondary" italic style={{ fontSize: 14 }}>
+          No mappings
+        </Typography.Text>
       ) : null}
 
       {mappings.map((mapping, index) => (
-        <div key={index} className="flex flex-wrap items-center gap-2">
-          <div className="min-w-0 flex-1">
+        <div key={index} className="sonarr-root-dir-row">
+          <div className="sonarr-root-dir-field">
             <EditableText
               label="Sonarr path"
               queryKey={queryKeys.sonarr}
-              value={mapping.sonarr_path}
+              value={mapping.sonarrPath ?? ''}
               monospace
-              onSave={(sonarr_path) => {
+              onSave={(sonarrPath) => {
                 const next = [...mappings]
-                next[index] = { ...mapping, sonarr_path }
+                next[index] = { ...mapping, sonarrPath }
                 return write(next)
               }}
             />
           </div>
-          <span aria-hidden="true" className="text-ink-muted">
+          <Typography.Text type="secondary" aria-hidden="true">
             →
-          </span>
-          <div className="min-w-0 flex-1">
+          </Typography.Text>
+          <div className="sonarr-root-dir-field">
             <EditableText
               label="Local path"
               queryKey={queryKeys.sonarr}
-              value={mapping.local_path}
+              value={mapping.localPath ?? ''}
               monospace
-              onSave={(local_path) => {
+              onSave={(localPath) => {
                 const next = [...mappings]
-                next[index] = { ...mapping, local_path }
+                next[index] = { ...mapping, localPath }
                 return write(next)
               }}
             />
@@ -261,22 +315,22 @@ function RootDirMap({
       ))}
 
       {adding ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <input
+        <div className="sonarr-root-dir-row">
+          <Input
             autoFocus
             value={sonarrPath}
             placeholder="/tv"
+            className="editable-field-mono sonarr-root-dir-field"
             onChange={(event) => setSonarrPath(event.target.value)}
-            className="min-w-0 flex-1 rounded border border-edge-strong/40 bg-canvas px-2 py-1 font-mono text-sm text-ink-strong focus:border-blue"
           />
-          <span aria-hidden="true" className="text-ink-muted">
+          <Typography.Text type="secondary" aria-hidden="true">
             →
-          </span>
-          <input
+          </Typography.Text>
+          <Input
             value={localPath}
             placeholder="/media/tv"
+            className="editable-field-mono sonarr-root-dir-field"
             onChange={(event) => setLocalPath(event.target.value)}
-            className="min-w-0 flex-1 rounded border border-edge-strong/40 bg-canvas px-2 py-1 font-mono text-sm text-ink-strong focus:border-blue"
           />
           <Button
             variant="primary"
@@ -285,8 +339,8 @@ function RootDirMap({
               void write([
                 ...mappings,
                 {
-                  sonarr_path: sonarrPath.trim(),
-                  local_path: localPath.trim(),
+                  sonarrPath: sonarrPath.trim(),
+                  localPath: localPath.trim(),
                 },
               ])
               setSonarrPath('')
@@ -305,7 +359,7 @@ function RootDirMap({
           <Button onClick={() => setAdding(true)}>Add mapping</Button>
         </div>
       )}
-    </div>
+    </Space>
   )
 }
 
@@ -315,7 +369,7 @@ function NewInstance({
   onCancel,
 }: {
   existingSlugs: string[]
-  onCreate: (entry: SonarrInstance) => Promise<void>
+  onCreate: (entry: SonarrInstanceInit) => Promise<void>
   onCancel: () => void
 }) {
   const [slug, setSlug] = useState('')
@@ -335,53 +389,56 @@ function NewInstance({
     }
     setError(null)
     await onCreate({
-      instance_slug: slug.trim(),
-      instance_name: name.trim() || slug.trim(),
-      sonarr_url: url.trim(),
-      sonarr_api_key: apiKey.trim(),
-      root_dir_map: [],
+      instanceSlug: slug.trim(),
+      instanceName: name.trim() || slug.trim(),
+      sonarrUrl: url.trim(),
+      sonarrApiKey: apiKey.trim(),
+      rootDirMap: [],
       storage: { mode: 'cache', ttl: '24h' },
     })
   }
 
   return (
-    <div className="mt-3 flex flex-col gap-2 rounded border border-dashed border-blue/60 px-4 py-3">
-      <input
+    <div className="new-sonarr-instance">
+      <Input
         autoFocus
         value={slug}
         placeholder="Slug, e.g. sonarr-main"
+        className="editable-field-mono"
         onChange={(event) => setSlug(event.target.value)}
-        className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 font-mono text-sm text-ink-strong focus:border-blue"
       />
-      <input
+      <Input
         value={name}
         placeholder="Display name"
         onChange={(event) => setName(event.target.value)}
-        className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 text-sm text-ink-strong focus:border-blue"
       />
-      <input
+      <Input
         value={url}
         placeholder="http://localhost:8989"
+        className="editable-field-mono"
         onChange={(event) => setUrl(event.target.value)}
-        className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 font-mono text-sm text-ink-strong focus:border-blue"
       />
-      <input
+      <Input
         value={apiKey}
         placeholder="Sonarr API key"
+        className="editable-field-mono"
         onChange={(event) => setApiKey(event.target.value)}
-        className="rounded border border-edge-strong/40 bg-canvas px-2 py-1 font-mono text-sm text-ink-strong focus:border-blue"
       />
 
-      {error ? <span className="text-xs text-red">{error}</span> : null}
+      {error ? (
+        <Typography.Text type="danger" style={{ fontSize: 12 }}>
+          {error}
+        </Typography.Text>
+      ) : null}
 
-      <div className="flex gap-2">
+      <Space>
         <Button variant="primary" onClick={() => void submit()}>
           Add
         </Button>
         <Button variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
-      </div>
+      </Space>
     </div>
   )
 }

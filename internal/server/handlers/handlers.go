@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"Metarr/internal/server/agentregistry"
-	"Metarr/internal/server/chatbot"
 	"Metarr/internal/server/logtail"
 	"Metarr/internal/server/mongostore"
 	"Metarr/internal/server/redisstats"
@@ -25,8 +24,6 @@ type Handlers struct {
 	LocalDirectoryRepo *mongostore.LocalDirectoryRepo
 	WorkflowRepo       *mongostore.WorkflowRepo
 	WorkflowCatalog    *workflow.Catalog
-	ChatbotRepo        *mongostore.ChatbotRepo
-	ChatbotService     *chatbot.Service
 	Sessions           *session.Store
 	Stats              *redisstats.Collector
 	Agents             *agentregistry.Registry
@@ -43,8 +40,6 @@ func New(
 	localDirectoryRepo *mongostore.LocalDirectoryRepo,
 	workflowRepo *mongostore.WorkflowRepo,
 	workflowCatalog *workflow.Catalog,
-	chatbotRepo *mongostore.ChatbotRepo,
-	chatbotService *chatbot.Service,
 	sessions *session.Store,
 	stats *redisstats.Collector,
 	agents *agentregistry.Registry,
@@ -59,8 +54,6 @@ func New(
 		LocalDirectoryRepo: localDirectoryRepo,
 		WorkflowRepo:       workflowRepo,
 		WorkflowCatalog:    workflowCatalog,
-		ChatbotRepo:        chatbotRepo,
-		ChatbotService:     chatbotService,
 		Sessions:           sessions,
 		Stats:              stats,
 		Agents:             agents,
@@ -68,12 +61,4 @@ func New(
 		Logger:             logger,
 		HeartbeatTimeout:   heartbeatTimeout,
 	}
-}
-
-// AcceptedResponse is the shared response shape for endpoints that fire an
-// event and return before it's been processed.
-type AcceptedResponse struct {
-	Status        string `json:"status"`
-	Event         string `json:"event"`
-	CorrelationID string `json:"correlation_id"`
 }

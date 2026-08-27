@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// AcceptedResponse mirrors internal/server/handlers/handlers.go's
+// AcceptedResponse: the shared body for the fire-event-and-return-immediately
+// write pattern most config mutations use. The event fires synchronously;
+// persistence happens afterward via a background listener, so "accepted"
+// means "queued," not "stored" — callers poll/refetch to confirm.
+message AcceptedResponse {
+  string status = 1;
+  string event = 2;
+  string correlation_id = 3;
+}

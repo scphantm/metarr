@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { request } from '../../api/client'
+import { workflowCatalogClient } from '../../api/clients'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
-import type { Graph, ValidateResponse } from './catalogTypes'
+import type { Graph, Severity, ValidateResponse } from './catalogTypes'
 
 const emptyResult: ValidateResponse = { diagnostics: [], runnable: true }
 
@@ -23,12 +23,22 @@ export function useWorkflowValidation(graph: Graph | null, enabled: boolean): Va
   useEffect(() => {
     if (!enabled || !debouncedGraph) return
     const id = ++requestId.current
-    request<ValidateResponse>('/api/workflows/validate', {
-      method: 'POST',
-      body: { graph: debouncedGraph },
-    })
+    const graphJson = new TextEncoder().encode(JSON.stringify(debouncedGraph))
+    workflowCatalogClient
+      .validate({ graphJson })
       .then((response) => {
-        if (id === requestId.current) setResult(response)
+        if (id !== requestId.current) return
+        setResult({
+          diagnostics: response.diagnostics.map((d) => ({
+            severity: d.severity as Severity,
+            code: d.code,
+            message: d.message,
+            node_ids: d.nodeIds,
+            edge_ids: d.edgeIds,
+            witness_path: d.witnessPath,
+          })),
+          runnable: response.runnable,
+        })
       })
       .catch(() => {
         // Best-effort — a failed validate call leaves diagnostics stale

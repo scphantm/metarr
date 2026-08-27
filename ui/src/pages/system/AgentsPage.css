@@ -1,0 +1,74 @@
+.agent-setup-notice {
+  margin-bottom: 1rem;
+}
+
+.agent-identity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+@media (width >= 40rem) {
+  .agent-identity-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.agent-identity-label {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.agent-identity-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  color: var(--ink-strong);
+}
+
+.agent-telemetry-meters {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.agent-meter-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.agent-mapping-heading {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.agent-mapping-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  border: 1px solid var(--surface-edge);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.agent-mapping-slug {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--ink-strong);
+}
+
+.agent-mapping-path {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.agent-mapping-path.is-local {
+  color: var(--ink-body);
+}

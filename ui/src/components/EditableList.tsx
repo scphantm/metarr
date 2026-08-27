@@ -1,11 +1,13 @@
 import { useState } from 'react'
+import { Flex, Input, Space, Tag, Typography } from 'antd'
 
 import { SaveIndicator } from './SaveState'
 import { sameStringList, useSaveState } from './useSaveState'
 
 /*
- * A string array edited as chips: sidecar patterns, file extensions. Each chip
- * can be edited in place or removed, and one input at the end adds to the list.
+ * A string array edited as antd's documented "editable tags" pattern:
+ * sidecar patterns, file extensions. Each tag can be edited in place or
+ * removed (closable), and one dashed input at the end adds to the list.
  *
  * The whole list saves as a unit, because that is how the API takes it — a
  * sidecar type is upserted whole, never field by field.
@@ -81,16 +83,19 @@ export function EditableList({
     await commitList(next)
   }
 
-  const monospaceClass = monospace ? 'font-mono' : ''
+  const monospaceClass = monospace ? 'editable-field-mono' : ''
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-1.5">
+    <Space direction="vertical" size={8} style={{ width: '100%' }}>
+      <Flex wrap="wrap" gap={6} align="center">
         {displayValue.map((entry, index) =>
           editingIndex === index ? (
-            <input
+            <Input
               key={`${entry}-${index}`}
               autoFocus
+              size="small"
+              className={monospaceClass}
+              style={{ width: 120 }}
               value={editingDraft}
               aria-label={`Edit ${label} entry`}
               onChange={(event) => setEditingDraft(event.target.value)}
@@ -102,38 +107,32 @@ export function EditableList({
                 }
                 if (event.key === 'Escape') setEditingIndex(null)
               }}
-              className={`rounded border border-blue bg-canvas px-2 py-0.5 text-xs text-ink-strong ${monospaceClass}`}
             />
           ) : (
-            <span
+            <Tag
               key={`${entry}-${index}`}
-              className="group inline-flex items-center gap-1 rounded border border-edge-strong/40 bg-surface-hover px-2 py-0.5 text-xs"
+              className={monospaceClass}
+              closable
+              onClose={(event) => {
+                event.preventDefault()
+                void commitList(displayValue.filter((_, i) => i !== index))
+              }}
+              onClick={() => {
+                setEditingDraft(entry)
+                setEditingIndex(index)
+              }}
+              style={{ cursor: 'pointer' }}
             >
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingDraft(entry)
-                  setEditingIndex(index)
-                }}
-                className={`text-ink-strong ${monospaceClass}`}
-              >
-                {entry}
-              </button>
-              <button
-                type="button"
-                aria-label={`Remove ${entry}`}
-                onClick={() =>
-                  void commitList(displayValue.filter((_, i) => i !== index))
-                }
-                className="text-ink-muted hover:text-red"
-              >
-                ×
-              </button>
-            </span>
+              {entry}
+            </Tag>
           ),
         )}
 
-        <input
+        <Input
+          size="small"
+          variant="borderless"
+          className={monospaceClass}
+          style={{ width: 140, borderStyle: 'dashed', borderWidth: 1, borderColor: 'var(--surface-edge-strong)' }}
           value={draft}
           placeholder={placeholder}
           aria-label={`Add to ${label}`}
@@ -147,23 +146,22 @@ export function EditableList({
           onBlur={() => {
             if (draft.trim()) void add()
           }}
-          className={`min-w-40 flex-1 rounded border border-dashed border-edge-strong/40 bg-transparent px-2 py-0.5 text-xs text-ink-strong placeholder:text-ink-muted focus:border-blue focus:border-solid ${monospaceClass}`}
         />
-      </div>
+      </Flex>
 
-      <div className="flex items-center gap-3">
-        <SaveIndicator
-          state={state}
-          error={error}
-          onDismissError={dismissError}
-        />
+      <Space size={12} align="center">
+        <SaveIndicator state={state} error={error} onDismissError={dismissError} />
         {entryError ? (
-          <span className="text-xs text-red">{entryError}</span>
+          <Typography.Text type="danger" style={{ fontSize: 12 }}>
+            {entryError}
+          </Typography.Text>
         ) : null}
         {displayValue.length === 0 && emptyWarning ? (
-          <span className="text-xs text-orange">{emptyWarning}</span>
+          <Typography.Text style={{ fontSize: 12, color: 'var(--color-orange)' }}>
+            {emptyWarning}
+          </Typography.Text>
         ) : null}
-      </div>
-    </div>
+      </Space>
+    </Space>
   )
 }

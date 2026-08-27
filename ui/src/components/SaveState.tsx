@@ -1,10 +1,18 @@
+import { Space, Spin, Typography } from 'antd'
+import {
+  CheckCircleFilled,
+  CloseCircleFilled,
+  ClockCircleOutlined,
+  ExclamationCircleFilled,
+} from '@ant-design/icons'
+
 import type { SaveState } from './useSaveState'
 
 /*
  * The visual vocabulary for the save lifecycle. It is deliberately small and
  * always in the same place, so a user learns it once: a spinner means in
- * flight, a hollow dot means accepted but not yet stored, a tick means the
- * server has confirmed it, and anything red needs reading.
+ * flight, a clock means accepted but not yet stored, a tick means the server
+ * has confirmed it, and anything red needs reading.
  */
 
 export function SaveIndicator({
@@ -22,68 +30,67 @@ export function SaveIndicator({
 
   if (state === 'error') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-red">
-        <span aria-hidden="true">✕</span>
-        <span>{error ?? 'Save failed'}</span>
+      <Space size={4} align="center">
+        <CloseCircleFilled style={{ color: 'var(--color-red)' }} />
+        <Typography.Text type="danger" style={{ fontSize: 12 }}>
+          {error ?? 'Save failed'}
+        </Typography.Text>
         {onDismissError ? (
-          <button
-            type="button"
-            onClick={onDismissError}
-            className="underline underline-offset-2 hover:text-ink-strong"
-          >
+          <Typography.Link onClick={onDismissError} style={{ fontSize: 12 }}>
             dismiss
-          </button>
+          </Typography.Link>
         ) : null}
-      </span>
+      </Space>
     )
   }
 
   if (state === 'saving') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-ink-muted">
-        <Spinner />
-        <span>Sending…</span>
-      </span>
+      <Space size={4} align="center">
+        <Spin size="small" />
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+          Sending…
+        </Typography.Text>
+      </Space>
     )
   }
 
   if (state === 'pending') {
     return (
-      <span
-        className="inline-flex items-center gap-1.5 text-xs text-yellow"
+      <Space
+        size={4}
+        align="center"
         title="The API accepted this write and queued it. It is stored once the background listener has processed the event."
       >
-        <span aria-hidden="true">◌</span>
-        <span>Queued</span>
-      </span>
+        <ClockCircleOutlined style={{ color: 'var(--color-yellow)' }} />
+        <Typography.Text style={{ fontSize: 12, color: 'var(--color-yellow)' }}>
+          Queued
+        </Typography.Text>
+      </Space>
     )
   }
 
   if (state === 'unconfirmed') {
     return (
-      <span
-        className="inline-flex items-center gap-1.5 text-xs text-orange"
+      <Space
+        size={4}
+        align="center"
         title="The write was accepted but the server has not reported the new value yet. It may still land; reload to check."
       >
-        <span aria-hidden="true">!</span>
-        <span>Not confirmed</span>
-      </span>
+        <ExclamationCircleFilled style={{ color: 'var(--color-orange)' }} />
+        <Typography.Text style={{ fontSize: 12, color: 'var(--color-orange)' }}>
+          Not confirmed
+        </Typography.Text>
+      </Space>
     )
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-green">
-      <span aria-hidden="true">✓</span>
-      <span>Saved</span>
-    </span>
-  )
-}
-
-export function Spinner() {
-  return (
-    <span
-      aria-hidden="true"
-      className="inline-block h-3 w-3 animate-spin rounded-full border border-ink-muted border-t-transparent"
-    />
+    <Space size={4} align="center">
+      <CheckCircleFilled style={{ color: 'var(--color-green)' }} />
+      <Typography.Text style={{ fontSize: 12, color: 'var(--color-green)' }}>
+        Saved
+      </Typography.Text>
+    </Space>
   )
 }

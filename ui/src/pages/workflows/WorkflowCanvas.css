@@ -1,0 +1,32 @@
+.workflow-canvas {
+  height: 100%;
+  width: 100%;
+}
+
+.workflow-canvas-test-animate {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--surface-edge-strong) 40%, transparent);
+  background: var(--surface-raised);
+  padding: 0.375rem 0.625rem;
+  font-size: 0.75rem;
+  color: var(--ink-strong);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 15%);
+}
+
+.workflow-canvas-test-animate input {
+  height: 14px;
+  width: 14px;
+}
+
+.workflow-canvas-connection-error {
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--color-red) 50%, transparent);
+  background: var(--surface-raised);
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-red);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 25%);
+}
