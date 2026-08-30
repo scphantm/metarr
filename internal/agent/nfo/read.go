@@ -20,7 +20,7 @@ var utf8BOM = []byte{0xEF, 0xBB, 0xBF}
 // according to Kind — except for Episodes, which holds more than one entry
 // when the file used the legacy multi-episode layout.
 type document struct {
-	Kind       metadata.DocumentKind
+	Kind       string
 	Movie      *movie
 	TVShow     *tvShow
 	Episodes   []episodeDetails
@@ -130,27 +130,12 @@ func parse(data []byte) (*document, error) {
 		}
 	}
 
-	// Mirror each preserved element's name into a plain string field, so the
-	// tag still round-trips after the document has been through storage that
-	// doesn't keep an xml.Name.
-	switch {
-	case doc.Movie != nil:
-		captureUnknownElementNames(doc.Movie.Extra)
-	case doc.TVShow != nil:
-		captureUnknownElementNames(doc.TVShow.Extra)
-	case doc.MusicVideo != nil:
-		captureUnknownElementNames(doc.MusicVideo.Extra)
-	}
-	for i := range doc.Episodes {
-		captureUnknownElementNames(doc.Episodes[i].Extra)
-	}
-
 	return doc, nil
 }
 
 // setKindOnce records the document's kind from the first recognized root
 // element, so a file mixing types keeps the identity of what it led with.
-func setKindOnce(doc *document, kind metadata.DocumentKind, foundRoot *bool) {
+func setKindOnce(doc *document, kind string, foundRoot *bool) {
 	if !*foundRoot {
 		doc.Kind = kind
 		*foundRoot = true

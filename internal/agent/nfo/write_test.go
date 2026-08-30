@@ -84,9 +84,6 @@ func TestMarshalAfterStorageRoundTrip(t *testing.T) {
 		t.Fatalf("Extra[0].Name = %q, want %q", md.Extra[0].Name, "weirdtag")
 	}
 
-	// Simulate the loss of xml.Name that BSON storage causes.
-	md.Extra[0].XMLName.Local = ""
-
 	if out := render(t, md); !strings.Contains(out, "<weirdtag>value</weirdtag>") {
 		t.Errorf("preserved tag lost after storage round trip:\n%s", out)
 	}
@@ -268,7 +265,7 @@ func TestRoundTripDates(t *testing.T) {
 func TestUnparseableDateIsDroppedNotFatal(t *testing.T) {
 	md := mustParse(t, `<movie><title>x</title><premiered>not a date</premiered></movie>`).toMetadata()
 
-	if !md.Premiered.IsZero() {
+	if md.Premiered != "" {
 		t.Errorf("Premiered = %v, want the zero date", md.Premiered)
 	}
 	if out := render(t, md); strings.Contains(out, "<premiered>") {

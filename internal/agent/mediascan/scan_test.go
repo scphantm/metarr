@@ -314,7 +314,7 @@ func TestScanSeriesRecordSplit(t *testing.T) {
 	}
 
 	if episode.Video.SeasonNumber == nil || *episode.Video.SeasonNumber != 1 {
-		t.Errorf("SeasonNumber = %v", derefSeason(episode.Video.SeasonNumber))
+		t.Errorf("SeasonNumber = %v", episode.Video.SeasonNumber)
 	}
 
 	special := mediaFileByName(t, result, "Breaking Bad S00E01.mkv")
@@ -323,11 +323,11 @@ func TestScanSeriesRecordSplit(t *testing.T) {
 	}
 
 	// The season index records the seasons present on disk, ordered by number.
-	if result.Directory.Metadata.TVShow == nil {
+	if result.Directory.Metadata.TvShow == nil {
 		t.Fatalf("Directory.Metadata.TVShow = nil, want season index")
 	}
-	seasons := result.Directory.Metadata.TVShow.Seasons
-	wantSeasonNumbers := []int{0, 1, 2}
+	seasons := result.Directory.Metadata.TvShow.Seasons
+	wantSeasonNumbers := []int32{0, 1, 2}
 	if len(seasons) != len(wantSeasonNumbers) {
 		t.Fatalf("Seasons = %+v, want numbers %v", seasons, wantSeasonNumbers)
 	}
@@ -343,7 +343,7 @@ func TestScanSeriesRecordSplit(t *testing.T) {
 		t.Fatalf("Directory.Seasons = %+v, want numbers %v", result.Directory.Seasons, wantSeasonNumbers)
 	}
 	for i, want := range wantSeasonNumbers {
-		if result.Directory.Seasons[i].SeasonNumber != want {
+		if int32(result.Directory.Seasons[i].SeasonNumber) != want {
 			t.Errorf("Directory.Seasons[%d].SeasonNumber = %d, want %d", i, result.Directory.Seasons[i].SeasonNumber, want)
 		}
 	}
@@ -397,39 +397,39 @@ func TestScanSeriesLinkSeparation(t *testing.T) {
 		t.Fatal("Directory.Metadata = nil, want the series metadata carrying its links")
 	}
 	links := result.Directory.Metadata.ExternalLinks
-	if !hasLink(links, metadata.Link{Key: "tvdb", Value: "81189"}) {
+	if !hasLink(links, &metadata.Link{Key: "tvdb", Value: "81189"}) {
 		t.Errorf("directory external_links missing the series tvdb id: %+v", links)
 	}
-	if !hasLink(links, metadata.Link{Key: "imdb", Value: "tt0903747"}) {
+	if !hasLink(links, &metadata.Link{Key: "imdb", Value: "tt0903747"}) {
 		t.Errorf("directory external_links missing the imdb id: %+v", links)
 	}
-	if !hasLink(links, metadata.Link{Key: "youtube", Value: "HhesaQXLuRY"}) {
+	if !hasLink(links, &metadata.Link{Key: "youtube", Value: "HhesaQXLuRY"}) {
 		t.Errorf("directory external_links missing the youtube trailer id: %+v", links)
 	}
 
 	// Episode ids are deliberately kept out of the directory's links.
 	for _, episodeID := range []string{"349232", "349233"} {
-		if hasLink(links, metadata.Link{Key: "tvdb", Value: episodeID}) {
+		if hasLink(links, &metadata.Link{Key: "tvdb", Value: episodeID}) {
 			t.Errorf("episode id %s leaked into the directory's external_links: %+v", episodeID, links)
 		}
 	}
 
 	firstLinks := mediaFileLinks(t, mediaFileByName(t, result, "Breaking Bad S01E01.mkv"))
-	if !hasLink(firstLinks, metadata.Link{Key: "tvdb", Value: "349232"}) {
+	if !hasLink(firstLinks, &metadata.Link{Key: "tvdb", Value: "349232"}) {
 		t.Errorf("episode 1 external_links = %+v", firstLinks)
 	}
 	secondLinks := mediaFileLinks(t, mediaFileByName(t, result, "Breaking Bad S01E02.mkv"))
-	if !hasLink(secondLinks, metadata.Link{Key: "tvdb", Value: "349233"}) {
+	if !hasLink(secondLinks, &metadata.Link{Key: "tvdb", Value: "349233"}) {
 		t.Errorf("episode 2 external_links = %+v", secondLinks)
 	}
-	if hasLink(firstLinks, metadata.Link{Key: "tvdb", Value: "349233"}) {
+	if hasLink(firstLinks, &metadata.Link{Key: "tvdb", Value: "349233"}) {
 		t.Error("episode ids bled between episodes")
 	}
 }
 
 // mediaFileLinks reads a media file's provider ids, which live on its own
 // metadata record rather than beside it.
-func mediaFileLinks(t *testing.T, mediaFile scanmodel.MediaFile) []metadata.Link {
+func mediaFileLinks(t *testing.T, mediaFile scanmodel.MediaFile) []*metadata.Link {
 	t.Helper()
 	if mediaFile.Metadata == nil {
 		t.Fatalf("%q has no metadata record, so no external links", mediaFile.FileName)
@@ -437,9 +437,9 @@ func mediaFileLinks(t *testing.T, mediaFile scanmodel.MediaFile) []metadata.Link
 	return mediaFile.Metadata.ExternalLinks
 }
 
-func hasLink(links []metadata.Link, want metadata.Link) bool {
+func hasLink(links []*metadata.Link, want *metadata.Link) bool {
 	for _, link := range links {
-		if link == want {
+		if link.Key == want.Key && link.Value == want.Value {
 			return true
 		}
 	}
@@ -467,7 +467,7 @@ func TestScanLegacyMultiEpisodeNFO(t *testing.T) {
 	if episode.Metadata == nil || episode.Metadata.Episode == nil || episode.Metadata.Title != "Part 1" {
 		t.Fatalf("NFO = %+v", episode.Metadata)
 	}
-	if links := mediaFileLinks(t, episode); !hasLink(links, metadata.Link{Key: "tvdb", Value: "1"}) {
+	if links := mediaFileLinks(t, episode); !hasLink(links, &metadata.Link{Key: "tvdb", Value: "1"}) {
 		t.Errorf("external_links missing tvdb=1: %+v", links)
 	}
 }
@@ -592,7 +592,7 @@ func TestScanEpisodeWithoutNumberingInSeasonFolder(t *testing.T) {
 
 	episode := mediaFileByName(t, result, "Some Episode Name.mkv")
 	if episode.Video.SeasonNumber == nil || *episode.Video.SeasonNumber != 3 {
-		t.Errorf("SeasonNumber = %v, want 3", derefSeason(episode.Video.SeasonNumber))
+		t.Errorf("SeasonNumber = %v, want 3", episode.Video.SeasonNumber)
 	}
 	if len(result.Directory.Warnings) == 0 {
 		t.Error("expected a warning about the unresolved episode number")
@@ -685,10 +685,10 @@ func TestScanSeasonKnownOnlyFromArtwork(t *testing.T) {
 	}
 
 	// And it is indexed alongside the season that does have a folder.
-	if result.Directory.Metadata == nil || result.Directory.Metadata.TVShow == nil {
+	if result.Directory.Metadata == nil || result.Directory.Metadata.TvShow == nil {
 		t.Fatal("Directory.Metadata.TVShow = nil, want the season index")
 	}
-	if seasons := result.Directory.Metadata.TVShow.Seasons; len(seasons) != 2 {
+	if seasons := result.Directory.Metadata.TvShow.Seasons; len(seasons) != 2 {
 		t.Errorf("season index = %+v, want seasons 1 and 3", seasons)
 	}
 }

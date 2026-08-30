@@ -96,10 +96,10 @@ type walkedFile struct {
 // together with the sidecars that were matched to it.
 type mediaCandidate struct {
 	file       walkedFile
-	video      metadata.VideoAttributes
+	video      *metadata.VideoAttributes
 	sidecars   []scanmodel.SidecarFile
 	nfoAttrs   *metadata.Metadata
-	episodeIDs []metadata.Link
+	episodeIDs []*metadata.Link
 	warnings   []string
 }
 
@@ -138,8 +138,8 @@ type directoryScanner struct {
 	// than once per tile inside it.
 	trickplayOrphansWarned map[string]bool
 
-	externalLinks []metadata.Link
-	linkSeen      map[metadata.Link]bool
+	externalLinks []*metadata.Link
+	linkSeen      map[string]bool
 	// tvshowMeta holds the series' own tvshow.nfo metadata, once one is found at
 	// directory scope. It is set at most once per scan: later matches (a stray
 	// duplicate, or the accidental re-discovery of the same scope) are skipped
@@ -299,19 +299,19 @@ func (s *directoryScanner) identifyMediaFiles() {
 // have no season or episode number — a trailer or a featurette simply isn't an
 // episode — so warning about them would bury the genuine cases under noise from
 // every extras folder in the library.
-func (s *directoryScanner) videoAttributesFor(file walkedFile, isMediaFile bool) metadata.VideoAttributes {
+func (s *directoryScanner) videoAttributesFor(file walkedFile, isMediaFile bool) *metadata.VideoAttributes {
 	// For TV, a bare four-digit number is much more likely to belong to a
 	// date-based episode name than to be a release year.
 	allowBareYear := s.directoryType != scanmodel.TypeTV
 	parts := parseVideoName(file.baseName, s.folderName, allowBareYear)
 
-	attributes := metadata.VideoAttributes{
+	attributes := &metadata.VideoAttributes{
 		Title:        parts.Title,
-		Year:         parts.Year,
+		Year:         int32(parts.Year),
 		Edition:      parts.Edition,
 		VersionLabel: parts.VersionLabel,
 		StackType:    parts.StackType,
-		StackNumber:  parts.StackNumber,
+		StackNumber:  int32(parts.StackNumber),
 		ThreeDFormat: parts.ThreeDFormat,
 	}
 
@@ -331,8 +331,8 @@ func (s *directoryScanner) videoAttributesFor(file walkedFile, isMediaFile bool)
 	episode := parseEpisodeName(file.baseName)
 	switch {
 	case episode.Matched:
-		attributes.SeasonNumber = episode.SeasonNumber
-		attributes.EpisodeNumbers = episode.EpisodeNumbers
+		attributes.SeasonNumber = int32PtrFromInt(episode.SeasonNumber)
+		attributes.EpisodeNumbers = int32SliceFromInt(episode.EpisodeNumbers)
 		// The name parser works in strings, since a date in a filename is only a
 		// date once it has been validated; the record stores the parsed value.
 		attributes.AirDate = metadata.ParseDate(episode.AirDate)
@@ -343,7 +343,7 @@ func (s *directoryScanner) videoAttributesFor(file walkedFile, isMediaFile bool)
 	case file.context.seasonNumber != nil:
 		// The season is known from the folder even though the filename carries
 		// no recognizable episode number.
-		attributes.SeasonNumber = file.context.seasonNumber
+		attributes.SeasonNumber = int32PtrFromInt(file.context.seasonNumber)
 		if isMediaFile {
 			s.warnf("could not resolve an episode number from %q; recording it under season %d only", file.relativePath, *file.context.seasonNumber)
 		}
@@ -355,7 +355,7 @@ func (s *directoryScanner) videoAttributesFor(file walkedFile, isMediaFile bool)
 
 	// Fall back to the folder's season when the filename omitted one.
 	if attributes.SeasonNumber == nil && file.context.seasonNumber != nil {
-		attributes.SeasonNumber = file.context.seasonNumber
+		attributes.SeasonNumber = int32PtrFromInt(file.context.seasonNumber)
 	}
 	if attributes.SeasonNumber != nil && *attributes.SeasonNumber == 0 {
 		attributes.IsSpecial = true
@@ -655,30 +655,53 @@ func (s *directoryScanner) matchMediaPrefix(folderPath, baseName string) (target
 
 // addExternalLinks merges item-level provider ids, suppressing duplicates across
 // the several NFO files a directory may hold.
-func (s *directoryScanner) addExternalLinks(links []metadata.Link) {
+func (s *directoryScanner) addExternalLinks(links []*metadata.Link) {
 	if s.linkSeen == nil {
-		s.linkSeen = map[metadata.Link]bool{}
+		s.linkSeen = map[string]bool{}
 	}
 	for _, link := range links {
-		if s.linkSeen[link] {
+		key := link.Key + "\x00" + link.Value
+		if s.linkSeen[key] {
 			continue
 		}
-		s.linkSeen[link] = true
+		s.linkSeen[key] = true
 		s.externalLinks = append(s.externalLinks, link)
 	}
 }
 
 // episodeLinks attaches an episode's own provider ids to its media file.
-func (c *mediaCandidate) episodeLinks(links []metadata.Link) {
+func (c *mediaCandidate) episodeLinks(links []*metadata.Link) {
 	c.episodeIDs = append(c.episodeIDs, links...)
+}
+
+// int32PtrFromInt narrows an optional int from the name parser to the int32
+// the model stores.
+func int32PtrFromInt(v *int) *int32 {
+	if v == nil {
+		return nil
+	}
+	n := int32(*v)
+	return &n
+}
+
+// int32SliceFromInt narrows a slice of ints from the name parser.
+func int32SliceFromInt(in []int) []int32 {
+	if in == nil {
+		return nil
+	}
+	out := make([]int32, len(in))
+	for i, v := range in {
+		out[i] = int32(v)
+	}
+	return out
 }
 
 // nonNilLinks makes an empty link list encode as an array rather than null, so a
 // caller reading external_links never has to distinguish "no ids" from "field
 // absent".
-func nonNilLinks(links []metadata.Link) []metadata.Link {
+func nonNilLinks(links []*metadata.Link) []*metadata.Link {
 	if links == nil {
-		return []metadata.Link{}
+		return []*metadata.Link{}
 	}
 	return links
 }
@@ -707,7 +730,6 @@ func (s *directoryScanner) assemble() *scanmodel.ScanResult {
 
 	mediaFiles := make([]scanmodel.MediaFile, 0, len(s.mediaCandidates))
 	for _, candidate := range s.mediaCandidates {
-		video := candidate.video
 		sidecars := candidate.sidecars
 		if sidecars == nil {
 			sidecars = []scanmodel.SidecarFile{}
@@ -732,7 +754,7 @@ func (s *directoryScanner) assemble() *scanmodel.ScanResult {
 			SizeBytes:     candidate.file.sizeBytes,
 			ModifiedAt:    candidate.file.modifiedAt,
 			ScannedAt:     scannedAt,
-			Video:         &video,
+			Video:         candidate.video,
 			Stat:          candidate.file.stat,
 			Metadata:      candidate.nfoAttrs,
 			Sidecars:      sidecars,
@@ -770,15 +792,15 @@ func (s *directoryScanner) directoryMetadata() *metadata.Metadata {
 		md.Title = folderParts.Title
 	}
 	if md.Year == 0 {
-		md.Year = folderParts.Year
+		md.Year = int32(folderParts.Year)
 	}
 
 	if s.directoryType == scanmodel.TypeTV {
 		if seasons := s.summarizeSeasons(); len(seasons) > 0 {
-			if md.TVShow == nil {
-				md.TVShow = &metadata.TVShowFields{}
+			if md.TvShow == nil {
+				md.TvShow = &metadata.TVShowFields{}
 			}
-			md.TVShow.Seasons = seasons
+			md.TvShow.Seasons = seasons
 		}
 	}
 	return md
@@ -846,16 +868,16 @@ func (s *directoryScanner) assembleSeasons() []scanmodel.TVSeason {
 // ordered by season number. This is the view that ends up inside the directory's
 // metadata and so feeds NFO writing, as distinct from the scanmodel.TVSeason records that
 // describe what the scan actually found.
-func (s *directoryScanner) summarizeSeasons() []metadata.SeasonSummary {
+func (s *directoryScanner) summarizeSeasons() []*metadata.SeasonSummary {
 	folderNames := s.seasonNumbers()
 	if len(folderNames) == 0 {
 		return nil
 	}
 
-	seasons := make([]metadata.SeasonSummary, 0, len(folderNames))
+	seasons := make([]*metadata.SeasonSummary, 0, len(folderNames))
 	for _, number := range sortedSeasonNumbers(folderNames) {
-		seasons = append(seasons, metadata.SeasonSummary{
-			SeasonNumber: number,
+		seasons = append(seasons, &metadata.SeasonSummary{
+			SeasonNumber: int32(number),
 			FolderName:   folderNames[number],
 		})
 	}

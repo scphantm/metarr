@@ -1,11 +1,15 @@
 package metadata
 
-import "testing"
+import (
+	"testing"
+
+	"google.golang.org/protobuf/proto"
+)
 
 // linksContain compares ignoring order, since callers only query these, and
 // ignoring the default flag, which is an attribute of a link rather than part of
 // its identity.
-func linksContain(links []Link, want Link) bool {
+func linksContain(links []*Link, want *Link) bool {
 	for _, link := range links {
 		if link.Key == want.Key && link.Value == want.Value {
 			return true
@@ -15,14 +19,14 @@ func linksContain(links []Link, want Link) bool {
 }
 
 func TestExtractLinksFromUniqueIDs(t *testing.T) {
-	links := LinksFromUniqueIDs([]UniqueID{
+	links := LinksFromUniqueIDs([]*UniqueID{
 		{Type: "tmdb", Default: true, Value: "603"},
 		{Type: "imdb", Value: "tt0133093"},
 	})
 	if len(links) != 2 {
 		t.Fatalf("links = %+v, want 2", links)
 	}
-	for _, want := range []Link{{Key: "tmdb", Value: "603"}, {Key: "imdb", Value: "tt0133093"}} {
+	for _, want := range []*Link{{Key: "tmdb", Value: "603"}, {Key: "imdb", Value: "tt0133093"}} {
 		if !linksContain(links, want) {
 			t.Errorf("missing %+v in %+v", want, links)
 		}
@@ -32,12 +36,12 @@ func TestExtractLinksFromUniqueIDs(t *testing.T) {
 // TestExtractLinksFoldsAliases covers the same provider appearing under
 // different spellings, so a lookup doesn't have to try every variant.
 func TestExtractLinksFoldsAliases(t *testing.T) {
-	links := LinksFromUniqueIDs([]UniqueID{
+	links := LinksFromUniqueIDs([]*UniqueID{
 		{Type: "tvdbid", Value: "81189"},
 		{Type: "TheMovieDB", Value: "1396"},
 		{Type: "imdbid", Value: "tt0903747"},
 	})
-	for _, want := range []Link{
+	for _, want := range []*Link{
 		{Key: "tvdb", Value: "81189"},
 		{Key: "tmdb", Value: "1396"},
 		{Key: "imdb", Value: "tt0903747"},
@@ -52,8 +56,8 @@ func TestExtractLinksFoldsAliases(t *testing.T) {
 // external system" work: a provider Metarr has never heard of is still
 // captured rather than dropped.
 func TestExtractLinksKeepsUnknownProviders(t *testing.T) {
-	links := LinksFromUniqueIDs([]UniqueID{{Type: "SomeNewDB", Value: "xyz-42"}})
-	if !linksContain(links, Link{Key: "somenewdb", Value: "xyz-42"}) {
+	links := LinksFromUniqueIDs([]*UniqueID{{Type: "SomeNewDB", Value: "xyz-42"}})
+	if !linksContain(links, &Link{Key: "somenewdb", Value: "xyz-42"}) {
 		t.Errorf("unknown provider was dropped: %+v", links)
 	}
 }
@@ -62,15 +66,15 @@ func TestExtractLinksLegacyIDTag(t *testing.T) {
 	tests := []struct {
 		name string
 		id   string
-		want Link
+		want *Link
 	}{
-		{"imdb shaped", "tt0133093", Link{Key: "imdb", Value: "tt0133093"}},
-		{"numeric falls back", "81189", Link{Key: "id", Value: "81189"}},
+		{"imdb shaped", "tt0133093", &Link{Key: "imdb", Value: "tt0133093"}},
+		{"numeric falls back", "81189", &Link{Key: "id", Value: "81189"}},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			links := ExtractLinks(&Metadata{ID: test.id})
+			links := ExtractLinks(&Metadata{Id: test.id})
 			if !linksContain(links, test.want) {
 				t.Errorf("links = %+v, want %+v", links, test.want)
 			}
@@ -92,7 +96,7 @@ func TestExtractLinksYouTubeTrailers(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			links := ExtractLinks(&Metadata{Trailer: test.trailer})
-			if !linksContain(links, Link{Key: "youtube", Value: test.want}) {
+			if !linksContain(links, &Link{Key: "youtube", Value: test.want}) {
 				t.Errorf("links = %+v, want youtube=%s", links, test.want)
 			}
 		})
@@ -109,11 +113,11 @@ func TestExtractLinksIgnoresNonYouTubeTrailer(t *testing.T) {
 // both a uniqueid and the legacy id.
 func TestExtractLinksDeduplicates(t *testing.T) {
 	links := ExtractLinks(&Metadata{
-		ExternalLinks: LinksFromUniqueIDs([]UniqueID{
+		ExternalLinks: LinksFromUniqueIDs([]*UniqueID{
 			{Type: "imdb", Value: "tt0133093"},
 			{Type: "imdb", Value: "tt0133093"},
 		}),
-		ID: "tt0133093",
+		Id: "tt0133093",
 	})
 	if len(links) != 1 {
 		t.Fatalf("links = %+v, want exactly 1 after dedupe", links)
@@ -122,12 +126,12 @@ func TestExtractLinksDeduplicates(t *testing.T) {
 
 func TestExtractLinksSkipsEmptyValues(t *testing.T) {
 	links := ExtractLinks(&Metadata{
-		ExternalLinks: LinksFromUniqueIDs([]UniqueID{
+		ExternalLinks: LinksFromUniqueIDs([]*UniqueID{
 			{Type: "tmdb", Value: ""},
 			{Type: "", Value: ""},
 			{Type: "imdb", Value: "   "},
 		}),
-		ID:      "",
+		Id:      "",
 		Trailer: "",
 	})
 	if len(links) != 0 {
@@ -138,8 +142,8 @@ func TestExtractLinksSkipsEmptyValues(t *testing.T) {
 func TestExtractLinksTypelessUniqueID(t *testing.T) {
 	// A uniqueid without a type attribute still carries an id; it is attributed
 	// the same way as the legacy id rather than discarded.
-	links := LinksFromUniqueIDs([]UniqueID{{Value: "tt0133093"}})
-	if !linksContain(links, Link{Key: "imdb", Value: "tt0133093"}) {
+	links := LinksFromUniqueIDs([]*UniqueID{{Value: "tt0133093"}})
+	if !linksContain(links, &Link{Key: "imdb", Value: "tt0133093"}) {
 		t.Errorf("links = %+v", links)
 	}
 }
@@ -156,7 +160,7 @@ func TestExtractLinksNilSafe(t *testing.T) {
 // TestLinksCarryTheDefaultFlag covers the attribute that has no reader in Metarr
 // but has to survive anyway, because the NFO file is the system of record.
 func TestLinksCarryTheDefaultFlag(t *testing.T) {
-	links := LinksFromUniqueIDs([]UniqueID{
+	links := LinksFromUniqueIDs([]*UniqueID{
 		{Type: "tmdb", Value: "603", Default: true},
 		{Type: "imdb", Value: "tt0133093"},
 	})
@@ -178,7 +182,7 @@ func TestLinksCarryTheDefaultFlag(t *testing.T) {
 // TestDefaultFlagSurvivesDuplicates covers the same id arriving twice, once
 // flagged and once not: that is one link, and it keeps the flag.
 func TestDefaultFlagSurvivesDuplicates(t *testing.T) {
-	links := LinksFromUniqueIDs([]UniqueID{
+	links := LinksFromUniqueIDs([]*UniqueID{
 		{Type: "tmdb", Value: "603"},
 		{Type: "tmdb", Value: "603", Default: true},
 	})
@@ -191,7 +195,7 @@ func TestDefaultFlagSurvivesDuplicates(t *testing.T) {
 }
 
 func TestUniqueIDsFromLinksRoundTrip(t *testing.T) {
-	original := []UniqueID{
+	original := []*UniqueID{
 		{Type: "tmdb", Value: "603", Default: true},
 		{Type: "imdb", Value: "tt0133093"},
 	}
@@ -201,7 +205,7 @@ func TestUniqueIDsFromLinksRoundTrip(t *testing.T) {
 		t.Fatalf("rebuilt = %+v, want %d entries", rebuilt, len(original))
 	}
 	for i, want := range original {
-		if rebuilt[i] != want {
+		if !proto.Equal(rebuilt[i], want) {
 			t.Errorf("rebuilt[%d] = %+v, want %+v", i, rebuilt[i], want)
 		}
 	}
@@ -213,11 +217,11 @@ func TestUniqueIDsFromLinksRoundTrip(t *testing.T) {
 // source file never had.
 func TestUniqueIDsFromLinksSkipsDerivedKeys(t *testing.T) {
 	links := ExtractLinks(&Metadata{
-		ExternalLinks: LinksFromUniqueIDs([]UniqueID{{Type: "tmdb", Value: "603"}}),
-		ID:            "12345",
+		ExternalLinks: LinksFromUniqueIDs([]*UniqueID{{Type: "tmdb", Value: "603"}}),
+		Id:            "12345",
 		Trailer:       "plugin://plugin.video.youtube/?action=play_video&videoid=HhesaQXLuRY",
 	})
-	if !linksContain(links, Link{Key: "id", Value: "12345"}) || !linksContain(links, Link{Key: "youtube", Value: "HhesaQXLuRY"}) {
+	if !linksContain(links, &Link{Key: "id", Value: "12345"}) || !linksContain(links, &Link{Key: "youtube", Value: "HhesaQXLuRY"}) {
 		t.Fatalf("ExtractLinks should surface the derived ids for querying: %+v", links)
 	}
 
@@ -231,7 +235,7 @@ func TestUniqueIDsFromLinksEmpty(t *testing.T) {
 	if got := UniqueIDsFromLinks(nil); got != nil {
 		t.Errorf("UniqueIDsFromLinks(nil) = %+v, want nil so the element is omitted", got)
 	}
-	if got := UniqueIDsFromLinks([]Link{{Key: "id", Value: "12345"}}); got != nil {
+	if got := UniqueIDsFromLinks([]*Link{{Key: "id", Value: "12345"}}); got != nil {
 		t.Errorf("a table of only derived keys should yield nil, got %+v", got)
 	}
 }

@@ -1,0 +1,220 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// The metadata model: the parsed contents of a Kodi NFO sidecar, plus the
+// attributes read from a media file's name. This is the single definition of
+// that model — the Go agent (internal/shared/metadata aliases these
+// messages) reads and writes it, and it is stored as part of a scan record.
+// See docs/adr/0005.
+//
+// The nfo package keeps its own XML-tagged structs for the on-disk format
+// and translates to and from these messages; XML round-tripping is a
+// serialization concern these messages do not carry, the same way date and
+// number tag conversions are not.
+//
+// Dates are carried as the strings NFO files use ("2006-01-02"); the
+// numeric-looking tags Kodi writes as free text (runtime, userrating) stay
+// strings for the same reason.
+
+// Link is one external-provider identifier, such as {tmdb, 603}. Keeping
+// these as key/value pairs means a provider Metarr has never heard of is
+// still captured and queryable. default names the provider a scraper treats
+// as authoritative.
+message Link {
+  string key = 1;
+  string value = 2;
+  bool default = 3;
+}
+
+// UniqueId is one on-disk <uniqueid> tag. Links are derived from these on
+// read and rebuilt from them on write.
+message UniqueId {
+  string type = 1;
+  bool default = 2;
+  string value = 3;
+}
+
+// Rating is one site's rating.
+message Rating {
+  string name = 1;
+  string max = 2;
+  bool default = 3;
+  string value = 4;
+  string votes = 5;
+}
+
+// Ratings wraps the per-site ratings collection.
+message Ratings {
+  repeated Rating rating = 1;
+}
+
+// Thumb is an artwork reference. type and season only appear in tvshow
+// documents, where one file describes artwork for several seasons.
+message Thumb {
+  string aspect = 1;
+  string preview = 2;
+  string type = 3;
+  string season = 4;
+  string value = 5;
+}
+
+// Fanart wraps the background artwork references.
+message Fanart {
+  repeated Thumb thumbs = 1;
+}
+
+// Actor is one cast member.
+message Actor {
+  string name = 1;
+  string role = 2;
+  string order = 3;
+  string thumb = 4;
+}
+
+// Resume is playback position state.
+message Resume {
+  string position = 1;
+  string total = 2;
+}
+
+// EpisodeBookmark marks the position where an episode's content proper
+// begins.
+message EpisodeBookmark {
+  string position = 1;
+}
+
+// MovieSet is the collection a movie belongs to.
+message MovieSet {
+  string name = 1;
+  string overview = 2;
+}
+
+// XmlAttr is one attribute preserved on an unrecognised element.
+message XmlAttr {
+  string name = 1;
+  string value = 2;
+}
+
+// UnknownElement captures a tag the model does not recognise so it survives
+// a read/write round trip. NFO files are the system of record — discarding a
+// field Kodi wrote would destroy user metadata.
+message UnknownElement {
+  string name = 1;
+  repeated XmlAttr attrs = 2;
+  string inner_xml = 3;
+}
+
+// CastCrew groups the people credited on an item.
+message CastCrew {
+  repeated string directors = 1;
+  repeated Actor actors = 2;
+  repeated string credits = 3;
+}
+
+// SeasonSummary is a queryable index over a series' media files.
+message SeasonSummary {
+  int32 season_number = 1;
+  string folder_name = 2;
+  string named_season = 3;
+  string season_plot = 4;
+}
+
+// MovieFields holds the fields unique to a movie document.
+message MovieFields {
+  string sort_title = 1;
+  Fanart fanart = 2;
+  MovieSet set = 3;
+  repeated string countries = 4;
+  repeated string show_links = 5;
+  string original_language = 6;
+}
+
+// TVShowFields holds the fields unique to a tvshow document.
+message TVShowFields {
+  repeated SeasonSummary seasons = 1;
+}
+
+// EpisodeFields holds the fields unique to an episode document.
+message EpisodeFields {
+  string show_title = 1;
+  string season = 2;
+  string episode = 3;
+  string display_episode = 4;
+  string display_season = 5;
+  EpisodeBookmark episode_bookmark = 6;
+}
+
+// MusicVideoFields holds the fields unique to a music-video document.
+message MusicVideoFields {
+  string track = 1;
+  string album = 2;
+  repeated string artists = 3;
+}
+
+// VideoAttributes is everything parsed out of a video file's name.
+message VideoAttributes {
+  string title = 1;
+  string episode_title = 2;
+  int32 year = 3;
+  // season_number is unset when it could not be resolved, which is
+  // different from season zero (specials).
+  optional int32 season_number = 4;
+  repeated int32 episode_numbers = 5;
+  string air_date = 6;
+  bool is_special = 7;
+  string edition = 8;
+  string version_label = 9;
+  string stack_type = 10;
+  int32 stack_number = 11;
+  string three_d_format = 12;
+  // extra_type and extra_source are set only on extra videos.
+  string extra_type = 13;
+  string extra_source = 14;
+}
+
+// Metadata records the parsed contents of an NFO sidecar. scope names which
+// level of the tree it applies to ("directory", "season", "video"); kind is
+// the NFO root element the file turned out to contain.
+message Metadata {
+  string scope = 1;
+  string target_base_name = 2;
+  repeated Link external_links = 3;
+  string kind = 4;
+  string title = 5;
+  string original_title = 6;
+  Ratings ratings = 7;
+  string user_rating = 8;
+  string top250 = 9;
+  string outline = 10;
+  string plot = 11;
+  string tagline = 12;
+  string runtime = 13;
+  repeated Thumb thumbs = 14;
+  string mpaa = 15;
+  int32 play_count = 16;
+  string last_played = 17;
+  string id = 18;
+  repeated string genres = 19;
+  repeated string tags = 20;
+  string premiered = 21;
+  int32 year = 22;
+  string status = 23;
+  string code = 24;
+  string aired = 25;
+  repeated string studios = 26;
+  string trailer = 27;
+  Resume resume = 28;
+  string date_added = 29;
+  repeated UnknownElement extra = 30;
+  MovieFields movie = 31;
+  EpisodeFields episode = 32;
+  MusicVideoFields music_video = 33;
+  TVShowFields tv_show = 34;
+  CastCrew cast_crew = 35;
+  // parse_error records why an NFO could not be read; a malformed sidecar is
+  // reported here rather than failing the scan.
+  string parse_error = 36;
+}

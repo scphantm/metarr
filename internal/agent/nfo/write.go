@@ -86,16 +86,12 @@ func marshal(doc *document) ([]byte, error) {
 	var root any
 	switch {
 	case doc.Movie != nil:
-		restoreUnknownElementNames(doc.Movie.Extra)
 		root = doc.Movie
 	case doc.TVShow != nil:
-		restoreUnknownElementNames(doc.TVShow.Extra)
 		root = doc.TVShow
 	case doc.MusicVideo != nil:
-		restoreUnknownElementNames(doc.MusicVideo.Extra)
 		root = doc.MusicVideo
 	case len(doc.Episodes) == 1:
-		restoreUnknownElementNames(doc.Episodes[0].Extra)
 		root = &doc.Episodes[0]
 	default:
 		return nil, fmt.Errorf("nfo: document of kind %q has no content to marshal", doc.Kind)
