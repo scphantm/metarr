@@ -19,12 +19,14 @@ import (
 type fakeStore struct {
 	mu          sync.Mutex
 	cfg         appconfig.Config
+	getCalls    int
 	upsertCalls int
 }
 
 func (f *fakeStore) Get(_ context.Context) (*appconfig.Config, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.getCalls++
 	cfgCopy := f.cfg
 	return &cfgCopy, nil
 }
@@ -96,6 +98,35 @@ func TestRun_SeedsEverythingOnADatabasePredatingAllFields(t *testing.T) {
 
 	if backend.upsertCalls == 0 {
 		t.Fatal("expected at least one write on a database predating every field")
+	}
+}
+
+// TestRun_CostsOnlyTwoMongoRoundTrips is the regression test for issue #15's
+// round-trip finding: Run used to cost up to 8 store.Bootstrap calls (one
+// per step) plus a separate store.Read in main.go to warm the live config.
+// It now costs exactly 2 store.Bootstrap calls — admin_seed, then one
+// consolidated call for every other step — and zero extra reads, because
+// main.go sources the live config from Report.FinalConfig instead. Get is
+// the round-trip to watch: each store.Bootstrap call issues exactly one.
+func TestRun_CostsOnlyTwoMongoRoundTrips(t *testing.T) {
+	store, backend := newStoreOn(appconfig.Config{})
+
+	report, err := Run(context.Background(), store)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if backend.getCalls != 2 {
+		t.Errorf("getCalls = %d, want 2 (admin_seed + one consolidated static-config call)", backend.getCalls)
+	}
+	if report.FinalConfig == nil {
+		t.Fatal("expected Report.FinalConfig to be populated")
+	}
+	if report.FinalConfig.DirectoryScanner.ParallelCount == 0 {
+		t.Error("Report.FinalConfig does not reflect the static-config step's writes")
+	}
+	if len(report.FinalConfig.APIKeys.Admin) != 1 {
+		t.Error("Report.FinalConfig does not reflect the api_keys_seed step's writes")
 	}
 }
 

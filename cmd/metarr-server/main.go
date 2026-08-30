@@ -184,12 +184,11 @@ func run() error {
 		}
 	}
 
-	// Warm the in-memory config singleton from MongoDB before serving any
-	// requests, so it reflects every bootstrap write above.
-	startupCfg, err := appConfigStore.Read(connectCtx)
-	if err != nil {
-		return err
-	}
+	// Warm the in-memory config singleton from bootstrapReport.FinalConfig,
+	// not a fresh Read — bootstrap.Run already read this exact document
+	// from Mongo while seeding it, so re-reading it here would just be a
+	// second round trip to reconstruct state already in hand.
+	startupCfg := bootstrapReport.FinalConfig
 	appconfig.Set(startupCfg)
 
 	// Compile the stored sidecar table into the registry the scanner reads.

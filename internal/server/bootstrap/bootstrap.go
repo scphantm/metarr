@@ -41,31 +41,34 @@ type Report struct {
 	// APIKeyIDsBackfilled is how many stored API key entries this run
 	// minted a missing id for (0 once every entry has one).
 	APIKeyIDsBackfilled int
+
+	// FinalConfig is the fully-seeded document as Run last saw it — the
+	// same *appconfig.Config the static-config Bootstrap call below already
+	// read from storage and mutated in place, handed back so a caller (only
+	// main.go today) can warm the live config singleton from it directly
+	// instead of paying a second Mongo round trip to re-read what Run
+	// already has in hand.
+	FinalConfig *appconfig.Config
 }
 
 // Run seeds every part of the application config a fresh or upgrading
-// install needs before the server starts serving requests. Each step
-// persists through store.Bootstrap, the same synchronous, single-writer
-// primitive appconfigstore.Store already provides — this package adds no
-// new exported methods to Store.
+// install needs before the server starts serving requests, in two Mongo
+// round trips: one for the admin account (store.SeedAdmin), one for
+// everything else (a single store.Bootstrap call running every other step
+// in sequence against one read). It used to be one store.Bootstrap call per
+// step — up to eight round trips on a fresh install — until issue #15 found
+// tracing every step turned up no real cross-step dependency to justify
+// that, so folding them into one call changes nothing about ordering, only
+// how many round trips it costs.
 //
-// Steps run in a fixed order with no dependency-graph machinery: tracing
-// every step found no real cross-step dependency. The one genuine
-// intra-step ordering requirement — seed the admin account, or recover one
-// left locked out, never both — is handled by Store.SeedAdmin's own atomic
-// closure, unaffected by where Run calls it from.
+// The one genuine intra-step ordering requirement — seed the admin account,
+// or recover one left locked out, never both — is handled by
+// Store.SeedAdmin's own atomic closure, unaffected by where Run calls it
+// from. SeedAdmin runs first specifically so the static-config call's own
+// read (immediately after) picks up whatever it just persisted, keeping
+// FinalConfig complete.
 func Run(ctx context.Context, store *appconfigstore.Store) (Report, error) {
 	var report Report
-
-	apiKeysTemplate, err := appconfig.BuiltinAPIKeysTemplateJSON()
-	if err != nil {
-		return report, fmt.Errorf("bootstrap: loading api_keys defaults: %w", err)
-	}
-
-	var apiKeysSeeded bool
-	if err := store.Bootstrap(ctx, apiKeysSeedStep(apiKeysTemplate, &apiKeysSeeded)); err != nil {
-		return report, fmt.Errorf("bootstrap step %q: %w", "api_keys_seed", err)
-	}
 
 	adminSeed, err := store.SeedAdmin(ctx)
 	if err != nil {
@@ -73,40 +76,60 @@ func Run(ctx context.Context, store *appconfigstore.Store) (Report, error) {
 	}
 	report.Admin = adminSeed
 
-	plainSteps := []struct {
+	apiKeysTemplate, err := appconfig.BuiltinAPIKeysTemplateJSON()
+	if err != nil {
+		return report, fmt.Errorf("bootstrap: loading api_keys defaults: %w", err)
+	}
+
+	var apiKeysSeeded bool
+	apply := staticConfigSteps(apiKeysTemplate, &apiKeysSeeded, &report.SidecarTypesAdded, &report.APIKeyIDsBackfilled)
+
+	var finalCfg *appconfig.Config
+	if err := store.Bootstrap(ctx, func(cfg *appconfig.Config) (bool, error) {
+		finalCfg = cfg
+		return apply(cfg)
+	}); err != nil {
+		return report, fmt.Errorf("bootstrap: %w", err)
+	}
+	report.FinalConfig = finalCfg
+
+	if apiKeysSeeded {
+		report.APIKeys = &finalCfg.APIKeys
+	}
+
+	return report, nil
+}
+
+// staticConfigSteps returns the single apply function Run's one
+// store.Bootstrap call for everything but the admin account runs: every
+// remaining step, in the same fixed order Run always executed them in,
+// against the one *appconfig.Config store.Bootstrap reads. A step that
+// errors stops the sequence immediately, wrapped with its own name so a
+// failure is still traceable to the step that caused it despite no longer
+// being its own Bootstrap call.
+func staticConfigSteps(apiKeysTemplate []byte, apiKeysSeeded *bool, sidecarTypesAdded, apiKeyIDsBackfilled *int) func(cfg *appconfig.Config) (bool, error) {
+	steps := []struct {
 		name  string
 		apply func(*appconfig.Config) (bool, error)
 	}{
+		{"api_keys_seed", apiKeysSeedStep(apiKeysTemplate, apiKeysSeeded)},
 		{"directory_scanner_defaults", directoryScannerDefaultsStep},
 		{"sidecar_types_seed", sidecarTypesSeedStep},
 		{"agents_normalize", agentsNormalizeStep},
 		{"logging_defaults", loggingDefaultsStep},
+		{"sidecar_types_merge_missing", sidecarTypesMergeMissingStep(sidecarTypesAdded)},
+		{"api_key_ids_backfill", apiKeyIDsBackfillStep(apiKeyIDsBackfilled)},
 	}
-	for _, step := range plainSteps {
-		if err := store.Bootstrap(ctx, step.apply); err != nil {
-			return report, fmt.Errorf("bootstrap step %q: %w", step.name, err)
+
+	return func(cfg *appconfig.Config) (bool, error) {
+		anyChanged := false
+		for _, step := range steps {
+			changed, err := step.apply(cfg)
+			if err != nil {
+				return false, fmt.Errorf("step %q: %w", step.name, err)
+			}
+			anyChanged = anyChanged || changed
 		}
+		return anyChanged, nil
 	}
-
-	var sidecarTypesAdded int
-	if err := store.Bootstrap(ctx, sidecarTypesMergeMissingStep(&sidecarTypesAdded)); err != nil {
-		return report, fmt.Errorf("bootstrap step %q: %w", "sidecar_types_merge_missing", err)
-	}
-	report.SidecarTypesAdded = sidecarTypesAdded
-
-	var apiKeyIDsMinted int
-	if err := store.Bootstrap(ctx, apiKeyIDsBackfillStep(&apiKeyIDsMinted)); err != nil {
-		return report, fmt.Errorf("bootstrap step %q: %w", "api_key_ids_backfill", err)
-	}
-	report.APIKeyIDsBackfilled = apiKeyIDsMinted
-
-	if apiKeysSeeded {
-		final, err := store.Read(ctx)
-		if err != nil {
-			return report, err
-		}
-		report.APIKeys = &final.APIKeys
-	}
-
-	return report, nil
 }
