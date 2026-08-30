@@ -1,10 +1,17 @@
 package appconfig
 
-// This file holds the sidecar classification table: the rules that decide what
-// a non-media file found next to a movie or episode actually is. It lives in
-// configuration rather than in Go so a library with unusual naming can be
-// accommodated by editing a document, not by editing and redeploying the
-// scanner.
+// This file holds the helpers around the sidecar classification table: the
+// rules that decide what a non-media file found next to a movie or episode
+// actually is. The table lives in configuration rather than in Go so a
+// library with unusual naming can be accommodated by editing a document, not
+// by editing and redeploying the scanner.
+//
+// SidecarTypeDefinition itself is an alias to its generated message — see
+// model.go. Its field semantics (Patterns are case-insensitive Go regexps
+// matched against the extension-stripped base name; Extensions gates the
+// match to those lowercase dot-prefixed extensions, empty accepting any;
+// Order zero means disabled) are documented on
+// proto/metarr/v1/directory_scanner.proto.
 //
 // The vocabulary the table draws on comes from the Jellyfin and Plex media
 // organization specifications:
@@ -13,42 +20,7 @@ package appconfig
 //	https://jellyfin.org/docs/general/server/media/shows/
 //	https://support.plex.tv/articles/naming-and-organizing-your-tv-show-files/
 
-// SidecarTypeDefinition is one entry in the sidecar classification table.
-//
-// Patterns are Go regular expressions matched against a file's base name — the
-// name with its extension removed — so a pattern never has to spell out
-// extensions itself. They are written case-insensitive with an inline (?i).
-//
-// Extensions gates the match to those lowercase, dot-prefixed extensions, which
-// is what stops the "poster" entry from claiming poster.txt. An empty list
-// accepts any extension.
-type SidecarTypeDefinition struct {
-	// ID is the stable handle the config API edits an entry by. It is minted
-	// once and never reused, so an entry survives being renamed or retyped
-	// without losing its place in the evaluation sequence.
-	Id string `bson:"id" json:"id"`
-
-	// Type is what gets written onto every file classified as this kind, so it
-	// is unique across the table even though ID is the API's handle.
-	Type     string `bson:"type" json:"type"`
-	Category string `bson:"category" json:"category"`
-
-	// Order is the evaluation sequence: the scanner takes the first enabled
-	// entry that accepts a file, so narrower entries belong ahead of the
-	// catch-alls. Position in the stored array means nothing.
-	//
-	// Zero means the entry is disabled — kept in the table, still editable, but
-	// never evaluated. That is how a built-in type is switched off without
-	// losing its patterns.
-	//
-	// Order is changed only through the dedicated ordering endpoint, never by
-	// editing an entry, because uniqueness is a property of the whole table
-	// rather than of any one row.
-	Order int32 `bson:"order" json:"order"`
-
-	Patterns   []string `bson:"patterns" json:"patterns"`
-	Extensions []string `bson:"extensions" json:"extensions"`
-}
+import "google.golang.org/protobuf/proto"
 
 // DefaultSidecarTypes returns the built-in classification table, seeded into a
 // fresh configuration and restored by the reset endpoint. Callers get their own
@@ -76,10 +48,7 @@ func freshDefaultSidecarTypes() []*SidecarTypeDefinition {
 func cloneSidecarTypeDefinitions(parsed []*SidecarTypeDefinition) []*SidecarTypeDefinition {
 	defaults := make([]*SidecarTypeDefinition, len(parsed))
 	for i, entry := range parsed {
-		clone := *entry
-		clone.Patterns = append([]string(nil), entry.Patterns...)
-		clone.Extensions = append([]string(nil), entry.Extensions...)
-		defaults[i] = &clone
+		defaults[i] = proto.Clone(entry).(*SidecarTypeDefinition)
 	}
 	return defaults
 }

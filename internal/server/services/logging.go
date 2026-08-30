@@ -45,12 +45,7 @@ func (s *LoggingServer) GetConfig(
 ) (*connect.Response[metarrv1.LoggingServiceGetConfigResponse], error) {
 	appConfig := appconfig.Get()
 	return connect.NewResponse(&metarrv1.LoggingServiceGetConfigResponse{
-		Config: &metarrv1.LoggingConfig{
-			ServerLevel: appConfig.Logging.ServerLevel,
-			Sink:        appConfig.Logging.Sink,
-			Endpoint:    appConfig.Logging.Endpoint,
-			Stream:      appConfig.Logging.Stream,
-		},
+		Config: cloneMsg(appConfig.Logging),
 	}), nil
 }
 
@@ -60,11 +55,11 @@ func (s *LoggingServer) UpdateConfig(
 ) (*connect.Response[metarrv1.AcceptedResponse], error) {
 	correlationID := correlation.FromContext(ctx)
 
-	entry := &appconfig.LoggingConfig{
-		ServerLevel: req.Msg.GetConfig().GetServerLevel(),
-		Sink:        req.Msg.GetConfig().GetSink(),
-		Endpoint:    req.Msg.GetConfig().GetEndpoint(),
-		Stream:      req.Msg.GetConfig().GetStream(),
+	entry := req.Msg.GetConfig()
+	if entry == nil {
+		entry = &appconfig.LoggingConfig{}
+	} else {
+		entry = cloneMsg(entry)
 	}
 	if err := handlers.ValidateLogLevel(entry.ServerLevel); err != nil {
 		return nil, connectError(http.StatusBadRequest, err)

@@ -40,7 +40,7 @@ func (s *SonarrInterfaceServer) List(
 
 	instances := make([]*metarrv1.SonarrInstance, 0, len(appConfig.Interfaces.Sonarr))
 	for _, instance := range appConfig.Interfaces.Sonarr {
-		instances = append(instances, sonarrInstanceToProto(instance))
+		instances = append(instances, cloneMsg(instance))
 	}
 	return connect.NewResponse(&metarrv1.SonarrInterfaceServiceListResponse{Instances: instances}), nil
 }
@@ -56,7 +56,7 @@ func (s *SonarrInterfaceServer) Get(
 		return nil, connectError(http.StatusNotFound, errors.New("no Sonarr instance with that slug"))
 	}
 	return connect.NewResponse(&metarrv1.SonarrInterfaceServiceGetResponse{
-		Instance: sonarrInstanceToProto(appConfig.Interfaces.Sonarr[index]),
+		Instance: cloneMsg(appConfig.Interfaces.Sonarr[index]),
 	}), nil
 }
 
@@ -66,7 +66,18 @@ func (s *SonarrInterfaceServer) Upsert(
 ) (*connect.Response[metarrv1.AcceptedResponse], error) {
 	correlationID := correlation.FromContext(ctx)
 
-	instance := sonarrInstanceFromProto(req.Msg.GetInstance())
+	instance := req.Msg.GetInstance()
+	if instance == nil {
+		instance = &appconfig.SonarrInstance{}
+	} else {
+		instance = cloneMsg(instance)
+	}
+	// A stored instance always carries a storage section so the cache can
+	// read its retention mode without a nil check; appconfig.Normalize
+	// backfills it on every later read, this keeps it non-nil in between.
+	if instance.Storage == nil {
+		instance.Storage = &appconfig.StorageConfig{}
+	}
 	if instance.InstanceSlug == "" {
 		return nil, connectError(http.StatusBadRequest, errors.New("instance_slug is required"))
 	}
@@ -111,49 +122,4 @@ func (s *SonarrInterfaceServer) Delete(
 	}
 
 	return connect.NewResponse(acceptedResponse(correlationID)), nil
-}
-
-func sonarrInstanceToProto(instance *appconfig.SonarrInstance) *metarrv1.SonarrInstance {
-	mappings := make([]*metarrv1.RootDirMapping, 0, len(instance.RootDirMap))
-	for _, m := range instance.RootDirMap {
-		mappings = append(mappings, &metarrv1.RootDirMapping{
-			SonarrPath: m.SonarrPath,
-			LocalPath:  m.LocalPath,
-		})
-	}
-	return &metarrv1.SonarrInstance{
-		InstanceName: instance.InstanceName,
-		InstanceSlug: instance.InstanceSlug,
-		SonarrUrl:    instance.SonarrUrl,
-		SonarrApiKey: instance.SonarrApiKey,
-		RootDirMap:   mappings,
-		Storage: &metarrv1.StorageConfig{
-			Mode:     instance.Storage.Mode,
-			Ttl:      instance.Storage.Ttl,
-			MaxCount: instance.Storage.MaxCount,
-		},
-	}
-}
-
-func sonarrInstanceFromProto(instance *metarrv1.SonarrInstance) *appconfig.SonarrInstance {
-	mappings := make([]*appconfig.RootDirMapping, 0, len(instance.GetRootDirMap()))
-	for _, m := range instance.GetRootDirMap() {
-		mappings = append(mappings, &appconfig.RootDirMapping{
-			SonarrPath: m.GetSonarrPath(),
-			LocalPath:  m.GetLocalPath(),
-		})
-	}
-	storage := instance.GetStorage()
-	return &appconfig.SonarrInstance{
-		InstanceName: instance.GetInstanceName(),
-		InstanceSlug: instance.GetInstanceSlug(),
-		SonarrUrl:    instance.GetSonarrUrl(),
-		SonarrApiKey: instance.GetSonarrApiKey(),
-		RootDirMap:   mappings,
-		Storage: &appconfig.StorageConfig{
-			Mode:     storage.GetMode(),
-			Ttl:      storage.GetTtl(),
-			MaxCount: storage.GetMaxCount(),
-		},
-	}
 }

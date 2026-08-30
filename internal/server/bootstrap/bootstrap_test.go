@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 
+	"google.golang.org/protobuf/proto"
+
 	"Metarr/internal/server/appconfigstore"
 	"Metarr/internal/shared/appconfig"
 	"Metarr/internal/shared/eventbus"
@@ -18,7 +20,7 @@ import (
 // returned the defaulted document before Run's first read.
 type fakeStore struct {
 	mu          sync.Mutex
-	cfg         appconfig.Config
+	cfg         *appconfig.Config
 	getCalls    int
 	upsertCalls int
 }
@@ -27,14 +29,13 @@ func (f *fakeStore) Get(_ context.Context) (*appconfig.Config, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.getCalls++
-	cfgCopy := f.cfg
-	return &cfgCopy, nil
+	return proto.Clone(f.cfg).(*appconfig.Config), nil
 }
 
 func (f *fakeStore) Upsert(_ context.Context, cfg *appconfig.Config) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.cfg = *cfg
+	f.cfg = proto.Clone(cfg).(*appconfig.Config)
 	f.upsertCalls++
 	return nil
 }
@@ -43,13 +44,13 @@ func (f *fakeStore) Fire(_ context.Context, _ string, _ eventbus.Event) error {
 	return nil
 }
 
-func newStoreOn(cfg appconfig.Config) (*appconfigstore.Store, *fakeStore) {
+func newStoreOn(cfg *appconfig.Config) (*appconfigstore.Store, *fakeStore) {
 	backend := &fakeStore{cfg: cfg}
 	return appconfigstore.New(backend, backend, backend), backend
 }
 
 func TestRun_SeedsEverythingOnADatabasePredatingAllFields(t *testing.T) {
-	store, backend := newStoreOn(appconfig.Config{})
+	store, backend := newStoreOn(&appconfig.Config{})
 
 	report, err := Run(context.Background(), store)
 	if err != nil {
@@ -86,9 +87,6 @@ func TestRun_SeedsEverythingOnADatabasePredatingAllFields(t *testing.T) {
 	if final.DirectoryScanner.ParallelCount == 0 {
 		t.Fatal("expected directory scanner defaults to be seeded")
 	}
-	if final.Agents == nil {
-		t.Fatal("expected agents to be normalized to an empty slice, got nil")
-	}
 	if final.Logging.ServerLevel == "" {
 		t.Fatal("expected logging defaults to be seeded")
 	}
@@ -109,7 +107,7 @@ func TestRun_SeedsEverythingOnADatabasePredatingAllFields(t *testing.T) {
 // main.go sources the live config from Report.FinalConfig instead. Get is
 // the round-trip to watch: each store.Bootstrap call issues exactly one.
 func TestRun_CostsOnlyTwoMongoRoundTrips(t *testing.T) {
-	store, backend := newStoreOn(appconfig.Config{})
+	store, backend := newStoreOn(&appconfig.Config{})
 
 	report, err := Run(context.Background(), store)
 	if err != nil {
@@ -131,7 +129,7 @@ func TestRun_CostsOnlyTwoMongoRoundTrips(t *testing.T) {
 }
 
 func TestRun_AgreesWithDefaultOnTheStaticSections(t *testing.T) {
-	store, _ := newStoreOn(appconfig.Config{})
+	store, _ := newStoreOn(&appconfig.Config{})
 
 	if _, err := Run(context.Background(), store); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -146,7 +144,7 @@ func TestRun_AgreesWithDefaultOnTheStaticSections(t *testing.T) {
 		t.Errorf("ParallelCount = %d, want %d (appconfig.Default disagrees with Run)",
 			final.DirectoryScanner.ParallelCount, want.DirectoryScanner.ParallelCount)
 	}
-	if *final.Logging != *want.Logging {
+	if !proto.Equal(final.Logging, want.Logging) {
 		t.Errorf("Logging = %+v, want %+v (appconfig.Default disagrees with Run)", final.Logging, want.Logging)
 	}
 	if len(final.DirectoryScanner.SidecarTypes) != len(want.DirectoryScanner.SidecarTypes) {
@@ -160,7 +158,7 @@ func TestRun_OnAFreshInstallOnlySeedsWhatDefaultLeftEmpty(t *testing.T) {
 	// nothing is stored, so a genuinely fresh install's first read is
 	// Default(), not appconfig.Config{}. Only API keys and the admin
 	// account should still need seeding from there.
-	store, backend := newStoreOn(*appconfig.Default())
+	store, backend := newStoreOn(appconfig.Default())
 
 	report, err := Run(context.Background(), store)
 	if err != nil {
@@ -189,7 +187,7 @@ func TestRun_OnAFreshInstallOnlySeedsWhatDefaultLeftEmpty(t *testing.T) {
 }
 
 func TestRun_IsIdempotentOnASecondRun(t *testing.T) {
-	store, backend := newStoreOn(appconfig.Config{})
+	store, backend := newStoreOn(&appconfig.Config{})
 
 	if _, err := Run(context.Background(), store); err != nil {
 		t.Fatalf("unexpected error on first run: %v", err)
@@ -213,7 +211,7 @@ func TestRun_IsIdempotentOnASecondRun(t *testing.T) {
 }
 
 func TestRun_MergesAndReportsNewlyAddedBuiltinSidecarTypes(t *testing.T) {
-	seeded := *appconfig.Default()
+	seeded := appconfig.Default()
 	// Simulate a database seeded before the last entry in the built-in
 	// table existed.
 	seeded.DirectoryScanner.SidecarTypes = seeded.DirectoryScanner.SidecarTypes[:len(seeded.DirectoryScanner.SidecarTypes)-1]

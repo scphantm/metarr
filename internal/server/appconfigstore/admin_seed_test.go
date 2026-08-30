@@ -4,14 +4,16 @@ import (
 	"context"
 	"testing"
 
+	"google.golang.org/protobuf/proto"
+
 	"Metarr/internal/server/passwordhash"
 	"Metarr/internal/shared/appconfig"
 )
 
 func TestRecoverLockedOutAdmin_FreshInstallIsUntouched(t *testing.T) {
-	admin := appconfig.AdminUser{}
+	admin := &appconfig.AdminUser{}
 
-	password, recovered, err := recoverLockedOutAdmin(&admin)
+	password, recovered, err := recoverLockedOutAdmin(admin)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -21,21 +23,21 @@ func TestRecoverLockedOutAdmin_FreshInstallIsUntouched(t *testing.T) {
 	if password != "" {
 		t.Fatalf("expected no password to be generated, got %q", password)
 	}
-	if admin != (appconfig.AdminUser{}) {
+	if !proto.Equal(admin, &appconfig.AdminUser{}) {
 		t.Fatalf("record was mutated: %+v", admin)
 	}
 }
 
 func TestRecoverLockedOutAdmin_IntactCredentialsAreUntouched(t *testing.T) {
-	admin := appconfig.AdminUser{
+	admin := &appconfig.AdminUser{
 		Username:     "admin",
 		Email:        "admin@example.com",
 		PasswordSalt: "existing-salt",
 		PasswordHash: "existing-hash",
 	}
-	original := admin
+	original := proto.Clone(admin).(*appconfig.AdminUser)
 
-	password, recovered, err := recoverLockedOutAdmin(&admin)
+	password, recovered, err := recoverLockedOutAdmin(admin)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -45,20 +47,20 @@ func TestRecoverLockedOutAdmin_IntactCredentialsAreUntouched(t *testing.T) {
 	if password != "" {
 		t.Fatalf("expected no password to be generated, got %q", password)
 	}
-	if admin != original {
+	if !proto.Equal(admin, original) {
 		t.Fatalf("record was mutated: got %+v, want %+v", admin, original)
 	}
 }
 
 func TestRecoverLockedOutAdmin_EmptyHashIsRecovered(t *testing.T) {
-	admin := appconfig.AdminUser{
+	admin := &appconfig.AdminUser{
 		Username: "admin",
 		Email:    "admin@example.com",
 		// PasswordSalt/PasswordHash left empty, as a scoped write that
 		// round-tripped GetConfig's redacted response would leave them.
 	}
 
-	password, recovered, err := recoverLockedOutAdmin(&admin)
+	password, recovered, err := recoverLockedOutAdmin(admin)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -80,12 +82,12 @@ func TestRecoverLockedOutAdmin_EmptyHashIsRecovered(t *testing.T) {
 }
 
 func TestRecoverLockedOutAdmin_EmptySaltAloneIsRecovered(t *testing.T) {
-	admin := appconfig.AdminUser{
+	admin := &appconfig.AdminUser{
 		Username:     "admin",
 		PasswordHash: "orphaned-hash-with-no-salt",
 	}
 
-	_, recovered, err := recoverLockedOutAdmin(&admin)
+	_, recovered, err := recoverLockedOutAdmin(admin)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -95,9 +97,9 @@ func TestRecoverLockedOutAdmin_EmptySaltAloneIsRecovered(t *testing.T) {
 }
 
 func TestRecoverLockedOutAdmin_IsIdempotentOnceRecovered(t *testing.T) {
-	admin := appconfig.AdminUser{Username: "admin"}
+	admin := &appconfig.AdminUser{Username: "admin"}
 
-	_, recovered, err := recoverLockedOutAdmin(&admin)
+	_, recovered, err := recoverLockedOutAdmin(admin)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -105,16 +107,16 @@ func TestRecoverLockedOutAdmin_IsIdempotentOnceRecovered(t *testing.T) {
 		t.Fatal("expected the first call to recover the account")
 	}
 
-	afterFirstRecovery := admin
+	afterFirstRecovery := proto.Clone(admin).(*appconfig.AdminUser)
 
-	_, recoveredAgain, err := recoverLockedOutAdmin(&admin)
+	_, recoveredAgain, err := recoverLockedOutAdmin(admin)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if recoveredAgain {
 		t.Fatal("a second run should not regenerate a password that was just recovered")
 	}
-	if admin != afterFirstRecovery {
+	if !proto.Equal(admin, afterFirstRecovery) {
 		t.Fatalf("second run mutated an already-recovered record: %+v", admin)
 	}
 }
@@ -149,7 +151,7 @@ func TestSeedAdmin_RecoveryCannotRunBeforeSeeding(t *testing.T) {
 }
 
 func TestSeedAdmin_RecoversAnAccountLockedOutByStoredState(t *testing.T) {
-	backend := &fakeBackend{cfg: appconfig.Config{
+	backend := &fakeBackend{cfg: &appconfig.Config{
 		Admin: &appconfig.AdminUser{Username: "admin", Email: "admin@example.com"},
 	}}
 	store := New(backend, backend, backend)
@@ -167,7 +169,7 @@ func TestSeedAdmin_RecoversAnAccountLockedOutByStoredState(t *testing.T) {
 }
 
 func TestSeedAdmin_NoopWhenAdminAlreadyIntact(t *testing.T) {
-	backend := &fakeBackend{cfg: appconfig.Config{
+	backend := &fakeBackend{cfg: &appconfig.Config{
 		Admin: &appconfig.AdminUser{
 			Username:     "admin",
 			Email:        "admin@example.com",

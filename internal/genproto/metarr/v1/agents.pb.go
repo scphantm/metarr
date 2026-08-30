@@ -22,8 +22,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// AgentConfig mirrors internal/shared/appconfig.AgentConfig — the operator's
-// side of one agent's configuration.
+// AgentConfig is the operator's side of one agent's configuration — what an
+// operator says about an agent that has announced itself. It is part of the
+// application config document.
 type AgentConfig struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
 	Slug          string                   `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
@@ -92,7 +93,8 @@ func (x *AgentConfig) GetLogLevel() string {
 	return ""
 }
 
-// AgentDirectoryMapping mirrors internal/shared/appconfig.AgentDirectoryMapping.
+// AgentDirectoryMapping ties one configured scan directory to the path the
+// agent knows it by.
 type AgentDirectoryMapping struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ScannerSlug   string                 `protobuf:"bytes,1,opt,name=scanner_slug,json=scannerSlug,proto3" json:"scanner_slug,omitempty"`

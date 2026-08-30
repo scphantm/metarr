@@ -21,7 +21,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// LoggingConfig mirrors internal/shared/appconfig.LoggingConfig.
+// LoggingConfig controls the centralized logging pipeline: the servers own
+// log level, plus informational fields describing where Fluent Bit ships
+// logs. Each agents own level lives on its AgentConfig entry instead.
 type LoggingConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ServerLevel   string                 `protobuf:"bytes,1,opt,name=server_level,json=serverLevel,proto3" json:"server_level,omitempty"`

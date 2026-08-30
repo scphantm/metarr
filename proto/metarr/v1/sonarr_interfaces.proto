@@ -6,8 +6,9 @@ import "metarr/v1/common.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
-// SonarrInstance mirrors internal/shared/appconfig.SonarrInstance
-// field-for-field.
+// SonarrInstance configures a single Sonarr instance to cache data from.
+// This message is the single definition of that config across the Go
+// server, the UI and the stored document.
 message SonarrInstance {
   string instance_name = 1;
   string instance_slug = 2;

@@ -6,7 +6,9 @@ import "metarr/v1/common.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
-// LoggingConfig mirrors internal/shared/appconfig.LoggingConfig.
+// LoggingConfig controls the centralized logging pipeline: the servers own
+// log level, plus informational fields describing where Fluent Bit ships
+// logs. Each agents own level lives on its AgentConfig entry instead.
 message LoggingConfig {
   string server_level = 1;
   string sink = 2;
