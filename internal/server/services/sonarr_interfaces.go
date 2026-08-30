@@ -36,11 +36,7 @@ func (s *SonarrInterfaceServer) List(
 	ctx context.Context,
 	req *connect.Request[metarrv1.SonarrInterfaceServiceListRequest],
 ) (*connect.Response[metarrv1.SonarrInterfaceServiceListResponse], error) {
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 
 	instances := make([]*metarrv1.SonarrInstance, 0, len(appConfig.Interfaces.Sonarr))
 	for _, instance := range appConfig.Interfaces.Sonarr {
@@ -53,11 +49,7 @@ func (s *SonarrInterfaceServer) Get(
 	ctx context.Context,
 	req *connect.Request[metarrv1.SonarrInterfaceServiceGetRequest],
 ) (*connect.Response[metarrv1.SonarrInterfaceServiceGetResponse], error) {
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 
 	index := appConfig.Interfaces.FindSonarrIndex(req.Msg.GetSlug())
 	if index == -1 {

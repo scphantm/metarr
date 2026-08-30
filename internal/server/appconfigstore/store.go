@@ -56,7 +56,9 @@ func New(reader configReader, writer configWriter, firer updateFirer) *Store {
 	return &Store{reader: reader, writer: writer, firer: firer}
 }
 
-// Read returns the currently stored application config.
+// Read returns the currently stored application config, straight from
+// storage. It exists for startup bootstrap, before live config exists to
+// read instead — general server code wants appconfig.Get(), not this.
 func (s *Store) Read(ctx context.Context) (*appconfig.Config, error) {
 	return s.reader.Get(ctx)
 }

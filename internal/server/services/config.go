@@ -37,11 +37,7 @@ func (s *ConfigServer) Get(
 	ctx context.Context,
 	req *connect.Request[metarrv1.ConfigServiceGetRequest],
 ) (*connect.Response[metarrv1.ConfigServiceGetResponse], error) {
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 
 	// Redaction happens implicitly: configToProto's AdminUser conversion
 	// never reads PasswordSalt/PasswordHash off the Go struct at all — see

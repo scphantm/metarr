@@ -47,11 +47,7 @@ func (s *DirectoryScannerServer) Get(
 	ctx context.Context,
 	req *connect.Request[metarrv1.DirectoryScannerServiceGetRequest],
 ) (*connect.Response[metarrv1.DirectoryScannerServiceGetResponse], error) {
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 	return connect.NewResponse(&metarrv1.DirectoryScannerServiceGetResponse{
 		Config: directoryScannerConfigToProto(appConfig.DirectoryScanner),
 	}), nil
@@ -84,11 +80,7 @@ func (s *DirectoryScannerServer) ListDirectories(
 	ctx context.Context,
 	req *connect.Request[metarrv1.DirectoryScannerServiceListDirectoriesRequest],
 ) (*connect.Response[metarrv1.DirectoryScannerServiceListDirectoriesResponse], error) {
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 
 	dirs := make([]*metarrv1.ScanDirectory, 0, len(appConfig.DirectoryScanner.ScanDirectories))
 	for _, dir := range appConfig.DirectoryScanner.ScanDirectories {
@@ -101,11 +93,7 @@ func (s *DirectoryScannerServer) GetDirectory(
 	ctx context.Context,
 	req *connect.Request[metarrv1.DirectoryScannerServiceGetDirectoryRequest],
 ) (*connect.Response[metarrv1.DirectoryScannerServiceGetDirectoryResponse], error) {
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 
 	index := appConfig.DirectoryScanner.FindScanDirectoryIndex(req.Msg.GetSlug())
 	if index == -1 {
@@ -174,11 +162,7 @@ func (s *DirectoryScannerServer) ListSidecarTypes(
 	ctx context.Context,
 	req *connect.Request[metarrv1.DirectoryScannerServiceListSidecarTypesRequest],
 ) (*connect.Response[metarrv1.DirectoryScannerServiceListSidecarTypesResponse], error) {
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 
 	types := make([]*metarrv1.SidecarTypeDefinition, 0, len(appConfig.DirectoryScanner.SidecarTypes))
 	for _, def := range appConfig.DirectoryScanner.SidecarTypes {
@@ -191,11 +175,7 @@ func (s *DirectoryScannerServer) GetSidecarType(
 	ctx context.Context,
 	req *connect.Request[metarrv1.DirectoryScannerServiceGetSidecarTypeRequest],
 ) (*connect.Response[metarrv1.DirectoryScannerServiceGetSidecarTypeResponse], error) {
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 
 	index := appConfig.DirectoryScanner.FindSidecarTypeIndexByID(req.Msg.GetId())
 	if index == -1 {

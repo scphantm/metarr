@@ -16,8 +16,17 @@ _Avoid_: settings, app settings, system config
 
 **Config store**:
 The one module through which every change to the application config passes. It
-reads the current document, applies the change, and announces it.
+reads the current document, applies the change, and announces it. Its own read
+capability exists only to serve startup bootstrap, before live config exists —
+general server code never calls it.
 _Avoid_: config service, config writer, config repo
+
+**Live config**:
+The in-process copy of the application config every server-side read (outside
+bootstrap) uses. Kept current by the config store's mutation listener, which
+writes it only after a mutation is durably persisted — never read directly
+from storage.
+_Avoid_: cached config, current config, config snapshot
 
 **Config mutation**:
 A single named change to the application config, applied to a document the config

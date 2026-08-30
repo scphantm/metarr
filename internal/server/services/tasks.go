@@ -15,6 +15,7 @@ import (
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/server/httpserver"
 	"Metarr/internal/shared/agentproto"
+	"Metarr/internal/shared/appconfig"
 	"Metarr/internal/shared/correlation"
 	"Metarr/internal/shared/eventbus"
 	"Metarr/internal/shared/scanmodel"
@@ -74,11 +75,7 @@ func (s *TaskServer) RunDirectoryScan(
 		return nil, connectError(http.StatusBadRequest, errors.New(`unsupported command, expected "run"`))
 	}
 
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 
 	index := appConfig.DirectoryScanner.FindScanDirectoryIndex(slug)
 	if index == -1 {

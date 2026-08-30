@@ -43,11 +43,7 @@ func (s *LoggingServer) GetConfig(
 	ctx context.Context,
 	req *connect.Request[metarrv1.LoggingServiceGetConfigRequest],
 ) (*connect.Response[metarrv1.LoggingServiceGetConfigResponse], error) {
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 	return connect.NewResponse(&metarrv1.LoggingServiceGetConfigResponse{
 		Config: &metarrv1.LoggingConfig{
 			ServerLevel: appConfig.Logging.ServerLevel,

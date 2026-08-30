@@ -46,11 +46,7 @@ func (s *AgentServer) List(
 	ctx context.Context,
 	req *connect.Request[metarrv1.AgentServiceListRequest],
 ) (*connect.Response[metarrv1.AgentServiceListResponse], error) {
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 
 	views, err := s.Agents.List(ctx, appConfig)
 	if err != nil {
@@ -74,14 +70,7 @@ func (s *AgentServer) StreamPresence(
 	defer ticker.Stop()
 
 	for {
-		appConfig, err := s.AppConfigRepo.Get(ctx)
-		if err != nil {
-			if ctx.Err() != nil {
-				return nil
-			}
-			s.Logger.Error("failed to fetch app config", "error", err)
-			return connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-		}
+		appConfig := appconfig.Get()
 
 		views, err := s.Agents.List(ctx, appConfig)
 		if err != nil {

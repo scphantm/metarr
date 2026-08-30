@@ -21,7 +21,6 @@ import (
 type Handlers struct {
 	PubSub             *eventbus.PubSubBus
 	Streams            *eventbus.StreamBus
-	AppConfigRepo      *mongostore.AppConfigRepo
 	AppConfigStore     *appconfigstore.Store
 	LocalDirectoryRepo *mongostore.LocalDirectoryRepo
 	WorkflowRepo       *mongostore.WorkflowRepo
@@ -38,7 +37,6 @@ type Handlers struct {
 func New(
 	pubsub *eventbus.PubSubBus,
 	streams *eventbus.StreamBus,
-	appConfigRepo *mongostore.AppConfigRepo,
 	appConfigStore *appconfigstore.Store,
 	localDirectoryRepo *mongostore.LocalDirectoryRepo,
 	workflowRepo *mongostore.WorkflowRepo,
@@ -53,7 +51,6 @@ func New(
 	return &Handlers{
 		PubSub:             pubsub,
 		Streams:            streams,
-		AppConfigRepo:      appConfigRepo,
 		AppConfigStore:     appConfigStore,
 		LocalDirectoryRepo: localDirectoryRepo,
 		WorkflowRepo:       workflowRepo,
