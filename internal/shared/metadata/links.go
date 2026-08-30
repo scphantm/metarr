@@ -6,20 +6,6 @@ import (
 	"strings"
 )
 
-// Link is one external-provider identifier, such as {tmdb, 603} or
-// {youtube, dQw4w9WgXcQ}. Keeping these as key/value pairs rather than named
-// fields means a provider Metarr has never heard of is still captured and
-// queryable.
-type Link struct {
-	Key   string `bson:"key" json:"key"`
-	Value string `bson:"value" json:"value"`
-
-	// Default mirrors the default="true" attribute on a <uniqueid> tag, which
-	// names the provider a scraper treats as authoritative. Nothing in Metarr
-	// reads it yet; it is carried so a file we rewrite comes back as it went in.
-	Default bool `bson:"default,omitempty" json:"default,omitempty"`
-}
-
 // canonicalLinkKeys folds the spellings the same provider appears under onto
 // one key, so a lookup doesn't have to try every variant. Providers missing
 // from this table are kept under their own lowercased name.
@@ -55,14 +41,14 @@ var youtubePluginVideoIDPattern = regexp.MustCompile(`(?i)videoid=([A-Za-z0-9_-]
 // record, folding duplicates. The result populates a series record's
 // external_links when run over item-level metadata, and a media file's
 // episode_ids when run over that file's own metadata.
-func ExtractLinks(m *Metadata) []Link {
+func ExtractLinks(m *Metadata) []*Link {
 	if m == nil {
 		return nil
 	}
 
 	collector := &linkCollector{}
 	collector.addLinks(m.ExternalLinks)
-	collector.addLegacyID(m.ID)
+	collector.addLegacyID(m.Id)
 	collector.addTrailer(m.Trailer)
 	return collector.links
 }
@@ -70,7 +56,7 @@ func ExtractLinks(m *Metadata) []Link {
 // LinksFromUniqueIDs converts the on-disk <uniqueid> tags into links, folding
 // the several spellings the same provider appears under onto one key. This is
 // the read half of the NFO round trip; UniqueIDsFromLinks is the write half.
-func LinksFromUniqueIDs(uniqueIDs []UniqueID) []Link {
+func LinksFromUniqueIDs(uniqueIDs []*UniqueID) []*Link {
 	collector := &linkCollector{}
 	for _, uniqueID := range uniqueIDs {
 		if uniqueID.Type == "" {
@@ -100,8 +86,8 @@ var derivedLinkKeys = map[string]string{
 // uniqueid tags would add elements the source file never had. The cost is that a
 // genuine <uniqueid type="youtube"> does not survive a rewrite, which is the
 // price of ExternalLinks being both the stored ids and the derived ones.
-func UniqueIDsFromLinks(links []Link) []UniqueID {
-	uniqueIDs := make([]UniqueID, 0, len(links))
+func UniqueIDsFromLinks(links []*Link) []*UniqueID {
+	uniqueIDs := make([]*UniqueID, 0, len(links))
 	for _, link := range links {
 		if _, derived := derivedLinkKeys[link.Key]; derived {
 			continue
@@ -109,7 +95,7 @@ func UniqueIDsFromLinks(links []Link) []UniqueID {
 		if link.Key == "" || link.Value == "" {
 			continue
 		}
-		uniqueIDs = append(uniqueIDs, UniqueID{
+		uniqueIDs = append(uniqueIDs, &UniqueID{
 			Type:    link.Key,
 			Value:   link.Value,
 			Default: link.Default,
@@ -125,9 +111,14 @@ func UniqueIDsFromLinks(links []Link) []UniqueID {
 // routinely because the same id often appears in both a uniqueid and the legacy
 // id tag.
 type linkCollector struct {
-	links []Link
-	seen  map[Link]bool
+	links []*Link
+	seen  map[string]bool
 }
+
+// linkIdentity is the key and value alone — Link is a generated message and
+// not comparable, so duplicate detection keys on this string rather than the
+// value itself.
+func linkIdentity(key, value string) string { return key + "\x00" + value }
 
 func (c *linkCollector) add(key, value string, isDefault bool) {
 	key = strings.TrimSpace(strings.ToLower(key))
@@ -139,12 +130,12 @@ func (c *linkCollector) add(key, value string, isDefault bool) {
 		key = canonical
 	}
 
-	// Identity is the key and value alone. The default flag is an attribute of
-	// the same link, not a different one, so the same id arriving twice — once
-	// flagged, once not — must not become two entries.
-	identity := Link{Key: key, Value: value}
+	// The default flag is an attribute of the same link, not a different one,
+	// so the same id arriving twice — once flagged, once not — must not become
+	// two entries.
+	identity := linkIdentity(key, value)
 	if c.seen == nil {
-		c.seen = map[Link]bool{}
+		c.seen = map[string]bool{}
 	}
 	if c.seen[identity] {
 		if isDefault {
@@ -157,12 +148,12 @@ func (c *linkCollector) add(key, value string, isDefault bool) {
 		return
 	}
 	c.seen[identity] = true
-	c.links = append(c.links, Link{Key: key, Value: value, Default: isDefault})
+	c.links = append(c.links, &Link{Key: key, Value: value, Default: isDefault})
 }
 
 // addLinks folds in links that were already resolved, which is how the ids read
 // straight out of a document's uniqueid tags reach the union.
-func (c *linkCollector) addLinks(links []Link) {
+func (c *linkCollector) addLinks(links []*Link) {
 	for _, link := range links {
 		c.add(link.Key, link.Value, link.Default)
 	}

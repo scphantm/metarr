@@ -7,11 +7,11 @@ import (
 )
 
 // This file translates between the on-disk XML document structs and the
-// canonical metadata.Metadata model, in both directions. toMetadata is the read
-// path; documentFromMetadata is the write path. The metadata package owns the
-// shared value types (Ratings, Thumb, UniqueID, Resume, Actor, Fanart,
-// MovieSet, EpisodeBookmark), so those transfer by direct assignment; the
-// numeric tags kept as strings on disk, and the date tags, are converted.
+// canonical metadata.Metadata model, in both directions. toMetadata is the
+// read path; documentFromMetadata is the write path. The metadata model is
+// generated from proto and carries no XML directives, so the shared value
+// types are converted here (see xmlvalues.go) alongside the numeric- and
+// date-tag conversions.
 
 // toMetadata projects a parsed document into the canonical model. A legacy
 // multi-episode file is represented by its first episode. A nil, unrecognized,
@@ -39,33 +39,33 @@ func (m *movie) toMetadata() *metadata.Metadata {
 		Kind:          metadata.KindMovie,
 		Title:         m.Title,
 		OriginalTitle: m.OriginalTitle,
-		Ratings:       m.Ratings,
+		Ratings:       ratingsFromXML(m.Ratings),
 		UserRating:    m.UserRating,
 		Top250:        m.Top250,
 		Outline:       m.Outline,
 		Plot:          m.Plot,
 		Tagline:       m.Tagline,
 		Runtime:       m.Runtime,
-		Thumbs:        m.Thumbs,
-		MPAA:          m.MPAA,
+		Thumbs:        thumbsFromXML(m.Thumbs),
+		Mpaa:          m.MPAA,
 		PlayCount:     atoiOrZero(m.PlayCount),
 		LastPlayed:    m.LastPlayed,
-		ExternalLinks: metadata.LinksFromUniqueIDs(m.UniqueIDs),
-		ID:            m.ID,
+		ExternalLinks: metadata.LinksFromUniqueIDs(uniqueIDsFromXML(m.UniqueIDs)),
+		Id:            m.ID,
 		Genres:        m.Genres,
 		Tags:          m.Tags,
 		Premiered:     metadata.ParseDate(m.Premiered),
 		Year:          atoiOrZero(m.Year),
 		Studios:       m.Studios,
 		Trailer:       m.Trailer,
-		Resume:        m.Resume,
+		Resume:        resumeFromXML(m.Resume),
 		DateAdded:     metadata.ParseDate(m.DateAdded),
-		Extra:         m.Extra,
-		CastCrew:      castCrew(m.Directors, m.Actors, m.Credits),
+		Extra:         extraFromXML(m.Extra),
+		CastCrew:      castCrew(m.Directors, actorsFromXML(m.Actors), m.Credits),
 		Movie: &metadata.MovieFields{
 			SortTitle:        m.SortTitle,
-			Fanart:           m.Fanart,
-			Set:              m.Set,
+			Fanart:           fanartFromXML(m.Fanart),
+			Set:              movieSetFromXML(m.Set),
 			Countries:        m.Countries,
 			ShowLinks:        m.ShowLinks,
 			OriginalLanguage: m.OriginalLanguage,
@@ -78,19 +78,19 @@ func (s *tvShow) toMetadata() *metadata.Metadata {
 		Kind:          metadata.KindTVShow,
 		Title:         s.Title,
 		OriginalTitle: s.OriginalTitle,
-		Ratings:       s.Ratings,
+		Ratings:       ratingsFromXML(s.Ratings),
 		UserRating:    s.UserRating,
 		Top250:        s.Top250,
 		Outline:       s.Outline,
 		Plot:          s.Plot,
 		Tagline:       s.Tagline,
 		Runtime:       s.Runtime,
-		Thumbs:        s.Thumbs,
-		MPAA:          s.MPAA,
+		Thumbs:        thumbsFromXML(s.Thumbs),
+		Mpaa:          s.MPAA,
 		PlayCount:     atoiOrZero(s.PlayCount),
 		LastPlayed:    s.LastPlayed,
-		ExternalLinks: metadata.LinksFromUniqueIDs(s.UniqueIDs),
-		ID:            s.ID,
+		ExternalLinks: metadata.LinksFromUniqueIDs(uniqueIDsFromXML(s.UniqueIDs)),
+		Id:            s.ID,
 		Genres:        s.Genres,
 		Tags:          s.Tags,
 		Premiered:     metadata.ParseDate(s.Premiered),
@@ -100,11 +100,11 @@ func (s *tvShow) toMetadata() *metadata.Metadata {
 		Aired:         s.Aired,
 		Studios:       s.Studios,
 		Trailer:       s.Trailer,
-		Resume:        s.Resume,
+		Resume:        resumeFromXML(s.Resume),
 		DateAdded:     metadata.ParseDate(s.DateAdded),
-		Extra:         s.Extra,
-		CastCrew:      castCrew(nil, s.Actors, nil),
-		TVShow:        &metadata.TVShowFields{},
+		Extra:         extraFromXML(s.Extra),
+		CastCrew:      castCrew(nil, actorsFromXML(s.Actors), nil),
+		TvShow:        &metadata.TVShowFields{},
 	}
 }
 
@@ -113,19 +113,19 @@ func (e *episodeDetails) toMetadata() *metadata.Metadata {
 		Kind:          metadata.KindEpisode,
 		Title:         e.Title,
 		OriginalTitle: e.OriginalTitle,
-		Ratings:       e.Ratings,
+		Ratings:       ratingsFromXML(e.Ratings),
 		UserRating:    e.UserRating,
 		Top250:        e.Top250,
 		Outline:       e.Outline,
 		Plot:          e.Plot,
 		Tagline:       e.Tagline,
 		Runtime:       e.Runtime,
-		Thumbs:        e.Thumbs,
-		MPAA:          e.MPAA,
+		Thumbs:        thumbsFromXML(e.Thumbs),
+		Mpaa:          e.MPAA,
 		PlayCount:     atoiOrZero(e.PlayCount),
 		LastPlayed:    e.LastPlayed,
-		ExternalLinks: metadata.LinksFromUniqueIDs(e.UniqueIDs),
-		ID:            e.ID,
+		ExternalLinks: metadata.LinksFromUniqueIDs(uniqueIDsFromXML(e.UniqueIDs)),
+		Id:            e.ID,
 		Genres:        e.Genres,
 		Premiered:     metadata.ParseDate(e.Premiered),
 		Year:          atoiOrZero(e.Year),
@@ -134,17 +134,17 @@ func (e *episodeDetails) toMetadata() *metadata.Metadata {
 		Aired:         e.Aired,
 		Studios:       e.Studios,
 		Trailer:       e.Trailer,
-		Resume:        e.Resume,
+		Resume:        resumeFromXML(e.Resume),
 		DateAdded:     metadata.ParseDate(e.DateAdded),
-		Extra:         e.Extra,
-		CastCrew:      castCrew(e.Directors, e.Actors, e.Credits),
+		Extra:         extraFromXML(e.Extra),
+		CastCrew:      castCrew(e.Directors, actorsFromXML(e.Actors), e.Credits),
 		Episode: &metadata.EpisodeFields{
 			ShowTitle:       e.ShowTitle,
 			Season:          e.Season,
 			Episode:         e.Episode,
 			DisplayEpisode:  e.DisplayEpisode,
 			DisplaySeason:   e.DisplaySeason,
-			EpisodeBookmark: e.EpisodeBookmark,
+			EpisodeBookmark: episodeBookmarkFromXML(e.EpisodeBookmark),
 		},
 	}
 }
@@ -159,12 +159,12 @@ func (v *musicVideo) toMetadata() *metadata.Metadata {
 		Plot:          v.Plot,
 		Tagline:       v.Tagline,
 		Runtime:       v.Runtime,
-		Thumbs:        v.Thumbs,
-		MPAA:          v.MPAA,
+		Thumbs:        thumbsFromXML(v.Thumbs),
+		Mpaa:          v.MPAA,
 		PlayCount:     atoiOrZero(v.PlayCount),
 		LastPlayed:    v.LastPlayed,
-		ExternalLinks: metadata.LinksFromUniqueIDs(v.UniqueIDs),
-		ID:            v.ID,
+		ExternalLinks: metadata.LinksFromUniqueIDs(uniqueIDsFromXML(v.UniqueIDs)),
+		Id:            v.ID,
 		Genres:        v.Genres,
 		Tags:          v.Tags,
 		Premiered:     metadata.ParseDate(v.Premiered),
@@ -174,10 +174,10 @@ func (v *musicVideo) toMetadata() *metadata.Metadata {
 		Aired:         v.Aired,
 		Studios:       v.Studios,
 		Trailer:       v.Trailer,
-		Resume:        v.Resume,
+		Resume:        resumeFromXML(v.Resume),
 		DateAdded:     metadata.ParseDate(v.DateAdded),
-		Extra:         v.Extra,
-		CastCrew:      castCrew(v.Directors, v.Actors, nil),
+		Extra:         extraFromXML(v.Extra),
+		CastCrew:      castCrew(v.Directors, actorsFromXML(v.Actors), nil),
 		MusicVideo: &metadata.MusicVideoFields{
 			Track:   v.Track,
 			Album:   v.Album,
@@ -212,19 +212,19 @@ func movieFromMetadata(m *metadata.Metadata) *movie {
 	out := &movie{
 		Title:         m.Title,
 		OriginalTitle: m.OriginalTitle,
-		Ratings:       m.Ratings,
+		Ratings:       ratingsToXML(m.Ratings),
 		UserRating:    m.UserRating,
 		Top250:        m.Top250,
 		Outline:       m.Outline,
 		Plot:          m.Plot,
 		Tagline:       m.Tagline,
 		Runtime:       m.Runtime,
-		Thumbs:        m.Thumbs,
-		MPAA:          m.MPAA,
+		Thumbs:        thumbsToXML(m.Thumbs),
+		MPAA:          m.Mpaa,
 		PlayCount:     itoaOrEmpty(m.PlayCount),
 		LastPlayed:    m.LastPlayed,
-		UniqueIDs:     metadata.UniqueIDsFromLinks(m.ExternalLinks),
-		ID:            m.ID,
+		UniqueIDs:     uniqueIDsToXML(metadata.UniqueIDsFromLinks(m.ExternalLinks)),
+		ID:            m.Id,
 		Genres:        m.Genres,
 		Tags:          m.Tags,
 		Credits:       credits,
@@ -233,15 +233,15 @@ func movieFromMetadata(m *metadata.Metadata) *movie {
 		Year:          itoaOrEmpty(m.Year),
 		Studios:       m.Studios,
 		Trailer:       m.Trailer,
-		Actors:        actors,
-		Resume:        m.Resume,
+		Actors:        actorsToXML(actors),
+		Resume:        resumeToXML(m.Resume),
 		DateAdded:     metadata.FormatDate(m.DateAdded),
-		Extra:         m.Extra,
+		Extra:         extraToXML(m.Extra),
 	}
 	if f := m.Movie; f != nil {
 		out.SortTitle = f.SortTitle
-		out.Fanart = f.Fanart
-		out.Set = f.Set
+		out.Fanart = fanartToXML(f.Fanart)
+		out.Set = movieSetToXML(f.Set)
 		out.Countries = f.Countries
 		out.ShowLinks = f.ShowLinks
 		out.OriginalLanguage = f.OriginalLanguage
@@ -254,19 +254,19 @@ func tvShowFromMetadata(m *metadata.Metadata) *tvShow {
 	return &tvShow{
 		Title:         m.Title,
 		OriginalTitle: m.OriginalTitle,
-		Ratings:       m.Ratings,
+		Ratings:       ratingsToXML(m.Ratings),
 		UserRating:    m.UserRating,
 		Top250:        m.Top250,
 		Outline:       m.Outline,
 		Plot:          m.Plot,
 		Tagline:       m.Tagline,
 		Runtime:       m.Runtime,
-		Thumbs:        m.Thumbs,
-		MPAA:          m.MPAA,
+		Thumbs:        thumbsToXML(m.Thumbs),
+		MPAA:          m.Mpaa,
 		PlayCount:     itoaOrEmpty(m.PlayCount),
 		LastPlayed:    m.LastPlayed,
-		UniqueIDs:     metadata.UniqueIDsFromLinks(m.ExternalLinks),
-		ID:            m.ID,
+		UniqueIDs:     uniqueIDsToXML(metadata.UniqueIDsFromLinks(m.ExternalLinks)),
+		ID:            m.Id,
 		Genres:        m.Genres,
 		Tags:          m.Tags,
 		Premiered:     metadata.FormatDate(m.Premiered),
@@ -276,10 +276,10 @@ func tvShowFromMetadata(m *metadata.Metadata) *tvShow {
 		Aired:         m.Aired,
 		Studios:       m.Studios,
 		Trailer:       m.Trailer,
-		Actors:        actors,
-		Resume:        m.Resume,
+		Actors:        actorsToXML(actors),
+		Resume:        resumeToXML(m.Resume),
 		DateAdded:     metadata.FormatDate(m.DateAdded),
-		Extra:         m.Extra,
+		Extra:         extraToXML(m.Extra),
 	}
 }
 
@@ -288,19 +288,19 @@ func episodeFromMetadata(m *metadata.Metadata) *episodeDetails {
 	out := &episodeDetails{
 		Title:         m.Title,
 		OriginalTitle: m.OriginalTitle,
-		Ratings:       m.Ratings,
+		Ratings:       ratingsToXML(m.Ratings),
 		UserRating:    m.UserRating,
 		Top250:        m.Top250,
 		Outline:       m.Outline,
 		Plot:          m.Plot,
 		Tagline:       m.Tagline,
 		Runtime:       m.Runtime,
-		Thumbs:        m.Thumbs,
-		MPAA:          m.MPAA,
+		Thumbs:        thumbsToXML(m.Thumbs),
+		MPAA:          m.Mpaa,
 		PlayCount:     itoaOrEmpty(m.PlayCount),
 		LastPlayed:    m.LastPlayed,
-		UniqueIDs:     metadata.UniqueIDsFromLinks(m.ExternalLinks),
-		ID:            m.ID,
+		UniqueIDs:     uniqueIDsToXML(metadata.UniqueIDsFromLinks(m.ExternalLinks)),
+		ID:            m.Id,
 		Genres:        m.Genres,
 		Credits:       credits,
 		Directors:     directors,
@@ -311,10 +311,10 @@ func episodeFromMetadata(m *metadata.Metadata) *episodeDetails {
 		Aired:         m.Aired,
 		Studios:       m.Studios,
 		Trailer:       m.Trailer,
-		Actors:        actors,
-		Resume:        m.Resume,
+		Actors:        actorsToXML(actors),
+		Resume:        resumeToXML(m.Resume),
 		DateAdded:     metadata.FormatDate(m.DateAdded),
-		Extra:         m.Extra,
+		Extra:         extraToXML(m.Extra),
 	}
 	if f := m.Episode; f != nil {
 		out.ShowTitle = f.ShowTitle
@@ -322,7 +322,7 @@ func episodeFromMetadata(m *metadata.Metadata) *episodeDetails {
 		out.Episode = f.Episode
 		out.DisplayEpisode = f.DisplayEpisode
 		out.DisplaySeason = f.DisplaySeason
-		out.EpisodeBookmark = f.EpisodeBookmark
+		out.EpisodeBookmark = episodeBookmarkToXML(f.EpisodeBookmark)
 	}
 	return out
 }
@@ -337,12 +337,12 @@ func musicVideoFromMetadata(m *metadata.Metadata) *musicVideo {
 		Plot:       m.Plot,
 		Tagline:    m.Tagline,
 		Runtime:    m.Runtime,
-		Thumbs:     m.Thumbs,
-		MPAA:       m.MPAA,
+		Thumbs:     thumbsToXML(m.Thumbs),
+		MPAA:       m.Mpaa,
 		PlayCount:  itoaOrEmpty(m.PlayCount),
 		LastPlayed: m.LastPlayed,
-		UniqueIDs:  metadata.UniqueIDsFromLinks(m.ExternalLinks),
-		ID:         m.ID,
+		UniqueIDs:  uniqueIDsToXML(metadata.UniqueIDsFromLinks(m.ExternalLinks)),
+		ID:         m.Id,
 		Genres:     m.Genres,
 		Tags:       m.Tags,
 		Directors:  directors,
@@ -353,10 +353,10 @@ func musicVideoFromMetadata(m *metadata.Metadata) *musicVideo {
 		Aired:      m.Aired,
 		Studios:    m.Studios,
 		Trailer:    m.Trailer,
-		Actors:     actors,
-		Resume:     m.Resume,
+		Actors:     actorsToXML(actors),
+		Resume:     resumeToXML(m.Resume),
 		DateAdded:  metadata.FormatDate(m.DateAdded),
-		Extra:      m.Extra,
+		Extra:      extraToXML(m.Extra),
 	}
 	if f := m.MusicVideo; f != nil {
 		out.Track = f.Track
@@ -368,7 +368,7 @@ func musicVideoFromMetadata(m *metadata.Metadata) *musicVideo {
 
 // castCrew groups the people credited on an item, returning nil when there are
 // none so an empty block is omitted from storage.
-func castCrew(directors []string, actors []metadata.Actor, credits []string) *metadata.CastCrew {
+func castCrew(directors []string, actors []*metadata.Actor, credits []string) *metadata.CastCrew {
 	if len(directors) == 0 && len(actors) == 0 && len(credits) == 0 {
 		return nil
 	}
@@ -376,7 +376,7 @@ func castCrew(directors []string, actors []metadata.Actor, credits []string) *me
 }
 
 // castCrewParts unpacks a cast/crew block back into its slices, tolerating nil.
-func castCrewParts(cc *metadata.CastCrew) (directors []string, actors []metadata.Actor, credits []string) {
+func castCrewParts(cc *metadata.CastCrew) (directors []string, actors []*metadata.Actor, credits []string) {
 	if cc == nil {
 		return nil, nil, nil
 	}
@@ -385,19 +385,19 @@ func castCrewParts(cc *metadata.CastCrew) (directors []string, actors []metadata
 
 // atoiOrZero parses a numeric NFO tag, returning zero when it is empty or not a
 // number.
-func atoiOrZero(raw string) int {
+func atoiOrZero(raw string) int32 {
 	value, err := strconv.Atoi(raw)
 	if err != nil {
 		return 0
 	}
-	return value
+	return int32(value)
 }
 
 // itoaOrEmpty renders an integer back to its tag text, leaving zero as empty so
 // an unset value is omitted from the written file.
-func itoaOrEmpty(value int) string {
+func itoaOrEmpty(value int32) string {
 	if value == 0 {
 		return ""
 	}
-	return strconv.Itoa(value)
+	return strconv.Itoa(int(value))
 }
