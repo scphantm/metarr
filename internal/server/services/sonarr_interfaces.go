@@ -51,7 +51,7 @@ func (s *SonarrInterfaceServer) Get(
 ) (*connect.Response[metarrv1.SonarrInterfaceServiceGetResponse], error) {
 	appConfig := appconfig.Get()
 
-	index := appConfig.Interfaces.FindSonarrIndex(req.Msg.GetSlug())
+	index := appconfig.FindSonarrIndex(appConfig.Interfaces, req.Msg.GetSlug())
 	if index == -1 {
 		return nil, connectError(http.StatusNotFound, errors.New("no Sonarr instance with that slug"))
 	}
@@ -72,9 +72,9 @@ func (s *SonarrInterfaceServer) Upsert(
 	}
 
 	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
-		index := cfg.Interfaces.FindSonarrIndex(instance.InstanceSlug)
+		index := appconfig.FindSonarrIndex(cfg.Interfaces, instance.InstanceSlug)
 		if index == -1 {
-			for _, slug := range cfg.Interfaces.AllInstanceSlugs() {
+			for _, slug := range appconfig.AllInstanceSlugs(cfg.Interfaces) {
 				if slug == instance.InstanceSlug {
 					return connectError(http.StatusConflict, errors.New("instance_slug already in use by a different interface type"))
 				}
@@ -99,7 +99,7 @@ func (s *SonarrInterfaceServer) Delete(
 	correlationID := correlation.FromContext(ctx)
 
 	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
-		index := cfg.Interfaces.FindSonarrIndex(req.Msg.GetSlug())
+		index := appconfig.FindSonarrIndex(cfg.Interfaces, req.Msg.GetSlug())
 		if index == -1 {
 			return connectError(http.StatusNotFound, errors.New("no Sonarr instance with that slug"))
 		}
@@ -113,7 +113,7 @@ func (s *SonarrInterfaceServer) Delete(
 	return connect.NewResponse(acceptedResponse(correlationID)), nil
 }
 
-func sonarrInstanceToProto(instance appconfig.SonarrInstance) *metarrv1.SonarrInstance {
+func sonarrInstanceToProto(instance *appconfig.SonarrInstance) *metarrv1.SonarrInstance {
 	mappings := make([]*metarrv1.RootDirMapping, 0, len(instance.RootDirMap))
 	for _, m := range instance.RootDirMap {
 		mappings = append(mappings, &metarrv1.RootDirMapping{
@@ -124,36 +124,36 @@ func sonarrInstanceToProto(instance appconfig.SonarrInstance) *metarrv1.SonarrIn
 	return &metarrv1.SonarrInstance{
 		InstanceName: instance.InstanceName,
 		InstanceSlug: instance.InstanceSlug,
-		SonarrUrl:    instance.SonarrURL,
-		SonarrApiKey: instance.SonarrAPIKey,
+		SonarrUrl:    instance.SonarrUrl,
+		SonarrApiKey: instance.SonarrApiKey,
 		RootDirMap:   mappings,
 		Storage: &metarrv1.StorageConfig{
 			Mode:     instance.Storage.Mode,
-			Ttl:      instance.Storage.TTL,
-			MaxCount: int32(instance.Storage.MaxCount),
+			Ttl:      instance.Storage.Ttl,
+			MaxCount: instance.Storage.MaxCount,
 		},
 	}
 }
 
-func sonarrInstanceFromProto(instance *metarrv1.SonarrInstance) appconfig.SonarrInstance {
-	mappings := make([]appconfig.RootDirMapping, 0, len(instance.GetRootDirMap()))
+func sonarrInstanceFromProto(instance *metarrv1.SonarrInstance) *appconfig.SonarrInstance {
+	mappings := make([]*appconfig.RootDirMapping, 0, len(instance.GetRootDirMap()))
 	for _, m := range instance.GetRootDirMap() {
-		mappings = append(mappings, appconfig.RootDirMapping{
+		mappings = append(mappings, &appconfig.RootDirMapping{
 			SonarrPath: m.GetSonarrPath(),
 			LocalPath:  m.GetLocalPath(),
 		})
 	}
 	storage := instance.GetStorage()
-	return appconfig.SonarrInstance{
+	return &appconfig.SonarrInstance{
 		InstanceName: instance.GetInstanceName(),
 		InstanceSlug: instance.GetInstanceSlug(),
-		SonarrURL:    instance.GetSonarrUrl(),
-		SonarrAPIKey: instance.GetSonarrApiKey(),
+		SonarrUrl:    instance.GetSonarrUrl(),
+		SonarrApiKey: instance.GetSonarrApiKey(),
 		RootDirMap:   mappings,
-		Storage: appconfig.StorageConfig{
+		Storage: &appconfig.StorageConfig{
 			Mode:     storage.GetMode(),
-			TTL:      storage.GetTtl(),
-			MaxCount: int(storage.GetMaxCount()),
+			Ttl:      storage.GetTtl(),
+			MaxCount: storage.GetMaxCount(),
 		},
 	}
 }

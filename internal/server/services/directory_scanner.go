@@ -65,7 +65,7 @@ func (s *DirectoryScannerServer) Update(
 
 	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
 		if req.Msg.ParallelCount != nil {
-			cfg.DirectoryScanner.ParallelCount = int(req.Msg.GetParallelCount())
+			cfg.DirectoryScanner.ParallelCount = req.Msg.GetParallelCount()
 		}
 		return nil
 	})
@@ -95,7 +95,7 @@ func (s *DirectoryScannerServer) GetDirectory(
 ) (*connect.Response[metarrv1.DirectoryScannerServiceGetDirectoryResponse], error) {
 	appConfig := appconfig.Get()
 
-	index := appConfig.DirectoryScanner.FindScanDirectoryIndex(req.Msg.GetSlug())
+	index := appconfig.FindScanDirectoryIndex(appConfig.DirectoryScanner, req.Msg.GetSlug())
 	if index == -1 {
 		return nil, connectError(http.StatusNotFound, errors.New("no scan directory with that slug"))
 	}
@@ -121,7 +121,7 @@ func (s *DirectoryScannerServer) UpsertDirectory(
 	}
 
 	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
-		if index := cfg.DirectoryScanner.FindScanDirectoryIndex(entry.ScannerSlug); index == -1 {
+		if index := appconfig.FindScanDirectoryIndex(cfg.DirectoryScanner, entry.ScannerSlug); index == -1 {
 			cfg.DirectoryScanner.ScanDirectories = append(cfg.DirectoryScanner.ScanDirectories, entry)
 		} else {
 			cfg.DirectoryScanner.ScanDirectories[index] = entry
@@ -143,7 +143,7 @@ func (s *DirectoryScannerServer) DeleteDirectory(
 	slug := req.Msg.GetSlug()
 
 	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
-		index := cfg.DirectoryScanner.FindScanDirectoryIndex(slug)
+		index := appconfig.FindScanDirectoryIndex(cfg.DirectoryScanner, slug)
 		if index == -1 {
 			return connectError(http.StatusNotFound, errors.New("no scan directory with that slug"))
 		}
@@ -177,7 +177,7 @@ func (s *DirectoryScannerServer) GetSidecarType(
 ) (*connect.Response[metarrv1.DirectoryScannerServiceGetSidecarTypeResponse], error) {
 	appConfig := appconfig.Get()
 
-	index := appConfig.DirectoryScanner.FindSidecarTypeIndexByID(req.Msg.GetId())
+	index := appconfig.FindSidecarTypeIndexByID(appConfig.DirectoryScanner, req.Msg.GetId())
 	if index == -1 {
 		return nil, connectError(http.StatusNotFound, errors.New("no sidecar type with that id"))
 	}
@@ -206,14 +206,14 @@ func (s *DirectoryScannerServer) UpsertSidecarType(
 	}
 
 	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
-		if entry.ID == "" {
+		if entry.Id == "" {
 			// A new type is created disabled. It classifies nothing until the
 			// ordering transaction gives it a place in the sequence.
-			entry.ID = uuid.NewString()
+			entry.Id = uuid.NewString()
 			entry.Order = 0
 			cfg.DirectoryScanner.SidecarTypes = append(cfg.DirectoryScanner.SidecarTypes, entry)
 		} else {
-			index := cfg.DirectoryScanner.FindSidecarTypeIndexByID(entry.ID)
+			index := appconfig.FindSidecarTypeIndexByID(cfg.DirectoryScanner, entry.Id)
 			if index == -1 {
 				// An unknown id is a mistake worth surfacing, not an invitation to
 				// create an entry under an id the caller chose.
@@ -248,7 +248,7 @@ func (s *DirectoryScannerServer) DeleteSidecarType(
 	id := req.Msg.GetId()
 
 	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
-		index := cfg.DirectoryScanner.FindSidecarTypeIndexByID(id)
+		index := appconfig.FindSidecarTypeIndexByID(cfg.DirectoryScanner, id)
 		if index == -1 {
 			return connectError(http.StatusNotFound, errors.New("no sidecar type with that id"))
 		}
@@ -279,21 +279,21 @@ func (s *DirectoryScannerServer) ReorderSidecarTypes(
 		// untouched.
 		var missing []string
 		for _, entry := range sidecarTypes {
-			if _, present := requested[entry.ID]; !present {
-				missing = append(missing, fmt.Sprintf("%s (%s)", entry.ID, entry.Type))
+			if _, present := requested[entry.Id]; !present {
+				missing = append(missing, fmt.Sprintf("%s (%s)", entry.Id, entry.Type))
 			}
 		}
 		if len(missing) > 0 {
 			return connectError(http.StatusBadRequest, fmt.Errorf("the order must name every sidecar type; missing: %s", strings.Join(missing, ", ")))
 		}
 		for id := range requested {
-			if cfg.DirectoryScanner.FindSidecarTypeIndexByID(id) == -1 {
+			if appconfig.FindSidecarTypeIndexByID(cfg.DirectoryScanner, id) == -1 {
 				return connectError(http.StatusBadRequest, fmt.Errorf("no sidecar type with id %s", id))
 			}
 		}
 
 		for i := range sidecarTypes {
-			sidecarTypes[i].Order = int(requested[sidecarTypes[i].ID])
+			sidecarTypes[i].Order = requested[sidecarTypes[i].Id]
 		}
 
 		// The registry is the authority on what makes a coherent table,

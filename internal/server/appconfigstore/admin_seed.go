@@ -32,13 +32,20 @@ type AdminSeedResult struct {
 func (s *Store) SeedAdmin(ctx context.Context) (AdminSeedResult, error) {
 	var result AdminSeedResult
 	err := s.Bootstrap(ctx, func(cfg *appconfig.Config) (bool, error) {
+		// The admin section is a pointer, so a document that has never had
+		// one arrives nil rather than zeroed. Seeding is exactly the case
+		// that handles it, so it is filled in here rather than guarded at
+		// every field read below.
+		if cfg.Admin == nil {
+			cfg.Admin = &appconfig.AdminUser{}
+		}
 		if cfg.Admin.Username == "" {
 			password, salt, hash, err := generateAdminCredentials()
 			if err != nil {
 				return false, err
 			}
 			username, email := appconfig.DefaultAdminIdentity()
-			cfg.Admin = appconfig.AdminUser{
+			cfg.Admin = &appconfig.AdminUser{
 				Username:     username,
 				Email:        email,
 				PasswordSalt: salt,
@@ -48,7 +55,7 @@ func (s *Store) SeedAdmin(ctx context.Context) (AdminSeedResult, error) {
 			return true, nil
 		}
 
-		password, recovered, err := recoverLockedOutAdmin(&cfg.Admin)
+		password, recovered, err := recoverLockedOutAdmin(cfg.Admin)
 		if err != nil {
 			return false, err
 		}

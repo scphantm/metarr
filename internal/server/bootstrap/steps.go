@@ -24,8 +24,8 @@ const guidPlaceholder = "{guid}"
 // were already shown once).
 func apiKeysSeedStep(template []byte, seeded *bool) func(cfg *appconfig.Config) (bool, error) {
 	return func(cfg *appconfig.Config) (bool, error) {
-		if len(cfg.APIKeys.Admin) != 0 || len(cfg.APIKeys.User) != 0 ||
-			len(cfg.APIKeys.Webhook) != 0 || len(cfg.APIKeys.ReadOnly) != 0 {
+		if len(cfg.ApiKeys.Admin) != 0 || len(cfg.ApiKeys.User) != 0 ||
+			len(cfg.ApiKeys.Webhook) != 0 || len(cfg.ApiKeys.ReadOnly) != 0 {
 			return false, nil
 		}
 
@@ -44,11 +44,11 @@ func apiKeysSeedStep(template []byte, seeded *bool) func(cfg *appconfig.Config) 
 			return false, err
 		}
 
-		cfg.APIKeys = appconfig.APIKeysConfig{
-			Admin:    []appconfig.APIKeyEntry{parsed.Admin},
-			User:     []appconfig.APIKeyEntry{parsed.User},
-			Webhook:  []appconfig.APIKeyEntry{parsed.Webhook},
-			ReadOnly: []appconfig.APIKeyEntry{parsed.ReadOnly},
+		cfg.ApiKeys = &appconfig.APIKeysConfig{
+			Admin:    []*appconfig.APIKeyEntry{&parsed.Admin},
+			User:     []*appconfig.APIKeyEntry{&parsed.User},
+			Webhook:  []*appconfig.APIKeyEntry{&parsed.Webhook},
+			ReadOnly: []*appconfig.APIKeyEntry{&parsed.ReadOnly},
 		}
 		*seeded = true
 		return true, nil
@@ -63,7 +63,7 @@ func directoryScannerDefaultsStep(cfg *appconfig.Config) (bool, error) {
 		return false, nil
 	}
 	cfg.DirectoryScanner.ParallelCount = appconfig.Default().DirectoryScanner.ParallelCount
-	cfg.DirectoryScanner.ScanDirectories = []appconfig.ScanDirectory{}
+	cfg.DirectoryScanner.ScanDirectories = []*appconfig.ScanDirectory{}
 	return true, nil
 }
 
@@ -89,7 +89,7 @@ func agentsNormalizeStep(cfg *appconfig.Config) (bool, error) {
 	if cfg.Agents != nil {
 		return false, nil
 	}
-	cfg.Agents = []appconfig.AgentConfig{}
+	cfg.Agents = []*appconfig.AgentConfig{}
 	return true, nil
 }
 
@@ -127,7 +127,7 @@ func sidecarTypesMergeMissingStep(added *int) func(cfg *appconfig.Config) (bool,
 // minted, for Run's report.
 func apiKeyIDsBackfillStep(minted *int) func(cfg *appconfig.Config) (bool, error) {
 	return func(cfg *appconfig.Config) (bool, error) {
-		n := appconfig.BackfillAPIKeyIDs(&cfg.APIKeys)
+		n := appconfig.BackfillAPIKeyIDs(cfg.ApiKeys)
 		if n == 0 {
 			return false, nil
 		}

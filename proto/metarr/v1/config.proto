@@ -10,13 +10,22 @@ import "metarr/v1/sonarr_interfaces.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
-// AdminUser mirrors internal/shared/appconfig.AdminUser, deliberately
-// omitting password_salt/password_hash: those never cross the wire in
-// either direction. GetConfig's REST equivalent redacts them to "" before
-// responding, and UpdateAdmin is the only write path for a new password.
+// AdminUser is the system's single administrative user account.
+//
+// password_salt and password_hash are here because this message is on its
+// way to being both the wire shape and the stored shape — the document
+// Mongo holds — and a stored admin account has to carry its credentials.
+//
+// They are never populated in a client-facing response: Get blanks both
+// before responding, and UpdateAdmin is the only write path for a new
+// password. A generated client therefore sees two fields that are always
+// empty, which is the deliberate cost of having one definition of this
+// message rather than a wire copy and a stored copy.
 message AdminUser {
   string username = 1;
   string email = 2;
+  string password_salt = 3;
+  string password_hash = 4;
 }
 
 // APIKeyEntry mirrors internal/shared/appconfig.APIKeyEntry. id is the

@@ -94,7 +94,7 @@ func Run(ctx context.Context, store *appconfigstore.Store) (Report, error) {
 	report.FinalConfig = finalCfg
 
 	if apiKeysSeeded {
-		report.APIKeys = &finalCfg.APIKeys
+		report.APIKeys = finalCfg.ApiKeys
 	}
 
 	return report, nil

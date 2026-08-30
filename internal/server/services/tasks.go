@@ -77,7 +77,7 @@ func (s *TaskServer) RunDirectoryScan(
 
 	appConfig := appconfig.Get()
 
-	index := appConfig.DirectoryScanner.FindScanDirectoryIndex(slug)
+	index := appconfig.FindScanDirectoryIndex(appConfig.DirectoryScanner, slug)
 	if index == -1 {
 		return nil, connectError(http.StatusNotFound, errors.New("no scan directory with that slug"))
 	}
@@ -90,7 +90,7 @@ func (s *TaskServer) RunDirectoryScan(
 	// Scanning happens on the agent that can actually see the library, so the
 	// request has to resolve to one before anything is queued. Firing at a
 	// stream nobody reads would return accepted and then silently do nothing.
-	agent, mapped := appConfig.AgentForScanner(slug)
+	agent, mapped := appconfig.AgentForScanner(appConfig, slug)
 	if !mapped {
 		return nil, connectError(http.StatusUnprocessableEntity,
 			fmt.Errorf("no agent is mapped to scan directory %q; map one under System > Agents", slug))

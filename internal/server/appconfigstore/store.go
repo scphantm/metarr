@@ -60,7 +60,11 @@ func New(reader configReader, writer configWriter, firer updateFirer) *Store {
 // storage. It exists for startup bootstrap, before live config exists to
 // read instead — general server code wants appconfig.Get(), not this.
 func (s *Store) Read(ctx context.Context) (*appconfig.Config, error) {
-	return s.reader.Get(ctx)
+	cfg, err := s.reader.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return appconfig.Normalize(cfg), nil
 }
 
 // Mutate reads the current application config, applies apply to it, and
@@ -78,6 +82,7 @@ func (s *Store) Mutate(ctx context.Context, apply func(*appconfig.Config) error)
 	if err != nil {
 		return err
 	}
+	cfg = appconfig.Normalize(cfg)
 
 	if err := apply(cfg); err != nil {
 		return err
@@ -112,6 +117,7 @@ func (s *Store) Bootstrap(ctx context.Context, apply func(*appconfig.Config) (ch
 	if err != nil {
 		return err
 	}
+	cfg = appconfig.Normalize(cfg)
 
 	changed, err := apply(cfg)
 	if err != nil {

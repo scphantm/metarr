@@ -170,11 +170,13 @@ type AgentConfigProjection struct {
 	DisplayName string `json:"display_name,omitempty"`
 
 	// ParallelCount is how many item directories the agent walks at once.
-	ParallelCount int `json:"parallel_count"`
+	// int32 because it is carried straight through from the config section
+	// rather than re-typed on the way past.
+	ParallelCount int32 `json:"parallel_count"`
 
 	// SidecarTypes is the classification table. The agent has to hold it
 	// because classification happens where the files are.
-	SidecarTypes []appconfig.SidecarTypeDefinition `json:"sidecar_types"`
+	SidecarTypes []*appconfig.SidecarTypeDefinition `json:"sidecar_types"`
 
 	// Directories are only those mapped to this agent. An agent is told
 	// nothing about libraries it cannot see.

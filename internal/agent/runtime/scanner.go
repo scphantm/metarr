@@ -334,5 +334,5 @@ func parallelCountFrom(projection *agentproto.AgentConfigProjection) int {
 	if projection.ParallelCount < 1 {
 		return 1
 	}
-	return projection.ParallelCount
+	return int(projection.ParallelCount)
 }

@@ -33,7 +33,7 @@ func BuildProjection(config *appconfig.Config, slug string, updatedAt time.Time)
 		UpdatedAt:     updatedAt,
 	}
 
-	index := config.FindAgentIndex(slug)
+	index := appconfig.FindAgentIndex(config, slug)
 	if index < 0 {
 		// A connected but unconfigured agent still gets a real log level
 		// (defaulted above) rather than an empty string — being able to bump an
@@ -53,7 +53,7 @@ func BuildProjection(config *appconfig.Config, slug string, updatedAt time.Time)
 		// A mapping naming a scan directory that no longer exists is skipped
 		// rather than sent as a half-record: the agent would have no scan type
 		// to walk it with.
-		scannerIndex := config.DirectoryScanner.FindScanDirectoryIndex(mapping.ScannerSlug)
+		scannerIndex := appconfig.FindScanDirectoryIndex(config.DirectoryScanner, mapping.ScannerSlug)
 		if scannerIndex < 0 {
 			continue
 		}

@@ -115,7 +115,7 @@ func (s *AgentServer) Upsert(
 			return connectError(status, err)
 		}
 
-		if index := cfg.FindAgentIndex(entry.Slug); index == -1 {
+		if index := appconfig.FindAgentIndex(cfg, entry.Slug); index == -1 {
 			cfg.Agents = append(cfg.Agents, entry)
 		} else {
 			cfg.Agents[index] = entry
@@ -137,7 +137,7 @@ func (s *AgentServer) Delete(
 	slug := req.Msg.GetSlug()
 
 	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
-		index := cfg.FindAgentIndex(slug)
+		index := appconfig.FindAgentIndex(cfg, slug)
 		if index == -1 {
 			return connectError(http.StatusNotFound, errors.New("no agent with that slug"))
 		}
@@ -171,10 +171,10 @@ func (s *AgentServer) SetLogLevel(
 	}
 
 	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
-		if index := cfg.FindAgentIndex(slug); index >= 0 {
+		if index := appconfig.FindAgentIndex(cfg, slug); index >= 0 {
 			cfg.Agents[index].LogLevel = logLevel
 		} else {
-			cfg.Agents = append(cfg.Agents, appconfig.AgentConfig{
+			cfg.Agents = append(cfg.Agents, &appconfig.AgentConfig{
 				Slug:     slug,
 				LogLevel: logLevel,
 			})
@@ -192,11 +192,11 @@ func (s *AgentServer) SetLogLevel(
 // the HTTP status to answer with. Moved verbatim from
 // internal/server/handlers/agents.go (see agents_test.go, moved alongside
 // it) — the plan's ported-not-wrapped pattern applies to pure helpers too.
-func validateMappings(config *appconfig.Config, entry appconfig.AgentConfig) (int, error) {
+func validateMappings(config *appconfig.Config, entry *appconfig.AgentConfig) (int, error) {
 	seen := map[string]bool{}
 
 	for _, mapping := range entry.Mappings {
-		if config.DirectoryScanner.FindScanDirectoryIndex(mapping.ScannerSlug) < 0 {
+		if appconfig.FindScanDirectoryIndex(config.DirectoryScanner, mapping.ScannerSlug) < 0 {
 			return http.StatusBadRequest,
 				fmt.Errorf("no scan directory with slug %q", mapping.ScannerSlug)
 		}
@@ -209,7 +209,7 @@ func validateMappings(config *appconfig.Config, entry appconfig.AgentConfig) (in
 		// Two agents scanning one library would each overwrite the other's
 		// records with its own view of the same files, so a scan directory
 		// belongs to exactly one agent.
-		if owner, mapped := config.AgentForScanner(mapping.ScannerSlug); mapped && owner.Slug != entry.Slug {
+		if owner, mapped := appconfig.AgentForScanner(config, mapping.ScannerSlug); mapped && owner.Slug != entry.Slug {
 			return http.StatusConflict,
 				fmt.Errorf("scan directory %q is already mapped to agent %q", mapping.ScannerSlug, owner.Slug)
 		}
@@ -218,15 +218,15 @@ func validateMappings(config *appconfig.Config, entry appconfig.AgentConfig) (in
 	return 0, nil
 }
 
-func agentConfigFromProto(agent *metarrv1.AgentConfig) appconfig.AgentConfig {
-	mappings := make([]appconfig.AgentDirectoryMapping, 0, len(agent.GetMappings()))
+func agentConfigFromProto(agent *metarrv1.AgentConfig) *appconfig.AgentConfig {
+	mappings := make([]*appconfig.AgentDirectoryMapping, 0, len(agent.GetMappings()))
 	for _, m := range agent.GetMappings() {
-		mappings = append(mappings, appconfig.AgentDirectoryMapping{
+		mappings = append(mappings, &appconfig.AgentDirectoryMapping{
 			ScannerSlug: m.GetScannerSlug(),
 			AgentPath:   m.GetAgentPath(),
 		})
 	}
-	return appconfig.AgentConfig{
+	return &appconfig.AgentConfig{
 		Slug:        agent.GetSlug(),
 		DisplayName: agent.GetDisplayName(),
 		Mappings:    mappings,

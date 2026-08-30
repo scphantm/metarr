@@ -9,15 +9,15 @@ import (
 
 func configWithTwoLibraries() *appconfig.Config {
 	return &appconfig.Config{
-		DirectoryScanner: appconfig.DirectoryScannerConfig{
-			ScanDirectories: []appconfig.ScanDirectory{
+		DirectoryScanner: &appconfig.DirectoryScannerConfig{
+			ScanDirectories: []*appconfig.ScanDirectory{
 				{ScannerSlug: "movies", ScanType: "movie", Directory: "/media/movies"},
 				{ScannerSlug: "tv", ScanType: "tv", Directory: "/media/tv"},
 			},
 		},
-		Agents: []appconfig.AgentConfig{{
+		Agents: []*appconfig.AgentConfig{{
 			Slug: "nas-01",
-			Mappings: []appconfig.AgentDirectoryMapping{
+			Mappings: []*appconfig.AgentDirectoryMapping{
 				{ScannerSlug: "movies", AgentPath: "/mnt/tank/movies"},
 			},
 		}},
@@ -25,9 +25,9 @@ func configWithTwoLibraries() *appconfig.Config {
 }
 
 func TestValidateMappingsAcceptsAnUnclaimedLibrary(t *testing.T) {
-	entry := appconfig.AgentConfig{
+	entry := &appconfig.AgentConfig{
 		Slug: "desktop",
-		Mappings: []appconfig.AgentDirectoryMapping{
+		Mappings: []*appconfig.AgentDirectoryMapping{
 			{ScannerSlug: "tv", AgentPath: "/srv/tv"},
 		},
 	}
@@ -40,9 +40,9 @@ func TestValidateMappingsAcceptsAnUnclaimedLibrary(t *testing.T) {
 // Re-saving an agent must not trip the ownership check on its own mappings,
 // which is what every edit through the UI does.
 func TestValidateMappingsLetsAnAgentKeepItsOwnLibrary(t *testing.T) {
-	entry := appconfig.AgentConfig{
+	entry := &appconfig.AgentConfig{
 		Slug: "nas-01",
-		Mappings: []appconfig.AgentDirectoryMapping{
+		Mappings: []*appconfig.AgentDirectoryMapping{
 			{ScannerSlug: "movies", AgentPath: "/mnt/tank/movies-renamed"},
 		},
 	}
@@ -55,9 +55,9 @@ func TestValidateMappingsLetsAnAgentKeepItsOwnLibrary(t *testing.T) {
 // Two agents scanning one library would each overwrite the other's records
 // with its own view of the same files, so the second mapping is a conflict.
 func TestValidateMappingsRejectsALibraryClaimedByAnotherAgent(t *testing.T) {
-	entry := appconfig.AgentConfig{
+	entry := &appconfig.AgentConfig{
 		Slug: "desktop",
-		Mappings: []appconfig.AgentDirectoryMapping{
+		Mappings: []*appconfig.AgentDirectoryMapping{
 			{ScannerSlug: "movies", AgentPath: "/srv/movies"},
 		},
 	}
@@ -72,9 +72,9 @@ func TestValidateMappingsRejectsALibraryClaimedByAnotherAgent(t *testing.T) {
 }
 
 func TestValidateMappingsRejectsAnUnknownScanDirectory(t *testing.T) {
-	entry := appconfig.AgentConfig{
+	entry := &appconfig.AgentConfig{
 		Slug: "desktop",
-		Mappings: []appconfig.AgentDirectoryMapping{
+		Mappings: []*appconfig.AgentDirectoryMapping{
 			{ScannerSlug: "does-not-exist", AgentPath: "/srv/whatever"},
 		},
 	}
@@ -90,9 +90,9 @@ func TestValidateMappingsRejectsAnUnknownScanDirectory(t *testing.T) {
 
 // A duplicate would make the projection ambiguous about which path to walk.
 func TestValidateMappingsRejectsTheSameLibraryTwice(t *testing.T) {
-	entry := appconfig.AgentConfig{
+	entry := &appconfig.AgentConfig{
 		Slug: "desktop",
-		Mappings: []appconfig.AgentDirectoryMapping{
+		Mappings: []*appconfig.AgentDirectoryMapping{
 			{ScannerSlug: "tv", AgentPath: "/srv/tv"},
 			{ScannerSlug: "tv", AgentPath: "/srv/tv-other"},
 		},
@@ -110,7 +110,7 @@ func TestValidateMappingsRejectsTheSameLibraryTwice(t *testing.T) {
 // An agent with no mappings is a valid, useful state: it is how you register a
 // machine before deciding what it may see.
 func TestValidateMappingsAcceptsAnAgentWithNoMappings(t *testing.T) {
-	entry := appconfig.AgentConfig{Slug: "brand-new"}
+	entry := &appconfig.AgentConfig{Slug: "brand-new"}
 
 	if status, err := validateMappings(configWithTwoLibraries(), entry); err != nil {
 		t.Errorf("validateMappings = %d, %v; want accepted", status, err)
@@ -120,11 +120,11 @@ func TestValidateMappingsAcceptsAnAgentWithNoMappings(t *testing.T) {
 func TestAgentForScannerFindsTheOwningAgent(t *testing.T) {
 	config := configWithTwoLibraries()
 
-	agent, ok := config.AgentForScanner("movies")
+	agent, ok := appconfig.AgentForScanner(config, "movies")
 	if !ok || agent.Slug != "nas-01" {
 		t.Errorf("AgentForScanner(movies) = %+v, %v; want nas-01", agent, ok)
 	}
-	if _, ok := config.AgentForScanner("tv"); ok {
+	if _, ok := appconfig.AgentForScanner(config, "tv"); ok {
 		t.Error("AgentForScanner claimed an owner for an unmapped library")
 	}
 }

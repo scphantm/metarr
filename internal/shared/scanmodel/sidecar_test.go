@@ -283,50 +283,50 @@ func TestNewSidecarRegistryFallsBackToDefaults(t *testing.T) {
 func TestNewSidecarRegistryRejectsBadTables(t *testing.T) {
 	testCases := []struct {
 		name        string
-		definitions []appconfig.SidecarTypeDefinition
+		definitions []*appconfig.SidecarTypeDefinition
 		wantInError []string
 	}{
 		{
 			name: "invalid pattern",
-			definitions: []appconfig.SidecarTypeDefinition{
-				{ID: "a", Type: "broken", Category: "image", Order: 10, Patterns: []string{`(?i)^[unclosed`}},
+			definitions: []*appconfig.SidecarTypeDefinition{
+				{Id: "a", Type: "broken", Category: "image", Order: 10, Patterns: []string{`(?i)^[unclosed`}},
 			},
 			wantInError: []string{"broken", "unclosed"},
 		},
 		{
 			name: "unknown category",
-			definitions: []appconfig.SidecarTypeDefinition{
-				{ID: "a", Type: "bloopers", Category: "video_extras", Order: 10, Patterns: []string{`(?i)^bloopers$`}},
+			definitions: []*appconfig.SidecarTypeDefinition{
+				{Id: "a", Type: "bloopers", Category: "video_extras", Order: 10, Patterns: []string{`(?i)^bloopers$`}},
 			},
 			wantInError: []string{"bloopers", "video_extras"},
 		},
 		{
 			name: "duplicate type",
-			definitions: []appconfig.SidecarTypeDefinition{
-				{ID: "a", Type: "poster", Category: "image", Order: 10, Patterns: []string{`(?i)^poster$`}},
-				{ID: "b", Type: "poster", Category: "image", Order: 20, Patterns: []string{`(?i)^cover$`}},
+			definitions: []*appconfig.SidecarTypeDefinition{
+				{Id: "a", Type: "poster", Category: "image", Order: 10, Patterns: []string{`(?i)^poster$`}},
+				{Id: "b", Type: "poster", Category: "image", Order: 20, Patterns: []string{`(?i)^cover$`}},
 			},
 			wantInError: []string{"duplicate type"},
 		},
 		{
 			name: "missing type",
-			definitions: []appconfig.SidecarTypeDefinition{
-				{ID: "a", Category: "image", Order: 10, Patterns: []string{`(?i)^poster$`}},
+			definitions: []*appconfig.SidecarTypeDefinition{
+				{Id: "a", Category: "image", Order: 10, Patterns: []string{`(?i)^poster$`}},
 			},
 			wantInError: []string{"type is required"},
 		},
 		{
 			name: "missing id",
-			definitions: []appconfig.SidecarTypeDefinition{
+			definitions: []*appconfig.SidecarTypeDefinition{
 				{Type: "poster", Category: "image", Order: 10, Patterns: []string{`(?i)^poster$`}},
 			},
 			wantInError: []string{"poster", "id is required"},
 		},
 		{
 			name: "duplicate id",
-			definitions: []appconfig.SidecarTypeDefinition{
-				{ID: "a", Type: "poster", Category: "image", Order: 10, Patterns: []string{`(?i)^poster$`}},
-				{ID: "a", Type: "banner", Category: "image", Order: 20, Patterns: []string{`(?i)^banner$`}},
+			definitions: []*appconfig.SidecarTypeDefinition{
+				{Id: "a", Type: "poster", Category: "image", Order: 10, Patterns: []string{`(?i)^poster$`}},
+				{Id: "a", Type: "banner", Category: "image", Order: 20, Patterns: []string{`(?i)^banner$`}},
 			},
 			wantInError: []string{"banner", `id "a" is already used by "poster"`},
 		},
@@ -334,16 +334,16 @@ func TestNewSidecarRegistryRejectsBadTables(t *testing.T) {
 			// Two enabled entries in one slot leave "first match wins"
 			// undecidable, so the table is refused rather than resolved.
 			name: "duplicate order",
-			definitions: []appconfig.SidecarTypeDefinition{
-				{ID: "a", Type: "poster", Category: "image", Order: 10, Patterns: []string{`(?i)^poster$`}},
-				{ID: "b", Type: "banner", Category: "image", Order: 10, Patterns: []string{`(?i)^banner$`}},
+			definitions: []*appconfig.SidecarTypeDefinition{
+				{Id: "a", Type: "poster", Category: "image", Order: 10, Patterns: []string{`(?i)^poster$`}},
+				{Id: "b", Type: "banner", Category: "image", Order: 10, Patterns: []string{`(?i)^banner$`}},
 			},
 			wantInError: []string{"banner", `order 10 is already used by "poster"`},
 		},
 		{
 			name: "no patterns",
-			definitions: []appconfig.SidecarTypeDefinition{
-				{ID: "a", Type: "empty", Category: "image", Order: 10},
+			definitions: []*appconfig.SidecarTypeDefinition{
+				{Id: "a", Type: "empty", Category: "image", Order: 10},
 			},
 			wantInError: []string{"at least one pattern"},
 		},
@@ -351,8 +351,8 @@ func TestNewSidecarRegistryRejectsBadTables(t *testing.T) {
 			// A disabled entry is still stored config that will be switched on
 			// one day, so it has to be well formed now.
 			name: "disabled entry with a broken pattern",
-			definitions: []appconfig.SidecarTypeDefinition{
-				{ID: "a", Type: "broken", Category: "image", Order: 0, Patterns: []string{`(?i)^[unclosed`}},
+			definitions: []*appconfig.SidecarTypeDefinition{
+				{Id: "a", Type: "broken", Category: "image", Order: 0, Patterns: []string{`(?i)^[unclosed`}},
 			},
 			wantInError: []string{"broken", "unclosed"},
 		},
@@ -374,11 +374,11 @@ func TestNewSidecarRegistryRejectsBadTables(t *testing.T) {
 }
 
 func TestNewSidecarRegistryReportsEveryProblem(t *testing.T) {
-	_, err := NewSidecarRegistry([]appconfig.SidecarTypeDefinition{
-		{ID: "a", Type: "first", Category: "nonsense", Order: 10, Patterns: []string{`(?i)^first$`}},
-		{ID: "b", Type: "second", Category: "image", Order: 20, Patterns: []string{`(?i)^[unclosed`}},
-		{ID: "c", Type: "third", Category: "image", Order: 30, Patterns: []string{`(?i)^third$`}},
-		{ID: "d", Type: "fourth", Category: "image", Order: 30, Patterns: []string{`(?i)^fourth$`}},
+	_, err := NewSidecarRegistry([]*appconfig.SidecarTypeDefinition{
+		{Id: "a", Type: "first", Category: "nonsense", Order: 10, Patterns: []string{`(?i)^first$`}},
+		{Id: "b", Type: "second", Category: "image", Order: 20, Patterns: []string{`(?i)^[unclosed`}},
+		{Id: "c", Type: "third", Category: "image", Order: 30, Patterns: []string{`(?i)^third$`}},
+		{Id: "d", Type: "fourth", Category: "image", Order: 30, Patterns: []string{`(?i)^fourth$`}},
 	})
 	if err == nil {
 		t.Fatal("NewSidecarRegistry() accepted an invalid table")
@@ -398,9 +398,9 @@ func TestNewSidecarRegistryReportsEveryProblem(t *testing.T) {
 // also be blamed for a duplicate order, or one typo would cascade into two
 // errors and send someone chasing a slot that was never taken.
 func TestRejectedEntryDoesNotClaimAnOrder(t *testing.T) {
-	_, err := NewSidecarRegistry([]appconfig.SidecarTypeDefinition{
-		{ID: "a", Type: "broken", Category: "image", Order: 10, Patterns: []string{`(?i)^[unclosed`}},
-		{ID: "b", Type: "fine", Category: "image", Order: 10, Patterns: []string{`(?i)^fine$`}},
+	_, err := NewSidecarRegistry([]*appconfig.SidecarTypeDefinition{
+		{Id: "a", Type: "broken", Category: "image", Order: 10, Patterns: []string{`(?i)^[unclosed`}},
+		{Id: "b", Type: "fine", Category: "image", Order: 10, Patterns: []string{`(?i)^fine$`}},
 	})
 	if err == nil {
 		t.Fatal("NewSidecarRegistry() accepted a table with a broken pattern")
@@ -414,10 +414,10 @@ func TestRejectedEntryDoesNotClaimAnOrder(t *testing.T) {
 // sentinel usable: order zero is "off", not a slot, so more than one type has to
 // be able to hold it.
 func TestDisabledEntriesAreNotDuplicates(t *testing.T) {
-	registry, err := NewSidecarRegistry([]appconfig.SidecarTypeDefinition{
-		{ID: "a", Type: "poster", Category: "image", Order: 0, Patterns: []string{`(?i)^poster$`}},
-		{ID: "b", Type: "banner", Category: "image", Order: 0, Patterns: []string{`(?i)^banner$`}},
-		{ID: "c", Type: "fanart", Category: "image", Order: 10, Patterns: []string{`(?i)^fanart$`}},
+	registry, err := NewSidecarRegistry([]*appconfig.SidecarTypeDefinition{
+		{Id: "a", Type: "poster", Category: "image", Order: 0, Patterns: []string{`(?i)^poster$`}},
+		{Id: "b", Type: "banner", Category: "image", Order: 0, Patterns: []string{`(?i)^banner$`}},
+		{Id: "c", Type: "fanart", Category: "image", Order: 10, Patterns: []string{`(?i)^fanart$`}},
 	})
 	if err != nil {
 		t.Fatalf("NewSidecarRegistry() rejected several disabled entries: %v", err)
@@ -434,9 +434,9 @@ func TestDisabledEntriesAreNotDuplicates(t *testing.T) {
 // array here puts the catch-all first, but it is numbered last, so the narrow
 // entry still wins.
 func TestOrderDecidesEvaluationNotPosition(t *testing.T) {
-	registry, err := NewSidecarRegistry([]appconfig.SidecarTypeDefinition{
-		{ID: "a", Type: "catchall", Category: "unknown", Order: 90, Patterns: []string{`(?i)^.+$`}, Extensions: []string{".jpg"}},
-		{ID: "b", Type: "poster", Category: "image", Order: 10, Patterns: []string{`(?i)^poster$`}, Extensions: []string{".jpg"}},
+	registry, err := NewSidecarRegistry([]*appconfig.SidecarTypeDefinition{
+		{Id: "a", Type: "catchall", Category: "unknown", Order: 90, Patterns: []string{`(?i)^.+$`}, Extensions: []string{".jpg"}},
+		{Id: "b", Type: "poster", Category: "image", Order: 10, Patterns: []string{`(?i)^poster$`}, Extensions: []string{".jpg"}},
 	})
 	if err != nil {
 		t.Fatalf("NewSidecarRegistry() error = %v", err)
@@ -455,9 +455,9 @@ func TestOrderDecidesEvaluationNotPosition(t *testing.T) {
 // not break: the entry stops classifying but stays fully inspectable, so the
 // scanner can still resolve a category for a type it names from folder context.
 func TestDisabledTypeIsNeverMatched(t *testing.T) {
-	registry, err := NewSidecarRegistry([]appconfig.SidecarTypeDefinition{
-		{ID: "a", Type: "poster", Category: "image", Order: 0, Patterns: []string{`(?i)^poster$`}, Extensions: []string{".jpg"}},
-		{ID: "b", Type: "fanart", Category: "image", Order: 20, Patterns: []string{`(?i)^fanart$`}, Extensions: []string{".jpg"}},
+	registry, err := NewSidecarRegistry([]*appconfig.SidecarTypeDefinition{
+		{Id: "a", Type: "poster", Category: "image", Order: 0, Patterns: []string{`(?i)^poster$`}, Extensions: []string{".jpg"}},
+		{Id: "b", Type: "fanart", Category: "image", Order: 20, Patterns: []string{`(?i)^fanart$`}, Extensions: []string{".jpg"}},
 	})
 	if err != nil {
 		t.Fatalf("NewSidecarRegistry() error = %v", err)
@@ -500,20 +500,20 @@ func TestDisabledTypeIsNeverMatched(t *testing.T) {
 func TestDefaultIDsAreUniqueAndStable(t *testing.T) {
 	seen := map[string]string{}
 	for _, entry := range appconfig.DefaultSidecarTypes() {
-		if entry.ID == "" {
+		if entry.Id == "" {
 			t.Errorf("default type %q has no id", entry.Type)
 			continue
 		}
-		if existing, duplicate := seen[entry.ID]; duplicate {
-			t.Errorf("default types %q and %q share id %q", existing, entry.Type, entry.ID)
+		if existing, duplicate := seen[entry.Id]; duplicate {
+			t.Errorf("default types %q and %q share id %q", existing, entry.Type, entry.Id)
 		}
-		seen[entry.ID] = entry.Type
+		seen[entry.Id] = entry.Type
 	}
 
 	// Stable across calls, so a caller cannot be handed a fresh identity.
 	first, second := appconfig.DefaultSidecarTypes(), appconfig.DefaultSidecarTypes()
 	for i := range first {
-		if first[i].ID != second[i].ID {
+		if first[i].Id != second[i].Id {
 			t.Errorf("default id for %q changed between calls", first[i].Type)
 		}
 	}
@@ -523,9 +523,9 @@ func TestDefaultIDsAreUniqueAndStable(t *testing.T) {
 // configuration: a type this package has never heard of has to work, provided
 // it declares a category the package does know.
 func TestConfiguredTypeUnknownToGo(t *testing.T) {
-	registry, err := NewSidecarRegistry([]appconfig.SidecarTypeDefinition{
+	registry, err := NewSidecarRegistry([]*appconfig.SidecarTypeDefinition{
 		{
-			ID:         "9f2b1c4a-0000-0000-0000-000000000001",
+			Id:         "9f2b1c4a-0000-0000-0000-000000000001",
 			Type:       "bloopers",
 			Category:   string(SidecarCategoryVideoExtra),
 			Order:      10,

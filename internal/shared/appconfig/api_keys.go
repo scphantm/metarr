@@ -29,31 +29,35 @@ func ParseAPIKeyGroup(s string) (APIKeyGroup, error) {
 	}
 }
 
-func (k APIKeysConfig) entriesFor(group APIKeyGroup) []APIKeyEntry {
+// APIKeyEntriesFor returns the entries held in group, or nil if group names
+// an unknown group.
+func APIKeyEntriesFor(keys *APIKeysConfig, group APIKeyGroup) []*APIKeyEntry {
 	switch group {
 	case APIKeyGroupAdmin:
-		return k.Admin
+		return keys.Admin
 	case APIKeyGroupUser:
-		return k.User
+		return keys.User
 	case APIKeyGroupWebhook:
-		return k.Webhook
+		return keys.Webhook
 	case APIKeyGroupReadOnly:
-		return k.ReadOnly
+		return keys.ReadOnly
 	default:
 		return nil
 	}
 }
 
-func (k *APIKeysConfig) setEntriesFor(group APIKeyGroup, entries []APIKeyEntry) {
+// setAPIKeyEntriesFor replaces the entries held in group, ignoring an
+// unknown group.
+func setAPIKeyEntriesFor(keys *APIKeysConfig, group APIKeyGroup, entries []*APIKeyEntry) {
 	switch group {
 	case APIKeyGroupAdmin:
-		k.Admin = entries
+		keys.Admin = entries
 	case APIKeyGroupUser:
-		k.User = entries
+		keys.User = entries
 	case APIKeyGroupWebhook:
-		k.Webhook = entries
+		keys.Webhook = entries
 	case APIKeyGroupReadOnly:
-		k.ReadOnly = entries
+		keys.ReadOnly = entries
 	}
 }
 
@@ -61,38 +65,38 @@ func (k *APIKeysConfig) setEntriesFor(group APIKeyGroup, entries []APIKeyEntry) 
 // group, or -1 if group has no such entry or names an unknown group. Keys
 // are addressed by this minted id rather than by name, which is optional
 // and not unique.
-func (k APIKeysConfig) FindAPIKeyIndex(group APIKeyGroup, id string) int {
-	for i, entry := range k.entriesFor(group) {
-		if entry.ID == id {
+func FindAPIKeyIndex(keys *APIKeysConfig, group APIKeyGroup, id string) int {
+	for i, entry := range APIKeyEntriesFor(keys, group) {
+		if entry.Id == id {
 			return i
 		}
 	}
 	return -1
 }
 
-// UpsertAPIKey replaces the entry in group whose id matches entry.ID, or
-// appends entry if no id matches. entry.ID must already be set: minting a
+// UpsertAPIKey replaces the entry in group whose id matches entry.Id, or
+// appends entry if no id matches. entry.Id must already be set: minting a
 // fresh id for a newly created key is the caller's job, at the point a new
 // key is actually requested, not this function's.
-func (k *APIKeysConfig) UpsertAPIKey(group APIKeyGroup, entry APIKeyEntry) {
-	entries := k.entriesFor(group)
-	if index := k.FindAPIKeyIndex(group, entry.ID); index >= 0 {
+func UpsertAPIKey(keys *APIKeysConfig, group APIKeyGroup, entry *APIKeyEntry) {
+	entries := APIKeyEntriesFor(keys, group)
+	if index := FindAPIKeyIndex(keys, group, entry.Id); index >= 0 {
 		entries[index] = entry
 	} else {
 		entries = append(entries, entry)
 	}
-	k.setEntriesFor(group, entries)
+	setAPIKeyEntriesFor(keys, group, entries)
 }
 
 // DeleteAPIKey removes the entry matching id from group, reporting whether
 // one was found and removed.
-func (k *APIKeysConfig) DeleteAPIKey(group APIKeyGroup, id string) bool {
-	index := k.FindAPIKeyIndex(group, id)
+func DeleteAPIKey(keys *APIKeysConfig, group APIKeyGroup, id string) bool {
+	index := FindAPIKeyIndex(keys, group, id)
 	if index == -1 {
 		return false
 	}
-	entries := k.entriesFor(group)
-	k.setEntriesFor(group, append(entries[:index], entries[index+1:]...))
+	entries := APIKeyEntriesFor(keys, group)
+	setAPIKeyEntriesFor(keys, group, append(entries[:index], entries[index+1:]...))
 	return true
 }
 
@@ -103,14 +107,12 @@ func (k *APIKeysConfig) DeleteAPIKey(group APIKeyGroup, id string) bool {
 func BackfillAPIKeyIDs(keys *APIKeysConfig) int {
 	minted := 0
 	for _, group := range []APIKeyGroup{APIKeyGroupAdmin, APIKeyGroupUser, APIKeyGroupWebhook, APIKeyGroupReadOnly} {
-		entries := keys.entriesFor(group)
-		for i := range entries {
-			if entries[i].ID == "" {
-				entries[i].ID = uuid.NewString()
+		for _, entry := range APIKeyEntriesFor(keys, group) {
+			if entry.Id == "" {
+				entry.Id = uuid.NewString()
 				minted++
 			}
 		}
-		keys.setEntriesFor(group, entries)
 	}
 	return minted
 }

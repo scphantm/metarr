@@ -150,10 +150,10 @@ func run() error {
 	if bootstrapReport.APIKeys != nil {
 		fmt.Println("==================================================================")
 		fmt.Println("Metarr: generated default API keys (shown only once, save these):")
-		fmt.Println("  admin:     " + bootstrapReport.APIKeys.Admin[0].Key)
-		fmt.Println("  user:      " + bootstrapReport.APIKeys.User[0].Key)
-		fmt.Println("  webhook:   " + bootstrapReport.APIKeys.Webhook[0].Key)
-		fmt.Println("  read_only: " + bootstrapReport.APIKeys.ReadOnly[0].Key)
+		fmt.Println("  admin:     " + bootstrapReport.APIKeys.Admin[0].ApiKey)
+		fmt.Println("  user:      " + bootstrapReport.APIKeys.User[0].ApiKey)
+		fmt.Println("  webhook:   " + bootstrapReport.APIKeys.Webhook[0].ApiKey)
+		fmt.Println("  read_only: " + bootstrapReport.APIKeys.ReadOnly[0].ApiKey)
 		fmt.Println("==================================================================")
 	}
 	switch {
@@ -420,10 +420,10 @@ func syncHTTPClientEnv(apiKeys *appconfig.APIKeysConfig, adminPassword string) e
 		local = map[string]any{}
 	}
 	if apiKeys != nil {
-		local["api_key_admin"] = apiKeys.Admin[0].Key
-		local["api_key_user"] = apiKeys.User[0].Key
-		local["api_key_webhook"] = apiKeys.Webhook[0].Key
-		local["api_key_read_only"] = apiKeys.ReadOnly[0].Key
+		local["api_key_admin"] = apiKeys.Admin[0].ApiKey
+		local["api_key_user"] = apiKeys.User[0].ApiKey
+		local["api_key_webhook"] = apiKeys.Webhook[0].ApiKey
+		local["api_key_read_only"] = apiKeys.ReadOnly[0].ApiKey
 	}
 	if adminPassword != "" {
 		local["admin_pass"] = adminPassword

@@ -296,7 +296,7 @@ func (s *LocalDirectoryServer) locateOnAgent(scanRootPath, directoryPath string)
 	}
 	scannerSlug = config.DirectoryScanner.ScanDirectories[index].ScannerSlug
 
-	owner, mapped := config.AgentForScanner(scannerSlug)
+	owner, mapped := appconfig.AgentForScanner(config, scannerSlug)
 	if !mapped {
 		return "", "", "", errors.New("no agent is mapped to scan directory " + scannerSlug)
 	}
