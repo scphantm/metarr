@@ -92,7 +92,7 @@ function AgentCard({
   onClose,
 }: {
   agent: AgentView
-  scanDirectories: { scanner_slug: string; directory: string }[]
+  scanDirectories: { scannerSlug: string; directory: string }[]
   configuring: boolean
   onConfigure: () => void
   onClose: () => void

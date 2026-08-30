@@ -19,8 +19,8 @@ export function ScannerSection({ parallelCount }: { parallelCount: number }) {
           queryKey={queryKeys.directoryScanner}
           value={parallelCount}
           min={1}
-          onSave={(parallel_count) =>
-            updateScanner.mutateAsync({ parallel_count })
+          onSave={(parallelCount) =>
+            updateScanner.mutateAsync({ parallelCount })
           }
         />
       </Row>

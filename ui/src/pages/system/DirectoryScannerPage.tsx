@@ -53,7 +53,7 @@ export function DirectoryScannerPage() {
       />
 
       <div className="page-body">
-        <ScannerSection parallelCount={scanner.data?.parallel_count ?? 1} />
+        <ScannerSection parallelCount={scanner.data?.parallelCount ?? 1} />
 
         <ScanDirectoriesSection directories={directories.data ?? []} />
       </div>

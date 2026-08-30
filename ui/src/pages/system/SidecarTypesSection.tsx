@@ -9,10 +9,10 @@ import {
   useResetSidecarTypes,
   useUpsertSidecarType,
 } from '../../api/queries'
-import {
-  sidecarCategories,
-  type SidecarTypeDefinition,
-} from '../../api/types'
+import { sidecarCategories } from '../../api/vocab'
+import type { SidecarTypeDefinition } from '../../gen/metarr/v1/directory_scanner_pb'
+import { SidecarTypeDefinitionSchema } from '../../gen/metarr/v1/directory_scanner_pb'
+import type { MessageInitShape } from '@bufbuild/protobuf'
 import { Button, Card, Row } from '../../components/Card'
 import { EditableSelect, EditableText } from '../../components/Editable'
 import { EditableList } from '../../components/EditableList'
@@ -59,7 +59,7 @@ export function SidecarTypesSection({
   // would otherwise always fail, since its stored order is non-zero. The server
   // keeps the entry's existing order when updating, so zero loses nothing.
   const upsert = {
-    mutateAsync: (entry: SidecarTypeDefinition) =>
+    mutateAsync: (entry: MessageInitShape<typeof SidecarTypeDefinitionSchema>) =>
       upsertMutation.mutateAsync({ ...entry, order: 0 }),
   }
 
@@ -347,7 +347,7 @@ function NewSidecarType({
   onCancel,
 }: {
   existingTypes: string[]
-  onCreate: (entry: SidecarTypeDefinition) => Promise<void>
+  onCreate: (entry: MessageInitShape<typeof SidecarTypeDefinitionSchema>) => Promise<void>
   onCancel: () => void
 }) {
   const [type, setType] = useState('')

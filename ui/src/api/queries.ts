@@ -21,14 +21,9 @@ import type {
   AcceptedResponse,
   AgentConfig,
   AgentView,
-  DirectoryScannerConfig,
-  LoggingConfig,
   LogTailEntry,
   RedisStats,
   ReorderSidecarTypesRequest,
-  ScanDirectory,
-  SidecarTypeDefinition,
-  UpdateDirectoryScannerRequest,
   UpsertWorkflowRequest,
   Workflow,
   WorkflowListResponse,
@@ -43,10 +38,8 @@ import {
   ConfigServiceUpsertApiKeyRequestSchema,
 } from '../gen/metarr/v1/config_pb'
 import type { AgentView as ConnectAgentView } from '../gen/metarr/v1/agents_pb'
-import type {
-  ScanDirectory as ConnectScanDirectory,
-  SidecarTypeDefinition as ConnectSidecarTypeDefinition,
-} from '../gen/metarr/v1/directory_scanner_pb'
+import { ScanDirectorySchema, SidecarTypeDefinitionSchema } from '../gen/metarr/v1/directory_scanner_pb'
+import { LoggingConfigSchema } from '../gen/metarr/v1/logging_pb'
 import type { Workflow as ConnectWorkflow } from '../gen/metarr/v1/workflows_pb'
 import type { CatalogResponse, GraphEdge, GraphNode } from '../pages/workflows/catalogTypes'
 
@@ -86,57 +79,24 @@ export function useConfig() {
   })
 }
 
-// Neither of these reads streams over a socket, but useScanDirectories'
-// output is also consumed by AgentConfigureForm (Agents domain, migrated in
-// the previous step to the same REST-era shape) — so both stay mapped down
-// to the snake_case shape from types.ts rather than the raw camelCase proto
-// type, keeping every consumer's field names stable across this migration.
-function connectScanDirectoryToLegacyShape(dir: ConnectScanDirectory): ScanDirectory {
-  return { scanner_slug: dir.scannerSlug, scan_type: dir.scanType, directory: dir.directory }
-}
-
-function connectSidecarTypeToLegacyShape(def: ConnectSidecarTypeDefinition): SidecarTypeDefinition {
-  return {
-    id: def.id,
-    type: def.type,
-    category: def.category,
-    order: def.order,
-    patterns: def.patterns,
-    extensions: def.extensions,
-  }
-}
-
 export function useDirectoryScannerConfig() {
   return useQuery({
     queryKey: queryKeys.directoryScanner,
-    queryFn: async () => {
-      const config = (await directoryScannerClient.get({})).config
-      return {
-        parallel_count: config?.parallelCount ?? 0,
-        scan_directories: (config?.scanDirectories ?? []).map(connectScanDirectoryToLegacyShape),
-        sidecar_types: (config?.sidecarTypes ?? []).map(connectSidecarTypeToLegacyShape),
-      } satisfies DirectoryScannerConfig
-    },
+    queryFn: async () => (await directoryScannerClient.get({})).config,
   })
 }
 
 export function useScanDirectories() {
   return useQuery({
     queryKey: queryKeys.scanDirectories,
-    queryFn: async () =>
-      (await directoryScannerClient.listDirectories({})).directories.map(
-        connectScanDirectoryToLegacyShape,
-      ),
+    queryFn: async () => (await directoryScannerClient.listDirectories({})).directories,
   })
 }
 
 export function useSidecarTypes() {
   return useQuery({
     queryKey: queryKeys.sidecarTypes,
-    queryFn: async () =>
-      (await directoryScannerClient.listSidecarTypes({})).types.map(
-        connectSidecarTypeToLegacyShape,
-      ),
+    queryFn: async () => (await directoryScannerClient.listSidecarTypes({})).types,
   })
 }
 
@@ -290,15 +250,7 @@ export function useRedisStats() {
 export function useLoggingConfig() {
   return useQuery({
     queryKey: queryKeys.logging,
-    queryFn: async () => {
-      const config = (await loggingClient.getConfig({})).config
-      return {
-        server_level: config?.serverLevel ?? '',
-        sink: config?.sink ?? '',
-        endpoint: config?.endpoint ?? '',
-        stream: config?.stream ?? '',
-      } satisfies LoggingConfig
-    },
+    queryFn: async () => (await loggingClient.getConfig({})).config,
   })
 }
 
@@ -395,37 +347,22 @@ export function useDeleteApiKey() {
 // A single upsert POST, like the other newer config sections — see the
 // upsert-not-PUT convention in CLAUDE.md.
 export function useUpdateLoggingConfig() {
-  return useConfigMutation<LoggingConfig, ConnectAcceptedResponse>(
-    (body) =>
-      loggingClient.updateConfig({
-        config: {
-          serverLevel: body.server_level,
-          sink: body.sink,
-          endpoint: body.endpoint,
-          stream: body.stream,
-        },
-      }),
+  return useConfigMutation<MessageInitShape<typeof LoggingConfigSchema>, ConnectAcceptedResponse>(
+    (config) => loggingClient.updateConfig({ config }),
     [queryKeys.logging, queryKeys.config],
   )
 }
 
 export function useUpdateDirectoryScanner() {
-  return useConfigMutation<UpdateDirectoryScannerRequest, ConnectAcceptedResponse>(
-    (body) => directoryScannerClient.update({ parallelCount: body.parallel_count }),
+  return useConfigMutation<{ parallelCount?: number }, ConnectAcceptedResponse>(
+    (body) => directoryScannerClient.update({ parallelCount: body.parallelCount }),
     [queryKeys.directoryScanner, queryKeys.config],
   )
 }
 
 export function useUpsertScanDirectory() {
-  return useConfigMutation<ScanDirectory, ConnectAcceptedResponse>(
-    (body) =>
-      directoryScannerClient.upsertDirectory({
-        directory: {
-          scannerSlug: body.scanner_slug,
-          scanType: body.scan_type,
-          directory: body.directory,
-        },
-      }),
+  return useConfigMutation<MessageInitShape<typeof ScanDirectorySchema>, ConnectAcceptedResponse>(
+    (directory) => directoryScannerClient.upsertDirectory({ directory }),
     [queryKeys.scanDirectories, queryKeys.directoryScanner, queryKeys.config],
   )
 }
@@ -438,18 +375,11 @@ export function useDeleteScanDirectory() {
 }
 
 export function useUpsertSidecarType() {
-  return useConfigMutation<SidecarTypeDefinition, ConnectAcceptedResponse>(
-    (body) =>
-      directoryScannerClient.upsertSidecarType({
-        type: {
-          id: body.id,
-          type: body.type,
-          category: body.category,
-          order: body.order,
-          patterns: body.patterns,
-          extensions: body.extensions,
-        },
-      }),
+  return useConfigMutation<
+    MessageInitShape<typeof SidecarTypeDefinitionSchema>,
+    ConnectAcceptedResponse
+  >(
+    (type) => directoryScannerClient.upsertSidecarType({ type }),
     [queryKeys.sidecarTypes, queryKeys.directoryScanner, queryKeys.config],
   )
 }

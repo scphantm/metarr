@@ -9,12 +9,9 @@ import {
   useSetAgentLogLevel,
   useUpdateLoggingConfig,
 } from '../../api/queries'
-import {
-  logLevels,
-  type LogLevel,
-  type LoggingConfig,
-  type LogTailEntry,
-} from '../../api/types'
+import { logLevels, type LogLevel } from '../../api/vocab'
+import type { LogTailEntry } from '../../api/types'
+import type { LoggingConfig } from '../../gen/metarr/v1/logging_pb'
 import { Card, EmptyState } from '../../components/Card'
 import { PageError, PageLoading } from '../../components/PageState'
 import { PageHeader } from '../../layout/AppShell'
@@ -119,10 +116,10 @@ function ServerLevelCard({ config }: { config: LoggingConfig }) {
   const [error, setError] = useState<string | null>(null)
 
   async function setLevel(level: LogLevel) {
-    if (level === config.server_level) return
+    if (level === config.serverLevel) return
     setError(null)
     try {
-      await update.mutateAsync({ ...config, server_level: level })
+      await update.mutateAsync({ ...config, serverLevel: level })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
     }
@@ -134,7 +131,7 @@ function ServerLevelCard({ config }: { config: LoggingConfig }) {
       description="Applies to metarr-server immediately."
     >
       <LevelPill
-        value={config.server_level}
+        value={config.serverLevel}
         disabled={update.isPending}
         onChange={(level) => void setLevel(level)}
       />
