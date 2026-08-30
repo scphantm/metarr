@@ -423,3 +423,5 @@ $RECYCLE.BIN/
 /documentation/build/
 /build/
 Metarr.code-workspace
+.vscode/
+cmd/metarr-agent/__debug_*
