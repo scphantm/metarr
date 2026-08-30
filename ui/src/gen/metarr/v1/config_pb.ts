@@ -242,7 +242,10 @@ export const ConfigServiceUpdateAdminRequestSchema: GenMessage<ConfigServiceUpda
 
 /**
  * ConfigServiceUpsertApiKeyRequest replaces the entry in group matching
- * entry.id, or creates one if entry.id is empty or unknown. group is one of
+ * entry.id. If entry.id is empty, the server mints one and creates a new
+ * entry — ids are always server-minted, never client-chosen, so a
+ * non-empty entry.id that doesn't match an existing entry is rejected as
+ * not found rather than treated as a creation request. group is one of
  * "admin", "user", "webhook", "read_only" — the same names
  * internal/shared/appconfig.APIKeyGroup uses.
  *
