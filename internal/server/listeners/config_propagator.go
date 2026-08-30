@@ -1,0 +1,138 @@
+package listeners
+
+import (
+	"context"
+	"log/slog"
+
+	"Metarr/internal/shared/appconfig"
+	"Metarr/internal/shared/correlation"
+	"Metarr/internal/shared/scanmodel"
+)
+
+// configPersister is the propagator's Mongo dependency, satisfied by
+// *mongostore.AppConfigRepo without any change to that type — the same
+// narrow-interface-at-the-consumer pattern appconfigstore.Store uses for
+// its own dependencies.
+type configPersister interface {
+	Upsert(ctx context.Context, cfg *appconfig.Config) error
+}
+
+// liveConfigSetter swaps the process-wide live config singleton.
+// liveConfigSetterFunc adapts the package-level appconfig.Set to this
+// interface, so a test can substitute a spy instead of mutating real
+// process-global state.
+type liveConfigSetter interface {
+	Set(cfg *appconfig.Config)
+}
+
+type liveConfigSetterFunc func(*appconfig.Config)
+
+func (f liveConfigSetterFunc) Set(cfg *appconfig.Config) { f(cfg) }
+
+// sidecarRegistrySetter compiles a sidecar type table and, on success,
+// activates it as the process-wide active registry. sidecarRegistryAdapter
+// is the production adapter over scanmodel's package-level functions.
+type sidecarRegistrySetter interface {
+	Compile(defs []appconfig.SidecarTypeDefinition) error
+}
+
+type sidecarRegistryAdapter struct{}
+
+func (sidecarRegistryAdapter) Compile(defs []appconfig.SidecarTypeDefinition) error {
+	registry, err := scanmodel.NewSidecarRegistry(defs)
+	if err != nil {
+		return err
+	}
+	scanmodel.SetSidecarRegistry(registry)
+	return nil
+}
+
+// logLevelSetter is the propagator's log-verbosity dependency, satisfied
+// directly by *logging.Shipper.
+type logLevelSetter interface {
+	SetLevel(level slog.Level)
+}
+
+// agentPublisher republishes every agent's redacted config projection,
+// satisfied directly by *agentregistry.Registry.
+type agentPublisher interface {
+	PublishAll(ctx context.Context, config *appconfig.Config) error
+}
+
+// configPropagator is what happens to a system_config_update event once
+// it's been unmarshalled: persist it, swap the live config singleton so the
+// rest of the process sees it immediately, recompile the sidecar
+// classification registry, and republish each agent's own view. Unmarshal
+// stays the listener's job, not this type's — Apply always takes an
+// already-decoded *appconfig.Config, so a test never needs a JSON
+// round-trip to exercise it.
+type configPropagator struct {
+	persist         configPersister
+	liveConfig      liveConfigSetter
+	sidecarRegistry sidecarRegistrySetter
+	agents          agentPublisher
+	logShipper      logLevelSetter
+	logger          *slog.Logger
+}
+
+func newConfigPropagator(
+	persist configPersister,
+	liveConfig liveConfigSetter,
+	sidecarRegistry sidecarRegistrySetter,
+	agents agentPublisher,
+	logShipper logLevelSetter,
+	logger *slog.Logger,
+) *configPropagator {
+	return &configPropagator{
+		persist:         persist,
+		liveConfig:      liveConfig,
+		sidecarRegistry: sidecarRegistry,
+		agents:          agents,
+		logShipper:      logShipper,
+		logger:          logger,
+	}
+}
+
+// Apply propagates cfg to every part of the process that must see it.
+//
+// This is the invariant a future change to this method must preserve:
+// persisting cfg is a hard failure, returned to the caller so the stream
+// redelivers the event — but recompiling the sidecar registry and
+// republishing agent projections are logged, never returned, because by
+// that point cfg is already durably persisted and live. Redelivering the
+// whole event to retry either of those would re-run the database write
+// too, and agents re-read on their own timer regardless.
+func (p *configPropagator) Apply(ctx context.Context, cfg *appconfig.Config) error {
+	correlationID := correlation.FromContext(ctx)
+
+	if err := p.persist.Upsert(ctx, cfg); err != nil {
+		p.logger.Error("failed to persist system config update", "correlation_id", correlationID, "error", err)
+		return err
+	}
+
+	p.liveConfig.Set(cfg)
+
+	// The server's own verbosity, applied live — the same SetLevel an
+	// agent's ConfigStore calls, just driven by the local config swap
+	// above instead of a Redis-delivered projection.
+	level := slog.LevelInfo
+	if cfg.Logging.ServerLevel == appconfig.LogLevelDebug {
+		level = slog.LevelDebug
+	}
+	p.logShipper.SetLevel(level)
+
+	// A table that fails to compile leaves the previous registry in place:
+	// the scanner must never be left without one, and the previous table is
+	// a far better answer than nothing.
+	if err := p.sidecarRegistry.Compile(cfg.DirectoryScanner.SidecarTypes); err != nil {
+		p.logger.Error("updated sidecar type table is invalid; keeping the previous one",
+			"correlation_id", correlationID, "error", err)
+	}
+
+	if err := p.agents.PublishAll(ctx, cfg); err != nil {
+		p.logger.Error("failed to republish agent configuration",
+			"correlation_id", correlationID, "error", err)
+	}
+
+	return nil
+}

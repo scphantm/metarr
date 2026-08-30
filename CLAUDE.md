@@ -3,7 +3,7 @@ Kill any spawned processes (node, metarr-server, metarr-agent) before ending a t
 
 # General conventions
 * Descriptive names; standard clean-code practices.
-* CRUD APIs: one upserting POST, never separate POST/PUT.
+* CRUD APIs: one upserting POST, never separate POST/PUT. An empty id in the request means create (server mints the id); a non-empty id that doesn't match an existing entry is rejected as not found, never treated as a client-chosen id to create under — ids are always server-minted (see CONTEXT.md's "Minted id"). Keep the proto/API doc comment worded to match this exactly; issue #15 was filed because one drifted.
 * External HTTP calls to interfaces that request metadata (Sonarr, etc.): always use the cached HTTP client (cached/reusable per config). One-shot or streamed calls that aren't metadata lookups (e.g. AI chat completions) don't fit this — a plain client is fine.
 * After validating a change, add regression unit tests — cheaper to rerun than to re-derive next time.
 * style sheet information should be stored in style sheets, not tsx.
@@ -21,7 +21,7 @@ Kill any spawned processes (node, metarr-server, metarr-agent) before ending a t
 Any change to config structure also requires:
 * CRUD methods in the config API router
 * UI to manage the new settings
-* init in `/cmd/metarr-server/main.go`
+* a startup default: add a section to `internal/shared/appconfig/builtin_defaults.json` plus a step in `internal/server/bootstrap` (see `docs/adr/0004`) — never a hand-written literal in `/cmd/metarr-server/main.go`, which only calls `bootstrap.Run` once and owns no seeding logic itself. A step that seeds a static value belongs in `bootstrap`'s single consolidated `Store.Bootstrap` call (`staticConfigSteps` in `bootstrap.go`), not a new standalone call — see issue #15 for why.
 * if agent-needed: add to `agentregistry.BuildProjection` (readable by every agent host — add deliberately)
 
 # metarr-server
@@ -64,3 +64,13 @@ See `documentation/modules/design/pages/workflow_engine.adoc` for the full spec 
 # editing documentation theme
 * The documentation theme bundles into a standard package that is used by antora to theme the site.  It must follow specifications.  Those specifications are in `documentation-theme/docs`
 * when editing the documentation theme do not make changes to anything in `documentation-theme/docs`
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (scphantm/metarr), managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root (not yet created — created lazily by `/domain-modeling`). See `docs/agents/domain.md`.

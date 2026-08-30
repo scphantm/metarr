@@ -24,12 +24,10 @@ import (
 // for the agents.presence topic in cmd/metarr-server/main.go.
 const agentPresenceStreamInterval = 2 * time.Second
 
-// AgentServer implements metarrv1connect.AgentServiceHandler, ported directly
-// from internal/server/handlers/agents.go (List/Upsert/Delete) and the
-// SetAgentLogLevel handler in internal/server/handlers/logging.go — same
-// Mongo/Redis calls and FireConfigUpdate behavior, only the transport
-// changed. StreamPresence replaces the agents.presence wsbus topic, reusing
-// the exact same Registry.List call List already makes.
+// AgentServer implements metarrv1connect.AgentServiceHandler. Every write
+// goes through AppConfigStore.Mutate — see internal/server/appconfigstore.
+// StreamPresence replaces the agents.presence wsbus topic, reusing the
+// exact same Registry.List call List already makes.
 type AgentServer struct {
 	*handlers.Handlers
 }
@@ -48,11 +46,7 @@ func (s *AgentServer) List(
 	ctx context.Context,
 	req *connect.Request[metarrv1.AgentServiceListRequest],
 ) (*connect.Response[metarrv1.AgentServiceListResponse], error) {
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 
 	views, err := s.Agents.List(ctx, appConfig)
 	if err != nil {
@@ -76,14 +70,7 @@ func (s *AgentServer) StreamPresence(
 	defer ticker.Stop()
 
 	for {
-		appConfig, err := s.AppConfigRepo.Get(ctx)
-		if err != nil {
-			if ctx.Err() != nil {
-				return nil
-			}
-			s.Logger.Error("failed to fetch app config", "error", err)
-			return connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-		}
+		appConfig := appconfig.Get()
 
 		views, err := s.Agents.List(ctx, appConfig)
 		if err != nil {
@@ -123,25 +110,20 @@ func (s *AgentServer) Upsert(
 		return nil, connectError(http.StatusBadRequest, err)
 	}
 
-	appConfig, err := s.AppConfigRepo.Get(ctx)
+	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		if status, err := validateMappings(cfg, entry); err != nil {
+			return connectError(status, err)
+		}
+
+		if index := cfg.FindAgentIndex(entry.Slug); index == -1 {
+			cfg.Agents = append(cfg.Agents, entry)
+		} else {
+			cfg.Agents[index] = entry
+		}
+		return nil
+	})
 	if err != nil {
-		s.Logger.Error("failed to fetch app config", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
-
-	if status, err := validateMappings(appConfig, entry); err != nil {
-		return nil, connectError(status, err)
-	}
-
-	if index := appConfig.FindAgentIndex(entry.Slug); index == -1 {
-		appConfig.Agents = append(appConfig.Agents, entry)
-	} else {
-		appConfig.Agents[index] = entry
-	}
-
-	if err := s.FireConfigUpdate(ctx, correlationID, *appConfig); err != nil {
-		s.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+		return mutateConfigError(s.Logger, correlationID, err)
 	}
 
 	return connect.NewResponse(acceptedResponse(correlationID)), nil
@@ -154,21 +136,16 @@ func (s *AgentServer) Delete(
 	correlationID := correlation.FromContext(ctx)
 	slug := req.Msg.GetSlug()
 
-	appConfig, err := s.AppConfigRepo.Get(ctx)
+	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		index := cfg.FindAgentIndex(slug)
+		if index == -1 {
+			return connectError(http.StatusNotFound, errors.New("no agent with that slug"))
+		}
+		cfg.Agents = append(cfg.Agents[:index], cfg.Agents[index+1:]...)
+		return nil
+	})
 	if err != nil {
-		s.Logger.Error("failed to fetch app config", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
-
-	index := appConfig.FindAgentIndex(slug)
-	if index == -1 {
-		return nil, connectError(http.StatusNotFound, errors.New("no agent with that slug"))
-	}
-	appConfig.Agents = append(appConfig.Agents[:index], appConfig.Agents[index+1:]...)
-
-	if err := s.FireConfigUpdate(ctx, correlationID, *appConfig); err != nil {
-		s.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+		return mutateConfigError(s.Logger, correlationID, err)
 	}
 
 	// Drop the published projection immediately rather than waiting for the
@@ -193,24 +170,19 @@ func (s *AgentServer) SetLogLevel(
 		return nil, connectError(http.StatusBadRequest, err)
 	}
 
-	appConfig, err := s.AppConfigRepo.Get(ctx)
+	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		if index := cfg.FindAgentIndex(slug); index >= 0 {
+			cfg.Agents[index].LogLevel = logLevel
+		} else {
+			cfg.Agents = append(cfg.Agents, appconfig.AgentConfig{
+				Slug:     slug,
+				LogLevel: logLevel,
+			})
+		}
+		return nil
+	})
 	if err != nil {
-		s.Logger.Error("failed to fetch app config", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
-
-	if index := appConfig.FindAgentIndex(slug); index >= 0 {
-		appConfig.Agents[index].LogLevel = logLevel
-	} else {
-		appConfig.Agents = append(appConfig.Agents, appconfig.AgentConfig{
-			Slug:     slug,
-			LogLevel: logLevel,
-		})
-	}
-
-	if err := s.FireConfigUpdate(ctx, correlationID, *appConfig); err != nil {
-		s.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+		return mutateConfigError(s.Logger, correlationID, err)
 	}
 
 	return connect.NewResponse(acceptedResponse(correlationID)), nil

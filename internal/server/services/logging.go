@@ -43,11 +43,7 @@ func (s *LoggingServer) GetConfig(
 	ctx context.Context,
 	req *connect.Request[metarrv1.LoggingServiceGetConfigRequest],
 ) (*connect.Response[metarrv1.LoggingServiceGetConfigResponse], error) {
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 	return connect.NewResponse(&metarrv1.LoggingServiceGetConfigResponse{
 		Config: &metarrv1.LoggingConfig{
 			ServerLevel: appConfig.Logging.ServerLevel,
@@ -74,17 +70,12 @@ func (s *LoggingServer) UpdateConfig(
 		return nil, connectError(http.StatusBadRequest, err)
 	}
 
-	appConfig, err := s.AppConfigRepo.Get(ctx)
+	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		cfg.Logging = entry
+		return nil
+	})
 	if err != nil {
-		s.Logger.Error("failed to fetch app config", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
-
-	appConfig.Logging = entry
-
-	if err := s.FireConfigUpdate(ctx, correlationID, *appConfig); err != nil {
-		s.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+		return mutateConfigError(s.Logger, correlationID, err)
 	}
 
 	return connect.NewResponse(acceptedResponse(correlationID)), nil
