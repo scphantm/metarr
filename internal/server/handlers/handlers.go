@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"Metarr/internal/server/agentregistry"
+	"Metarr/internal/server/appconfigstore"
 	"Metarr/internal/server/logtail"
 	"Metarr/internal/server/mongostore"
 	"Metarr/internal/server/redisstats"
@@ -20,7 +21,7 @@ import (
 type Handlers struct {
 	PubSub             *eventbus.PubSubBus
 	Streams            *eventbus.StreamBus
-	AppConfigRepo      *mongostore.AppConfigRepo
+	AppConfigStore     *appconfigstore.Store
 	LocalDirectoryRepo *mongostore.LocalDirectoryRepo
 	WorkflowRepo       *mongostore.WorkflowRepo
 	WorkflowCatalog    *workflow.Catalog
@@ -36,7 +37,7 @@ type Handlers struct {
 func New(
 	pubsub *eventbus.PubSubBus,
 	streams *eventbus.StreamBus,
-	appConfigRepo *mongostore.AppConfigRepo,
+	appConfigStore *appconfigstore.Store,
 	localDirectoryRepo *mongostore.LocalDirectoryRepo,
 	workflowRepo *mongostore.WorkflowRepo,
 	workflowCatalog *workflow.Catalog,
@@ -50,7 +51,7 @@ func New(
 	return &Handlers{
 		PubSub:             pubsub,
 		Streams:            streams,
-		AppConfigRepo:      appConfigRepo,
+		AppConfigStore:     appConfigStore,
 		LocalDirectoryRepo: localDirectoryRepo,
 		WorkflowRepo:       workflowRepo,
 		WorkflowCatalog:    workflowCatalog,

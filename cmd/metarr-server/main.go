@@ -16,17 +16,17 @@ import (
 	"time"
 
 	"connectrpc.com/grpcreflect"
-	"github.com/google/uuid"
 
 	metarrv1connect "Metarr/internal/genproto/metarr/v1/metarrv1connect"
 	"Metarr/internal/server/agentregistry"
+	"Metarr/internal/server/appconfigstore"
+	"Metarr/internal/server/bootstrap"
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/server/httpserver"
 	"Metarr/internal/server/listeners"
 	"Metarr/internal/server/logforward"
 	"Metarr/internal/server/logtail"
 	"Metarr/internal/server/mongostore"
-	"Metarr/internal/server/passwordhash"
 	"Metarr/internal/server/redisstats"
 	"Metarr/internal/server/services"
 	"Metarr/internal/server/session"
@@ -41,21 +41,10 @@ import (
 	"Metarr/internal/shared/version"
 )
 
-const (
-	defaultAdminUsername      = "admin"
-	defaultAdminEmail         = "admin@example.com"
-	defaultAdminPasswordChars = 12
-
-	// defaultDirectoryScannerParallelCount is how many directories the
-	// scanner processes concurrently when the config doesn't set its own
-	// value yet.
-	defaultDirectoryScannerParallelCount = 16
-
-	// httpClientEnvFile is the JetBrains HTTP Client's per-developer
-	// secrets file, kept in sync with freshly bootstrapped API keys if
-	// the developer has one at the project root.
-	httpClientEnvFile = "http-client.private.env.json"
-)
+// httpClientEnvFile is the JetBrains HTTP Client's per-developer secrets
+// file, kept in sync with freshly bootstrapped API keys if the developer
+// has one at the project root.
+const httpClientEnvFile = "http-client.private.env.json"
 
 // @title			Metarr API
 // @version		1.0
@@ -119,6 +108,7 @@ func run() error {
 	}
 	taskEventRepo := mongostore.NewTaskEventRepo(mongoClient, cfg.MongoDatabase)
 	appConfigRepo := mongostore.NewAppConfigRepo(mongoClient, cfg.MongoDatabase)
+	appConfigStore := appconfigstore.New(appConfigRepo, appConfigRepo, streamBus)
 	localDirectoryRepo := mongostore.NewLocalDirectoryRepo(mongoClient, cfg.MongoDatabase)
 	workflowRepo := mongostore.NewWorkflowRepo(mongoClient, cfg.MongoDatabase)
 	sessions := session.NewStore(redisClient)
@@ -146,146 +136,59 @@ func run() error {
 		"node_types", workflowCatalog.Len(),
 	)
 
-	// Warm the in-memory config singleton from MongoDB before serving any
-	// requests, so it reflects the persisted config from process start.
-	startupCfg, err := appConfigRepo.Get(connectCtx)
+	// Seeds the application config — API keys, the admin account,
+	// directory-scanner defaults, the sidecar classification table, and the
+	// one-time backfills earlier releases needed. Runs synchronously,
+	// straight to storage, before the system_config_update listener exists
+	// to persist a fired event; see docs/adr/0003 and docs/adr/0004. An
+	// ordinary restart with nothing left to seed costs no write.
+	bootstrapReport, err := bootstrap.Run(connectCtx, appConfigStore)
 	if err != nil {
 		return err
 	}
 
-	// The two bootstrap checks below only mutate startupCfg in memory and
-	// record what changed; the Mongo write and the
-	// http-client.private.env.json sync each happen at most once, after
-	// both checks, regardless of whether one or both fired — a fresh
-	// install needing both doesn't pay for either round trip twice.
-	var (
-		bootstrapped     bool
-		bootstrappedKeys *appconfig.APIKeysConfig
-		newAdminPassword string
-	)
-
-	// Bootstrap the four API key categories the first time the app ever
-	// starts against this database: none has been configured yet, so
-	// generate one key per category. This used to be seeded by
-	// mongo/init/init-mongo.js; it lives here instead so it can also sync
-	// http-client.private.env.json, which only Go — not the mongo
-	// container — has a normal filesystem path to.
-	if len(startupCfg.APIKeys.Admin) == 0 && len(startupCfg.APIKeys.User) == 0 &&
-		len(startupCfg.APIKeys.Webhook) == 0 && len(startupCfg.APIKeys.ReadOnly) == 0 {
-		adminKey := uuid.NewString()
-		userKey := uuid.NewString()
-		webhookKey := uuid.NewString()
-		readOnlyKey := uuid.NewString()
-
-		startupCfg.APIKeys = appconfig.APIKeysConfig{
-			Admin:    []appconfig.APIKeyEntry{{Name: "Administrator Key", Key: adminKey}},
-			User:     []appconfig.APIKeyEntry{{Name: "User Key", Key: userKey}},
-			Webhook:  []appconfig.APIKeyEntry{{Name: "Webhook Key", Key: webhookKey}},
-			ReadOnly: []appconfig.APIKeyEntry{{Name: "Read Only Key", Key: readOnlyKey}},
-		}
-		bootstrapped = true
-		bootstrappedKeys = &startupCfg.APIKeys
-
+	if bootstrapReport.APIKeys != nil {
 		fmt.Println("==================================================================")
 		fmt.Println("Metarr: generated default API keys (shown only once, save these):")
-		fmt.Println("  admin:     " + adminKey)
-		fmt.Println("  user:      " + userKey)
-		fmt.Println("  webhook:   " + webhookKey)
-		fmt.Println("  read_only: " + readOnlyKey)
+		fmt.Println("  admin:     " + bootstrapReport.APIKeys.Admin[0].Key)
+		fmt.Println("  user:      " + bootstrapReport.APIKeys.User[0].Key)
+		fmt.Println("  webhook:   " + bootstrapReport.APIKeys.Webhook[0].Key)
+		fmt.Println("  read_only: " + bootstrapReport.APIKeys.ReadOnly[0].Key)
 		fmt.Println("==================================================================")
 	}
-
-	// Bootstrap the admin user the first time the app ever starts against
-	// this database: no admin has been configured yet, so generate a
-	// random password and hash it. The plaintext is printed directly to
-	// stdout (not through logger) so it's never written to logs/app.log —
-	// shown once, same treatment as the API keys above.
-	if startupCfg.Admin.Username == "" {
-		plaintextPassword, err := passwordhash.GenerateRandomPassword(defaultAdminPasswordChars)
-		if err != nil {
-			return err
-		}
-		salt, hash, err := passwordhash.Hash(plaintextPassword)
-		if err != nil {
-			return err
-		}
-		startupCfg.Admin = appconfig.AdminUser{
-			Username:     defaultAdminUsername,
-			Email:        defaultAdminEmail,
-			PasswordSalt: salt,
-			PasswordHash: hash,
-		}
-		bootstrapped = true
-		newAdminPassword = plaintextPassword
-
+	switch {
+	case bootstrapReport.Admin.Recovered:
+		fmt.Println("==================================================================")
+		fmt.Println("Metarr: admin credentials were missing (a prior version could zero")
+		fmt.Println("them when editing an API key) — generated a new password:")
+		fmt.Println("  username: " + bootstrapReport.Admin.Username)
+		fmt.Println("  password: " + bootstrapReport.Admin.Password)
+		fmt.Println("==================================================================")
+	case bootstrapReport.Admin.Password != "":
 		fmt.Println("==================================================================")
 		fmt.Println("Metarr: generated initial admin credentials (shown only once):")
-		fmt.Println("  username: " + defaultAdminUsername)
-		fmt.Println("  password: " + plaintextPassword)
+		fmt.Println("  username: " + bootstrapReport.Admin.Username)
+		fmt.Println("  password: " + bootstrapReport.Admin.Password)
 		fmt.Println("==================================================================")
 	}
-
-	// Bootstrap the directory scanner config the first time the app starts
-	// against this database (a fresh install, or an existing database
-	// predating the directory_scanner section): default to 16 parallel
-	// workers and no directories configured to scan yet.
-	if startupCfg.DirectoryScanner.ParallelCount == 0 {
-		startupCfg.DirectoryScanner = appconfig.DirectoryScannerConfig{
-			ParallelCount:   defaultDirectoryScannerParallelCount,
-			ScanDirectories: []appconfig.ScanDirectory{},
-		}
-		bootstrapped = true
+	if bootstrapReport.SidecarTypesAdded > 0 {
+		logger.Info("added built-in sidecar types missing from the stored table", "count", bootstrapReport.SidecarTypesAdded)
+	}
+	if bootstrapReport.APIKeyIDsBackfilled > 0 {
+		logger.Info("minted ids for API key entries stored before the id field existed", "count", bootstrapReport.APIKeyIDsBackfilled)
 	}
 
-	// Seed the sidecar classification table the first time the app starts
-	// against this database, on the same "fresh install, or a database
-	// predating this section" reasoning as the block above. An empty table
-	// would classify nothing, so this is what makes the built-in rules the
-	// starting point a user then edits.
-	if len(startupCfg.DirectoryScanner.SidecarTypes) == 0 {
-		startupCfg.DirectoryScanner.SidecarTypes = appconfig.DefaultSidecarTypes()
-		bootstrapped = true
-	}
-
-	// Agents start as an empty list rather than being seeded with anything: an
-	// agent exists because someone deployed one and then said what it may see,
-	// and inventing a default would mean guessing at a machine that may not be
-	// there. A database predating this field decodes it as nil, so it is
-	// normalised here to keep the API returning [] rather than null.
-	if startupCfg.Agents == nil {
-		startupCfg.Agents = []appconfig.AgentConfig{}
-		bootstrapped = true
-	}
-
-	// A database predating the logging pipeline has no server_level at all,
-	// which would leave the level threshold unset (zero value, meaning every
-	// level including Debug — the opposite of the quiet default a fresh
-	// install gets from appconfig.Default()).
-	if startupCfg.Logging.ServerLevel == "" {
-		startupCfg.Logging = appconfig.Default().Logging
-		bootstrapped = true
-	}
-
-	// A built-in type added after this database was seeded would otherwise never
-	// reach it, since the seed above only fires on an empty table. Note this
-	// also means a built-in deleted through the API comes back on the next
-	// restart: a deletion leaves nothing behind to tell it apart from a type the
-	// table has simply never seen.
-	if merged, added := appconfig.MergeMissingSidecarTypes(startupCfg.DirectoryScanner.SidecarTypes); added > 0 {
-		startupCfg.DirectoryScanner.SidecarTypes = merged
-		bootstrapped = true
-		logger.Info("added built-in sidecar types missing from the stored table", "count", added)
-	}
-
-	if bootstrapped {
-		if err := appConfigRepo.Upsert(connectCtx, startupCfg); err != nil {
-			return err
-		}
-		if err := syncHTTPClientEnv(bootstrappedKeys, newAdminPassword); err != nil {
+	if bootstrapReport.APIKeys != nil || bootstrapReport.Admin.Password != "" {
+		if err := syncHTTPClientEnv(bootstrapReport.APIKeys, bootstrapReport.Admin.Password); err != nil {
 			logger.Error("failed to sync http-client.private.env.json", "error", err)
 		}
 	}
 
+	// Warm the in-memory config singleton from bootstrapReport.FinalConfig,
+	// not a fresh Read — bootstrap.Run already read this exact document
+	// from Mongo while seeding it, so re-reading it here would just be a
+	// second round trip to reconstruct state already in hand.
+	startupCfg := bootstrapReport.FinalConfig
 	appconfig.Set(startupCfg)
 
 	// Compile the stored sidecar table into the registry the scanner reads.
@@ -353,7 +256,7 @@ func run() error {
 	// metarr.v1.LoggingService.StreamTail (internal/server/services), mounted
 	// via connectServices below. wsbus.Hub and GET /api/ws are retired.
 
-	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
+	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigStore, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
 	uiFS, uiEmbedded := webui.FS()
 	if uiEmbedded {
 		logger.Info("ui embed", "enabled", true)

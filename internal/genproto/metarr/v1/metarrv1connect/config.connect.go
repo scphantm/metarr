@@ -35,18 +35,23 @@ const (
 const (
 	// ConfigServiceGetProcedure is the fully-qualified name of the ConfigService's Get RPC.
 	ConfigServiceGetProcedure = "/metarr.v1.ConfigService/Get"
-	// ConfigServiceUpdateProcedure is the fully-qualified name of the ConfigService's Update RPC.
-	ConfigServiceUpdateProcedure = "/metarr.v1.ConfigService/Update"
 	// ConfigServiceUpdateAdminProcedure is the fully-qualified name of the ConfigService's UpdateAdmin
 	// RPC.
 	ConfigServiceUpdateAdminProcedure = "/metarr.v1.ConfigService/UpdateAdmin"
+	// ConfigServiceUpsertApiKeyProcedure is the fully-qualified name of the ConfigService's
+	// UpsertApiKey RPC.
+	ConfigServiceUpsertApiKeyProcedure = "/metarr.v1.ConfigService/UpsertApiKey"
+	// ConfigServiceDeleteApiKeyProcedure is the fully-qualified name of the ConfigService's
+	// DeleteApiKey RPC.
+	ConfigServiceDeleteApiKeyProcedure = "/metarr.v1.ConfigService/DeleteApiKey"
 )
 
 // ConfigServiceClient is a client for the metarr.v1.ConfigService service.
 type ConfigServiceClient interface {
 	Get(context.Context, *connect.Request[v1.ConfigServiceGetRequest]) (*connect.Response[v1.ConfigServiceGetResponse], error)
-	Update(context.Context, *connect.Request[v1.ConfigServiceUpdateRequest]) (*connect.Response[v1.AcceptedResponse], error)
 	UpdateAdmin(context.Context, *connect.Request[v1.ConfigServiceUpdateAdminRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	UpsertApiKey(context.Context, *connect.Request[v1.ConfigServiceUpsertApiKeyRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	DeleteApiKey(context.Context, *connect.Request[v1.ConfigServiceDeleteApiKeyRequest]) (*connect.Response[v1.AcceptedResponse], error)
 }
 
 // NewConfigServiceClient constructs a client for the metarr.v1.ConfigService service. By default,
@@ -66,16 +71,22 @@ func NewConfigServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(configServiceMethods.ByName("Get")),
 			connect.WithClientOptions(opts...),
 		),
-		update: connect.NewClient[v1.ConfigServiceUpdateRequest, v1.AcceptedResponse](
-			httpClient,
-			baseURL+ConfigServiceUpdateProcedure,
-			connect.WithSchema(configServiceMethods.ByName("Update")),
-			connect.WithClientOptions(opts...),
-		),
 		updateAdmin: connect.NewClient[v1.ConfigServiceUpdateAdminRequest, v1.AcceptedResponse](
 			httpClient,
 			baseURL+ConfigServiceUpdateAdminProcedure,
 			connect.WithSchema(configServiceMethods.ByName("UpdateAdmin")),
+			connect.WithClientOptions(opts...),
+		),
+		upsertApiKey: connect.NewClient[v1.ConfigServiceUpsertApiKeyRequest, v1.AcceptedResponse](
+			httpClient,
+			baseURL+ConfigServiceUpsertApiKeyProcedure,
+			connect.WithSchema(configServiceMethods.ByName("UpsertApiKey")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteApiKey: connect.NewClient[v1.ConfigServiceDeleteApiKeyRequest, v1.AcceptedResponse](
+			httpClient,
+			baseURL+ConfigServiceDeleteApiKeyProcedure,
+			connect.WithSchema(configServiceMethods.ByName("DeleteApiKey")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -83,9 +94,10 @@ func NewConfigServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 
 // configServiceClient implements ConfigServiceClient.
 type configServiceClient struct {
-	get         *connect.Client[v1.ConfigServiceGetRequest, v1.ConfigServiceGetResponse]
-	update      *connect.Client[v1.ConfigServiceUpdateRequest, v1.AcceptedResponse]
-	updateAdmin *connect.Client[v1.ConfigServiceUpdateAdminRequest, v1.AcceptedResponse]
+	get          *connect.Client[v1.ConfigServiceGetRequest, v1.ConfigServiceGetResponse]
+	updateAdmin  *connect.Client[v1.ConfigServiceUpdateAdminRequest, v1.AcceptedResponse]
+	upsertApiKey *connect.Client[v1.ConfigServiceUpsertApiKeyRequest, v1.AcceptedResponse]
+	deleteApiKey *connect.Client[v1.ConfigServiceDeleteApiKeyRequest, v1.AcceptedResponse]
 }
 
 // Get calls metarr.v1.ConfigService.Get.
@@ -93,21 +105,27 @@ func (c *configServiceClient) Get(ctx context.Context, req *connect.Request[v1.C
 	return c.get.CallUnary(ctx, req)
 }
 
-// Update calls metarr.v1.ConfigService.Update.
-func (c *configServiceClient) Update(ctx context.Context, req *connect.Request[v1.ConfigServiceUpdateRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return c.update.CallUnary(ctx, req)
-}
-
 // UpdateAdmin calls metarr.v1.ConfigService.UpdateAdmin.
 func (c *configServiceClient) UpdateAdmin(ctx context.Context, req *connect.Request[v1.ConfigServiceUpdateAdminRequest]) (*connect.Response[v1.AcceptedResponse], error) {
 	return c.updateAdmin.CallUnary(ctx, req)
 }
 
+// UpsertApiKey calls metarr.v1.ConfigService.UpsertApiKey.
+func (c *configServiceClient) UpsertApiKey(ctx context.Context, req *connect.Request[v1.ConfigServiceUpsertApiKeyRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+	return c.upsertApiKey.CallUnary(ctx, req)
+}
+
+// DeleteApiKey calls metarr.v1.ConfigService.DeleteApiKey.
+func (c *configServiceClient) DeleteApiKey(ctx context.Context, req *connect.Request[v1.ConfigServiceDeleteApiKeyRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+	return c.deleteApiKey.CallUnary(ctx, req)
+}
+
 // ConfigServiceHandler is an implementation of the metarr.v1.ConfigService service.
 type ConfigServiceHandler interface {
 	Get(context.Context, *connect.Request[v1.ConfigServiceGetRequest]) (*connect.Response[v1.ConfigServiceGetResponse], error)
-	Update(context.Context, *connect.Request[v1.ConfigServiceUpdateRequest]) (*connect.Response[v1.AcceptedResponse], error)
 	UpdateAdmin(context.Context, *connect.Request[v1.ConfigServiceUpdateAdminRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	UpsertApiKey(context.Context, *connect.Request[v1.ConfigServiceUpsertApiKeyRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	DeleteApiKey(context.Context, *connect.Request[v1.ConfigServiceDeleteApiKeyRequest]) (*connect.Response[v1.AcceptedResponse], error)
 }
 
 // NewConfigServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -123,26 +141,34 @@ func NewConfigServiceHandler(svc ConfigServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(configServiceMethods.ByName("Get")),
 		connect.WithHandlerOptions(opts...),
 	)
-	configServiceUpdateHandler := connect.NewUnaryHandler(
-		ConfigServiceUpdateProcedure,
-		svc.Update,
-		connect.WithSchema(configServiceMethods.ByName("Update")),
-		connect.WithHandlerOptions(opts...),
-	)
 	configServiceUpdateAdminHandler := connect.NewUnaryHandler(
 		ConfigServiceUpdateAdminProcedure,
 		svc.UpdateAdmin,
 		connect.WithSchema(configServiceMethods.ByName("UpdateAdmin")),
 		connect.WithHandlerOptions(opts...),
 	)
+	configServiceUpsertApiKeyHandler := connect.NewUnaryHandler(
+		ConfigServiceUpsertApiKeyProcedure,
+		svc.UpsertApiKey,
+		connect.WithSchema(configServiceMethods.ByName("UpsertApiKey")),
+		connect.WithHandlerOptions(opts...),
+	)
+	configServiceDeleteApiKeyHandler := connect.NewUnaryHandler(
+		ConfigServiceDeleteApiKeyProcedure,
+		svc.DeleteApiKey,
+		connect.WithSchema(configServiceMethods.ByName("DeleteApiKey")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/metarr.v1.ConfigService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ConfigServiceGetProcedure:
 			configServiceGetHandler.ServeHTTP(w, r)
-		case ConfigServiceUpdateProcedure:
-			configServiceUpdateHandler.ServeHTTP(w, r)
 		case ConfigServiceUpdateAdminProcedure:
 			configServiceUpdateAdminHandler.ServeHTTP(w, r)
+		case ConfigServiceUpsertApiKeyProcedure:
+			configServiceUpsertApiKeyHandler.ServeHTTP(w, r)
+		case ConfigServiceDeleteApiKeyProcedure:
+			configServiceDeleteApiKeyHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -156,10 +182,14 @@ func (UnimplementedConfigServiceHandler) Get(context.Context, *connect.Request[v
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.ConfigService.Get is not implemented"))
 }
 
-func (UnimplementedConfigServiceHandler) Update(context.Context, *connect.Request[v1.ConfigServiceUpdateRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.ConfigService.Update is not implemented"))
-}
-
 func (UnimplementedConfigServiceHandler) UpdateAdmin(context.Context, *connect.Request[v1.ConfigServiceUpdateAdminRequest]) (*connect.Response[v1.AcceptedResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.ConfigService.UpdateAdmin is not implemented"))
+}
+
+func (UnimplementedConfigServiceHandler) UpsertApiKey(context.Context, *connect.Request[v1.ConfigServiceUpsertApiKeyRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.ConfigService.UpsertApiKey is not implemented"))
+}
+
+func (UnimplementedConfigServiceHandler) DeleteApiKey(context.Context, *connect.Request[v1.ConfigServiceDeleteApiKeyRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.ConfigService.DeleteApiKey is not implemented"))
 }

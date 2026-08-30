@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/config.proto.
  */
 export const file_metarr_v1_config: GenFile = /*@__PURE__*/
-  fileDesc("ChZtZXRhcnIvdjEvY29uZmlnLnByb3RvEgltZXRhcnIudjEiLAoJQWRtaW5Vc2VyEhAKCHVzZXJuYW1lGAEgASgJEg0KBWVtYWlsGAIgASgJIiwKC0FQSUtleUVudHJ5EgwKBG5hbWUYASABKAkSDwoHYXBpX2tleRgCIAEoCSKwAQoNQVBJS2V5c0NvbmZpZxIlCgVhZG1pbhgBIAMoCzIWLm1ldGFyci52MS5BUElLZXlFbnRyeRIkCgR1c2VyGAIgAygLMhYubWV0YXJyLnYxLkFQSUtleUVudHJ5EicKB3dlYmhvb2sYAyADKAsyFi5tZXRhcnIudjEuQVBJS2V5RW50cnkSKQoJcmVhZF9vbmx5GAQgAygLMhYubWV0YXJyLnYxLkFQSUtleUVudHJ5Ij0KEEludGVyZmFjZXNDb25maWcSKQoGc29uYXJyGAEgAygLMhkubWV0YXJyLnYxLlNvbmFyckluc3RhbmNlIpsCCgZDb25maWcSKgoIYXBpX2tleXMYASABKAsyGC5tZXRhcnIudjEuQVBJS2V5c0NvbmZpZxIjCgVhZG1pbhgCIAEoCzIULm1ldGFyci52MS5BZG1pblVzZXISLwoKaW50ZXJmYWNlcxgDIAEoCzIbLm1ldGFyci52MS5JbnRlcmZhY2VzQ29uZmlnEjwKEWRpcmVjdG9yeV9zY2FubmVyGAQgASgLMiEubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJDb25maWcSJgoGYWdlbnRzGAUgAygLMhYubWV0YXJyLnYxLkFnZW50Q29uZmlnEikKB2xvZ2dpbmcYBiABKAsyGC5tZXRhcnIudjEuTG9nZ2luZ0NvbmZpZyIZChdDb25maWdTZXJ2aWNlR2V0UmVxdWVzdCI9ChhDb25maWdTZXJ2aWNlR2V0UmVzcG9uc2USIQoGY29uZmlnGAEgASgLMhEubWV0YXJyLnYxLkNvbmZpZyI/ChpDb25maWdTZXJ2aWNlVXBkYXRlUmVxdWVzdBIhCgZjb25maWcYASABKAsyES5tZXRhcnIudjEuQ29uZmlnIocBCh9Db25maWdTZXJ2aWNlVXBkYXRlQWRtaW5SZXF1ZXN0EhUKCHVzZXJuYW1lGAEgASgJSACIAQESEgoFZW1haWwYAiABKAlIAYgBARIVCghwYXNzd29yZBgDIAEoCUgCiAEBQgsKCV91c2VybmFtZUIICgZfZW1haWxCCwoJX3Bhc3N3b3JkMoUCCg1Db25maWdTZXJ2aWNlEk4KA0dldBIiLm1ldGFyci52MS5Db25maWdTZXJ2aWNlR2V0UmVxdWVzdBojLm1ldGFyci52MS5Db25maWdTZXJ2aWNlR2V0UmVzcG9uc2USTAoGVXBkYXRlEiUubWV0YXJyLnYxLkNvbmZpZ1NlcnZpY2VVcGRhdGVSZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2USVgoLVXBkYXRlQWRtaW4SKi5tZXRhcnIudjEuQ29uZmlnU2VydmljZVVwZGF0ZUFkbWluUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_metarr_v1_agents, file_metarr_v1_common, file_metarr_v1_directory_scanner, file_metarr_v1_logging, file_metarr_v1_sonarr_interfaces]);
+  fileDesc("ChZtZXRhcnIvdjEvY29uZmlnLnByb3RvEgltZXRhcnIudjEiLAoJQWRtaW5Vc2VyEhAKCHVzZXJuYW1lGAEgASgJEg0KBWVtYWlsGAIgASgJIjgKC0FQSUtleUVudHJ5EgwKBG5hbWUYASABKAkSDwoHYXBpX2tleRgCIAEoCRIKCgJpZBgDIAEoCSKwAQoNQVBJS2V5c0NvbmZpZxIlCgVhZG1pbhgBIAMoCzIWLm1ldGFyci52MS5BUElLZXlFbnRyeRIkCgR1c2VyGAIgAygLMhYubWV0YXJyLnYxLkFQSUtleUVudHJ5EicKB3dlYmhvb2sYAyADKAsyFi5tZXRhcnIudjEuQVBJS2V5RW50cnkSKQoJcmVhZF9vbmx5GAQgAygLMhYubWV0YXJyLnYxLkFQSUtleUVudHJ5Ij0KEEludGVyZmFjZXNDb25maWcSKQoGc29uYXJyGAEgAygLMhkubWV0YXJyLnYxLlNvbmFyckluc3RhbmNlIpsCCgZDb25maWcSKgoIYXBpX2tleXMYASABKAsyGC5tZXRhcnIudjEuQVBJS2V5c0NvbmZpZxIjCgVhZG1pbhgCIAEoCzIULm1ldGFyci52MS5BZG1pblVzZXISLwoKaW50ZXJmYWNlcxgDIAEoCzIbLm1ldGFyci52MS5JbnRlcmZhY2VzQ29uZmlnEjwKEWRpcmVjdG9yeV9zY2FubmVyGAQgASgLMiEubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJDb25maWcSJgoGYWdlbnRzGAUgAygLMhYubWV0YXJyLnYxLkFnZW50Q29uZmlnEikKB2xvZ2dpbmcYBiABKAsyGC5tZXRhcnIudjEuTG9nZ2luZ0NvbmZpZyIZChdDb25maWdTZXJ2aWNlR2V0UmVxdWVzdCI9ChhDb25maWdTZXJ2aWNlR2V0UmVzcG9uc2USIQoGY29uZmlnGAEgASgLMhEubWV0YXJyLnYxLkNvbmZpZyKHAQofQ29uZmlnU2VydmljZVVwZGF0ZUFkbWluUmVxdWVzdBIVCgh1c2VybmFtZRgBIAEoCUgAiAEBEhIKBWVtYWlsGAIgASgJSAGIAQESFQoIcGFzc3dvcmQYAyABKAlIAogBAUILCglfdXNlcm5hbWVCCAoGX2VtYWlsQgsKCV9wYXNzd29yZCJYCiBDb25maWdTZXJ2aWNlVXBzZXJ0QXBpS2V5UmVxdWVzdBINCgVncm91cBgBIAEoCRIlCgVlbnRyeRgCIAEoCzIWLm1ldGFyci52MS5BUElLZXlFbnRyeSI9CiBDb25maWdTZXJ2aWNlRGVsZXRlQXBpS2V5UmVxdWVzdBINCgVncm91cBgBIAEoCRIKCgJpZBgCIAEoCTLrAgoNQ29uZmlnU2VydmljZRJOCgNHZXQSIi5tZXRhcnIudjEuQ29uZmlnU2VydmljZUdldFJlcXVlc3QaIy5tZXRhcnIudjEuQ29uZmlnU2VydmljZUdldFJlc3BvbnNlElYKC1VwZGF0ZUFkbWluEioubWV0YXJyLnYxLkNvbmZpZ1NlcnZpY2VVcGRhdGVBZG1pblJlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZRJYCgxVcHNlcnRBcGlLZXkSKy5tZXRhcnIudjEuQ29uZmlnU2VydmljZVVwc2VydEFwaUtleVJlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZRJYCgxEZWxldGVBcGlLZXkSKy5tZXRhcnIudjEuQ29uZmlnU2VydmljZURlbGV0ZUFwaUtleVJlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_metarr_v1_agents, file_metarr_v1_common, file_metarr_v1_directory_scanner, file_metarr_v1_logging, file_metarr_v1_sonarr_interfaces]);
 
 /**
  * AdminUser mirrors internal/shared/appconfig.AdminUser, deliberately
@@ -50,7 +50,10 @@ export const AdminUserSchema: GenMessage<AdminUser> = /*@__PURE__*/
   messageDesc(file_metarr_v1_config, 0);
 
 /**
- * APIKeyEntry mirrors internal/shared/appconfig.APIKeyEntry.
+ * APIKeyEntry mirrors internal/shared/appconfig.APIKeyEntry. id is the
+ * stable handle a scoped edit addresses this entry by; it is empty only
+ * when a client is proposing a brand new entry that has not been minted
+ * one yet.
  *
  * @generated from message metarr.v1.APIKeyEntry
  */
@@ -64,6 +67,11 @@ export type APIKeyEntry = Message<"metarr.v1.APIKeyEntry"> & {
    * @generated from field: string api_key = 2;
    */
   apiKey: string;
+
+  /**
+   * @generated from field: string id = 3;
+   */
+  id: string;
 };
 
 /**
@@ -202,23 +210,6 @@ export const ConfigServiceGetResponseSchema: GenMessage<ConfigServiceGetResponse
   messageDesc(file_metarr_v1_config, 6);
 
 /**
- * @generated from message metarr.v1.ConfigServiceUpdateRequest
- */
-export type ConfigServiceUpdateRequest = Message<"metarr.v1.ConfigServiceUpdateRequest"> & {
-  /**
-   * @generated from field: metarr.v1.Config config = 1;
-   */
-  config?: Config | undefined;
-};
-
-/**
- * Describes the message metarr.v1.ConfigServiceUpdateRequest.
- * Use `create(ConfigServiceUpdateRequestSchema)` to create a new message.
- */
-export const ConfigServiceUpdateRequestSchema: GenMessage<ConfigServiceUpdateRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_config, 7);
-
-/**
  * ConfigServiceUpdateAdminRequest is a partial update: only the fields set
  * are changed. An explicitly-empty string for a set field is rejected
  * rather than silently clearing it — see UpdateAdmin's implementation.
@@ -247,9 +238,66 @@ export type ConfigServiceUpdateAdminRequest = Message<"metarr.v1.ConfigServiceUp
  * Use `create(ConfigServiceUpdateAdminRequestSchema)` to create a new message.
  */
 export const ConfigServiceUpdateAdminRequestSchema: GenMessage<ConfigServiceUpdateAdminRequest> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_config, 7);
+
+/**
+ * ConfigServiceUpsertApiKeyRequest replaces the entry in group matching
+ * entry.id. If entry.id is empty, the server mints one and creates a new
+ * entry — ids are always server-minted, never client-chosen, so a
+ * non-empty entry.id that doesn't match an existing entry is rejected as
+ * not found rather than treated as a creation request. group is one of
+ * "admin", "user", "webhook", "read_only" — the same names
+ * internal/shared/appconfig.APIKeyGroup uses.
+ *
+ * @generated from message metarr.v1.ConfigServiceUpsertApiKeyRequest
+ */
+export type ConfigServiceUpsertApiKeyRequest = Message<"metarr.v1.ConfigServiceUpsertApiKeyRequest"> & {
+  /**
+   * @generated from field: string group = 1;
+   */
+  group: string;
+
+  /**
+   * @generated from field: metarr.v1.APIKeyEntry entry = 2;
+   */
+  entry?: APIKeyEntry | undefined;
+};
+
+/**
+ * Describes the message metarr.v1.ConfigServiceUpsertApiKeyRequest.
+ * Use `create(ConfigServiceUpsertApiKeyRequestSchema)` to create a new message.
+ */
+export const ConfigServiceUpsertApiKeyRequestSchema: GenMessage<ConfigServiceUpsertApiKeyRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_config, 8);
 
 /**
+ * @generated from message metarr.v1.ConfigServiceDeleteApiKeyRequest
+ */
+export type ConfigServiceDeleteApiKeyRequest = Message<"metarr.v1.ConfigServiceDeleteApiKeyRequest"> & {
+  /**
+   * @generated from field: string group = 1;
+   */
+  group: string;
+
+  /**
+   * @generated from field: string id = 2;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message metarr.v1.ConfigServiceDeleteApiKeyRequest.
+ * Use `create(ConfigServiceDeleteApiKeyRequestSchema)` to create a new message.
+ */
+export const ConfigServiceDeleteApiKeyRequestSchema: GenMessage<ConfigServiceDeleteApiKeyRequest> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_config, 9);
+
+/**
+ * Every mutating method here goes through the config store, which reads a
+ * fresh document and applies exactly what the method names — never a whole
+ * document supplied by the caller, which is how a scoped API key edit used
+ * to zero the admin password hash. See ADR 0001.
+ *
  * @generated from service metarr.v1.ConfigService
  */
 export const ConfigService: GenService<{
@@ -262,19 +310,27 @@ export const ConfigService: GenService<{
     output: typeof ConfigServiceGetResponseSchema;
   },
   /**
-   * @generated from rpc metarr.v1.ConfigService.Update
-   */
-  update: {
-    methodKind: "unary";
-    input: typeof ConfigServiceUpdateRequestSchema;
-    output: typeof AcceptedResponseSchema;
-  },
-  /**
    * @generated from rpc metarr.v1.ConfigService.UpdateAdmin
    */
   updateAdmin: {
     methodKind: "unary";
     input: typeof ConfigServiceUpdateAdminRequestSchema;
+    output: typeof AcceptedResponseSchema;
+  },
+  /**
+   * @generated from rpc metarr.v1.ConfigService.UpsertApiKey
+   */
+  upsertApiKey: {
+    methodKind: "unary";
+    input: typeof ConfigServiceUpsertApiKeyRequestSchema;
+    output: typeof AcceptedResponseSchema;
+  },
+  /**
+   * @generated from rpc metarr.v1.ConfigService.DeleteApiKey
+   */
+  deleteApiKey: {
+    methodKind: "unary";
+    input: typeof ConfigServiceDeleteApiKeyRequestSchema;
     output: typeof AcceptedResponseSchema;
   },
 }> = /*@__PURE__*/

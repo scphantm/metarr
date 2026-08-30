@@ -15,9 +15,9 @@ import (
 	"Metarr/internal/shared/correlation"
 )
 
-// SonarrInterfaceServer implements metarrv1connect.SonarrInterfaceServiceHandler,
-// ported directly from internal/server/handlers/sonarr_interfaces.go — same
-// Mongo reads and FireConfigUpdate call, only the transport changed.
+// SonarrInterfaceServer implements metarrv1connect.SonarrInterfaceServiceHandler.
+// Every write goes through AppConfigStore.Mutate — see
+// internal/server/appconfigstore.
 type SonarrInterfaceServer struct {
 	*handlers.Handlers
 }
@@ -36,11 +36,7 @@ func (s *SonarrInterfaceServer) List(
 	ctx context.Context,
 	req *connect.Request[metarrv1.SonarrInterfaceServiceListRequest],
 ) (*connect.Response[metarrv1.SonarrInterfaceServiceListResponse], error) {
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 
 	instances := make([]*metarrv1.SonarrInstance, 0, len(appConfig.Interfaces.Sonarr))
 	for _, instance := range appConfig.Interfaces.Sonarr {
@@ -53,11 +49,7 @@ func (s *SonarrInterfaceServer) Get(
 	ctx context.Context,
 	req *connect.Request[metarrv1.SonarrInterfaceServiceGetRequest],
 ) (*connect.Response[metarrv1.SonarrInterfaceServiceGetResponse], error) {
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
+	appConfig := appconfig.Get()
 
 	index := appConfig.Interfaces.FindSonarrIndex(req.Msg.GetSlug())
 	if index == -1 {
@@ -79,27 +71,22 @@ func (s *SonarrInterfaceServer) Upsert(
 		return nil, connectError(http.StatusBadRequest, errors.New("instance_slug is required"))
 	}
 
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
-
-	index := appConfig.Interfaces.FindSonarrIndex(instance.InstanceSlug)
-	if index == -1 {
-		for _, slug := range appConfig.Interfaces.AllInstanceSlugs() {
-			if slug == instance.InstanceSlug {
-				return nil, connectError(http.StatusConflict, errors.New("instance_slug already in use by a different interface type"))
+	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		index := cfg.Interfaces.FindSonarrIndex(instance.InstanceSlug)
+		if index == -1 {
+			for _, slug := range cfg.Interfaces.AllInstanceSlugs() {
+				if slug == instance.InstanceSlug {
+					return connectError(http.StatusConflict, errors.New("instance_slug already in use by a different interface type"))
+				}
 			}
+			cfg.Interfaces.Sonarr = append(cfg.Interfaces.Sonarr, instance)
+		} else {
+			cfg.Interfaces.Sonarr[index] = instance
 		}
-		appConfig.Interfaces.Sonarr = append(appConfig.Interfaces.Sonarr, instance)
-	} else {
-		appConfig.Interfaces.Sonarr[index] = instance
-	}
-
-	if err := s.FireConfigUpdate(ctx, correlationID, *appConfig); err != nil {
-		s.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+		return nil
+	})
+	if err != nil {
+		return mutateConfigError(s.Logger, correlationID, err)
 	}
 
 	return connect.NewResponse(acceptedResponse(correlationID)), nil
@@ -111,21 +98,16 @@ func (s *SonarrInterfaceServer) Delete(
 ) (*connect.Response[metarrv1.AcceptedResponse], error) {
 	correlationID := correlation.FromContext(ctx)
 
-	appConfig, err := s.AppConfigRepo.Get(ctx)
+	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		index := cfg.Interfaces.FindSonarrIndex(req.Msg.GetSlug())
+		if index == -1 {
+			return connectError(http.StatusNotFound, errors.New("no Sonarr instance with that slug"))
+		}
+		cfg.Interfaces.Sonarr = append(cfg.Interfaces.Sonarr[:index], cfg.Interfaces.Sonarr[index+1:]...)
+		return nil
+	})
 	if err != nil {
-		s.Logger.Error("failed to fetch app config", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
-
-	index := appConfig.Interfaces.FindSonarrIndex(req.Msg.GetSlug())
-	if index == -1 {
-		return nil, connectError(http.StatusNotFound, errors.New("no Sonarr instance with that slug"))
-	}
-	appConfig.Interfaces.Sonarr = append(appConfig.Interfaces.Sonarr[:index], appConfig.Interfaces.Sonarr[index+1:]...)
-
-	if err := s.FireConfigUpdate(ctx, correlationID, *appConfig); err != nil {
-		s.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+		return mutateConfigError(s.Logger, correlationID, err)
 	}
 
 	return connect.NewResponse(acceptedResponse(correlationID)), nil

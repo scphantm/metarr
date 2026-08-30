@@ -7,9 +7,13 @@
 package services
 
 import (
+	"errors"
+	"log/slog"
 	"net/http"
 
 	"connectrpc.com/connect"
+
+	metarrv1 "Metarr/internal/genproto/metarr/v1"
 )
 
 // connectError converts an HTTP status code (the vocabulary every existing
@@ -20,6 +24,22 @@ import (
 // returned status through this helper.
 func connectError(status int, err error) error {
 	return connect.NewError(codeForStatus(status), err)
+}
+
+// mutateConfigError turns an error returned by AppConfigStore.Mutate into
+// the response pair every config-mutating RPC returns. A mutation closure's
+// own rejection is already Connect-shaped (built with connectError, the
+// same way these methods built it before the config store existed) and
+// passes through unchanged; anything else — the store's own read or event
+// failing — is logged and reported as a generic 500, matching what every
+// one of these methods already did for that case.
+func mutateConfigError(logger *slog.Logger, correlationID string, err error) (*connect.Response[metarrv1.AcceptedResponse], error) {
+	var connectErr *connect.Error
+	if errors.As(err, &connectErr) {
+		return nil, err
+	}
+	logger.Error("failed to queue config update", "correlation_id", correlationID, "error", err)
+	return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
 }
 
 func codeForStatus(status int) connect.Code {
