@@ -7,11 +7,7 @@ import (
 	"Metarr/internal/shared/appconfig"
 )
 
-const (
-	defaultAdminUsername      = "admin"
-	defaultAdminEmail         = "admin@example.com"
-	defaultAdminPasswordChars = 12
-)
+const defaultAdminPasswordChars = 12
 
 // AdminSeedResult reports what SeedAdmin did. Password is the plaintext
 // password if one was (re)generated, empty if nothing changed. Recovered
@@ -41,9 +37,10 @@ func (s *Store) SeedAdmin(ctx context.Context) (AdminSeedResult, error) {
 			if err != nil {
 				return false, err
 			}
+			username, email := appconfig.DefaultAdminIdentity()
 			cfg.Admin = appconfig.AdminUser{
-				Username:     defaultAdminUsername,
-				Email:        defaultAdminEmail,
+				Username:     username,
+				Email:        email,
 				PasswordSalt: salt,
 				PasswordHash: hash,
 			}

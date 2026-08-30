@@ -1,0 +1,468 @@
+{
+  "directory_scanner": {
+    "parallel_count": 16
+  },
+  "sidecar_types": [
+    {
+      "id": "d6dd8837-3f91-4aa5-99a9-d2a8f35608e7",
+      "type": "poster",
+      "category": "image",
+      "order": 10,
+      "patterns": [
+        "(?i)^(poster|folder|cover|default|movie)(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ]poster(?:[-._ ]?\\d+)?$",
+        "(?i)^season\\d+([-._ ]?poster)?$",
+        "(?i)^season[-._ ]?specials([-._ ]?poster)?$"
+      ],
+      "extensions": [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".tbn",
+        ".webp",
+        ".gif",
+        ".bmp"
+      ]
+    },
+    {
+      "id": "32a37ee3-4f16-443a-9d94-3623216e3f1f",
+      "type": "fanart",
+      "category": "image",
+      "order": 20,
+      "patterns": [
+        "(?i)^(fanart|backdrop|background|art)(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ](fanart|backdrop|background)(?:[-._ ]?\\d+)?$"
+      ],
+      "extensions": [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".tbn",
+        ".webp",
+        ".gif",
+        ".bmp"
+      ]
+    },
+    {
+      "id": "d760c51d-d54d-4edc-ab95-eb3495ba0444",
+      "type": "banner",
+      "category": "image",
+      "order": 30,
+      "patterns": [
+        "(?i)^banner(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ]banner(?:[-._ ]?\\d+)?$",
+        "(?i)^season\\d+[-._ ]?banner$"
+      ],
+      "extensions": [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".tbn",
+        ".webp",
+        ".gif",
+        ".bmp"
+      ]
+    },
+    {
+      "id": "bc68f4a4-1b0b-4e6d-850a-0de6c248740b",
+      "type": "clearlogo",
+      "category": "image",
+      "order": 40,
+      "patterns": [
+        "(?i)^(clearlogo|logo)(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ](clearlogo|logo)(?:[-._ ]?\\d+)?$"
+      ],
+      "extensions": [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".tbn",
+        ".webp",
+        ".gif",
+        ".bmp"
+      ]
+    },
+    {
+      "id": "2c2d8be2-0416-47b1-a0ba-cf5b5b16710f",
+      "type": "clearart",
+      "category": "image",
+      "order": 50,
+      "patterns": [
+        "(?i)^clearart(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ]clearart(?:[-._ ]?\\d+)?$"
+      ],
+      "extensions": [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".tbn",
+        ".webp",
+        ".gif",
+        ".bmp"
+      ]
+    },
+    {
+      "id": "547f0c65-6f82-4391-9453-3ff312d1d7ab",
+      "type": "discart",
+      "category": "image",
+      "order": 60,
+      "patterns": [
+        "(?i)^(discart|disc|cdart)(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ](discart|cdart)(?:[-._ ]?\\d+)?$"
+      ],
+      "extensions": [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".tbn",
+        ".webp",
+        ".gif",
+        ".bmp"
+      ]
+    },
+    {
+      "id": "7175d6ee-ce4d-4f0c-91bc-e04a1838a434",
+      "type": "landscape",
+      "category": "image",
+      "order": 70,
+      "patterns": [
+        "(?i)^landscape(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ]landscape(?:[-._ ]?\\d+)?$"
+      ],
+      "extensions": [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".tbn",
+        ".webp",
+        ".gif",
+        ".bmp"
+      ]
+    },
+    {
+      "id": "685ca281-7d66-4807-8d79-acdbaf13aa94",
+      "type": "thumb",
+      "category": "image",
+      "order": 80,
+      "patterns": [
+        "(?i)^(thumb|thumbnail|characterart|keyart)(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ]thumb(?:[-._ ]?\\d+)?$",
+        "(?i)^season\\d+[-._ ]?thumb$"
+      ],
+      "extensions": [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".tbn",
+        ".webp",
+        ".gif",
+        ".bmp"
+      ]
+    },
+    {
+      "id": "e6646d3b-ab5c-4edd-8d9a-064977042a57",
+      "type": "trailer",
+      "category": "video_extra",
+      "order": 90,
+      "patterns": [
+        "(?i)^trailers?(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ]trailer(?:[-._ ]?\\d+)?$"
+      ],
+      "extensions": [
+        ".mkv",
+        ".mp4",
+        ".avi",
+        ".m4v",
+        ".mov",
+        ".wmv",
+        ".mpg",
+        ".mpeg",
+        ".ts",
+        ".webm",
+        ".flv",
+        ".iso"
+      ]
+    },
+    {
+      "id": "b41b9fcf-17fc-4681-a6b0-5034f271f285",
+      "type": "behind_the_scenes",
+      "category": "video_extra",
+      "order": 100,
+      "patterns": [
+        "(?i)^behind[-._ ]?the[-._ ]?scenes(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ]behind[-._ ]?the[-._ ]?scenes(?:[-._ ]?\\d+)?$"
+      ],
+      "extensions": [
+        ".mkv",
+        ".mp4",
+        ".avi",
+        ".m4v",
+        ".mov",
+        ".wmv",
+        ".mpg",
+        ".mpeg",
+        ".ts",
+        ".webm",
+        ".flv",
+        ".iso"
+      ]
+    },
+    {
+      "id": "1459de00-b20f-4566-a8a4-75bc50625d7c",
+      "type": "deleted_scene",
+      "category": "video_extra",
+      "order": 110,
+      "patterns": [
+        "(?i)^deleted[-._ ]?scenes?(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ]deleted[-._ ]?scenes?(?:[-._ ]?\\d+)?$"
+      ],
+      "extensions": [
+        ".mkv",
+        ".mp4",
+        ".avi",
+        ".m4v",
+        ".mov",
+        ".wmv",
+        ".mpg",
+        ".mpeg",
+        ".ts",
+        ".webm",
+        ".flv",
+        ".iso"
+      ]
+    },
+    {
+      "id": "232fff23-0d11-4225-9ec3-f550d285a606",
+      "type": "featurette",
+      "category": "video_extra",
+      "order": 120,
+      "patterns": [
+        "(?i)^featurettes?(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ]featurette(?:[-._ ]?\\d+)?$"
+      ],
+      "extensions": [
+        ".mkv",
+        ".mp4",
+        ".avi",
+        ".m4v",
+        ".mov",
+        ".wmv",
+        ".mpg",
+        ".mpeg",
+        ".ts",
+        ".webm",
+        ".flv",
+        ".iso"
+      ]
+    },
+    {
+      "id": "7576c484-3fd9-42dd-b126-0dc7afb1bf07",
+      "type": "interview",
+      "category": "video_extra",
+      "order": 130,
+      "patterns": [
+        "(?i)^interviews?(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ]interview(?:[-._ ]?\\d+)?$"
+      ],
+      "extensions": [
+        ".mkv",
+        ".mp4",
+        ".avi",
+        ".m4v",
+        ".mov",
+        ".wmv",
+        ".mpg",
+        ".mpeg",
+        ".ts",
+        ".webm",
+        ".flv",
+        ".iso"
+      ]
+    },
+    {
+      "id": "26bde3ff-72eb-4a0d-a566-46d6e7705b8f",
+      "type": "scene",
+      "category": "video_extra",
+      "order": 140,
+      "patterns": [
+        "(?i)^scenes?(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ]scene(?:[-._ ]?\\d+)?$"
+      ],
+      "extensions": [
+        ".mkv",
+        ".mp4",
+        ".avi",
+        ".m4v",
+        ".mov",
+        ".wmv",
+        ".mpg",
+        ".mpeg",
+        ".ts",
+        ".webm",
+        ".flv",
+        ".iso"
+      ]
+    },
+    {
+      "id": "8e276e7a-f85c-4df7-ad97-c90c278a91a3",
+      "type": "short",
+      "category": "video_extra",
+      "order": 150,
+      "patterns": [
+        "(?i)^shorts?(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ]short(?:[-._ ]?\\d+)?$"
+      ],
+      "extensions": [
+        ".mkv",
+        ".mp4",
+        ".avi",
+        ".m4v",
+        ".mov",
+        ".wmv",
+        ".mpg",
+        ".mpeg",
+        ".ts",
+        ".webm",
+        ".flv",
+        ".iso"
+      ]
+    },
+    {
+      "id": "4e644b41-5075-4b67-bbbc-83c334bb4111",
+      "type": "other_extra",
+      "category": "video_extra",
+      "order": 160,
+      "patterns": [
+        "(?i)^(extras?|other|sample)(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ](extra|other|sample)(?:[-._ ]?\\d+)?$"
+      ],
+      "extensions": [
+        ".mkv",
+        ".mp4",
+        ".avi",
+        ".m4v",
+        ".mov",
+        ".wmv",
+        ".mpg",
+        ".mpeg",
+        ".ts",
+        ".webm",
+        ".flv",
+        ".iso"
+      ]
+    },
+    {
+      "id": "c1311474-10c3-4d91-8862-4aed1aca9bae",
+      "type": "theme",
+      "category": "audio",
+      "order": 170,
+      "patterns": [
+        "(?i)^theme(?:[-._ ]?\\d+)?$",
+        "(?i)[-._ ]theme(?:[-._ ]?\\d+)?$"
+      ],
+      "extensions": [
+        ".mp3",
+        ".flac",
+        ".m4a",
+        ".wav",
+        ".ogg",
+        ".opus",
+        ".aac"
+      ]
+    },
+    {
+      "id": "e905c3d8-2e1e-4d37-b2de-bea29fc0c7b4",
+      "type": "subtitle",
+      "category": "subtitle",
+      "order": 180,
+      "patterns": [
+        "(?i)^.+$"
+      ],
+      "extensions": [
+        ".srt",
+        ".ass",
+        ".ssa",
+        ".sub",
+        ".idx",
+        ".vtt",
+        ".smi",
+        ".sup"
+      ]
+    },
+    {
+      "id": "25325770-1dca-4999-a14d-9100908a1124",
+      "type": "nfo",
+      "category": "metadata",
+      "order": 190,
+      "patterns": [
+        "(?i)^.+$"
+      ],
+      "extensions": [
+        ".nfo"
+      ]
+    },
+    {
+      "id": "d76d6f3f-0675-42b5-b849-7ba4ac675508",
+      "type": "disc_structure",
+      "category": "disc_structure",
+      "order": 200,
+      "patterns": [
+        "(?i)^.+$"
+      ],
+      "extensions": [
+        ".ifo",
+        ".bup",
+        ".vob",
+        ".bdmv",
+        ".m2ts",
+        ".mpls",
+        ".clpi"
+      ]
+    },
+    {
+      "id": "9f6b1a2c-58e4-4c7f-9c4a-2f0f6f4b1d3e",
+      "type": "trickplay",
+      "category": "trickplay",
+      "order": 210,
+      "patterns": [
+        "(?i)^\\d+$"
+      ],
+      "extensions": [
+        ".jpg"
+      ]
+    }
+  ],
+  "agents": [],
+  "logging": {
+    "server_level": "info",
+    "sink": "openobserve",
+    "endpoint": "",
+    "stream": "metarr_app"
+  },
+  "admin": {
+    "username": "admin",
+    "email": "admin@example.com"
+  },
+  "api_keys": {
+    "admin": {
+      "id": "{guid}",
+      "name": "Administrator Key",
+      "api_key": "{guid}"
+    },
+    "user": {
+      "id": "{guid}",
+      "name": "User Key",
+      "api_key": "{guid}"
+    },
+    "webhook": {
+      "id": "{guid}",
+      "name": "Webhook Key",
+      "api_key": "{guid}"
+    },
+    "read_only": {
+      "id": "{guid}",
+      "name": "Read Only Key",
+      "api_key": "{guid}"
+    }
+  }
+}

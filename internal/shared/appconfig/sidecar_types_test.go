@@ -44,6 +44,39 @@ func TestMergeMissingSidecarTypesAddsNewBuiltIn(t *testing.T) {
 	}
 }
 
+// TestMergeMissingSidecarTypesDoesNotAliasCachedDefaults guards the hazard
+// loadBuiltinDefaults's doc comment calls out: a merged-in entry's slices
+// must never be the cached parse's own backing arrays, or mutating a merged
+// entry in place (as the live config document can be) would corrupt what
+// every later Default()/DefaultSidecarTypes() caller sees.
+func TestMergeMissingSidecarTypesDoesNotAliasCachedDefaults(t *testing.T) {
+	stored := storedTableWithout(trickplayTypeID)
+
+	merged, added := MergeMissingSidecarTypes(stored)
+	if added != 1 {
+		t.Fatalf("added = %d, want 1", added)
+	}
+	index := indexOfType(merged, trickplayTypeID)
+	if index < 0 {
+		t.Fatal("trickplay type was not added to the merged table")
+	}
+
+	// Mutate the merged-in entry's slices in place, the way a live config
+	// document's slice can be mutated by later code holding a reference to
+	// it, and confirm a fresh read of the built-in defaults is untouched.
+	merged[index].Patterns[0] = "corrupted"
+	merged[index].Extensions[0] = "corrupted"
+
+	fresh := DefaultSidecarTypes()
+	freshIndex := indexOfType(fresh, trickplayTypeID)
+	if freshIndex < 0 {
+		t.Fatal("trickplay type missing from a fresh DefaultSidecarTypes() read")
+	}
+	if fresh[freshIndex].Patterns[0] == "corrupted" || fresh[freshIndex].Extensions[0] == "corrupted" {
+		t.Fatal("mutating a MergeMissingSidecarTypes result corrupted the cached built-in defaults")
+	}
+}
+
 func TestMergeMissingSidecarTypesLeavesCompleteTableAlone(t *testing.T) {
 	stored := DefaultSidecarTypes()
 

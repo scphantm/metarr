@@ -257,7 +257,16 @@ func (c DirectoryScannerConfig) FindSidecarTypeIndexByID(id string) int {
 
 // Default returns the zero-value configuration (matching
 // app_config.default.yaml: no API keys or interfaces configured yet).
+//
+// Static sections (directory scanner settings, sidecar types, logging) come
+// from the same embedded builtin_defaults.json the startup bootstrap reads,
+// so the two can never again drift the way ParallelCount once did — see
+// docs/adr/0004-bootstrap-module-and-embedded-defaults-file.md. API keys and
+// the admin account stay empty here regardless: those are generated, not
+// defaulted, and generating them is the startup bootstrap's job, not this
+// function's.
 func Default() *Config {
+	defaults := loadBuiltinDefaults()
 	return &Config{
 		ID: SingletonID,
 		APIKeys: APIKeysConfig{
@@ -268,14 +277,11 @@ func Default() *Config {
 		},
 		Interfaces: InterfacesConfig{Sonarr: []SonarrInstance{}},
 		DirectoryScanner: DirectoryScannerConfig{
+			ParallelCount:   defaults.DirectoryScanner.ParallelCount,
 			ScanDirectories: []ScanDirectory{},
 			SidecarTypes:    DefaultSidecarTypes(),
 		},
-		Agents: []AgentConfig{},
-		Logging: LoggingConfig{
-			ServerLevel: LogLevelInfo,
-			Sink:        "openobserve",
-			Stream:      "metarr_app",
-		},
+		Agents:  []AgentConfig{},
+		Logging: defaults.Logging,
 	}
 }
