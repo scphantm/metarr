@@ -20,67 +20,8 @@ export type AcceptedResponse = {
   correlation_id: string
 }
 
-/*
- * Redis statistics, streamed over the stats.redis topic and also readable at
- * GET /api/stats/redis.
- *
- * The two collections here are not two flavours of the same thing. Streams are
- * durable — messages sit on them until acknowledged — so their depth and
- * pending counts are real numbers. Pub/Sub holds nothing at all, which is why
- * PubSubChannelStat has a subscriber count and no depth: there is none to
- * report.
- */
-
-export type RedisServerInfo = {
-  version: string
-  uptime_seconds: number
-  connected_clients: number
-  used_memory: number
-  used_memory_human: string
-  ops_per_second: number
-  total_keys: number
-}
-
-export type RedisConsumerStat = {
-  name: string
-  pending: number
-  idle_seconds: number
-}
-
-export type RedisGroupStat = {
-  name: string
-  consumers: number
-  pending: number
-  lag: number
-  last_delivered_id: string
-  consumer_detail: RedisConsumerStat[]
-}
-
-export type RedisStreamStat = {
-  stream: string
-  event_name: string
-  length: number
-  // Streams are created lazily, when a listener first subscribes, so a length
-  // of zero on its own cannot tell "empty" from "never created".
-  exists: boolean
-  groups: RedisGroupStat[]
-  error?: string
-}
-
-export type PubSubChannelStat = {
-  channel: string
-  subscribers: number
-  // false for the per-correlation-id reply channels, which exist only while a
-  // request is in flight.
-  known: boolean
-}
-
-export type RedisStats = {
-  collected_at: string
-  server: RedisServerInfo
-  streams: RedisStreamStat[]
-  pubsub: PubSubChannelStat[]
-}
+// Redis statistics are the generated metarr.v1.RedisSnapshot now — see
+// ../gen/metarr/v1/stats_pb.
 
 /*
  * Agents.

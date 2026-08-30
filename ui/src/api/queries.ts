@@ -22,7 +22,6 @@ import type {
   AgentConfig,
   AgentView,
   LogTailEntry,
-  RedisStats,
   ReorderSidecarTypesRequest,
   UpsertWorkflowRequest,
   Workflow,
@@ -218,15 +217,11 @@ export function useDeleteAgent() {
   )
 }
 
-// StatsService.Get/Stream both carry the exact same opaque JSON
-// redisstats.Snapshot already produced over REST/WebSocket, so it decodes
-// straight into the same RedisStats shape with no field-name translation.
+// StatsService.Get/Stream carry a typed RedisSnapshot; the stream frame and
+// the first-paint read land in the same cache entry unchanged.
 const redisStatsStream = registerStream(
   new Stream((signal) =>
-    mapAsync(
-      statsClient.stream({}, { signal }),
-      (response) => JSON.parse(new TextDecoder().decode(response.snapshotJson)) as RedisStats,
-    ),
+    mapAsync(statsClient.stream({}, { signal }), (response) => response.snapshot),
   ),
 )
 
@@ -239,10 +234,7 @@ export function useRedisStats() {
 
   return useQuery({
     queryKey: queryKeys.redisStats,
-    queryFn: async () => {
-      const { snapshotJson } = await statsClient.get({})
-      return JSON.parse(new TextDecoder().decode(snapshotJson)) as RedisStats
-    },
+    queryFn: async () => (await statsClient.get({})).snapshot,
     staleTime: Infinity,
   })
 }
