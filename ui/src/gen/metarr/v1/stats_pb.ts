@@ -4,13 +4,264 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metarr/v1/stats.proto.
  */
 export const file_metarr_v1_stats: GenFile = /*@__PURE__*/
-  fileDesc("ChVtZXRhcnIvdjEvc3RhdHMucHJvdG8SCW1ldGFyci52MSIYChZTdGF0c1NlcnZpY2VHZXRSZXF1ZXN0IjAKF1N0YXRzU2VydmljZUdldFJlc3BvbnNlEhUKDXNuYXBzaG90X2pzb24YASABKAwiGwoZU3RhdHNTZXJ2aWNlU3RyZWFtUmVxdWVzdCIzChpTdGF0c1NlcnZpY2VTdHJlYW1SZXNwb25zZRIVCg1zbmFwc2hvdF9qc29uGAEgASgMMrUBCgxTdGF0c1NlcnZpY2USTAoDR2V0EiEubWV0YXJyLnYxLlN0YXRzU2VydmljZUdldFJlcXVlc3QaIi5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlR2V0UmVzcG9uc2USVwoGU3RyZWFtEiQubWV0YXJyLnYxLlN0YXRzU2VydmljZVN0cmVhbVJlcXVlc3QaJS5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlU3RyZWFtUmVzcG9uc2UwAUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM");
+  fileDesc("ChVtZXRhcnIvdjEvc3RhdHMucHJvdG8SCW1ldGFyci52MSLHAQoNUmVkaXNTbmFwc2hvdBIwCgxjb2xsZWN0ZWRfYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEioKBnNlcnZlchgCIAEoCzIaLm1ldGFyci52MS5SZWRpc1NlcnZlckluZm8SKwoHc3RyZWFtcxgDIAMoCzIaLm1ldGFyci52MS5SZWRpc1N0cmVhbVN0YXQSKwoGcHVic3ViGAQgAygLMhsubWV0YXJyLnYxLlJlZGlzQ2hhbm5lbFN0YXQisQEKD1JlZGlzU2VydmVySW5mbxIPCgd2ZXJzaW9uGAEgASgJEhYKDnVwdGltZV9zZWNvbmRzGAIgASgDEhkKEWNvbm5lY3RlZF9jbGllbnRzGAMgASgDEhMKC3VzZWRfbWVtb3J5GAQgASgDEhkKEXVzZWRfbWVtb3J5X2h1bWFuGAUgASgJEhYKDm9wc19wZXJfc2Vjb25kGAYgASgDEhIKCnRvdGFsX2tleXMYByABKAMijwEKD1JlZGlzU3RyZWFtU3RhdBIOCgZzdHJlYW0YASABKAkSEgoKZXZlbnRfbmFtZRgCIAEoCRIOCgZsZW5ndGgYAyABKAMSDgoGZXhpc3RzGAQgASgIEikKBmdyb3VwcxgFIAMoCzIZLm1ldGFyci52MS5SZWRpc0dyb3VwU3RhdBINCgVlcnJvchgGIAEoCSKhAQoOUmVkaXNHcm91cFN0YXQSDAoEbmFtZRgBIAEoCRIRCgljb25zdW1lcnMYAiABKAMSDwoHcGVuZGluZxgDIAEoAxILCgNsYWcYBCABKAMSGQoRbGFzdF9kZWxpdmVyZWRfaWQYBSABKAkSNQoPY29uc3VtZXJfZGV0YWlsGAYgAygLMhwubWV0YXJyLnYxLlJlZGlzQ29uc3VtZXJTdGF0IkgKEVJlZGlzQ29uc3VtZXJTdGF0EgwKBG5hbWUYASABKAkSDwoHcGVuZGluZxgCIAEoAxIUCgxpZGxlX3NlY29uZHMYAyABKAMiRwoQUmVkaXNDaGFubmVsU3RhdBIPCgdjaGFubmVsGAEgASgJEhMKC3N1YnNjcmliZXJzGAIgASgDEg0KBWtub3duGAMgASgIIhgKFlN0YXRzU2VydmljZUdldFJlcXVlc3QiRQoXU3RhdHNTZXJ2aWNlR2V0UmVzcG9uc2USKgoIc25hcHNob3QYASABKAsyGC5tZXRhcnIudjEuUmVkaXNTbmFwc2hvdCIbChlTdGF0c1NlcnZpY2VTdHJlYW1SZXF1ZXN0IkgKGlN0YXRzU2VydmljZVN0cmVhbVJlc3BvbnNlEioKCHNuYXBzaG90GAEgASgLMhgubWV0YXJyLnYxLlJlZGlzU25hcHNob3QytQEKDFN0YXRzU2VydmljZRJMCgNHZXQSIS5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlR2V0UmVxdWVzdBoiLm1ldGFyci52MS5TdGF0c1NlcnZpY2VHZXRSZXNwb25zZRJXCgZTdHJlYW0SJC5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlU3RyZWFtUmVxdWVzdBolLm1ldGFyci52MS5TdGF0c1NlcnZpY2VTdHJlYW1SZXNwb25zZTABQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
+
+/**
+ * RedisSnapshot is a point-in-time view of the Redis instance backing the
+ * event system: the depth and consumer-group state of every event stream,
+ * the subscriber count of every Pub/Sub channel, and a handful of
+ * server-wide counters. It is the single definition of that shape — the Go
+ * collector (internal/server/redisstats aliases these messages) and the
+ * dashboard both read it.
+ *
+ * The event streams and the Pub/Sub channels are not two flavours of one
+ * thing. Streams are durable — messages sit on them until acknowledged, so
+ * depth and pending counts are real numbers. Pub/Sub holds nothing, so
+ * RedisChannelStat carries a subscriber count and no depth.
+ *
+ * @generated from message metarr.v1.RedisSnapshot
+ */
+export type RedisSnapshot = Message<"metarr.v1.RedisSnapshot"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp collected_at = 1;
+   */
+  collectedAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: metarr.v1.RedisServerInfo server = 2;
+   */
+  server?: RedisServerInfo | undefined;
+
+  /**
+   * @generated from field: repeated metarr.v1.RedisStreamStat streams = 3;
+   */
+  streams: RedisStreamStat[];
+
+  /**
+   * @generated from field: repeated metarr.v1.RedisChannelStat pubsub = 4;
+   */
+  pubsub: RedisChannelStat[];
+};
+
+/**
+ * Describes the message metarr.v1.RedisSnapshot.
+ * Use `create(RedisSnapshotSchema)` to create a new message.
+ */
+export const RedisSnapshotSchema: GenMessage<RedisSnapshot> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_stats, 0);
+
+/**
+ * RedisServerInfo holds the instance-wide counters, read from INFO and DBSIZE.
+ *
+ * @generated from message metarr.v1.RedisServerInfo
+ */
+export type RedisServerInfo = Message<"metarr.v1.RedisServerInfo"> & {
+  /**
+   * @generated from field: string version = 1;
+   */
+  version: string;
+
+  /**
+   * @generated from field: int64 uptime_seconds = 2;
+   */
+  uptimeSeconds: bigint;
+
+  /**
+   * @generated from field: int64 connected_clients = 3;
+   */
+  connectedClients: bigint;
+
+  /**
+   * @generated from field: int64 used_memory = 4;
+   */
+  usedMemory: bigint;
+
+  /**
+   * @generated from field: string used_memory_human = 5;
+   */
+  usedMemoryHuman: string;
+
+  /**
+   * @generated from field: int64 ops_per_second = 6;
+   */
+  opsPerSecond: bigint;
+
+  /**
+   * @generated from field: int64 total_keys = 7;
+   */
+  totalKeys: bigint;
+};
+
+/**
+ * Describes the message metarr.v1.RedisServerInfo.
+ * Use `create(RedisServerInfoSchema)` to create a new message.
+ */
+export const RedisServerInfoSchema: GenMessage<RedisServerInfo> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_stats, 1);
+
+/**
+ * RedisStreamStat is one event stream and the consumer groups reading it.
+ *
+ * @generated from message metarr.v1.RedisStreamStat
+ */
+export type RedisStreamStat = Message<"metarr.v1.RedisStreamStat"> & {
+  /**
+   * @generated from field: string stream = 1;
+   */
+  stream: string;
+
+  /**
+   * @generated from field: string event_name = 2;
+   */
+  eventName: string;
+
+  /**
+   * @generated from field: int64 length = 3;
+   */
+  length: bigint;
+
+  /**
+   * exists distinguishes an empty stream from one that has never been
+   * created — streams are created lazily, when a listener first subscribes.
+   *
+   * @generated from field: bool exists = 4;
+   */
+  exists: boolean;
+
+  /**
+   * @generated from field: repeated metarr.v1.RedisGroupStat groups = 5;
+   */
+  groups: RedisGroupStat[];
+
+  /**
+   * error records a per-stream failure; one unreadable stream should not
+   * cost the caller the rest of the snapshot.
+   *
+   * @generated from field: string error = 6;
+   */
+  error: string;
+};
+
+/**
+ * Describes the message metarr.v1.RedisStreamStat.
+ * Use `create(RedisStreamStatSchema)` to create a new message.
+ */
+export const RedisStreamStatSchema: GenMessage<RedisStreamStat> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_stats, 2);
+
+/**
+ * RedisGroupStat is one consumer group's position on a stream.
+ *
+ * @generated from message metarr.v1.RedisGroupStat
+ */
+export type RedisGroupStat = Message<"metarr.v1.RedisGroupStat"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: int64 consumers = 2;
+   */
+  consumers: bigint;
+
+  /**
+   * @generated from field: int64 pending = 3;
+   */
+  pending: bigint;
+
+  /**
+   * @generated from field: int64 lag = 4;
+   */
+  lag: bigint;
+
+  /**
+   * @generated from field: string last_delivered_id = 5;
+   */
+  lastDeliveredId: string;
+
+  /**
+   * @generated from field: repeated metarr.v1.RedisConsumerStat consumer_detail = 6;
+   */
+  consumerDetail: RedisConsumerStat[];
+};
+
+/**
+ * Describes the message metarr.v1.RedisGroupStat.
+ * Use `create(RedisGroupStatSchema)` to create a new message.
+ */
+export const RedisGroupStatSchema: GenMessage<RedisGroupStat> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_stats, 3);
+
+/**
+ * RedisConsumerStat is a single consumer within a group.
+ *
+ * @generated from message metarr.v1.RedisConsumerStat
+ */
+export type RedisConsumerStat = Message<"metarr.v1.RedisConsumerStat"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: int64 pending = 2;
+   */
+  pending: bigint;
+
+  /**
+   * @generated from field: int64 idle_seconds = 3;
+   */
+  idleSeconds: bigint;
+};
+
+/**
+ * Describes the message metarr.v1.RedisConsumerStat.
+ * Use `create(RedisConsumerStatSchema)` to create a new message.
+ */
+export const RedisConsumerStatSchema: GenMessage<RedisConsumerStat> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_stats, 4);
+
+/**
+ * RedisChannelStat is one Pub/Sub channel. It carries no message count
+ * because Redis Pub/Sub queues nothing.
+ *
+ * @generated from message metarr.v1.RedisChannelStat
+ */
+export type RedisChannelStat = Message<"metarr.v1.RedisChannelStat"> & {
+  /**
+   * @generated from field: string channel = 1;
+   */
+  channel: string;
+
+  /**
+   * @generated from field: int64 subscribers = 2;
+   */
+  subscribers: bigint;
+
+  /**
+   * known marks the application's declared channels. Channels discovered at
+   * runtime — the per-correlation-id reply channels — come back false.
+   *
+   * @generated from field: bool known = 3;
+   */
+  known: boolean;
+};
+
+/**
+ * Describes the message metarr.v1.RedisChannelStat.
+ * Use `create(RedisChannelStatSchema)` to create a new message.
+ */
+export const RedisChannelStatSchema: GenMessage<RedisChannelStat> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_stats, 5);
 
 /**
  * @generated from message metarr.v1.StatsServiceGetRequest
@@ -23,16 +274,16 @@ export type StatsServiceGetRequest = Message<"metarr.v1.StatsServiceGetRequest">
  * Use `create(StatsServiceGetRequestSchema)` to create a new message.
  */
 export const StatsServiceGetRequestSchema: GenMessage<StatsServiceGetRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_stats, 0);
+  messageDesc(file_metarr_v1_stats, 6);
 
 /**
  * @generated from message metarr.v1.StatsServiceGetResponse
  */
 export type StatsServiceGetResponse = Message<"metarr.v1.StatsServiceGetResponse"> & {
   /**
-   * @generated from field: bytes snapshot_json = 1;
+   * @generated from field: metarr.v1.RedisSnapshot snapshot = 1;
    */
-  snapshotJson: Uint8Array;
+  snapshot?: RedisSnapshot | undefined;
 };
 
 /**
@@ -40,7 +291,7 @@ export type StatsServiceGetResponse = Message<"metarr.v1.StatsServiceGetResponse
  * Use `create(StatsServiceGetResponseSchema)` to create a new message.
  */
 export const StatsServiceGetResponseSchema: GenMessage<StatsServiceGetResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_stats, 1);
+  messageDesc(file_metarr_v1_stats, 7);
 
 /**
  * @generated from message metarr.v1.StatsServiceStreamRequest
@@ -53,16 +304,16 @@ export type StatsServiceStreamRequest = Message<"metarr.v1.StatsServiceStreamReq
  * Use `create(StatsServiceStreamRequestSchema)` to create a new message.
  */
 export const StatsServiceStreamRequestSchema: GenMessage<StatsServiceStreamRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_stats, 2);
+  messageDesc(file_metarr_v1_stats, 8);
 
 /**
  * @generated from message metarr.v1.StatsServiceStreamResponse
  */
 export type StatsServiceStreamResponse = Message<"metarr.v1.StatsServiceStreamResponse"> & {
   /**
-   * @generated from field: bytes snapshot_json = 1;
+   * @generated from field: metarr.v1.RedisSnapshot snapshot = 1;
    */
-  snapshotJson: Uint8Array;
+  snapshot?: RedisSnapshot | undefined;
 };
 
 /**
@@ -70,7 +321,7 @@ export type StatsServiceStreamResponse = Message<"metarr.v1.StatsServiceStreamRe
  * Use `create(StatsServiceStreamResponseSchema)` to create a new message.
  */
 export const StatsServiceStreamResponseSchema: GenMessage<StatsServiceStreamResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_stats, 3);
+  messageDesc(file_metarr_v1_stats, 9);
 
 /**
  * StatsService.Get is the REST-era first-paint fallback (a dashboard needs

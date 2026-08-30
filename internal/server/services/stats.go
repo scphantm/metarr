@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
@@ -44,13 +43,7 @@ func (s *StatsServer) Get(
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to collect redis statistics"))
 	}
 
-	snapshotJSON, err := json.Marshal(snapshot)
-	if err != nil {
-		s.Logger.Error("failed to encode redis statistics", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to encode redis statistics"))
-	}
-
-	return connect.NewResponse(&metarrv1.StatsServiceGetResponse{SnapshotJson: snapshotJSON}), nil
+	return connect.NewResponse(&metarrv1.StatsServiceGetResponse{Snapshot: snapshot}), nil
 }
 
 func (s *StatsServer) Stream(
@@ -71,13 +64,7 @@ func (s *StatsServer) Stream(
 			return connectError(http.StatusInternalServerError, errors.New("failed to collect redis statistics"))
 		}
 
-		snapshotJSON, err := json.Marshal(snapshot)
-		if err != nil {
-			s.Logger.Error("failed to encode redis statistics", "error", err)
-			return connectError(http.StatusInternalServerError, errors.New("failed to encode redis statistics"))
-		}
-
-		if err := stream.Send(&metarrv1.StatsServiceStreamResponse{SnapshotJson: snapshotJSON}); err != nil {
+		if err := stream.Send(&metarrv1.StatsServiceStreamResponse{Snapshot: snapshot}); err != nil {
 			return err
 		}
 

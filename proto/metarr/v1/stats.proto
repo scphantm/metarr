@@ -2,23 +2,90 @@ syntax = "proto3";
 
 package metarr.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
-// Both RPCs carry the exact JSON internal/server/redisstats.Snapshot already
-// produced over REST/WebSocket, kept opaque rather than modeled — read-only
-// telemetry with no forward-compat requirement, same reasoning as
-// workflow_catalog.proto and local_directories.proto.
+// RedisSnapshot is a point-in-time view of the Redis instance backing the
+// event system: the depth and consumer-group state of every event stream,
+// the subscriber count of every Pub/Sub channel, and a handful of
+// server-wide counters. It is the single definition of that shape — the Go
+// collector (internal/server/redisstats aliases these messages) and the
+// dashboard both read it.
+//
+// The event streams and the Pub/Sub channels are not two flavours of one
+// thing. Streams are durable — messages sit on them until acknowledged, so
+// depth and pending counts are real numbers. Pub/Sub holds nothing, so
+// RedisChannelStat carries a subscriber count and no depth.
+message RedisSnapshot {
+  google.protobuf.Timestamp collected_at = 1;
+  RedisServerInfo server = 2;
+  repeated RedisStreamStat streams = 3;
+  repeated RedisChannelStat pubsub = 4;
+}
+
+// RedisServerInfo holds the instance-wide counters, read from INFO and DBSIZE.
+message RedisServerInfo {
+  string version = 1;
+  int64 uptime_seconds = 2;
+  int64 connected_clients = 3;
+  int64 used_memory = 4;
+  string used_memory_human = 5;
+  int64 ops_per_second = 6;
+  int64 total_keys = 7;
+}
+
+// RedisStreamStat is one event stream and the consumer groups reading it.
+message RedisStreamStat {
+  string stream = 1;
+  string event_name = 2;
+  int64 length = 3;
+  // exists distinguishes an empty stream from one that has never been
+  // created — streams are created lazily, when a listener first subscribes.
+  bool exists = 4;
+  repeated RedisGroupStat groups = 5;
+  // error records a per-stream failure; one unreadable stream should not
+  // cost the caller the rest of the snapshot.
+  string error = 6;
+}
+
+// RedisGroupStat is one consumer group's position on a stream.
+message RedisGroupStat {
+  string name = 1;
+  int64 consumers = 2;
+  int64 pending = 3;
+  int64 lag = 4;
+  string last_delivered_id = 5;
+  repeated RedisConsumerStat consumer_detail = 6;
+}
+
+// RedisConsumerStat is a single consumer within a group.
+message RedisConsumerStat {
+  string name = 1;
+  int64 pending = 2;
+  int64 idle_seconds = 3;
+}
+
+// RedisChannelStat is one Pub/Sub channel. It carries no message count
+// because Redis Pub/Sub queues nothing.
+message RedisChannelStat {
+  string channel = 1;
+  int64 subscribers = 2;
+  // known marks the application's declared channels. Channels discovered at
+  // runtime — the per-correlation-id reply channels — come back false.
+  bool known = 3;
+}
 
 message StatsServiceGetRequest {}
 
 message StatsServiceGetResponse {
-  bytes snapshot_json = 1;
+  RedisSnapshot snapshot = 1;
 }
 
 message StatsServiceStreamRequest {}
 
 message StatsServiceStreamResponse {
-  bytes snapshot_json = 1;
+  RedisSnapshot snapshot = 1;
 }
 
 // StatsService.Get is the REST-era first-paint fallback (a dashboard needs
