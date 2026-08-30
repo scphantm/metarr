@@ -75,7 +75,7 @@ func TestParseMovie(t *testing.T) {
 	if md.Title != "The Matrix" || md.Movie == nil || md.Movie.SortTitle != "Matrix, The" {
 		t.Errorf("title/movie fields = %+v / %+v", md.Title, md.Movie)
 	}
-	if runtime, ok := md.RuntimeMinutes(); !ok || runtime != 136 {
+	if runtime, ok := metadata.RuntimeMinutes(md); !ok || runtime != 136 {
 		t.Errorf("RuntimeMinutes() = %v, %v; want 136, true", runtime, ok)
 	}
 	if len(md.Genres) != 2 || md.Genres[1] != "Science Fiction" {
@@ -110,9 +110,9 @@ func TestParseMovie(t *testing.T) {
 	}
 }
 
-func hasUnknownElement(elements []metadata.UnknownElement, name string) bool {
+func hasUnknownElement(elements []*metadata.UnknownElement, name string) bool {
 	for _, element := range elements {
-		if element.XMLName.Local == name {
+		if element.Name == name {
 			return true
 		}
 	}
@@ -133,7 +133,7 @@ func TestParseTVShow(t *testing.T) {
 	if md.Kind != metadata.KindTVShow {
 		t.Fatalf("Kind = %q, want %q", md.Kind, metadata.KindTVShow)
 	}
-	if md.Title != "Breaking Bad" || md.Status != "Ended" || md.TVShow == nil {
+	if md.Title != "Breaking Bad" || md.Status != "Ended" || md.TvShow == nil {
 		t.Errorf("tvshow = %+v", md)
 	}
 	if len(md.Thumbs) != 1 || md.Thumbs[0].Type != "season" || md.Thumbs[0].Season != "1" {
@@ -156,7 +156,7 @@ func TestParseMusicVideo(t *testing.T) {
 	if got := md.MusicVideo.Artists; len(got) != 2 || got[0] != "a-ha" {
 		t.Errorf("Artists = %v", got)
 	}
-	if track, ok := md.TrackNumber(); !ok || track != 1 {
+	if track, ok := metadata.TrackNumber(md); !ok || track != 1 {
 		t.Errorf("TrackNumber() = %v, %v", track, ok)
 	}
 }
@@ -173,10 +173,10 @@ func TestParseSingleEpisode(t *testing.T) {
 	if md.Kind != metadata.KindEpisode || md.Episode == nil {
 		t.Fatalf("md = %+v", md)
 	}
-	if season, ok := md.SeasonNumber(); !ok || season != 1 {
+	if season, ok := metadata.SeasonNumber(md); !ok || season != 1 {
 		t.Errorf("SeasonNumber() = %v, %v", season, ok)
 	}
-	if number, ok := md.EpisodeNumber(); !ok || number != 1 {
+	if number, ok := metadata.EpisodeNumber(md); !ok || number != 1 {
 		t.Errorf("EpisodeNumber() = %v, %v", number, ok)
 	}
 }
@@ -211,7 +211,7 @@ func TestParseEmptyNumericTags(t *testing.T) {
 	if md.Title != "Sparse" {
 		t.Errorf("Title = %q", md.Title)
 	}
-	if _, ok := md.RuntimeMinutes(); ok {
+	if _, ok := metadata.RuntimeMinutes(md); ok {
 		t.Error("RuntimeMinutes() reported a value for an empty tag")
 	}
 	if md.PlayCount != 0 {
@@ -221,7 +221,7 @@ func TestParseEmptyNumericTags(t *testing.T) {
 
 func TestParseNonNumericRuntime(t *testing.T) {
 	md := mustParse(t, `<movie><title>x</title><runtime>136 min</runtime></movie>`).toMetadata()
-	if _, ok := md.RuntimeMinutes(); ok {
+	if _, ok := metadata.RuntimeMinutes(md); ok {
 		t.Error("RuntimeMinutes() parsed a non-numeric runtime")
 	}
 	if md.Runtime != "136 min" {
@@ -276,7 +276,7 @@ func TestParseShapes(t *testing.T) {
 	tests := []struct {
 		name     string
 		data     string
-		wantKind metadata.DocumentKind
+		wantKind string
 	}{
 		{"scraper url only", "https://www.themoviedb.org/movie/603\n", metadata.KindURL},
 		{"bare identifier", "tt0133093", metadata.KindURL},
