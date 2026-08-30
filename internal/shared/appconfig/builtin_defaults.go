@@ -22,9 +22,9 @@ var builtinDefaultsJSON []byte
 // (see BuiltinAPIKeysTemplateJSON).
 type builtinDefaultsDoc struct {
 	DirectoryScanner struct {
-		ParallelCount int `json:"parallel_count"`
+		ParallelCount int32 `json:"parallel_count"`
 	} `json:"directory_scanner"`
-	SidecarTypes []SidecarTypeDefinition `json:"sidecar_types"`
+	SidecarTypes []*SidecarTypeDefinition `json:"sidecar_types"`
 	Logging      LoggingConfig           `json:"logging"`
 	Admin        struct {
 		Username string `json:"username"`

@@ -31,7 +31,7 @@ func withLiveConfig(t *testing.T, cfg *appconfig.Config) {
 
 func TestConfigServerGet_ReadsLiveConfig(t *testing.T) {
 	withLiveConfig(t, &appconfig.Config{
-		Admin: appconfig.AdminUser{Username: "arranged-admin", Email: "arranged@example.com"},
+		Admin: &appconfig.AdminUser{Username: "arranged-admin", Email: "arranged@example.com"},
 	})
 
 	server := &ConfigServer{Handlers: &handlers.Handlers{}}
@@ -47,8 +47,8 @@ func TestConfigServerGet_ReadsLiveConfig(t *testing.T) {
 
 func TestDirectoryScannerServerGetDirectory_ReadsLiveConfig(t *testing.T) {
 	withLiveConfig(t, &appconfig.Config{
-		DirectoryScanner: appconfig.DirectoryScannerConfig{
-			ScanDirectories: []appconfig.ScanDirectory{
+		DirectoryScanner: &appconfig.DirectoryScannerConfig{
+			ScanDirectories: []*appconfig.ScanDirectory{
 				{ScannerSlug: "arranged-slug", ScanType: "movie", Directory: "/arranged/movies"},
 			},
 		},
@@ -69,8 +69,8 @@ func TestDirectoryScannerServerGetDirectory_ReadsLiveConfig(t *testing.T) {
 
 func TestSonarrInterfaceServerList_ReadsLiveConfig(t *testing.T) {
 	withLiveConfig(t, &appconfig.Config{
-		Interfaces: appconfig.InterfacesConfig{
-			Sonarr: []appconfig.SonarrInstance{
+		Interfaces: &appconfig.InterfacesConfig{
+			Sonarr: []*appconfig.SonarrInstance{
 				{InstanceSlug: "arranged-sonarr", InstanceName: "Arranged Sonarr"},
 			},
 		},

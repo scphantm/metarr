@@ -120,14 +120,14 @@ func (r *Registry) List(ctx context.Context, config *appconfig.Config) ([]AgentV
 	return list, nil
 }
 
-func mappingViews(config *appconfig.Config, agent appconfig.AgentConfig) []MappingView {
+func mappingViews(config *appconfig.Config, agent *appconfig.AgentConfig) []MappingView {
 	mappings := make([]MappingView, 0, len(agent.Mappings))
 	for _, mapping := range agent.Mappings {
 		view := MappingView{
 			ScannerSlug: mapping.ScannerSlug,
 			AgentPath:   mapping.AgentPath,
 		}
-		if index := config.DirectoryScanner.FindScanDirectoryIndex(mapping.ScannerSlug); index >= 0 {
+		if index := appconfig.FindScanDirectoryIndex(config.DirectoryScanner, mapping.ScannerSlug); index >= 0 {
 			view.ServerPath = config.DirectoryScanner.ScanDirectories[index].Directory
 			view.ScanType = config.DirectoryScanner.ScanDirectories[index].ScanType
 		}

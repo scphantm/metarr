@@ -55,7 +55,7 @@ func newTestConfigServer(seed appconfig.Config) (*ConfigServer, *fakeConfigBacke
 
 func TestUpsertApiKey_LeavesAdminCredentialsByteIdentical(t *testing.T) {
 	seed := appconfig.Config{
-		Admin: appconfig.AdminUser{
+		Admin: &appconfig.AdminUser{
 			Username:     "admin",
 			Email:        "admin@example.com",
 			PasswordSalt: "original-salt",
@@ -91,22 +91,22 @@ func TestUpsertApiKey_CreatesAnEntryWithAMintedID(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if len(backend.cfg.APIKeys.Admin) != 1 {
-		t.Fatalf("expected one entry, got %d", len(backend.cfg.APIKeys.Admin))
+	if len(backend.cfg.ApiKeys.Admin) != 1 {
+		t.Fatalf("expected one entry, got %d", len(backend.cfg.ApiKeys.Admin))
 	}
-	entry := backend.cfg.APIKeys.Admin[0]
-	if entry.Name != "new key" || entry.Key != "secret-value" {
+	entry := backend.cfg.ApiKeys.Admin[0]
+	if entry.Name != "new key" || entry.ApiKey != "secret-value" {
 		t.Fatalf("entry not stored correctly: %+v", entry)
 	}
-	if entry.ID == "" {
+	if entry.Id == "" {
 		t.Fatal("expected a minted id")
 	}
 }
 
 func TestUpsertApiKey_ReplacesAnExistingEntryByID(t *testing.T) {
 	seed := appconfig.Config{
-		APIKeys: appconfig.APIKeysConfig{
-			User: []appconfig.APIKeyEntry{{ID: "existing-id", Name: "old-name", Key: "old-key"}},
+		ApiKeys: &appconfig.APIKeysConfig{
+			User: []*appconfig.APIKeyEntry{{Id: "existing-id", Name: "old-name", ApiKey: "old-key"}},
 		},
 	}
 	server, backend := newTestConfigServer(seed)
@@ -119,18 +119,18 @@ func TestUpsertApiKey_ReplacesAnExistingEntryByID(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if len(backend.cfg.APIKeys.User) != 1 {
-		t.Fatalf("expected the group to stay at 1 entry, got %d", len(backend.cfg.APIKeys.User))
+	if len(backend.cfg.ApiKeys.User) != 1 {
+		t.Fatalf("expected the group to stay at 1 entry, got %d", len(backend.cfg.ApiKeys.User))
 	}
-	if backend.cfg.APIKeys.User[0].Name != "new-name" || backend.cfg.APIKeys.User[0].Key != "new-key" {
-		t.Fatalf("entry was not replaced: %+v", backend.cfg.APIKeys.User[0])
+	if backend.cfg.ApiKeys.User[0].Name != "new-name" || backend.cfg.ApiKeys.User[0].ApiKey != "new-key" {
+		t.Fatalf("entry was not replaced: %+v", backend.cfg.ApiKeys.User[0])
 	}
 }
 
 func TestUpsertApiKey_RejectsAnUnknownID(t *testing.T) {
 	seed := appconfig.Config{
-		APIKeys: appconfig.APIKeysConfig{
-			Admin: []appconfig.APIKeyEntry{{ID: "still-here", Name: "unrelated"}},
+		ApiKeys: &appconfig.APIKeysConfig{
+			Admin: []*appconfig.APIKeyEntry{{Id: "still-here", Name: "unrelated"}},
 		},
 	}
 	server, backend := newTestConfigServer(seed)
@@ -152,8 +152,8 @@ func TestUpsertApiKey_RejectsAnUnknownID(t *testing.T) {
 	if len(backend.fired) != 0 {
 		t.Fatalf("a rejected upsert must not fire anything, got %d fired events", len(backend.fired))
 	}
-	if len(backend.cfg.APIKeys.Admin) != 1 || backend.cfg.APIKeys.Admin[0].ID != "still-here" {
-		t.Fatalf("group must be untouched after a rejected upsert: %+v", backend.cfg.APIKeys.Admin)
+	if len(backend.cfg.ApiKeys.Admin) != 1 || backend.cfg.ApiKeys.Admin[0].Id != "still-here" {
+		t.Fatalf("group must be untouched after a rejected upsert: %+v", backend.cfg.ApiKeys.Admin)
 	}
 }
 
@@ -174,10 +174,10 @@ func TestUpsertApiKey_RejectsAnUnknownGroup(t *testing.T) {
 
 func TestDeleteApiKey_RemovesExactlyOneEntry(t *testing.T) {
 	seed := appconfig.Config{
-		APIKeys: appconfig.APIKeysConfig{
-			Webhook: []appconfig.APIKeyEntry{
-				{ID: "keep", Name: "keep-me"},
-				{ID: "remove", Name: "remove-me"},
+		ApiKeys: &appconfig.APIKeysConfig{
+			Webhook: []*appconfig.APIKeyEntry{
+				{Id: "keep", Name: "keep-me"},
+				{Id: "remove", Name: "remove-me"},
 			},
 		},
 	}
@@ -191,14 +191,14 @@ func TestDeleteApiKey_RemovesExactlyOneEntry(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if len(backend.cfg.APIKeys.Webhook) != 1 || backend.cfg.APIKeys.Webhook[0].ID != "keep" {
-		t.Fatalf("unexpected state after delete: %+v", backend.cfg.APIKeys.Webhook)
+	if len(backend.cfg.ApiKeys.Webhook) != 1 || backend.cfg.ApiKeys.Webhook[0].Id != "keep" {
+		t.Fatalf("unexpected state after delete: %+v", backend.cfg.ApiKeys.Webhook)
 	}
 }
 
 func TestDeleteApiKey_ReportsNotFoundForAnUnknownID(t *testing.T) {
 	server, backend := newTestConfigServer(appconfig.Config{
-		APIKeys: appconfig.APIKeysConfig{ReadOnly: []appconfig.APIKeyEntry{{ID: "a"}}},
+		ApiKeys: &appconfig.APIKeysConfig{ReadOnly: []*appconfig.APIKeyEntry{{Id: "a"}}},
 	})
 
 	_, err := server.DeleteApiKey(context.Background(), connect.NewRequest(&metarrv1.ConfigServiceDeleteApiKeyRequest{
@@ -214,16 +214,16 @@ func TestDeleteApiKey_ReportsNotFoundForAnUnknownID(t *testing.T) {
 	if len(backend.fired) != 0 {
 		t.Fatalf("a rejected delete must not fire anything, got %d fired events", len(backend.fired))
 	}
-	if len(backend.cfg.APIKeys.ReadOnly) != 1 {
-		t.Fatalf("group must be untouched after a rejected delete: %+v", backend.cfg.APIKeys.ReadOnly)
+	if len(backend.cfg.ApiKeys.ReadOnly) != 1 {
+		t.Fatalf("group must be untouched after a rejected delete: %+v", backend.cfg.ApiKeys.ReadOnly)
 	}
 }
 
 func TestDeleteApiKey_LeavesOtherGroupsUntouched(t *testing.T) {
 	seed := appconfig.Config{
-		APIKeys: appconfig.APIKeysConfig{
-			Admin: []appconfig.APIKeyEntry{{ID: "a", Name: "admin-key"}},
-			User:  []appconfig.APIKeyEntry{{ID: "u", Name: "user-key"}},
+		ApiKeys: &appconfig.APIKeysConfig{
+			Admin: []*appconfig.APIKeyEntry{{Id: "a", Name: "admin-key"}},
+			User:  []*appconfig.APIKeyEntry{{Id: "u", Name: "user-key"}},
 		},
 	}
 	server, backend := newTestConfigServer(seed)
@@ -236,7 +236,7 @@ func TestDeleteApiKey_LeavesOtherGroupsUntouched(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if len(backend.cfg.APIKeys.User) != 1 || backend.cfg.APIKeys.User[0].Name != "user-key" {
-		t.Fatalf("user group was disturbed: %+v", backend.cfg.APIKeys.User)
+	if len(backend.cfg.ApiKeys.User) != 1 || backend.cfg.ApiKeys.User[0].Name != "user-key" {
+		t.Fatalf("user group was disturbed: %+v", backend.cfg.ApiKeys.User)
 	}
 }

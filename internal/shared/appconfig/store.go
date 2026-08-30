@@ -17,7 +17,8 @@ func Get() *Config {
 	return current.Load()
 }
 
-// Set replaces the in-memory singleton with config.
+// Set replaces the in-memory singleton with config, normalizing it first so
+// every reader of live config can use plain field access.
 func Set(config *Config) {
-	current.Store(config)
+	current.Store(Normalize(config))
 }

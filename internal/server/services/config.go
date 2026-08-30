@@ -94,7 +94,7 @@ func (s *ConfigServer) UpdateAdmin(
 // the store. A non-empty id that names no existing entry is rejected rather
 // than silently creating under it, matching UpsertSidecarType: otherwise an
 // edit racing a delete of the same entry would resurrect it under its old
-// id instead of failing. UpsertApiKey writes only cfg.APIKeys, so an admin
+// id instead of failing. UpsertApiKey writes only cfg.ApiKeys, so an admin
 // credential can never be part of what a key edit changes — see ADR 0001.
 func (s *ConfigServer) UpsertApiKey(
 	ctx context.Context,
@@ -108,16 +108,16 @@ func (s *ConfigServer) UpsertApiKey(
 	}
 
 	entry := apiKeyEntryFromProto(req.Msg.GetEntry())
-	creating := entry.ID == ""
+	creating := entry.Id == ""
 	if creating {
-		entry.ID = uuid.NewString()
+		entry.Id = uuid.NewString()
 	}
 
 	mutateErr := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
-		if !creating && cfg.APIKeys.FindAPIKeyIndex(group, entry.ID) == -1 {
+		if !creating && appconfig.FindAPIKeyIndex(cfg.ApiKeys, group, entry.Id) == -1 {
 			return connectError(http.StatusNotFound, errors.New("no API key with that id"))
 		}
-		cfg.APIKeys.UpsertAPIKey(group, entry)
+		appconfig.UpsertAPIKey(cfg.ApiKeys, group, entry)
 		return nil
 	})
 	if mutateErr != nil {
@@ -141,7 +141,7 @@ func (s *ConfigServer) DeleteApiKey(
 	id := req.Msg.GetId()
 
 	mutateErr := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
-		if removed := cfg.APIKeys.DeleteAPIKey(group, id); !removed {
+		if removed := appconfig.DeleteAPIKey(cfg.ApiKeys, group, id); !removed {
 			return connectError(http.StatusNotFound, errors.New("no API key with that id"))
 		}
 		return nil
@@ -153,13 +153,13 @@ func (s *ConfigServer) DeleteApiKey(
 	return connect.NewResponse(acceptedResponse(correlationID)), nil
 }
 
-func apiKeyEntryFromProto(entry *metarrv1.APIKeyEntry) appconfig.APIKeyEntry {
-	return appconfig.APIKeyEntry{ID: entry.GetId(), Name: entry.GetName(), Key: entry.GetApiKey()}
+func apiKeyEntryFromProto(entry *metarrv1.APIKeyEntry) *appconfig.APIKeyEntry {
+	return &appconfig.APIKeyEntry{Id: entry.GetId(), Name: entry.GetName(), ApiKey: entry.GetApiKey()}
 }
 
 func configToProto(config *appconfig.Config) *metarrv1.Config {
 	return &metarrv1.Config{
-		ApiKeys: apiKeysConfigToProto(config.APIKeys),
+		ApiKeys: apiKeysConfigToProto(config.ApiKeys),
 		Admin: &metarrv1.AdminUser{
 			Username: config.Admin.Username,
 			Email:    config.Admin.Email,
@@ -176,7 +176,7 @@ func configToProto(config *appconfig.Config) *metarrv1.Config {
 	}
 }
 
-func apiKeysConfigToProto(keys appconfig.APIKeysConfig) *metarrv1.APIKeysConfig {
+func apiKeysConfigToProto(keys *appconfig.APIKeysConfig) *metarrv1.APIKeysConfig {
 	return &metarrv1.APIKeysConfig{
 		Admin:    apiKeyEntriesToProto(keys.Admin),
 		User:     apiKeyEntriesToProto(keys.User),
@@ -185,15 +185,15 @@ func apiKeysConfigToProto(keys appconfig.APIKeysConfig) *metarrv1.APIKeysConfig 
 	}
 }
 
-func apiKeyEntriesToProto(entries []appconfig.APIKeyEntry) []*metarrv1.APIKeyEntry {
+func apiKeyEntriesToProto(entries []*appconfig.APIKeyEntry) []*metarrv1.APIKeyEntry {
 	out := make([]*metarrv1.APIKeyEntry, 0, len(entries))
 	for _, entry := range entries {
-		out = append(out, &metarrv1.APIKeyEntry{Id: entry.ID, Name: entry.Name, ApiKey: entry.Key})
+		out = append(out, &metarrv1.APIKeyEntry{Id: entry.Id, Name: entry.Name, ApiKey: entry.ApiKey})
 	}
 	return out
 }
 
-func interfacesConfigToProto(interfaces appconfig.InterfacesConfig) *metarrv1.InterfacesConfig {
+func interfacesConfigToProto(interfaces *appconfig.InterfacesConfig) *metarrv1.InterfacesConfig {
 	sonarr := make([]*metarrv1.SonarrInstance, 0, len(interfaces.Sonarr))
 	for _, instance := range interfaces.Sonarr {
 		sonarr = append(sonarr, sonarrInstanceToProto(instance))
@@ -201,7 +201,7 @@ func interfacesConfigToProto(interfaces appconfig.InterfacesConfig) *metarrv1.In
 	return &metarrv1.InterfacesConfig{Sonarr: sonarr}
 }
 
-func directoryScannerConfigToProto(scanner appconfig.DirectoryScannerConfig) *metarrv1.DirectoryScannerConfig {
+func directoryScannerConfigToProto(scanner *appconfig.DirectoryScannerConfig) *metarrv1.DirectoryScannerConfig {
 	dirs := make([]*metarrv1.ScanDirectory, 0, len(scanner.ScanDirectories))
 	for _, dir := range scanner.ScanDirectories {
 		dirs = append(dirs, scanDirectoryToProto(dir))
@@ -211,13 +211,13 @@ func directoryScannerConfigToProto(scanner appconfig.DirectoryScannerConfig) *me
 		types = append(types, sidecarTypeDefinitionToProto(def))
 	}
 	return &metarrv1.DirectoryScannerConfig{
-		ParallelCount:   int32(scanner.ParallelCount),
+		ParallelCount:   scanner.ParallelCount,
 		ScanDirectories: dirs,
 		SidecarTypes:    types,
 	}
 }
 
-func scanDirectoryToProto(dir appconfig.ScanDirectory) *metarrv1.ScanDirectory {
+func scanDirectoryToProto(dir *appconfig.ScanDirectory) *metarrv1.ScanDirectory {
 	return &metarrv1.ScanDirectory{
 		ScannerSlug: dir.ScannerSlug,
 		ScanType:    dir.ScanType,
@@ -225,17 +225,17 @@ func scanDirectoryToProto(dir appconfig.ScanDirectory) *metarrv1.ScanDirectory {
 	}
 }
 
-func scanDirectoryFromProto(dir *metarrv1.ScanDirectory) appconfig.ScanDirectory {
-	return appconfig.ScanDirectory{
+func scanDirectoryFromProto(dir *metarrv1.ScanDirectory) *appconfig.ScanDirectory {
+	return &appconfig.ScanDirectory{
 		ScannerSlug: dir.GetScannerSlug(),
 		ScanType:    dir.GetScanType(),
 		Directory:   dir.GetDirectory(),
 	}
 }
 
-func sidecarTypeDefinitionToProto(def appconfig.SidecarTypeDefinition) *metarrv1.SidecarTypeDefinition {
+func sidecarTypeDefinitionToProto(def *appconfig.SidecarTypeDefinition) *metarrv1.SidecarTypeDefinition {
 	return &metarrv1.SidecarTypeDefinition{
-		Id:         def.ID,
+		Id:         def.Id,
 		Type:       def.Type,
 		Category:   def.Category,
 		Order:      int32(def.Order),
@@ -244,18 +244,18 @@ func sidecarTypeDefinitionToProto(def appconfig.SidecarTypeDefinition) *metarrv1
 	}
 }
 
-func sidecarTypeDefinitionFromProto(def *metarrv1.SidecarTypeDefinition) appconfig.SidecarTypeDefinition {
-	return appconfig.SidecarTypeDefinition{
-		ID:         def.GetId(),
+func sidecarTypeDefinitionFromProto(def *metarrv1.SidecarTypeDefinition) *appconfig.SidecarTypeDefinition {
+	return &appconfig.SidecarTypeDefinition{
+		Id:         def.GetId(),
 		Type:       def.GetType(),
 		Category:   def.GetCategory(),
-		Order:      int(def.GetOrder()),
+		Order:      def.GetOrder(),
 		Patterns:   def.GetPatterns(),
 		Extensions: def.GetExtensions(),
 	}
 }
 
-func agentConfigsToProto(agents []appconfig.AgentConfig) []*metarrv1.AgentConfig {
+func agentConfigsToProto(agents []*appconfig.AgentConfig) []*metarrv1.AgentConfig {
 	out := make([]*metarrv1.AgentConfig, 0, len(agents))
 	for _, agent := range agents {
 		mappings := make([]*metarrv1.AgentDirectoryMapping, 0, len(agent.Mappings))

@@ -26,7 +26,7 @@ type SidecarTypeDefinition struct {
 	// ID is the stable handle the config API edits an entry by. It is minted
 	// once and never reused, so an entry survives being renamed or retyped
 	// without losing its place in the evaluation sequence.
-	ID string `bson:"id" json:"id"`
+	Id string `bson:"id" json:"id"`
 
 	// Type is what gets written onto every file classified as this kind, so it
 	// is unique across the table even though ID is the API's handle.
@@ -44,7 +44,7 @@ type SidecarTypeDefinition struct {
 	// Order is changed only through the dedicated ordering endpoint, never by
 	// editing an entry, because uniqueness is a property of the whole table
 	// rather than of any one row.
-	Order int `bson:"order" json:"order"`
+	Order int32 `bson:"order" json:"order"`
 
 	Patterns   []string `bson:"patterns" json:"patterns"`
 	Extensions []string `bson:"extensions" json:"extensions"`
@@ -57,7 +57,7 @@ type SidecarTypeDefinition struct {
 //
 // The table itself lives in builtin_defaults.json, not here — see
 // docs/adr/0004-bootstrap-module-and-embedded-defaults-file.md for why.
-func DefaultSidecarTypes() []SidecarTypeDefinition {
+func DefaultSidecarTypes() []*SidecarTypeDefinition {
 	return cloneSidecarTypeDefinitions(loadBuiltinDefaults().SidecarTypes)
 }
 
@@ -66,19 +66,20 @@ func DefaultSidecarTypes() []SidecarTypeDefinition {
 // writes stored entries and defaults into the same slice (as
 // MergeMissingSidecarTypes does below) must not source from the cached
 // singleton.
-func freshDefaultSidecarTypes() []SidecarTypeDefinition {
+func freshDefaultSidecarTypes() []*SidecarTypeDefinition {
 	return cloneSidecarTypeDefinitions(parseBuiltinDefaults().SidecarTypes)
 }
 
 // cloneSidecarTypeDefinitions deep-copies entry, giving the caller a table
 // whose Patterns/Extensions slices are never shared with parsed — the
 // embedded doc, cached or fresh.
-func cloneSidecarTypeDefinitions(parsed []SidecarTypeDefinition) []SidecarTypeDefinition {
-	defaults := make([]SidecarTypeDefinition, len(parsed))
+func cloneSidecarTypeDefinitions(parsed []*SidecarTypeDefinition) []*SidecarTypeDefinition {
+	defaults := make([]*SidecarTypeDefinition, len(parsed))
 	for i, entry := range parsed {
-		defaults[i] = entry
-		defaults[i].Patterns = append([]string(nil), entry.Patterns...)
-		defaults[i].Extensions = append([]string(nil), entry.Extensions...)
+		clone := *entry
+		clone.Patterns = append([]string(nil), entry.Patterns...)
+		clone.Extensions = append([]string(nil), entry.Extensions...)
+		defaults[i] = &clone
 	}
 	return defaults
 }
@@ -97,16 +98,16 @@ func cloneSidecarTypeDefinitions(parsed []SidecarTypeDefinition) []SidecarTypeDe
 //
 // The defaults merged in come from freshDefaultSidecarTypes, not the cached
 // DefaultSidecarTypes — see loadBuiltinDefaults's doc comment.
-func MergeMissingSidecarTypes(stored []SidecarTypeDefinition) ([]SidecarTypeDefinition, int) {
+func MergeMissingSidecarTypes(stored []*SidecarTypeDefinition) ([]*SidecarTypeDefinition, int) {
 	if len(stored) == 0 {
 		return stored, 0
 	}
 
 	takenIDs := make(map[string]bool, len(stored))
-	takenOrders := make(map[int]bool, len(stored))
-	highestOrder := 0
+	takenOrders := make(map[int32]bool, len(stored))
+	highestOrder := int32(0)
 	for _, entry := range stored {
-		takenIDs[entry.ID] = true
+		takenIDs[entry.Id] = true
 		// Order zero is the disabled sentinel rather than a position, so any
 		// number of entries may hold it and it never blocks a slot.
 		if entry.Order != 0 {
@@ -120,7 +121,7 @@ func MergeMissingSidecarTypes(stored []SidecarTypeDefinition) ([]SidecarTypeDefi
 	merged := stored
 	added := 0
 	for _, missing := range freshDefaultSidecarTypes() {
-		if takenIDs[missing.ID] {
+		if takenIDs[missing.Id] {
 			continue
 		}
 
@@ -135,7 +136,7 @@ func MergeMissingSidecarTypes(stored []SidecarTypeDefinition) ([]SidecarTypeDefi
 			highestOrder = missing.Order
 		}
 		takenOrders[missing.Order] = true
-		takenIDs[missing.ID] = true
+		takenIDs[missing.Id] = true
 
 		merged = append(merged, missing)
 		added++

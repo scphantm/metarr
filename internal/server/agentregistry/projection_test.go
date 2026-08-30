@@ -26,37 +26,37 @@ const (
 func configWithEverySecret() *appconfig.Config {
 	return &appconfig.Config{
 		ID: appconfig.SingletonID,
-		APIKeys: appconfig.APIKeysConfig{
-			Admin:    []appconfig.APIKeyEntry{{Name: "admin", Key: adminKeySecret}},
-			User:     []appconfig.APIKeyEntry{{Name: "user", Key: userKeySecret}},
-			Webhook:  []appconfig.APIKeyEntry{{Name: "webhook", Key: webhookKeySecret}},
-			ReadOnly: []appconfig.APIKeyEntry{{Name: "readonly", Key: readOnlyKeySecret}},
+		ApiKeys: &appconfig.APIKeysConfig{
+			Admin:    []*appconfig.APIKeyEntry{{Name: "admin", ApiKey: adminKeySecret}},
+			User:     []*appconfig.APIKeyEntry{{Name: "user", ApiKey: userKeySecret}},
+			Webhook:  []*appconfig.APIKeyEntry{{Name: "webhook", ApiKey: webhookKeySecret}},
+			ReadOnly: []*appconfig.APIKeyEntry{{Name: "readonly", ApiKey: readOnlyKeySecret}},
 		},
-		Admin: appconfig.AdminUser{
+		Admin: &appconfig.AdminUser{
 			Username:     "admin",
 			Email:        "admin@example.com",
 			PasswordHash: passwordHash,
 			PasswordSalt: passwordSalt,
 		},
-		Interfaces: appconfig.InterfacesConfig{
-			Sonarr: []appconfig.SonarrInstance{{
+		Interfaces: &appconfig.InterfacesConfig{
+			Sonarr: []*appconfig.SonarrInstance{{
 				InstanceSlug: "main",
-				SonarrURL:    "https://" + sonarrURLSecret,
-				SonarrAPIKey: sonarrKeySecret,
+				SonarrUrl:    "https://" + sonarrURLSecret,
+				SonarrApiKey: sonarrKeySecret,
 			}},
 		},
-		DirectoryScanner: appconfig.DirectoryScannerConfig{
+		DirectoryScanner: &appconfig.DirectoryScannerConfig{
 			ParallelCount: 8,
-			ScanDirectories: []appconfig.ScanDirectory{
+			ScanDirectories: []*appconfig.ScanDirectory{
 				{ScannerSlug: "movies", ScanType: "movie", Directory: "/media/movies"},
 				{ScannerSlug: "tv", ScanType: "tv", Directory: "/media/tv"},
 			},
 			SidecarTypes: appconfig.DefaultSidecarTypes(),
 		},
-		Agents: []appconfig.AgentConfig{{
+		Agents: []*appconfig.AgentConfig{{
 			Slug:        "nas-01",
 			DisplayName: "The NAS",
-			Mappings: []appconfig.AgentDirectoryMapping{
+			Mappings: []*appconfig.AgentDirectoryMapping{
 				{ScannerSlug: "movies", AgentPath: "/mnt/tank/movies"},
 			},
 		}},
@@ -140,7 +140,7 @@ func TestProjectionForUnconfiguredAgentIsEmptyButValid(t *testing.T) {
 // half-formed entry it would then fail to walk.
 func TestProjectionSkipsUnusableMappings(t *testing.T) {
 	config := configWithEverySecret()
-	config.Agents[0].Mappings = []appconfig.AgentDirectoryMapping{
+	config.Agents[0].Mappings = []*appconfig.AgentDirectoryMapping{
 		{ScannerSlug: "movies", AgentPath: "/mnt/tank/movies"},
 		{ScannerSlug: "deleted-scanner", AgentPath: "/mnt/tank/gone"},
 		{ScannerSlug: "tv", AgentPath: ""},

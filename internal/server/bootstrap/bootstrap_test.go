@@ -64,14 +64,14 @@ func TestRun_SeedsEverythingOnADatabasePredatingAllFields(t *testing.T) {
 	if report.APIKeys == nil {
 		t.Fatal("expected API keys to be reported as seeded")
 	}
-	for name, entries := range map[string][]appconfig.APIKeyEntry{
+	for name, entries := range map[string][]*appconfig.APIKeyEntry{
 		"admin": report.APIKeys.Admin, "user": report.APIKeys.User,
 		"webhook": report.APIKeys.Webhook, "read_only": report.APIKeys.ReadOnly,
 	} {
 		if len(entries) != 1 {
 			t.Fatalf("%s: expected exactly one seeded entry, got %d", name, len(entries))
 		}
-		if entries[0].ID == "" || entries[0].Key == "" {
+		if entries[0].Id == "" || entries[0].ApiKey == "" {
 			t.Fatalf("%s: expected a generated id and key, got %+v", name, entries[0])
 		}
 	}
@@ -125,7 +125,7 @@ func TestRun_CostsOnlyTwoMongoRoundTrips(t *testing.T) {
 	if report.FinalConfig.DirectoryScanner.ParallelCount == 0 {
 		t.Error("Report.FinalConfig does not reflect the static-config step's writes")
 	}
-	if len(report.FinalConfig.APIKeys.Admin) != 1 {
+	if len(report.FinalConfig.ApiKeys.Admin) != 1 {
 		t.Error("Report.FinalConfig does not reflect the api_keys_seed step's writes")
 	}
 }
@@ -146,7 +146,7 @@ func TestRun_AgreesWithDefaultOnTheStaticSections(t *testing.T) {
 		t.Errorf("ParallelCount = %d, want %d (appconfig.Default disagrees with Run)",
 			final.DirectoryScanner.ParallelCount, want.DirectoryScanner.ParallelCount)
 	}
-	if final.Logging != want.Logging {
+	if *final.Logging != *want.Logging {
 		t.Errorf("Logging = %+v, want %+v (appconfig.Default disagrees with Run)", final.Logging, want.Logging)
 	}
 	if len(final.DirectoryScanner.SidecarTypes) != len(want.DirectoryScanner.SidecarTypes) {

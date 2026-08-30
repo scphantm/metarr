@@ -33,12 +33,12 @@ func (f liveConfigSetterFunc) Set(cfg *appconfig.Config) { f(cfg) }
 // activates it as the process-wide active registry. sidecarRegistryAdapter
 // is the production adapter over scanmodel's package-level functions.
 type sidecarRegistrySetter interface {
-	Compile(defs []appconfig.SidecarTypeDefinition) error
+	Compile(defs []*appconfig.SidecarTypeDefinition) error
 }
 
 type sidecarRegistryAdapter struct{}
 
-func (sidecarRegistryAdapter) Compile(defs []appconfig.SidecarTypeDefinition) error {
+func (sidecarRegistryAdapter) Compile(defs []*appconfig.SidecarTypeDefinition) error {
 	registry, err := scanmodel.NewSidecarRegistry(defs)
 	if err != nil {
 		return err
@@ -104,6 +104,11 @@ func newConfigPropagator(
 // too, and agents re-read on their own timer regardless.
 func (p *configPropagator) Apply(ctx context.Context, cfg *appconfig.Config) error {
 	correlationID := correlation.FromContext(ctx)
+
+	// cfg arrives decoded from an event payload rather than through the
+	// config store, so this is the boundary where it enters the process and
+	// where its sections are filled in.
+	cfg = appconfig.Normalize(cfg)
 
 	if err := p.persist.Upsert(ctx, cfg); err != nil {
 		p.logger.Error("failed to persist system config update", "correlation_id", correlationID, "error", err)

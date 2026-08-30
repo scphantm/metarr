@@ -178,17 +178,17 @@ func reportScanFailure(logger *slog.Logger, event eventbus.Event) {
 func translatorFor(agentSlug, scannerSlug string) (agentregistry.PathTranslator, error) {
 	config := appconfig.Get()
 
-	index := config.FindAgentIndex(agentSlug)
+	index := appconfig.FindAgentIndex(config, agentSlug)
 	if index < 0 {
 		return agentregistry.PathTranslator{}, errUnknownAgent(agentSlug)
 	}
 
-	mapping, ok := config.Agents[index].FindMapping(scannerSlug)
+	mapping, ok := appconfig.FindMapping(config.Agents[index], scannerSlug)
 	if !ok {
 		return agentregistry.PathTranslator{}, errUnmappedScanner(agentSlug, scannerSlug)
 	}
 
-	scannerIndex := config.DirectoryScanner.FindScanDirectoryIndex(scannerSlug)
+	scannerIndex := appconfig.FindScanDirectoryIndex(config.DirectoryScanner, scannerSlug)
 	if scannerIndex < 0 {
 		return agentregistry.PathTranslator{}, errUnknownScanner(scannerSlug)
 	}

@@ -221,7 +221,7 @@ func TestBootstrap_ErrorFromApplyAbortsWithoutWriting(t *testing.T) {
 }
 
 func TestRead_DelegatesToReader(t *testing.T) {
-	backend := &fakeBackend{cfg: appconfig.Config{Admin: appconfig.AdminUser{Username: "admin"}}}
+	backend := &fakeBackend{cfg: appconfig.Config{Admin: &appconfig.AdminUser{Username: "admin"}}}
 	store := New(backend, backend, backend)
 
 	cfg, err := store.Read(context.Background())
