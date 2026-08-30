@@ -66,3 +66,26 @@ _Avoid_: uuid, guid
 One issued key, held in an access-level group. Its name is optional and not
 unique, so it is identified by a minted id.
 _Avoid_: token, credential
+
+### Models
+
+**Cross-language model**:
+A data shape that has to be understood the same way on both sides of a language
+boundary — the Go server and the TypeScript UI, or a running process and the
+document it stores. The application config, scan records, the workflow catalog
+are all cross-language models.
+_Avoid_: DTO, wire type, shared type
+
+**Generated model**:
+A cross-language model whose one definition lives in proto, with the Go and
+TypeScript forms produced from it by the build. The Go type is an alias to the
+generated message, so the shape the service layer works with is the shape the
+store persists — there is nothing between them to keep in step.
+_Avoid_: proto type, message type
+
+**Hand-written mirror**:
+A second, by-hand copy of a cross-language model — a Go struct transcribed into
+a TypeScript type, or into a proto message, kept aligned by discipline. The
+defect a generated model replaces: nothing tells a mirror when the thing it
+mirrors has changed. An architecture test now rejects new ones.
+_Avoid_: shadow type, parallel type
