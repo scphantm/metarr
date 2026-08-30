@@ -27,7 +27,6 @@ import (
 	"Metarr/internal/server/logforward"
 	"Metarr/internal/server/logtail"
 	"Metarr/internal/server/mongostore"
-	"Metarr/internal/server/passwordhash"
 	"Metarr/internal/server/redisstats"
 	"Metarr/internal/server/services"
 	"Metarr/internal/server/session"
@@ -43,10 +42,6 @@ import (
 )
 
 const (
-	defaultAdminUsername      = "admin"
-	defaultAdminEmail         = "admin@example.com"
-	defaultAdminPasswordChars = 12
-
 	// defaultDirectoryScannerParallelCount is how many directories the
 	// scanner processes concurrently when the config doesn't set its own
 	// value yet.
@@ -120,7 +115,7 @@ func run() error {
 	}
 	taskEventRepo := mongostore.NewTaskEventRepo(mongoClient, cfg.MongoDatabase)
 	appConfigRepo := mongostore.NewAppConfigRepo(mongoClient, cfg.MongoDatabase)
-	appConfigStore := appconfigstore.New(appConfigRepo, streamBus)
+	appConfigStore := appconfigstore.New(appConfigRepo, appConfigRepo, streamBus)
 	localDirectoryRepo := mongostore.NewLocalDirectoryRepo(mongoClient, cfg.MongoDatabase)
 	workflowRepo := mongostore.NewWorkflowRepo(mongoClient, cfg.MongoDatabase)
 	sessions := session.NewStore(redisClient)
@@ -148,23 +143,14 @@ func run() error {
 		"node_types", workflowCatalog.Len(),
 	)
 
-	// Warm the in-memory config singleton from MongoDB before serving any
-	// requests, so it reflects the persisted config from process start.
-	startupCfg, err := appConfigRepo.Get(connectCtx)
-	if err != nil {
-		return err
-	}
-
-	// The two bootstrap checks below only mutate startupCfg in memory and
-	// record what changed; the Mongo write and the
-	// http-client.private.env.json sync each happen at most once, after
-	// both checks, regardless of whether one or both fired — a fresh
-	// install needing both doesn't pay for either round trip twice.
-	var (
-		bootstrapped     bool
-		bootstrappedKeys *appconfig.APIKeysConfig
-		newAdminPassword string
-	)
+	// Every block below seeds the application config through
+	// appConfigStore.Bootstrap — a direct, synchronous write, not Mutate's
+	// async event-fired one. Startup runs before the system_config_update
+	// listener exists to persist a fired event, so bootstrap needs its own
+	// contract; see docs/adr/0003. Each block reports whether it changed
+	// anything, so an ordinary restart with nothing left to seed costs no
+	// write.
+	var bootstrappedKeys *appconfig.APIKeysConfig
 
 	// Bootstrap the four API key categories the first time the app ever
 	// starts against this database: none has been configured yet, so
@@ -172,21 +158,24 @@ func run() error {
 	// mongo/init/init-mongo.js; it lives here instead so it can also sync
 	// http-client.private.env.json, which only Go — not the mongo
 	// container — has a normal filesystem path to.
-	if len(startupCfg.APIKeys.Admin) == 0 && len(startupCfg.APIKeys.User) == 0 &&
-		len(startupCfg.APIKeys.Webhook) == 0 && len(startupCfg.APIKeys.ReadOnly) == 0 {
+	if err := appConfigStore.Bootstrap(connectCtx, func(cfg *appconfig.Config) (bool, error) {
+		if len(cfg.APIKeys.Admin) != 0 || len(cfg.APIKeys.User) != 0 ||
+			len(cfg.APIKeys.Webhook) != 0 || len(cfg.APIKeys.ReadOnly) != 0 {
+			return false, nil
+		}
+
 		adminKey := uuid.NewString()
 		userKey := uuid.NewString()
 		webhookKey := uuid.NewString()
 		readOnlyKey := uuid.NewString()
 
-		startupCfg.APIKeys = appconfig.APIKeysConfig{
+		cfg.APIKeys = appconfig.APIKeysConfig{
 			Admin:    []appconfig.APIKeyEntry{{ID: uuid.NewString(), Name: "Administrator Key", Key: adminKey}},
 			User:     []appconfig.APIKeyEntry{{ID: uuid.NewString(), Name: "User Key", Key: userKey}},
 			Webhook:  []appconfig.APIKeyEntry{{ID: uuid.NewString(), Name: "Webhook Key", Key: webhookKey}},
 			ReadOnly: []appconfig.APIKeyEntry{{ID: uuid.NewString(), Name: "Read Only Key", Key: readOnlyKey}},
 		}
-		bootstrapped = true
-		bootstrappedKeys = &startupCfg.APIKeys
+		bootstrappedKeys = &cfg.APIKeys
 
 		fmt.Println("==================================================================")
 		fmt.Println("Metarr: generated default API keys (shown only once, save these):")
@@ -195,57 +184,33 @@ func run() error {
 		fmt.Println("  webhook:   " + webhookKey)
 		fmt.Println("  read_only: " + readOnlyKey)
 		fmt.Println("==================================================================")
-	}
-
-	// Bootstrap the admin user the first time the app ever starts against
-	// this database: no admin has been configured yet, so generate a
-	// random password and hash it. The plaintext is printed directly to
-	// stdout (not through logger) so it's never written to logs/app.log —
-	// shown once, same treatment as the API keys above.
-	if startupCfg.Admin.Username == "" {
-		plaintextPassword, err := passwordhash.GenerateRandomPassword(defaultAdminPasswordChars)
-		if err != nil {
-			return err
-		}
-		salt, hash, err := passwordhash.Hash(plaintextPassword)
-		if err != nil {
-			return err
-		}
-		startupCfg.Admin = appconfig.AdminUser{
-			Username:     defaultAdminUsername,
-			Email:        defaultAdminEmail,
-			PasswordSalt: salt,
-			PasswordHash: hash,
-		}
-		bootstrapped = true
-		newAdminPassword = plaintextPassword
-
-		fmt.Println("==================================================================")
-		fmt.Println("Metarr: generated initial admin credentials (shown only once):")
-		fmt.Println("  username: " + defaultAdminUsername)
-		fmt.Println("  password: " + plaintextPassword)
-		fmt.Println("==================================================================")
-	}
-
-	// Recover an admin account whose password was destroyed by the
-	// whole-document config update bug (ADR 0001): a scoped edit elsewhere
-	// in the document — adding an API key, before the fix — round-tripped
-	// the redacted GetConfig response, which carries no password fields,
-	// and the resulting ReplaceOne wrote them back empty. The account still
-	// has its username, so it isn't a fresh install; it just can't log in.
-	// Runs after the fresh-install block above so the two never overlap:
-	// that block always leaves both password fields set.
-	if plaintextPassword, recovered, err := recoverLockedOutAdmin(&startupCfg.Admin); err != nil {
+		return true, nil
+	}); err != nil {
 		return err
-	} else if recovered {
-		bootstrapped = true
-		newAdminPassword = plaintextPassword
+	}
 
+	// Seeds the admin account on a fresh install, or recovers one left
+	// locked out by the whole-document config update bug ADR 0001 removed —
+	// both cases, and the order between them, live behind this one call now
+	// instead of two separate blocks. See docs/adr/0003.
+	adminSeed, err := appConfigStore.SeedAdmin(connectCtx)
+	if err != nil {
+		return err
+	}
+	newAdminPassword := adminSeed.Password
+	switch {
+	case adminSeed.Recovered:
 		fmt.Println("==================================================================")
 		fmt.Println("Metarr: admin credentials were missing (a prior version could zero")
 		fmt.Println("them when editing an API key) — generated a new password:")
-		fmt.Println("  username: " + startupCfg.Admin.Username)
-		fmt.Println("  password: " + plaintextPassword)
+		fmt.Println("  username: " + adminSeed.Username)
+		fmt.Println("  password: " + adminSeed.Password)
+		fmt.Println("==================================================================")
+	case adminSeed.Password != "":
+		fmt.Println("==================================================================")
+		fmt.Println("Metarr: generated initial admin credentials (shown only once):")
+		fmt.Println("  username: " + adminSeed.Username)
+		fmt.Println("  password: " + adminSeed.Password)
 		fmt.Println("==================================================================")
 	}
 
@@ -253,12 +218,17 @@ func run() error {
 	// against this database (a fresh install, or an existing database
 	// predating the directory_scanner section): default to 16 parallel
 	// workers and no directories configured to scan yet.
-	if startupCfg.DirectoryScanner.ParallelCount == 0 {
-		startupCfg.DirectoryScanner = appconfig.DirectoryScannerConfig{
+	if err := appConfigStore.Bootstrap(connectCtx, func(cfg *appconfig.Config) (bool, error) {
+		if cfg.DirectoryScanner.ParallelCount != 0 {
+			return false, nil
+		}
+		cfg.DirectoryScanner = appconfig.DirectoryScannerConfig{
 			ParallelCount:   defaultDirectoryScannerParallelCount,
 			ScanDirectories: []appconfig.ScanDirectory{},
 		}
-		bootstrapped = true
+		return true, nil
+	}); err != nil {
+		return err
 	}
 
 	// Seed the sidecar classification table the first time the app starts
@@ -266,9 +236,14 @@ func run() error {
 	// predating this section" reasoning as the block above. An empty table
 	// would classify nothing, so this is what makes the built-in rules the
 	// starting point a user then edits.
-	if len(startupCfg.DirectoryScanner.SidecarTypes) == 0 {
-		startupCfg.DirectoryScanner.SidecarTypes = appconfig.DefaultSidecarTypes()
-		bootstrapped = true
+	if err := appConfigStore.Bootstrap(connectCtx, func(cfg *appconfig.Config) (bool, error) {
+		if len(cfg.DirectoryScanner.SidecarTypes) != 0 {
+			return false, nil
+		}
+		cfg.DirectoryScanner.SidecarTypes = appconfig.DefaultSidecarTypes()
+		return true, nil
+	}); err != nil {
+		return err
 	}
 
 	// Agents start as an empty list rather than being seeded with anything: an
@@ -276,18 +251,28 @@ func run() error {
 	// and inventing a default would mean guessing at a machine that may not be
 	// there. A database predating this field decodes it as nil, so it is
 	// normalised here to keep the API returning [] rather than null.
-	if startupCfg.Agents == nil {
-		startupCfg.Agents = []appconfig.AgentConfig{}
-		bootstrapped = true
+	if err := appConfigStore.Bootstrap(connectCtx, func(cfg *appconfig.Config) (bool, error) {
+		if cfg.Agents != nil {
+			return false, nil
+		}
+		cfg.Agents = []appconfig.AgentConfig{}
+		return true, nil
+	}); err != nil {
+		return err
 	}
 
 	// A database predating the logging pipeline has no server_level at all,
 	// which would leave the level threshold unset (zero value, meaning every
 	// level including Debug — the opposite of the quiet default a fresh
 	// install gets from appconfig.Default()).
-	if startupCfg.Logging.ServerLevel == "" {
-		startupCfg.Logging = appconfig.Default().Logging
-		bootstrapped = true
+	if err := appConfigStore.Bootstrap(connectCtx, func(cfg *appconfig.Config) (bool, error) {
+		if cfg.Logging.ServerLevel != "" {
+			return false, nil
+		}
+		cfg.Logging = appconfig.Default().Logging
+		return true, nil
+	}); err != nil {
+		return err
 	}
 
 	// A built-in type added after this database was seeded would otherwise never
@@ -295,10 +280,16 @@ func run() error {
 	// also means a built-in deleted through the API comes back on the next
 	// restart: a deletion leaves nothing behind to tell it apart from a type the
 	// table has simply never seen.
-	if merged, added := appconfig.MergeMissingSidecarTypes(startupCfg.DirectoryScanner.SidecarTypes); added > 0 {
-		startupCfg.DirectoryScanner.SidecarTypes = merged
-		bootstrapped = true
+	if err := appConfigStore.Bootstrap(connectCtx, func(cfg *appconfig.Config) (bool, error) {
+		merged, added := appconfig.MergeMissingSidecarTypes(cfg.DirectoryScanner.SidecarTypes)
+		if added == 0 {
+			return false, nil
+		}
+		cfg.DirectoryScanner.SidecarTypes = merged
 		logger.Info("added built-in sidecar types missing from the stored table", "count", added)
+		return true, nil
+	}); err != nil {
+		return err
 	}
 
 	// API key entries stored before the id field existed decode with an
@@ -306,20 +297,29 @@ func run() error {
 	// upsert/delete operations that key on it. Minting here, once, makes
 	// "every entry has an id" true everywhere downstream instead of
 	// conditional on when the entry was created.
-	if minted := appconfig.BackfillAPIKeyIDs(&startupCfg.APIKeys); minted > 0 {
-		bootstrapped = true
+	if err := appConfigStore.Bootstrap(connectCtx, func(cfg *appconfig.Config) (bool, error) {
+		minted := appconfig.BackfillAPIKeyIDs(&cfg.APIKeys)
+		if minted == 0 {
+			return false, nil
+		}
 		logger.Info("minted ids for API key entries stored before the id field existed", "count", minted)
+		return true, nil
+	}); err != nil {
+		return err
 	}
 
-	if bootstrapped {
-		if err := appConfigRepo.Upsert(connectCtx, startupCfg); err != nil {
-			return err
-		}
+	if bootstrappedKeys != nil || newAdminPassword != "" {
 		if err := syncHTTPClientEnv(bootstrappedKeys, newAdminPassword); err != nil {
 			logger.Error("failed to sync http-client.private.env.json", "error", err)
 		}
 	}
 
+	// Warm the in-memory config singleton from MongoDB before serving any
+	// requests, so it reflects every bootstrap write above.
+	startupCfg, err := appConfigStore.Read(connectCtx)
+	if err != nil {
+		return err
+	}
 	appconfig.Set(startupCfg)
 
 	// Compile the stored sidecar table into the registry the scanner reads.
@@ -520,32 +520,6 @@ func run() error {
 	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelShutdown()
 	return server.Shutdown(shutdownCtx)
-}
-
-// recoverLockedOutAdmin detects an admin account with a username but no
-// usable password — a casualty of the whole-document config update bug (ADR
-// 0001), not a fresh install — and issues it a new one in place. A record
-// with no username, or with both password fields intact, is left untouched
-// and recovered is false.
-func recoverLockedOutAdmin(admin *appconfig.AdminUser) (plaintextPassword string, recovered bool, err error) {
-	if admin.Username == "" {
-		return "", false, nil
-	}
-	if admin.PasswordSalt != "" && admin.PasswordHash != "" {
-		return "", false, nil
-	}
-
-	plaintextPassword, err = passwordhash.GenerateRandomPassword(defaultAdminPasswordChars)
-	if err != nil {
-		return "", false, err
-	}
-	salt, hash, err := passwordhash.Hash(plaintextPassword)
-	if err != nil {
-		return "", false, err
-	}
-	admin.PasswordSalt = salt
-	admin.PasswordHash = hash
-	return plaintextPassword, true, nil
 }
 
 // syncHTTPClientEnv updates the JetBrains HTTP Client's per-developer

@@ -15,9 +15,10 @@ import (
 	"Metarr/internal/shared/eventbus"
 )
 
-// fakeConfigBackend satisfies appconfigstore's Get/Fire dependencies,
-// persisting whatever a Fire call carries so the next Get sees it — enough
-// to drive a real ConfigServer end to end with no MongoDB or Redis.
+// fakeConfigBackend satisfies appconfigstore's Get/Upsert/Fire dependencies,
+// persisting whatever a Fire or Upsert call carries so the next Get sees it
+// — enough to drive a real ConfigServer end to end with no MongoDB or
+// Redis.
 type fakeConfigBackend struct {
 	cfg   appconfig.Config
 	fired []eventbus.Event
@@ -38,9 +39,14 @@ func (f *fakeConfigBackend) Fire(_ context.Context, _ string, event eventbus.Eve
 	return nil
 }
 
+func (f *fakeConfigBackend) Upsert(_ context.Context, cfg *appconfig.Config) error {
+	f.cfg = *cfg
+	return nil
+}
+
 func newTestConfigServer(seed appconfig.Config) (*ConfigServer, *fakeConfigBackend) {
 	backend := &fakeConfigBackend{cfg: seed}
-	store := appconfigstore.New(backend, backend)
+	store := appconfigstore.New(backend, backend, backend)
 	return &ConfigServer{Handlers: &handlers.Handlers{
 		AppConfigStore: store,
 		Logger:         slog.Default(),

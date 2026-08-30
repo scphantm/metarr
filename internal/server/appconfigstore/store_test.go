@@ -13,17 +13,18 @@ import (
 	"Metarr/internal/shared/eventbus"
 )
 
-// fakeBackend plays both the store's dependencies: it decodes and stores
-// whatever a Fire call carries, so the next Get sees it — exactly the
-// property Mutate's lock exists to make safe to rely on. Get sleeps briefly
-// after copying the document so an unlocked caller has room to interleave;
-// without the lock, TestMutate_ConcurrentMutationsOnDifferentFieldsBothSurvive
-// fails.
+// fakeBackend plays all three of the store's dependencies: it stores
+// whatever a Fire or Upsert call carries, so the next Get sees it — exactly
+// the property Mutate's and Bootstrap's lock exists to make safe to rely
+// on. Get sleeps briefly after copying the document so an unlocked caller
+// has room to interleave; without the lock,
+// TestMutate_ConcurrentMutationsOnDifferentFieldsBothSurvive fails.
 type fakeBackend struct {
-	mu       sync.Mutex
-	cfg      appconfig.Config
-	getCalls int
-	fired    []eventbus.Event
+	mu          sync.Mutex
+	cfg         appconfig.Config
+	getCalls    int
+	upsertCalls int
+	fired       []eventbus.Event
 }
 
 func (f *fakeBackend) Get(_ context.Context) (*appconfig.Config, error) {
@@ -50,9 +51,17 @@ func (f *fakeBackend) Fire(_ context.Context, _ string, event eventbus.Event) er
 	return nil
 }
 
+func (f *fakeBackend) Upsert(_ context.Context, cfg *appconfig.Config) error {
+	f.mu.Lock()
+	f.cfg = *cfg
+	f.upsertCalls++
+	f.mu.Unlock()
+	return nil
+}
+
 func TestMutate_ReadsAppliesAndFiresOneEvent(t *testing.T) {
 	backend := &fakeBackend{}
-	store := New(backend, backend)
+	store := New(backend, backend, backend)
 
 	err := store.Mutate(context.Background(), func(cfg *appconfig.Config) error {
 		cfg.Logging.ServerLevel = appconfig.LogLevelDebug
@@ -83,7 +92,7 @@ func TestMutate_ReadsAppliesAndFiresOneEvent(t *testing.T) {
 
 func TestMutate_ErrorFromApplyAbortsWithoutFiring(t *testing.T) {
 	backend := &fakeBackend{}
-	store := New(backend, backend)
+	store := New(backend, backend, backend)
 
 	sentinel := errors.New("mapping rejected")
 	err := store.Mutate(context.Background(), func(cfg *appconfig.Config) error {
@@ -100,7 +109,7 @@ func TestMutate_ErrorFromApplyAbortsWithoutFiring(t *testing.T) {
 
 func TestMutate_CorrelationIDComesFromContext(t *testing.T) {
 	backend := &fakeBackend{}
-	store := New(backend, backend)
+	store := New(backend, backend, backend)
 
 	ctx := correlation.WithID(context.Background(), "corr-123")
 	err := store.Mutate(ctx, func(cfg *appconfig.Config) error { return nil })
@@ -118,7 +127,7 @@ func TestMutate_CorrelationIDComesFromContext(t *testing.T) {
 
 func TestMutate_ConcurrentMutationsOnDifferentFieldsBothSurvive(t *testing.T) {
 	backend := &fakeBackend{}
-	store := New(backend, backend)
+	store := New(backend, backend, backend)
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -151,9 +160,69 @@ func TestMutate_ConcurrentMutationsOnDifferentFieldsBothSurvive(t *testing.T) {
 	}
 }
 
+func TestBootstrap_PersistsDirectlyAndFiresNoEvent(t *testing.T) {
+	backend := &fakeBackend{}
+	store := New(backend, backend, backend)
+
+	err := store.Bootstrap(context.Background(), func(cfg *appconfig.Config) (bool, error) {
+		cfg.Logging.ServerLevel = appconfig.LogLevelDebug
+		return true, nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if backend.upsertCalls != 1 {
+		t.Fatalf("expected exactly one upsert, got %d", backend.upsertCalls)
+	}
+	if len(backend.fired) != 0 {
+		t.Fatalf("expected no event fired by Bootstrap, got %d", len(backend.fired))
+	}
+
+	final, err := store.Read(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if final.Logging.ServerLevel != appconfig.LogLevelDebug {
+		t.Fatalf("change was not persisted: %+v", final)
+	}
+}
+
+func TestBootstrap_SkipsTheWriteWhenApplyReportsNoChange(t *testing.T) {
+	backend := &fakeBackend{}
+	store := New(backend, backend, backend)
+
+	err := store.Bootstrap(context.Background(), func(cfg *appconfig.Config) (bool, error) {
+		return false, nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if backend.upsertCalls != 0 {
+		t.Fatalf("expected no write when apply reported no change, got %d upserts", backend.upsertCalls)
+	}
+}
+
+func TestBootstrap_ErrorFromApplyAbortsWithoutWriting(t *testing.T) {
+	backend := &fakeBackend{}
+	store := New(backend, backend, backend)
+
+	sentinel := errors.New("seed failed")
+	err := store.Bootstrap(context.Background(), func(cfg *appconfig.Config) (bool, error) {
+		return true, sentinel
+	})
+
+	if !errors.Is(err, sentinel) {
+		t.Fatalf("expected the apply error back unchanged, got %v", err)
+	}
+	if backend.upsertCalls != 0 {
+		t.Fatalf("expected no write after a failed bootstrap step, got %d", backend.upsertCalls)
+	}
+}
+
 func TestRead_DelegatesToReader(t *testing.T) {
 	backend := &fakeBackend{cfg: appconfig.Config{Admin: appconfig.AdminUser{Username: "admin"}}}
-	store := New(backend, backend)
+	store := New(backend, backend, backend)
 
 	cfg, err := store.Read(context.Background())
 	if err != nil {

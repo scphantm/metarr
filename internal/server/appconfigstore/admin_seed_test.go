@@ -1,6 +1,7 @@
-package main
+package appconfigstore
 
 import (
+	"context"
 	"testing"
 
 	"Metarr/internal/server/passwordhash"
@@ -115,5 +116,75 @@ func TestRecoverLockedOutAdmin_IsIdempotentOnceRecovered(t *testing.T) {
 	}
 	if admin != afterFirstRecovery {
 		t.Fatalf("second run mutated an already-recovered record: %+v", admin)
+	}
+}
+
+// TestSeedAdmin_RecoveryCannotRunBeforeSeeding is the regression test for
+// the ordering invariant ADR 0003 moved out of main.go's statement order and
+// into this one function: a fresh install (no username yet) must always be
+// seeded, never "recovered" — recovery only ever applies to an account
+// seeding didn't just create.
+func TestSeedAdmin_RecoveryCannotRunBeforeSeeding(t *testing.T) {
+	backend := &fakeBackend{}
+	store := New(backend, backend, backend)
+
+	result, err := store.SeedAdmin(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Recovered {
+		t.Fatal("a fresh install must be seeded, not recovered")
+	}
+	if result.Username == "" || result.Password == "" {
+		t.Fatalf("expected a seeded admin, got %+v", result)
+	}
+
+	stored, err := store.Read(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if stored.Admin.PasswordSalt == "" || stored.Admin.PasswordHash == "" {
+		t.Fatalf("seeded admin was not persisted: %+v", stored.Admin)
+	}
+}
+
+func TestSeedAdmin_RecoversAnAccountLockedOutByStoredState(t *testing.T) {
+	backend := &fakeBackend{cfg: appconfig.Config{
+		Admin: appconfig.AdminUser{Username: "admin", Email: "admin@example.com"},
+	}}
+	store := New(backend, backend, backend)
+
+	result, err := store.SeedAdmin(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.Recovered {
+		t.Fatal("expected the locked-out account to be recovered")
+	}
+	if result.Password == "" {
+		t.Fatal("expected a plaintext password back")
+	}
+}
+
+func TestSeedAdmin_NoopWhenAdminAlreadyIntact(t *testing.T) {
+	backend := &fakeBackend{cfg: appconfig.Config{
+		Admin: appconfig.AdminUser{
+			Username:     "admin",
+			Email:        "admin@example.com",
+			PasswordSalt: "existing-salt",
+			PasswordHash: "existing-hash",
+		},
+	}}
+	store := New(backend, backend, backend)
+
+	result, err := store.SeedAdmin(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Password != "" || result.Recovered {
+		t.Fatalf("expected no change for an already-intact admin, got %+v", result)
+	}
+	if backend.upsertCalls != 0 {
+		t.Fatalf("expected no write when nothing changed, got %d upserts", backend.upsertCalls)
 	}
 }

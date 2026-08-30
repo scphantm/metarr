@@ -25,6 +25,13 @@ store has just read. A mutation names what it changes; it never supplies a whole
 document.
 _Avoid_: config update, config write
 
+**Bootstrap**:
+The one-time seeding of the application config at server startup, before the
+config store's mutation path is live to fire or consume events. Applied
+synchronously, straight to storage — it is not a mutation and never fires
+`system_config_update`, because nothing is running yet to consume it.
+_Avoid_: config mutation, seed data, startup config
+
 **Projection**:
 The redacted per-agent view of the application config. An agent reads its own
 projection and never the document itself, which carries every credential.

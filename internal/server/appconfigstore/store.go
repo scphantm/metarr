@@ -5,6 +5,11 @@
 // can no longer revert one another. See docs/adr/0001 for why a client may
 // no longer supply a whole document, and docs/adr/0002 for why the write
 // stays asynchronous and the lock is process-local.
+//
+// Bootstrap and SeedAdmin are the exception: startup seeding runs before any
+// listener exists to persist a fired event, so it writes synchronously
+// through the same lock instead. See docs/adr/0003 for why that needs a
+// different contract than Mutate's rather than reusing it.
 package appconfigstore
 
 import (
@@ -31,16 +36,24 @@ type updateFirer interface {
 	Fire(ctx context.Context, stream string, event eventbus.Event) error
 }
 
+// configWriter is Bootstrap's persistence dependency — a direct, synchronous
+// write, unlike Mutate's event-firing one. Satisfied by
+// *mongostore.AppConfigRepo without any change to that type.
+type configWriter interface {
+	Upsert(ctx context.Context, cfg *appconfig.Config) error
+}
+
 // Store is the config store.
 type Store struct {
 	mu     sync.Mutex
 	reader configReader
+	writer configWriter
 	firer  updateFirer
 }
 
-// New returns a config store backed by reader and firer.
-func New(reader configReader, firer updateFirer) *Store {
-	return &Store{reader: reader, firer: firer}
+// New returns a config store backed by reader, writer, and firer.
+func New(reader configReader, writer configWriter, firer updateFirer) *Store {
+	return &Store{reader: reader, writer: writer, firer: firer}
 }
 
 // Read returns the currently stored application config.
@@ -81,4 +94,30 @@ func (s *Store) Mutate(ctx context.Context, apply func(*appconfig.Config) error)
 	}
 
 	return s.firer.Fire(ctx, eventbus.SystemConfigUpdateStream, event)
+}
+
+// Bootstrap reads the current application config, applies apply to it, and
+// — only if apply reports a change — persists the result directly, under
+// the same lock Mutate uses. Unlike Mutate it writes synchronously and fires
+// no event: it exists for startup seeding, which runs before any listener
+// is available to persist a fired one. An ordinary restart where apply
+// changes nothing costs no write. See docs/adr/0003.
+func (s *Store) Bootstrap(ctx context.Context, apply func(*appconfig.Config) (changed bool, err error)) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	cfg, err := s.reader.Get(ctx)
+	if err != nil {
+		return err
+	}
+
+	changed, err := apply(cfg)
+	if err != nil {
+		return err
+	}
+	if !changed {
+		return nil
+	}
+
+	return s.writer.Upsert(ctx, cfg)
 }
