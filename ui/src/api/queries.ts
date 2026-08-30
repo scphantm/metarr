@@ -37,7 +37,11 @@ import type { MessageInitShape } from '@bufbuild/protobuf'
 import { timestampDate } from '@bufbuild/protobuf/wkt'
 import type { AcceptedResponse as ConnectAcceptedResponse } from '../gen/metarr/v1/common_pb'
 import { SonarrInstanceSchema } from '../gen/metarr/v1/sonarr_interfaces_pb'
-import { ConfigSchema, ConfigServiceUpdateAdminRequestSchema } from '../gen/metarr/v1/config_pb'
+import {
+  ConfigServiceDeleteApiKeyRequestSchema,
+  ConfigServiceUpdateAdminRequestSchema,
+  ConfigServiceUpsertApiKeyRequestSchema,
+} from '../gen/metarr/v1/config_pb'
 import type { AgentView as ConnectAgentView } from '../gen/metarr/v1/agents_pb'
 import type {
   ScanDirectory as ConnectScanDirectory,
@@ -374,13 +378,18 @@ export function useUpdateAdmin() {
   >((body) => configClient.updateAdmin(body), [queryKeys.config])
 }
 
-// The whole-document update, used for the API key groups, which have no
-// endpoint of their own.
-export function useUpdateConfig() {
-  return useConfigMutation<MessageInitShape<typeof ConfigSchema>, ConnectAcceptedResponse>(
-    (config) => configClient.update({ config }),
-    [queryKeys.config, queryKeys.sonarr, queryKeys.directoryScanner],
-  )
+export function useUpsertApiKey() {
+  return useConfigMutation<
+    MessageInitShape<typeof ConfigServiceUpsertApiKeyRequestSchema>,
+    ConnectAcceptedResponse
+  >((body) => configClient.upsertApiKey(body), [queryKeys.config])
+}
+
+export function useDeleteApiKey() {
+  return useConfigMutation<
+    MessageInitShape<typeof ConfigServiceDeleteApiKeyRequestSchema>,
+    ConnectAcceptedResponse
+  >((body) => configClient.deleteApiKey(body), [queryKeys.config])
 }
 
 // A single upsert POST, like the other newer config sections — see the

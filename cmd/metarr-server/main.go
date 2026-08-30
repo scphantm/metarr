@@ -20,6 +20,7 @@ import (
 
 	metarrv1connect "Metarr/internal/genproto/metarr/v1/metarrv1connect"
 	"Metarr/internal/server/agentregistry"
+	"Metarr/internal/server/appconfigstore"
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/server/httpserver"
 	"Metarr/internal/server/listeners"
@@ -119,6 +120,7 @@ func run() error {
 	}
 	taskEventRepo := mongostore.NewTaskEventRepo(mongoClient, cfg.MongoDatabase)
 	appConfigRepo := mongostore.NewAppConfigRepo(mongoClient, cfg.MongoDatabase)
+	appConfigStore := appconfigstore.New(appConfigRepo, streamBus)
 	localDirectoryRepo := mongostore.NewLocalDirectoryRepo(mongoClient, cfg.MongoDatabase)
 	workflowRepo := mongostore.NewWorkflowRepo(mongoClient, cfg.MongoDatabase)
 	sessions := session.NewStore(redisClient)
@@ -178,10 +180,10 @@ func run() error {
 		readOnlyKey := uuid.NewString()
 
 		startupCfg.APIKeys = appconfig.APIKeysConfig{
-			Admin:    []appconfig.APIKeyEntry{{Name: "Administrator Key", Key: adminKey}},
-			User:     []appconfig.APIKeyEntry{{Name: "User Key", Key: userKey}},
-			Webhook:  []appconfig.APIKeyEntry{{Name: "Webhook Key", Key: webhookKey}},
-			ReadOnly: []appconfig.APIKeyEntry{{Name: "Read Only Key", Key: readOnlyKey}},
+			Admin:    []appconfig.APIKeyEntry{{ID: uuid.NewString(), Name: "Administrator Key", Key: adminKey}},
+			User:     []appconfig.APIKeyEntry{{ID: uuid.NewString(), Name: "User Key", Key: userKey}},
+			Webhook:  []appconfig.APIKeyEntry{{ID: uuid.NewString(), Name: "Webhook Key", Key: webhookKey}},
+			ReadOnly: []appconfig.APIKeyEntry{{ID: uuid.NewString(), Name: "Read Only Key", Key: readOnlyKey}},
 		}
 		bootstrapped = true
 		bootstrappedKeys = &startupCfg.APIKeys
@@ -221,6 +223,28 @@ func run() error {
 		fmt.Println("==================================================================")
 		fmt.Println("Metarr: generated initial admin credentials (shown only once):")
 		fmt.Println("  username: " + defaultAdminUsername)
+		fmt.Println("  password: " + plaintextPassword)
+		fmt.Println("==================================================================")
+	}
+
+	// Recover an admin account whose password was destroyed by the
+	// whole-document config update bug (ADR 0001): a scoped edit elsewhere
+	// in the document — adding an API key, before the fix — round-tripped
+	// the redacted GetConfig response, which carries no password fields,
+	// and the resulting ReplaceOne wrote them back empty. The account still
+	// has its username, so it isn't a fresh install; it just can't log in.
+	// Runs after the fresh-install block above so the two never overlap:
+	// that block always leaves both password fields set.
+	if plaintextPassword, recovered, err := recoverLockedOutAdmin(&startupCfg.Admin); err != nil {
+		return err
+	} else if recovered {
+		bootstrapped = true
+		newAdminPassword = plaintextPassword
+
+		fmt.Println("==================================================================")
+		fmt.Println("Metarr: admin credentials were missing (a prior version could zero")
+		fmt.Println("them when editing an API key) — generated a new password:")
+		fmt.Println("  username: " + startupCfg.Admin.Username)
 		fmt.Println("  password: " + plaintextPassword)
 		fmt.Println("==================================================================")
 	}
@@ -275,6 +299,16 @@ func run() error {
 		startupCfg.DirectoryScanner.SidecarTypes = merged
 		bootstrapped = true
 		logger.Info("added built-in sidecar types missing from the stored table", "count", added)
+	}
+
+	// API key entries stored before the id field existed decode with an
+	// empty one, which would leave them unaddressable by the scoped
+	// upsert/delete operations that key on it. Minting here, once, makes
+	// "every entry has an id" true everywhere downstream instead of
+	// conditional on when the entry was created.
+	if minted := appconfig.BackfillAPIKeyIDs(&startupCfg.APIKeys); minted > 0 {
+		bootstrapped = true
+		logger.Info("minted ids for API key entries stored before the id field existed", "count", minted)
 	}
 
 	if bootstrapped {
@@ -353,7 +387,7 @@ func run() error {
 	// metarr.v1.LoggingService.StreamTail (internal/server/services), mounted
 	// via connectServices below. wsbus.Hub and GET /api/ws are retired.
 
-	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
+	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigRepo, appConfigStore, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
 	uiFS, uiEmbedded := webui.FS()
 	if uiEmbedded {
 		logger.Info("ui embed", "enabled", true)
@@ -486,6 +520,32 @@ func run() error {
 	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelShutdown()
 	return server.Shutdown(shutdownCtx)
+}
+
+// recoverLockedOutAdmin detects an admin account with a username but no
+// usable password — a casualty of the whole-document config update bug (ADR
+// 0001), not a fresh install — and issues it a new one in place. A record
+// with no username, or with both password fields intact, is left untouched
+// and recovered is false.
+func recoverLockedOutAdmin(admin *appconfig.AdminUser) (plaintextPassword string, recovered bool, err error) {
+	if admin.Username == "" {
+		return "", false, nil
+	}
+	if admin.PasswordSalt != "" && admin.PasswordHash != "" {
+		return "", false, nil
+	}
+
+	plaintextPassword, err = passwordhash.GenerateRandomPassword(defaultAdminPasswordChars)
+	if err != nil {
+		return "", false, err
+	}
+	salt, hash, err := passwordhash.Hash(plaintextPassword)
+	if err != nil {
+		return "", false, err
+	}
+	admin.PasswordSalt = salt
+	admin.PasswordHash = hash
+	return plaintextPassword, true, nil
 }
 
 // syncHTTPClientEnv updates the JetBrains HTTP Client's per-developer

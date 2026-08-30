@@ -64,3 +64,13 @@ See `documentation/modules/design/pages/workflow_engine.adoc` for the full spec 
 # editing documentation theme
 * The documentation theme bundles into a standard package that is used by antora to theme the site.  It must follow specifications.  Those specifications are in `documentation-theme/docs`
 * when editing the documentation theme do not make changes to anything in `documentation-theme/docs`
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (scphantm/metarr), managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root (not yet created — created lazily by `/domain-modeling`). See `docs/agents/domain.md`.

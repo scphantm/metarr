@@ -19,10 +19,14 @@ message AdminUser {
   string email = 2;
 }
 
-// APIKeyEntry mirrors internal/shared/appconfig.APIKeyEntry.
+// APIKeyEntry mirrors internal/shared/appconfig.APIKeyEntry. id is the
+// stable handle a scoped edit addresses this entry by; it is empty only
+// when a client is proposing a brand new entry that has not been minted
+// one yet.
 message APIKeyEntry {
   string name = 1;
   string api_key = 2;
+  string id = 3;
 }
 
 // APIKeysConfig mirrors internal/shared/appconfig.APIKeysConfig.
@@ -55,10 +59,6 @@ message ConfigServiceGetResponse {
   Config config = 1;
 }
 
-message ConfigServiceUpdateRequest {
-  Config config = 1;
-}
-
 // ConfigServiceUpdateAdminRequest is a partial update: only the fields set
 // are changed. An explicitly-empty string for a set field is rejected
 // rather than silently clearing it — see UpdateAdmin's implementation.
@@ -68,8 +68,27 @@ message ConfigServiceUpdateAdminRequest {
   optional string password = 3;
 }
 
+// ConfigServiceUpsertApiKeyRequest replaces the entry in group matching
+// entry.id, or creates one if entry.id is empty or unknown. group is one of
+// "admin", "user", "webhook", "read_only" — the same names
+// internal/shared/appconfig.APIKeyGroup uses.
+message ConfigServiceUpsertApiKeyRequest {
+  string group = 1;
+  APIKeyEntry entry = 2;
+}
+
+message ConfigServiceDeleteApiKeyRequest {
+  string group = 1;
+  string id = 2;
+}
+
+// Every mutating method here goes through the config store, which reads a
+// fresh document and applies exactly what the method names — never a whole
+// document supplied by the caller, which is how a scoped API key edit used
+// to zero the admin password hash. See ADR 0001.
 service ConfigService {
   rpc Get(ConfigServiceGetRequest) returns (ConfigServiceGetResponse);
-  rpc Update(ConfigServiceUpdateRequest) returns (metarr.v1.AcceptedResponse);
   rpc UpdateAdmin(ConfigServiceUpdateAdminRequest) returns (metarr.v1.AcceptedResponse);
+  rpc UpsertApiKey(ConfigServiceUpsertApiKeyRequest) returns (metarr.v1.AcceptedResponse);
+  rpc DeleteApiKey(ConfigServiceDeleteApiKeyRequest) returns (metarr.v1.AcceptedResponse);
 }

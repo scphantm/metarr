@@ -77,11 +77,15 @@ func (x *AdminUser) GetEmail() string {
 	return ""
 }
 
-// APIKeyEntry mirrors internal/shared/appconfig.APIKeyEntry.
+// APIKeyEntry mirrors internal/shared/appconfig.APIKeyEntry. id is the
+// stable handle a scoped edit addresses this entry by; it is empty only
+// when a client is proposing a brand new entry that has not been minted
+// one yet.
 type APIKeyEntry struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	ApiKey        string                 `protobuf:"bytes,2,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	Id            string                 `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -126,6 +130,13 @@ func (x *APIKeyEntry) GetName() string {
 func (x *APIKeyEntry) GetApiKey() string {
 	if x != nil {
 		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *APIKeyEntry) GetId() string {
+	if x != nil {
+		return x.Id
 	}
 	return ""
 }
@@ -410,50 +421,6 @@ func (x *ConfigServiceGetResponse) GetConfig() *Config {
 	return nil
 }
 
-type ConfigServiceUpdateRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Config        *Config                `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ConfigServiceUpdateRequest) Reset() {
-	*x = ConfigServiceUpdateRequest{}
-	mi := &file_metarr_v1_config_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ConfigServiceUpdateRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ConfigServiceUpdateRequest) ProtoMessage() {}
-
-func (x *ConfigServiceUpdateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_config_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ConfigServiceUpdateRequest.ProtoReflect.Descriptor instead.
-func (*ConfigServiceUpdateRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_config_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *ConfigServiceUpdateRequest) GetConfig() *Config {
-	if x != nil {
-		return x.Config
-	}
-	return nil
-}
-
 // ConfigServiceUpdateAdminRequest is a partial update: only the fields set
 // are changed. An explicitly-empty string for a set field is rejected
 // rather than silently clearing it — see UpdateAdmin's implementation.
@@ -468,7 +435,7 @@ type ConfigServiceUpdateAdminRequest struct {
 
 func (x *ConfigServiceUpdateAdminRequest) Reset() {
 	*x = ConfigServiceUpdateAdminRequest{}
-	mi := &file_metarr_v1_config_proto_msgTypes[8]
+	mi := &file_metarr_v1_config_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -480,7 +447,7 @@ func (x *ConfigServiceUpdateAdminRequest) String() string {
 func (*ConfigServiceUpdateAdminRequest) ProtoMessage() {}
 
 func (x *ConfigServiceUpdateAdminRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_config_proto_msgTypes[8]
+	mi := &file_metarr_v1_config_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -493,7 +460,7 @@ func (x *ConfigServiceUpdateAdminRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigServiceUpdateAdminRequest.ProtoReflect.Descriptor instead.
 func (*ConfigServiceUpdateAdminRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_config_proto_rawDescGZIP(), []int{8}
+	return file_metarr_v1_config_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ConfigServiceUpdateAdminRequest) GetUsername() string {
@@ -517,6 +484,114 @@ func (x *ConfigServiceUpdateAdminRequest) GetPassword() string {
 	return ""
 }
 
+// ConfigServiceUpsertApiKeyRequest replaces the entry in group matching
+// entry.id, or creates one if entry.id is empty or unknown. group is one of
+// "admin", "user", "webhook", "read_only" — the same names
+// internal/shared/appconfig.APIKeyGroup uses.
+type ConfigServiceUpsertApiKeyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Group         string                 `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	Entry         *APIKeyEntry           `protobuf:"bytes,2,opt,name=entry,proto3" json:"entry,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfigServiceUpsertApiKeyRequest) Reset() {
+	*x = ConfigServiceUpsertApiKeyRequest{}
+	mi := &file_metarr_v1_config_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfigServiceUpsertApiKeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigServiceUpsertApiKeyRequest) ProtoMessage() {}
+
+func (x *ConfigServiceUpsertApiKeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_config_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigServiceUpsertApiKeyRequest.ProtoReflect.Descriptor instead.
+func (*ConfigServiceUpsertApiKeyRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_config_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ConfigServiceUpsertApiKeyRequest) GetGroup() string {
+	if x != nil {
+		return x.Group
+	}
+	return ""
+}
+
+func (x *ConfigServiceUpsertApiKeyRequest) GetEntry() *APIKeyEntry {
+	if x != nil {
+		return x.Entry
+	}
+	return nil
+}
+
+type ConfigServiceDeleteApiKeyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Group         string                 `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfigServiceDeleteApiKeyRequest) Reset() {
+	*x = ConfigServiceDeleteApiKeyRequest{}
+	mi := &file_metarr_v1_config_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfigServiceDeleteApiKeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigServiceDeleteApiKeyRequest) ProtoMessage() {}
+
+func (x *ConfigServiceDeleteApiKeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_config_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigServiceDeleteApiKeyRequest.ProtoReflect.Descriptor instead.
+func (*ConfigServiceDeleteApiKeyRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_config_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ConfigServiceDeleteApiKeyRequest) GetGroup() string {
+	if x != nil {
+		return x.Group
+	}
+	return ""
+}
+
+func (x *ConfigServiceDeleteApiKeyRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
 var File_metarr_v1_config_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_config_proto_rawDesc = "" +
@@ -524,10 +599,11 @@ const file_metarr_v1_config_proto_rawDesc = "" +
 	"\x16metarr/v1/config.proto\x12\tmetarr.v1\x1a\x16metarr/v1/agents.proto\x1a\x16metarr/v1/common.proto\x1a!metarr/v1/directory_scanner.proto\x1a\x17metarr/v1/logging.proto\x1a!metarr/v1/sonarr_interfaces.proto\"=\n" +
 	"\tAdminUser\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\":\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\"J\n" +
 	"\vAPIKeyEntry\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x17\n" +
-	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\"\xd0\x01\n" +
+	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\x12\x0e\n" +
+	"\x02id\x18\x03 \x01(\tR\x02id\"\xd0\x01\n" +
 	"\rAPIKeysConfig\x12,\n" +
 	"\x05admin\x18\x01 \x03(\v2\x16.metarr.v1.APIKeyEntryR\x05admin\x12*\n" +
 	"\x04user\x18\x02 \x03(\v2\x16.metarr.v1.APIKeyEntryR\x04user\x120\n" +
@@ -546,8 +622,6 @@ const file_metarr_v1_config_proto_rawDesc = "" +
 	"\alogging\x18\x06 \x01(\v2\x18.metarr.v1.LoggingConfigR\alogging\"\x19\n" +
 	"\x17ConfigServiceGetRequest\"E\n" +
 	"\x18ConfigServiceGetResponse\x12)\n" +
-	"\x06config\x18\x01 \x01(\v2\x11.metarr.v1.ConfigR\x06config\"G\n" +
-	"\x1aConfigServiceUpdateRequest\x12)\n" +
 	"\x06config\x18\x01 \x01(\v2\x11.metarr.v1.ConfigR\x06config\"\xa2\x01\n" +
 	"\x1fConfigServiceUpdateAdminRequest\x12\x1f\n" +
 	"\busername\x18\x01 \x01(\tH\x00R\busername\x88\x01\x01\x12\x19\n" +
@@ -555,11 +629,18 @@ const file_metarr_v1_config_proto_rawDesc = "" +
 	"\bpassword\x18\x03 \x01(\tH\x02R\bpassword\x88\x01\x01B\v\n" +
 	"\t_usernameB\b\n" +
 	"\x06_emailB\v\n" +
-	"\t_password2\x85\x02\n" +
+	"\t_password\"f\n" +
+	" ConfigServiceUpsertApiKeyRequest\x12\x14\n" +
+	"\x05group\x18\x01 \x01(\tR\x05group\x12,\n" +
+	"\x05entry\x18\x02 \x01(\v2\x16.metarr.v1.APIKeyEntryR\x05entry\"H\n" +
+	" ConfigServiceDeleteApiKeyRequest\x12\x14\n" +
+	"\x05group\x18\x01 \x01(\tR\x05group\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id2\xeb\x02\n" +
 	"\rConfigService\x12N\n" +
-	"\x03Get\x12\".metarr.v1.ConfigServiceGetRequest\x1a#.metarr.v1.ConfigServiceGetResponse\x12L\n" +
-	"\x06Update\x12%.metarr.v1.ConfigServiceUpdateRequest\x1a\x1b.metarr.v1.AcceptedResponse\x12V\n" +
-	"\vUpdateAdmin\x12*.metarr.v1.ConfigServiceUpdateAdminRequest\x1a\x1b.metarr.v1.AcceptedResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
+	"\x03Get\x12\".metarr.v1.ConfigServiceGetRequest\x1a#.metarr.v1.ConfigServiceGetResponse\x12V\n" +
+	"\vUpdateAdmin\x12*.metarr.v1.ConfigServiceUpdateAdminRequest\x1a\x1b.metarr.v1.AcceptedResponse\x12X\n" +
+	"\fUpsertApiKey\x12+.metarr.v1.ConfigServiceUpsertApiKeyRequest\x1a\x1b.metarr.v1.AcceptedResponse\x12X\n" +
+	"\fDeleteApiKey\x12+.metarr.v1.ConfigServiceDeleteApiKeyRequest\x1a\x1b.metarr.v1.AcceptedResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
 
 var (
 	file_metarr_v1_config_proto_rawDescOnce sync.Once
@@ -573,45 +654,48 @@ func file_metarr_v1_config_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_config_proto_rawDescData
 }
 
-var file_metarr_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_metarr_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_metarr_v1_config_proto_goTypes = []any{
-	(*AdminUser)(nil),                       // 0: metarr.v1.AdminUser
-	(*APIKeyEntry)(nil),                     // 1: metarr.v1.APIKeyEntry
-	(*APIKeysConfig)(nil),                   // 2: metarr.v1.APIKeysConfig
-	(*InterfacesConfig)(nil),                // 3: metarr.v1.InterfacesConfig
-	(*Config)(nil),                          // 4: metarr.v1.Config
-	(*ConfigServiceGetRequest)(nil),         // 5: metarr.v1.ConfigServiceGetRequest
-	(*ConfigServiceGetResponse)(nil),        // 6: metarr.v1.ConfigServiceGetResponse
-	(*ConfigServiceUpdateRequest)(nil),      // 7: metarr.v1.ConfigServiceUpdateRequest
-	(*ConfigServiceUpdateAdminRequest)(nil), // 8: metarr.v1.ConfigServiceUpdateAdminRequest
-	(*SonarrInstance)(nil),                  // 9: metarr.v1.SonarrInstance
-	(*DirectoryScannerConfig)(nil),          // 10: metarr.v1.DirectoryScannerConfig
-	(*AgentConfig)(nil),                     // 11: metarr.v1.AgentConfig
-	(*LoggingConfig)(nil),                   // 12: metarr.v1.LoggingConfig
-	(*AcceptedResponse)(nil),                // 13: metarr.v1.AcceptedResponse
+	(*AdminUser)(nil),                        // 0: metarr.v1.AdminUser
+	(*APIKeyEntry)(nil),                      // 1: metarr.v1.APIKeyEntry
+	(*APIKeysConfig)(nil),                    // 2: metarr.v1.APIKeysConfig
+	(*InterfacesConfig)(nil),                 // 3: metarr.v1.InterfacesConfig
+	(*Config)(nil),                           // 4: metarr.v1.Config
+	(*ConfigServiceGetRequest)(nil),          // 5: metarr.v1.ConfigServiceGetRequest
+	(*ConfigServiceGetResponse)(nil),         // 6: metarr.v1.ConfigServiceGetResponse
+	(*ConfigServiceUpdateAdminRequest)(nil),  // 7: metarr.v1.ConfigServiceUpdateAdminRequest
+	(*ConfigServiceUpsertApiKeyRequest)(nil), // 8: metarr.v1.ConfigServiceUpsertApiKeyRequest
+	(*ConfigServiceDeleteApiKeyRequest)(nil), // 9: metarr.v1.ConfigServiceDeleteApiKeyRequest
+	(*SonarrInstance)(nil),                   // 10: metarr.v1.SonarrInstance
+	(*DirectoryScannerConfig)(nil),           // 11: metarr.v1.DirectoryScannerConfig
+	(*AgentConfig)(nil),                      // 12: metarr.v1.AgentConfig
+	(*LoggingConfig)(nil),                    // 13: metarr.v1.LoggingConfig
+	(*AcceptedResponse)(nil),                 // 14: metarr.v1.AcceptedResponse
 }
 var file_metarr_v1_config_proto_depIdxs = []int32{
 	1,  // 0: metarr.v1.APIKeysConfig.admin:type_name -> metarr.v1.APIKeyEntry
 	1,  // 1: metarr.v1.APIKeysConfig.user:type_name -> metarr.v1.APIKeyEntry
 	1,  // 2: metarr.v1.APIKeysConfig.webhook:type_name -> metarr.v1.APIKeyEntry
 	1,  // 3: metarr.v1.APIKeysConfig.read_only:type_name -> metarr.v1.APIKeyEntry
-	9,  // 4: metarr.v1.InterfacesConfig.sonarr:type_name -> metarr.v1.SonarrInstance
+	10, // 4: metarr.v1.InterfacesConfig.sonarr:type_name -> metarr.v1.SonarrInstance
 	2,  // 5: metarr.v1.Config.api_keys:type_name -> metarr.v1.APIKeysConfig
 	0,  // 6: metarr.v1.Config.admin:type_name -> metarr.v1.AdminUser
 	3,  // 7: metarr.v1.Config.interfaces:type_name -> metarr.v1.InterfacesConfig
-	10, // 8: metarr.v1.Config.directory_scanner:type_name -> metarr.v1.DirectoryScannerConfig
-	11, // 9: metarr.v1.Config.agents:type_name -> metarr.v1.AgentConfig
-	12, // 10: metarr.v1.Config.logging:type_name -> metarr.v1.LoggingConfig
+	11, // 8: metarr.v1.Config.directory_scanner:type_name -> metarr.v1.DirectoryScannerConfig
+	12, // 9: metarr.v1.Config.agents:type_name -> metarr.v1.AgentConfig
+	13, // 10: metarr.v1.Config.logging:type_name -> metarr.v1.LoggingConfig
 	4,  // 11: metarr.v1.ConfigServiceGetResponse.config:type_name -> metarr.v1.Config
-	4,  // 12: metarr.v1.ConfigServiceUpdateRequest.config:type_name -> metarr.v1.Config
+	1,  // 12: metarr.v1.ConfigServiceUpsertApiKeyRequest.entry:type_name -> metarr.v1.APIKeyEntry
 	5,  // 13: metarr.v1.ConfigService.Get:input_type -> metarr.v1.ConfigServiceGetRequest
-	7,  // 14: metarr.v1.ConfigService.Update:input_type -> metarr.v1.ConfigServiceUpdateRequest
-	8,  // 15: metarr.v1.ConfigService.UpdateAdmin:input_type -> metarr.v1.ConfigServiceUpdateAdminRequest
-	6,  // 16: metarr.v1.ConfigService.Get:output_type -> metarr.v1.ConfigServiceGetResponse
-	13, // 17: metarr.v1.ConfigService.Update:output_type -> metarr.v1.AcceptedResponse
-	13, // 18: metarr.v1.ConfigService.UpdateAdmin:output_type -> metarr.v1.AcceptedResponse
-	16, // [16:19] is the sub-list for method output_type
-	13, // [13:16] is the sub-list for method input_type
+	7,  // 14: metarr.v1.ConfigService.UpdateAdmin:input_type -> metarr.v1.ConfigServiceUpdateAdminRequest
+	8,  // 15: metarr.v1.ConfigService.UpsertApiKey:input_type -> metarr.v1.ConfigServiceUpsertApiKeyRequest
+	9,  // 16: metarr.v1.ConfigService.DeleteApiKey:input_type -> metarr.v1.ConfigServiceDeleteApiKeyRequest
+	6,  // 17: metarr.v1.ConfigService.Get:output_type -> metarr.v1.ConfigServiceGetResponse
+	14, // 18: metarr.v1.ConfigService.UpdateAdmin:output_type -> metarr.v1.AcceptedResponse
+	14, // 19: metarr.v1.ConfigService.UpsertApiKey:output_type -> metarr.v1.AcceptedResponse
+	14, // 20: metarr.v1.ConfigService.DeleteApiKey:output_type -> metarr.v1.AcceptedResponse
+	17, // [17:21] is the sub-list for method output_type
+	13, // [13:17] is the sub-list for method input_type
 	13, // [13:13] is the sub-list for extension type_name
 	13, // [13:13] is the sub-list for extension extendee
 	0,  // [0:13] is the sub-list for field type_name
@@ -627,14 +711,14 @@ func file_metarr_v1_config_proto_init() {
 	file_metarr_v1_directory_scanner_proto_init()
 	file_metarr_v1_logging_proto_init()
 	file_metarr_v1_sonarr_interfaces_proto_init()
-	file_metarr_v1_config_proto_msgTypes[8].OneofWrappers = []any{}
+	file_metarr_v1_config_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_config_proto_rawDesc), len(file_metarr_v1_config_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -19,9 +19,9 @@ import (
 	"Metarr/internal/shared/scanmodel"
 )
 
-// DirectoryScannerServer implements metarrv1connect.DirectoryScannerServiceHandler,
-// ported directly from internal/server/handlers/directory_scanner.go — same
-// Mongo reads and FireConfigUpdate call, only the transport changed.
+// DirectoryScannerServer implements metarrv1connect.DirectoryScannerServiceHandler.
+// Every write goes through AppConfigStore.Mutate — see
+// internal/server/appconfigstore.
 type DirectoryScannerServer struct {
 	*handlers.Handlers
 }
@@ -67,19 +67,14 @@ func (s *DirectoryScannerServer) Update(
 		return nil, connectError(http.StatusBadRequest, errors.New("parallel_count must be greater than zero"))
 	}
 
-	appConfig, err := s.AppConfigRepo.Get(ctx)
+	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		if req.Msg.ParallelCount != nil {
+			cfg.DirectoryScanner.ParallelCount = int(req.Msg.GetParallelCount())
+		}
+		return nil
+	})
 	if err != nil {
-		s.Logger.Error("failed to fetch app config", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
-
-	if req.Msg.ParallelCount != nil {
-		appConfig.DirectoryScanner.ParallelCount = int(req.Msg.GetParallelCount())
-	}
-
-	if err := s.FireConfigUpdate(ctx, correlationID, *appConfig); err != nil {
-		s.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+		return mutateConfigError(s.Logger, correlationID, err)
 	}
 
 	return connect.NewResponse(acceptedResponse(correlationID)), nil
@@ -137,21 +132,16 @@ func (s *DirectoryScannerServer) UpsertDirectory(
 		return nil, connectError(http.StatusBadRequest, err)
 	}
 
-	appConfig, err := s.AppConfigRepo.Get(ctx)
+	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		if index := cfg.DirectoryScanner.FindScanDirectoryIndex(entry.ScannerSlug); index == -1 {
+			cfg.DirectoryScanner.ScanDirectories = append(cfg.DirectoryScanner.ScanDirectories, entry)
+		} else {
+			cfg.DirectoryScanner.ScanDirectories[index] = entry
+		}
+		return nil
+	})
 	if err != nil {
-		s.Logger.Error("failed to fetch app config", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
-
-	if index := appConfig.DirectoryScanner.FindScanDirectoryIndex(entry.ScannerSlug); index == -1 {
-		appConfig.DirectoryScanner.ScanDirectories = append(appConfig.DirectoryScanner.ScanDirectories, entry)
-	} else {
-		appConfig.DirectoryScanner.ScanDirectories[index] = entry
-	}
-
-	if err := s.FireConfigUpdate(ctx, correlationID, *appConfig); err != nil {
-		s.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+		return mutateConfigError(s.Logger, correlationID, err)
 	}
 
 	return connect.NewResponse(acceptedResponse(correlationID)), nil
@@ -164,22 +154,17 @@ func (s *DirectoryScannerServer) DeleteDirectory(
 	correlationID := correlation.FromContext(ctx)
 	slug := req.Msg.GetSlug()
 
-	appConfig, err := s.AppConfigRepo.Get(ctx)
+	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		index := cfg.DirectoryScanner.FindScanDirectoryIndex(slug)
+		if index == -1 {
+			return connectError(http.StatusNotFound, errors.New("no scan directory with that slug"))
+		}
+		scanDirectories := cfg.DirectoryScanner.ScanDirectories
+		cfg.DirectoryScanner.ScanDirectories = append(scanDirectories[:index], scanDirectories[index+1:]...)
+		return nil
+	})
 	if err != nil {
-		s.Logger.Error("failed to fetch app config", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
-
-	index := appConfig.DirectoryScanner.FindScanDirectoryIndex(slug)
-	if index == -1 {
-		return nil, connectError(http.StatusNotFound, errors.New("no scan directory with that slug"))
-	}
-	scanDirectories := appConfig.DirectoryScanner.ScanDirectories
-	appConfig.DirectoryScanner.ScanDirectories = append(scanDirectories[:index], scanDirectories[index+1:]...)
-
-	if err := s.FireConfigUpdate(ctx, correlationID, *appConfig); err != nil {
-		s.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+		return mutateConfigError(s.Logger, correlationID, err)
 	}
 
 	return connect.NewResponse(acceptedResponse(correlationID)), nil
@@ -240,40 +225,36 @@ func (s *DirectoryScannerServer) UpsertSidecarType(
 		return nil, connectError(http.StatusBadRequest, errors.New("order cannot be set here; use ReorderSidecarTypes"))
 	}
 
-	appConfig, err := s.AppConfigRepo.Get(ctx)
-	if err != nil {
-		s.Logger.Error("failed to fetch app config", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
-
-	if entry.ID == "" {
-		// A new type is created disabled. It classifies nothing until the
-		// ordering transaction gives it a place in the sequence.
-		entry.ID = uuid.NewString()
-		entry.Order = 0
-		appConfig.DirectoryScanner.SidecarTypes = append(appConfig.DirectoryScanner.SidecarTypes, entry)
-	} else {
-		index := appConfig.DirectoryScanner.FindSidecarTypeIndexByID(entry.ID)
-		if index == -1 {
-			// An unknown id is a mistake worth surfacing, not an invitation to
-			// create an entry under an id the caller chose.
-			return nil, connectError(http.StatusNotFound, errors.New("no sidecar type with that id"))
+	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		if entry.ID == "" {
+			// A new type is created disabled. It classifies nothing until the
+			// ordering transaction gives it a place in the sequence.
+			entry.ID = uuid.NewString()
+			entry.Order = 0
+			cfg.DirectoryScanner.SidecarTypes = append(cfg.DirectoryScanner.SidecarTypes, entry)
+		} else {
+			index := cfg.DirectoryScanner.FindSidecarTypeIndexByID(entry.ID)
+			if index == -1 {
+				// An unknown id is a mistake worth surfacing, not an invitation to
+				// create an entry under an id the caller chose.
+				return connectError(http.StatusNotFound, errors.New("no sidecar type with that id"))
+			}
+			entry.Order = cfg.DirectoryScanner.SidecarTypes[index].Order
+			cfg.DirectoryScanner.SidecarTypes[index] = entry
 		}
-		entry.Order = appConfig.DirectoryScanner.SidecarTypes[index].Order
-		appConfig.DirectoryScanner.SidecarTypes[index] = entry
-	}
 
-	// Compile the resulting table, not just the submitted entry. A bad pattern
-	// only becomes visible on compilation, and validating the whole table also
-	// catches the duplicate a partial check would miss. Rejecting here means the
-	// error reaches whoever is editing, rather than a scan log nobody is reading.
-	if _, err := scanmodel.NewSidecarRegistry(appConfig.DirectoryScanner.SidecarTypes); err != nil {
-		return nil, connectError(http.StatusBadRequest, err)
-	}
-
-	if err := s.FireConfigUpdate(ctx, correlationID, *appConfig); err != nil {
-		s.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+		// Compile the resulting table, not just the submitted entry. A bad
+		// pattern only becomes visible on compilation, and validating the whole
+		// table also catches the duplicate a partial check would miss.
+		// Rejecting here means the error reaches whoever is editing, rather
+		// than a scan log nobody is reading.
+		if _, err := scanmodel.NewSidecarRegistry(cfg.DirectoryScanner.SidecarTypes); err != nil {
+			return connectError(http.StatusBadRequest, err)
+		}
+		return nil
+	})
+	if err != nil {
+		return mutateConfigError(s.Logger, correlationID, err)
 	}
 
 	return connect.NewResponse(acceptedResponse(correlationID)), nil
@@ -286,22 +267,17 @@ func (s *DirectoryScannerServer) DeleteSidecarType(
 	correlationID := correlation.FromContext(ctx)
 	id := req.Msg.GetId()
 
-	appConfig, err := s.AppConfigRepo.Get(ctx)
+	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		index := cfg.DirectoryScanner.FindSidecarTypeIndexByID(id)
+		if index == -1 {
+			return connectError(http.StatusNotFound, errors.New("no sidecar type with that id"))
+		}
+		sidecarTypes := cfg.DirectoryScanner.SidecarTypes
+		cfg.DirectoryScanner.SidecarTypes = append(sidecarTypes[:index], sidecarTypes[index+1:]...)
+		return nil
+	})
 	if err != nil {
-		s.Logger.Error("failed to fetch app config", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
-
-	index := appConfig.DirectoryScanner.FindSidecarTypeIndexByID(id)
-	if index == -1 {
-		return nil, connectError(http.StatusNotFound, errors.New("no sidecar type with that id"))
-	}
-	sidecarTypes := appConfig.DirectoryScanner.SidecarTypes
-	appConfig.DirectoryScanner.SidecarTypes = append(sidecarTypes[:index], sidecarTypes[index+1:]...)
-
-	if err := s.FireConfigUpdate(ctx, correlationID, *appConfig); err != nil {
-		s.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+		return mutateConfigError(s.Logger, correlationID, err)
 	}
 
 	return connect.NewResponse(acceptedResponse(correlationID)), nil
@@ -314,46 +290,43 @@ func (s *DirectoryScannerServer) ReorderSidecarTypes(
 	correlationID := correlation.FromContext(ctx)
 	requested := req.Msg.GetOrders()
 
-	appConfig, err := s.AppConfigRepo.Get(ctx)
+	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		sidecarTypes := cfg.DirectoryScanner.SidecarTypes
+
+		// Every stored entry has to be accounted for, and nothing may be named
+		// that does not exist. Both directions are checked before anything is
+		// applied, so a rejected request leaves the stored order completely
+		// untouched.
+		var missing []string
+		for _, entry := range sidecarTypes {
+			if _, present := requested[entry.ID]; !present {
+				missing = append(missing, fmt.Sprintf("%s (%s)", entry.ID, entry.Type))
+			}
+		}
+		if len(missing) > 0 {
+			return connectError(http.StatusBadRequest, fmt.Errorf("the order must name every sidecar type; missing: %s", strings.Join(missing, ", ")))
+		}
+		for id := range requested {
+			if cfg.DirectoryScanner.FindSidecarTypeIndexByID(id) == -1 {
+				return connectError(http.StatusBadRequest, fmt.Errorf("no sidecar type with id %s", id))
+			}
+		}
+
+		for i := range sidecarTypes {
+			sidecarTypes[i].Order = int(requested[sidecarTypes[i].ID])
+		}
+
+		// The registry is the authority on what makes a coherent table,
+		// duplicate orders included, so the result is run past it rather than
+		// duplicating the rule here.
+		if _, err := scanmodel.NewSidecarRegistry(sidecarTypes); err != nil {
+			return connectError(http.StatusBadRequest, err)
+		}
+		cfg.DirectoryScanner.SidecarTypes = sidecarTypes
+		return nil
+	})
 	if err != nil {
-		s.Logger.Error("failed to fetch app config", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
-	sidecarTypes := appConfig.DirectoryScanner.SidecarTypes
-
-	// Every stored entry has to be accounted for, and nothing may be named that
-	// does not exist. Both directions are checked before anything is applied, so
-	// a rejected request leaves the stored order completely untouched.
-	var missing []string
-	for _, entry := range sidecarTypes {
-		if _, present := requested[entry.ID]; !present {
-			missing = append(missing, fmt.Sprintf("%s (%s)", entry.ID, entry.Type))
-		}
-	}
-	if len(missing) > 0 {
-		return nil, connectError(http.StatusBadRequest, fmt.Errorf("the order must name every sidecar type; missing: %s", strings.Join(missing, ", ")))
-	}
-	for id := range requested {
-		if appConfig.DirectoryScanner.FindSidecarTypeIndexByID(id) == -1 {
-			return nil, connectError(http.StatusBadRequest, fmt.Errorf("no sidecar type with id %s", id))
-		}
-	}
-
-	for i := range sidecarTypes {
-		sidecarTypes[i].Order = int(requested[sidecarTypes[i].ID])
-	}
-
-	// The registry is the authority on what makes a coherent table, duplicate
-	// orders included, so the result is run past it rather than duplicating the
-	// rule here.
-	if _, err := scanmodel.NewSidecarRegistry(sidecarTypes); err != nil {
-		return nil, connectError(http.StatusBadRequest, err)
-	}
-	appConfig.DirectoryScanner.SidecarTypes = sidecarTypes
-
-	if err := s.FireConfigUpdate(ctx, correlationID, *appConfig); err != nil {
-		s.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+		return mutateConfigError(s.Logger, correlationID, err)
 	}
 
 	return connect.NewResponse(acceptedResponse(correlationID)), nil
@@ -365,17 +338,12 @@ func (s *DirectoryScannerServer) ResetSidecarTypes(
 ) (*connect.Response[metarrv1.AcceptedResponse], error) {
 	correlationID := correlation.FromContext(ctx)
 
-	appConfig, err := s.AppConfigRepo.Get(ctx)
+	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		cfg.DirectoryScanner.SidecarTypes = appconfig.DefaultSidecarTypes()
+		return nil
+	})
 	if err != nil {
-		s.Logger.Error("failed to fetch app config", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch config"))
-	}
-
-	appConfig.DirectoryScanner.SidecarTypes = appconfig.DefaultSidecarTypes()
-
-	if err := s.FireConfigUpdate(ctx, correlationID, *appConfig); err != nil {
-		s.Logger.Error("failed to fire system_config_update event", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+		return mutateConfigError(s.Logger, correlationID, err)
 	}
 
 	return connect.NewResponse(acceptedResponse(correlationID)), nil

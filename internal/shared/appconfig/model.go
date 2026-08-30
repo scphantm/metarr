@@ -148,6 +148,11 @@ type APIKeysConfig struct {
 
 // APIKeyEntry is a single named API key.
 type APIKeyEntry struct {
+	// ID is the stable handle a scoped edit addresses this entry by. It is
+	// minted once and never reused, so an entry survives being renamed —
+	// unlike Name, which is optional and not unique. Entries stored before
+	// this field existed are backfilled once at startup.
+	ID   string `bson:"id" json:"id"`
 	Name string `bson:"name" json:"name"`
 	Key  string `bson:"api_key" json:"api_key"`
 }
