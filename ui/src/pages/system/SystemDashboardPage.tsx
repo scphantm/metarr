@@ -3,10 +3,11 @@ import type { ColumnsType } from 'antd/es/table'
 
 import { useRedisStats, useRedisStatsStreamStatus } from '../../api/queries'
 import type {
-  PubSubChannelStat,
+  RedisChannelStat,
   RedisStreamStat,
   RedisServerInfo,
-} from '../../api/types'
+} from '../../gen/metarr/v1/stats_pb'
+import { timestampDate } from '@bufbuild/protobuf/wkt'
 import { Card } from '../../components/Card'
 import { PageError, PageLoading } from '../../components/PageState'
 import { PageHeader } from '../../layout/AppShell'
@@ -54,7 +55,7 @@ export function SystemDashboardPage() {
       />
 
       <div className="page-body">
-        <ServerTiles server={stats.data.server} />
+        {stats.data.server ? <ServerTiles server={stats.data.server} /> : null}
 
         <Card
           title="Event streams"
@@ -71,7 +72,10 @@ export function SystemDashboardPage() {
         </Card>
 
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          Last collected {new Date(stats.data.collected_at).toLocaleTimeString()}
+          Last collected{' '}
+          {stats.data.collectedAt
+            ? timestampDate(stats.data.collectedAt).toLocaleTimeString()
+            : '—'}
         </Typography.Text>
       </div>
     </>
@@ -91,11 +95,11 @@ function ConnectionIndicator({ status }: { status: string }) {
 
 function ServerTiles({ server }: { server: RedisServerInfo }) {
   const tiles = [
-    { label: 'Connected clients', value: server.connected_clients.toLocaleString() },
-    { label: 'Memory used', value: server.used_memory_human || '—' },
-    { label: 'Ops / second', value: server.ops_per_second.toLocaleString() },
-    { label: 'Keys', value: server.total_keys.toLocaleString() },
-    { label: 'Uptime', value: formatUptime(server.uptime_seconds) },
+    { label: 'Connected clients', value: server.connectedClients.toLocaleString() },
+    { label: 'Memory used', value: server.usedMemoryHuman || '—' },
+    { label: 'Ops / second', value: server.opsPerSecond.toLocaleString() },
+    { label: 'Keys', value: server.totalKeys.toLocaleString() },
+    { label: 'Uptime', value: formatUptime(Number(server.uptimeSeconds)) },
   ]
 
   return (
@@ -139,7 +143,7 @@ function StreamsTable({ streams }: { streams: RedisStreamStat[] }) {
       title: 'Pending',
       align: 'right',
       render: (_, stream) => {
-        const pending = stream.groups.reduce((sum, g) => sum + g.pending, 0)
+        const pending = stream.groups.reduce((sum, g) => sum + Number(g.pending), 0)
         // Colour alone never carries the state — the word does the work and
         // the tone reinforces it.
         return pending > 0 ? (
@@ -154,14 +158,14 @@ function StreamsTable({ streams }: { streams: RedisStreamStat[] }) {
       align: 'right',
       render: (_, stream) =>
         stream.exists
-          ? stream.groups.reduce((sum, g) => sum + g.consumers, 0).toLocaleString()
+          ? stream.groups.reduce((sum, g) => sum + Number(g.consumers), 0).toLocaleString()
           : '—',
     },
     {
       title: 'Lag',
       align: 'right',
       render: (_, stream) =>
-        stream.exists ? stream.groups.reduce((sum, g) => sum + g.lag, 0).toLocaleString() : '—',
+        stream.exists ? stream.groups.reduce((sum, g) => sum + Number(g.lag), 0).toLocaleString() : '—',
     },
   ]
 
@@ -176,8 +180,8 @@ function StreamsTable({ streams }: { streams: RedisStreamStat[] }) {
   )
 }
 
-function ChannelsTable({ channels }: { channels: PubSubChannelStat[] }) {
-  const columns: ColumnsType<PubSubChannelStat> = [
+function ChannelsTable({ channels }: { channels: RedisChannelStat[] }) {
+  const columns: ColumnsType<RedisChannelStat> = [
     {
       title: 'Channel',
       dataIndex: 'channel',
@@ -192,7 +196,7 @@ function ChannelsTable({ channels }: { channels: PubSubChannelStat[] }) {
       title: 'Subscribers',
       align: 'right',
       render: (_, channel) =>
-        channel.subscribers > 0 ? (
+        channel.subscribers > 0n ? (
           channel.subscribers.toLocaleString()
         ) : (
           <span style={{ color: 'var(--color-orange)' }}>0 — no listener</span>

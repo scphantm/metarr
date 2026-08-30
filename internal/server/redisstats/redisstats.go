@@ -18,7 +18,9 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
+	metarrv1 "Metarr/internal/genproto/metarr/v1"
 	"Metarr/internal/shared/eventbus"
 )
 
@@ -32,103 +34,54 @@ func New(client redis.UniversalClient) *Collector {
 	return &Collector{client: client}
 }
 
-// Snapshot is everything the collector knows at one instant.
-type Snapshot struct {
-	CollectedAt time.Time     `json:"collected_at"`
-	Server      ServerInfo    `json:"server"`
-	Streams     []StreamStat  `json:"streams"`
-	PubSub      []ChannelStat `json:"pubsub"`
-}
-
-// ServerInfo holds the instance-wide counters, read from INFO and DBSIZE.
-type ServerInfo struct {
-	Version          string `json:"version"`
-	UptimeSeconds    int64  `json:"uptime_seconds"`
-	ConnectedClients int64  `json:"connected_clients"`
-	UsedMemory       int64  `json:"used_memory"`
-	UsedMemoryHuman  string `json:"used_memory_human"`
-	OpsPerSecond     int64  `json:"ops_per_second"`
-	TotalKeys        int64  `json:"total_keys"`
-}
-
-// StreamStat is one event stream and the consumer groups reading it.
-type StreamStat struct {
-	Stream    string `json:"stream"`
-	EventName string `json:"event_name"`
-	Length    int64  `json:"length"`
-	// Exists distinguishes an empty stream from one that has never been
-	// created. Streams are created lazily, when a listener first subscribes,
-	// so a length of zero on its own is ambiguous.
-	Exists bool        `json:"exists"`
-	Groups []GroupStat `json:"groups"`
-	// Error records a per-stream failure. One unreadable stream should not
-	// cost the caller the rest of the snapshot.
-	Error string `json:"error,omitempty"`
-}
-
-// GroupStat is one consumer group's position on a stream.
-type GroupStat struct {
-	Name            string         `json:"name"`
-	Consumers       int64          `json:"consumers"`
-	Pending         int64          `json:"pending"`
-	Lag             int64          `json:"lag"`
-	LastDeliveredID string         `json:"last_delivered_id"`
-	ConsumerDetail  []ConsumerStat `json:"consumer_detail"`
-}
-
-// ConsumerStat is a single consumer within a group.
-type ConsumerStat struct {
-	Name        string `json:"name"`
-	Pending     int64  `json:"pending"`
-	IdleSeconds int64  `json:"idle_seconds"`
-}
-
-// ChannelStat is one Pub/Sub channel. It carries no message count because
-// Redis Pub/Sub queues nothing — see the package comment.
-type ChannelStat struct {
-	Channel     string `json:"channel"`
-	Subscribers int64  `json:"subscribers"`
-	// Known marks the application's declared channels. Channels discovered
-	// at runtime — the per-correlation-id reply channels — come back false,
-	// since they exist only while a request is in flight.
-	Known bool `json:"known"`
-}
+// The snapshot model. Every type here is an alias to the generated
+// metarr.v1 message that defines it — proto is the single definition for a
+// model that crosses a language boundary, and this one crosses the wire to
+// the dashboard. See docs/adr/0005.
+type (
+	Snapshot     = metarrv1.RedisSnapshot
+	ServerInfo   = metarrv1.RedisServerInfo
+	StreamStat   = metarrv1.RedisStreamStat
+	GroupStat    = metarrv1.RedisGroupStat
+	ConsumerStat = metarrv1.RedisConsumerStat
+	ChannelStat  = metarrv1.RedisChannelStat
+)
 
 // Collect gathers a snapshot. Errors reading an individual stream are
 // recorded on that stream rather than returned; only a failure to reach the
 // server at all is returned as an error.
-func (c *Collector) Collect(ctx context.Context) (Snapshot, error) {
+func (c *Collector) Collect(ctx context.Context) (*Snapshot, error) {
 	server, err := c.collectServer(ctx)
 	if err != nil {
-		return Snapshot{}, err
+		return nil, err
 	}
 
 	pubsub, err := c.collectPubSub(ctx)
 	if err != nil {
-		return Snapshot{}, err
+		return nil, err
 	}
 
-	return Snapshot{
-		CollectedAt: time.Now().UTC(),
+	return &Snapshot{
+		CollectedAt: timestamppb.New(time.Now().UTC()),
 		Server:      server,
 		Streams:     c.collectStreams(ctx),
-		PubSub:      pubsub,
+		Pubsub:      pubsub,
 	}, nil
 }
 
-func (c *Collector) collectServer(ctx context.Context) (ServerInfo, error) {
+func (c *Collector) collectServer(ctx context.Context) (*ServerInfo, error) {
 	raw, err := c.client.Info(ctx, "server", "clients", "memory", "stats").Result()
 	if err != nil {
-		return ServerInfo{}, err
+		return nil, err
 	}
 	fields := parseInfo(raw)
 
 	keys, err := c.client.DBSize(ctx).Result()
 	if err != nil {
-		return ServerInfo{}, err
+		return nil, err
 	}
 
-	return ServerInfo{
+	return &ServerInfo{
 		Version:          fields["redis_version"],
 		UptimeSeconds:    infoInt(fields, "uptime_in_seconds"),
 		ConnectedClients: infoInt(fields, "connected_clients"),
@@ -139,11 +92,11 @@ func (c *Collector) collectServer(ctx context.Context) (ServerInfo, error) {
 	}, nil
 }
 
-func (c *Collector) collectStreams(ctx context.Context) []StreamStat {
+func (c *Collector) collectStreams(ctx context.Context) []*StreamStat {
 	topics := eventbus.KnownStreams()
 	topics = append(topics, c.discoverStreams(ctx, topics)...)
 
-	stats := make([]StreamStat, 0, len(topics))
+	stats := make([]*StreamStat, 0, len(topics))
 	for _, topic := range topics {
 		stats = append(stats, c.collectStream(ctx, topic))
 	}
@@ -202,11 +155,11 @@ func groupForAgentStream(stream string) string {
 	return "agent_" + slug + "_group"
 }
 
-func (c *Collector) collectStream(ctx context.Context, topic eventbus.StreamTopic) StreamStat {
-	stat := StreamStat{
+func (c *Collector) collectStream(ctx context.Context, topic eventbus.StreamTopic) *StreamStat {
+	stat := &StreamStat{
 		Stream:    topic.Stream,
 		EventName: topic.EventName,
-		Groups:    []GroupStat{},
+		Groups:    []*GroupStat{},
 	}
 
 	length, err := c.client.XLen(ctx, topic.Stream).Result()
@@ -230,12 +183,12 @@ func (c *Collector) collectStream(ctx context.Context, topic eventbus.StreamTopi
 	stat.Exists = true
 
 	for _, group := range groups {
-		stat.Groups = append(stat.Groups, GroupStat{
+		stat.Groups = append(stat.Groups, &GroupStat{
 			Name:            group.Name,
 			Consumers:       group.Consumers,
 			Pending:         group.Pending,
 			Lag:             group.Lag,
-			LastDeliveredID: group.LastDeliveredID,
+			LastDeliveredId: group.LastDeliveredID,
 			ConsumerDetail:  c.collectConsumers(ctx, topic.Stream, group.Name),
 		})
 	}
@@ -243,15 +196,15 @@ func (c *Collector) collectStream(ctx context.Context, topic eventbus.StreamTopi
 	return stat
 }
 
-func (c *Collector) collectConsumers(ctx context.Context, stream, group string) []ConsumerStat {
+func (c *Collector) collectConsumers(ctx context.Context, stream, group string) []*ConsumerStat {
 	consumers, err := c.client.XInfoConsumers(ctx, stream, group).Result()
 	if err != nil {
-		return []ConsumerStat{}
+		return []*ConsumerStat{}
 	}
 
-	stats := make([]ConsumerStat, 0, len(consumers))
+	stats := make([]*ConsumerStat, 0, len(consumers))
 	for _, consumer := range consumers {
-		stats = append(stats, ConsumerStat{
+		stats = append(stats, &ConsumerStat{
 			Name:        consumer.Name,
 			Pending:     consumer.Pending,
 			IdleSeconds: int64(consumer.Idle.Seconds()),
@@ -261,7 +214,7 @@ func (c *Collector) collectConsumers(ctx context.Context, stream, group string) 
 	return stats
 }
 
-func (c *Collector) collectPubSub(ctx context.Context) ([]ChannelStat, error) {
+func (c *Collector) collectPubSub(ctx context.Context) ([]*ChannelStat, error) {
 	// PUBSUB CHANNELS only lists channels that currently have a subscriber,
 	// so it finds the transient reply channels but would silently omit a
 	// declared channel whose listener is down — exactly the case worth
@@ -285,9 +238,9 @@ func (c *Collector) collectPubSub(ctx context.Context) ([]ChannelStat, error) {
 		return nil, err
 	}
 
-	stats := make([]ChannelStat, 0, len(names))
+	stats := make([]*ChannelStat, 0, len(names))
 	for _, name := range names {
-		stats = append(stats, ChannelStat{
+		stats = append(stats, &ChannelStat{
 			Channel:     name,
 			Subscribers: counts[name],
 			Known:       contains(known, name),
