@@ -7,7 +7,7 @@ import {
   useDeleteSonarrInstance,
   useUpsertSonarrInstance,
 } from '../../api/queries'
-import { storageModes } from '../../api/types'
+import { storageModes } from '../../api/vocab'
 import { SonarrInstanceSchema, type SonarrInstance } from '../../gen/metarr/v1/sonarr_interfaces_pb'
 import { Button, Card, EmptyState, Row } from '../../components/Card'
 import {

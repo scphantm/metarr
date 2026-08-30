@@ -1,66 +1,15 @@
 /*
- * These mirror the Go structs field-for-field, taken from their JSON tags in
- * internal/appconfig and internal/handlers. Where a Go field is a pointer with
- * `omitempty` — a partial-update request — the property here is optional, and
- * carries the same meaning: absent means "leave alone", which is not the same
- * as an empty string.
+ * The still-hand-written half of the model types. Each family below is
+ * retired to its generated metarr.v1 message as its migration slice lands
+ * (see docs/adr/0005); the config families — application config, directory
+ * scanner, Sonarr, logging config — have already gone. Closed vocabularies
+ * the config screens use live in ./vocab.
  */
 
 import type { GraphEdge, GraphNode } from '../pages/workflows/catalogTypes'
 
-export const storageModes = ['cache', 'versioned'] as const
-
-// DirectoryType is the closed vocabulary from mediascan.ParseDirectoryType.
-export const directoryTypes = ['movie', 'tv', 'music_video'] as const
-export type DirectoryType = (typeof directoryTypes)[number]
-
-export type ScanDirectory = {
-  scanner_slug: string
-  scan_type: string
-  directory: string
-}
-
-// SidecarCategory is closed on the Go side (mediascan.ParseSidecarCategory), so
-// the editor offers exactly these and nothing else.
-export const sidecarCategories = [
-  'image',
-  'video_extra',
-  'subtitle',
-  'metadata',
-  'audio',
-  'disc_structure',
-  'trickplay',
-  'unknown',
-] as const
-export type SidecarCategory = (typeof sidecarCategories)[number]
-
-// SidecarTypeDefinition is one row of the classification table.
-//
-// `order` is the evaluation sequence and zero means disabled — the entry stays
-// in the table, still editable, but is never evaluated. It is changed only
-// through the dedicated ordering endpoint, never by editing a row, because
-// uniqueness is a property of the whole table.
-export type SidecarTypeDefinition = {
-  id: string
-  type: string
-  category: string
-  order: number
-  patterns: string[]
-  extensions: string[]
-}
-
-export type DirectoryScannerConfig = {
-  parallel_count: number
-  scan_directories: ScanDirectory[]
-  sidecar_types: SidecarTypeDefinition[]
-}
-
-export type UpdateDirectoryScannerRequest = {
-  parallel_count?: number
-}
-
 // ReorderSidecarTypesRequest maps every sidecar type id to its order, covering
-// the whole table in one transaction.
+// the whole table in one transaction. Not a model — a map keyed by id.
 export type ReorderSidecarTypesRequest = Record<string, number>
 
 // AcceptedResponse is what every mutation returns. The status is 202 and the
@@ -211,22 +160,9 @@ export type AgentConfig = {
 /*
  * Logging.
  *
- * The server's own level, plus a per-agent level set on each AgentView above.
- * sink/endpoint/stream are informational only — they describe what Fluent Bit
- * is currently configured to ship to, and drive the "Open in OpenObserve"
- * link, but changing them here does not reconfigure the pipeline. Actually
- * repointing it at a different vendor is a Fluent Bit config change.
+ * The logging config itself is the generated metarr.v1.LoggingConfig now;
+ * only the tail entry stays hand-written until the log-record slice lands.
  */
-
-export const logLevels = ['info', 'debug'] as const
-export type LogLevel = (typeof logLevels)[number]
-
-export type LoggingConfig = {
-  server_level: string
-  sink: string
-  endpoint: string
-  stream: string
-}
 
 export type LogTailEntry = {
   time: string

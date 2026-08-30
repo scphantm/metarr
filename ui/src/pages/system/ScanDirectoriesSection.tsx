@@ -6,7 +6,10 @@ import {
   useDeleteScanDirectory,
   useUpsertScanDirectory,
 } from '../../api/queries'
-import { directoryTypes, type ScanDirectory } from '../../api/types'
+import { directoryTypes } from '../../api/vocab'
+import type { ScanDirectory } from '../../gen/metarr/v1/directory_scanner_pb'
+import { ScanDirectorySchema } from '../../gen/metarr/v1/directory_scanner_pb'
+import type { MessageInitShape } from '@bufbuild/protobuf'
 import { Button, Card, EmptyState, Row } from '../../components/Card'
 import {
   EditableSelect,
@@ -47,20 +50,20 @@ export function ScanDirectoriesSection({
 
       <Space direction="vertical" size={12} style={{ width: '100%' }}>
         {directories.map((directory) => (
-          <div key={directory.scanner_slug} className="scan-directory-card">
+          <div key={directory.scannerSlug} className="scan-directory-card">
             <div className="scan-directory-card-header">
               <Typography.Text className="scan-directory-slug">
-                {directory.scanner_slug}
+                {directory.scannerSlug}
               </Typography.Text>
               <Button
                 variant="danger"
                 onClick={() => {
                   if (
                     window.confirm(
-                      `Remove the scan directory "${directory.scanner_slug}"? Records already scanned from it are not deleted.`,
+                      `Remove the scan directory "${directory.scannerSlug}"? Records already scanned from it are not deleted.`,
                     )
                   ) {
-                    void remove.mutateAsync(directory.scanner_slug)
+                    void remove.mutateAsync(directory.scannerSlug)
                   }
                 }}
               >
@@ -88,10 +91,10 @@ export function ScanDirectoriesSection({
               <EditableSelect
                 label="Scan type"
                 queryKey={queryKeys.scanDirectories}
-                value={directory.scan_type}
+                value={directory.scanType}
                 options={directoryTypes}
                 onSave={(value) =>
-                  upsert.mutateAsync({ ...directory, scan_type: value })
+                  upsert.mutateAsync({ ...directory, scanType: value })
                 }
               />
             </Row>
@@ -101,7 +104,7 @@ export function ScanDirectoriesSection({
 
       {adding ? (
         <NewScanDirectory
-          existingSlugs={directories.map((entry) => entry.scanner_slug)}
+          existingSlugs={directories.map((entry) => entry.scannerSlug)}
           onCancel={() => setAdding(false)}
           onCreate={async (entry) => {
             await upsert.mutateAsync(entry)
@@ -119,7 +122,7 @@ function NewScanDirectory({
   onCancel,
 }: {
   existingSlugs: string[]
-  onCreate: (entry: ScanDirectory) => Promise<void>
+  onCreate: (entry: MessageInitShape<typeof ScanDirectorySchema>) => Promise<void>
   onCancel: () => void
 }) {
   const [slug, setSlug] = useState('')
@@ -142,9 +145,9 @@ function NewScanDirectory({
     }
     setError(null)
     await onCreate({
-      scanner_slug: slug.trim(),
+      scannerSlug: slug.trim(),
       directory: directory.trim(),
-      scan_type: scanType,
+      scanType: scanType,
     })
   }
 

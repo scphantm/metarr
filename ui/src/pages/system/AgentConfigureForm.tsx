@@ -21,7 +21,7 @@ export function AgentConfigureForm({
   onDone,
 }: {
   agent: AgentView
-  scanDirectories: { scanner_slug: string; directory: string }[]
+  scanDirectories: { scannerSlug: string; directory: string }[]
   onDone: () => void
 }) {
   const upsert = useUpsertAgent()
@@ -108,9 +108,9 @@ export function AgentConfigureForm({
         ) : (
           <Space direction="vertical" size={8} style={{ width: '100%' }}>
             {scanDirectories.map((directory) => (
-              <div key={directory.scanner_slug} className="agent-configure-row">
+              <div key={directory.scannerSlug} className="agent-configure-row">
                 <div className="agent-configure-row-label">
-                  <div className="agent-configure-row-slug">{directory.scanner_slug}</div>
+                  <div className="agent-configure-row-slug">{directory.scannerSlug}</div>
                   <div className="agent-configure-row-path" title={directory.directory}>
                     {directory.directory}
                   </div>
@@ -119,14 +119,14 @@ export function AgentConfigureForm({
                   →
                 </Typography.Text>
                 <Input
-                  value={paths[directory.scanner_slug] ?? ''}
+                  value={paths[directory.scannerSlug] ?? ''}
                   placeholder="not reachable from this agent"
-                  aria-label={`Path for ${directory.scanner_slug} on ${agent.slug}`}
+                  aria-label={`Path for ${directory.scannerSlug} on ${agent.slug}`}
                   className="editable-field-mono agent-configure-row-input"
                   onChange={(event) =>
                     setPaths((current) => ({
                       ...current,
-                      [directory.scanner_slug]: event.target.value,
+                      [directory.scannerSlug]: event.target.value,
                     }))
                   }
                 />
