@@ -80,19 +80,6 @@ func sidecarTypesSeedStep(cfg *appconfig.Config) (bool, error) {
 	return true, nil
 }
 
-// agentsNormalizeStep normalizes a nil Agents slice (decoded from a
-// database predating this field) to []. Agents start as an empty list
-// rather than being seeded with anything: an agent exists because someone
-// deployed one and then said what it may see, and inventing a default would
-// mean guessing at a machine that may not be there.
-func agentsNormalizeStep(cfg *appconfig.Config) (bool, error) {
-	if cfg.Agents != nil {
-		return false, nil
-	}
-	cfg.Agents = []*appconfig.AgentConfig{}
-	return true, nil
-}
-
 // loggingDefaultsStep seeds the logging config for a database predating the
 // logging pipeline, which would otherwise leave the level threshold at its
 // zero value (every level including Debug — the opposite of the quiet

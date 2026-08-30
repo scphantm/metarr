@@ -25,7 +25,7 @@ type builtinDefaultsDoc struct {
 		ParallelCount int32 `json:"parallel_count"`
 	} `json:"directory_scanner"`
 	SidecarTypes []*SidecarTypeDefinition `json:"sidecar_types"`
-	Logging      LoggingConfig           `json:"logging"`
+	Logging      *LoggingConfig           `json:"logging"`
 	Admin        struct {
 		Username string `json:"username"`
 		Email    string `json:"email"`

@@ -28,17 +28,16 @@ message AdminUser {
   string password_hash = 4;
 }
 
-// APIKeyEntry mirrors internal/shared/appconfig.APIKeyEntry. id is the
-// stable handle a scoped edit addresses this entry by; it is empty only
-// when a client is proposing a brand new entry that has not been minted
-// one yet.
+// APIKeyEntry is a single named API key. id is the stable handle a scoped
+// edit addresses this entry by; it is empty only when a client is proposing
+// a brand new entry that has not been minted one yet.
 message APIKeyEntry {
   string name = 1;
   string api_key = 2;
   string id = 3;
 }
 
-// APIKeysConfig mirrors internal/shared/appconfig.APIKeysConfig.
+// APIKeysConfig groups the API keys issued for each access-level category.
 message APIKeysConfig {
   repeated APIKeyEntry admin = 1;
   repeated APIKeyEntry user = 2;
@@ -46,13 +45,17 @@ message APIKeysConfig {
   repeated APIKeyEntry read_only = 4;
 }
 
-// InterfacesConfig mirrors internal/shared/appconfig.InterfacesConfig.
+// InterfacesConfig groups the configuration for every external service
+// interface Metarr integrates with.
 message InterfacesConfig {
   repeated SonarrInstance sonarr = 1;
 }
 
-// Config mirrors internal/shared/appconfig.Config field-for-field — the
-// whole application configuration document.
+// Config is the whole application configuration document. It is the single
+// definition of that document: the Go server (internal/shared/appconfig
+// aliases these messages), the TypeScript UI, and the stored Mongo document
+// all read this one shape. The singleton _id the document is stored under
+// is a storage concern and deliberately not a field here.
 message Config {
   APIKeysConfig api_keys = 1;
   AdminUser admin = 2;

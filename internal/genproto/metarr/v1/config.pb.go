@@ -100,10 +100,9 @@ func (x *AdminUser) GetPasswordHash() string {
 	return ""
 }
 
-// APIKeyEntry mirrors internal/shared/appconfig.APIKeyEntry. id is the
-// stable handle a scoped edit addresses this entry by; it is empty only
-// when a client is proposing a brand new entry that has not been minted
-// one yet.
+// APIKeyEntry is a single named API key. id is the stable handle a scoped
+// edit addresses this entry by; it is empty only when a client is proposing
+// a brand new entry that has not been minted one yet.
 type APIKeyEntry struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -164,7 +163,7 @@ func (x *APIKeyEntry) GetId() string {
 	return ""
 }
 
-// APIKeysConfig mirrors internal/shared/appconfig.APIKeysConfig.
+// APIKeysConfig groups the API keys issued for each access-level category.
 type APIKeysConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Admin         []*APIKeyEntry         `protobuf:"bytes,1,rep,name=admin,proto3" json:"admin,omitempty"`
@@ -233,7 +232,8 @@ func (x *APIKeysConfig) GetReadOnly() []*APIKeyEntry {
 	return nil
 }
 
-// InterfacesConfig mirrors internal/shared/appconfig.InterfacesConfig.
+// InterfacesConfig groups the configuration for every external service
+// interface Metarr integrates with.
 type InterfacesConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Sonarr        []*SonarrInstance      `protobuf:"bytes,1,rep,name=sonarr,proto3" json:"sonarr,omitempty"`
@@ -278,8 +278,11 @@ func (x *InterfacesConfig) GetSonarr() []*SonarrInstance {
 	return nil
 }
 
-// Config mirrors internal/shared/appconfig.Config field-for-field — the
-// whole application configuration document.
+// Config is the whole application configuration document. It is the single
+// definition of that document: the Go server (internal/shared/appconfig
+// aliases these messages), the TypeScript UI, and the stored Mongo document
+// all read this one shape. The singleton _id the document is stored under
+// is a storage concern and deliberately not a field here.
 type Config struct {
 	state            protoimpl.MessageState  `protogen:"open.v1"`
 	ApiKeys          *APIKeysConfig          `protobuf:"bytes,1,opt,name=api_keys,json=apiKeys,proto3" json:"api_keys,omitempty"`

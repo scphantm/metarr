@@ -49,7 +49,7 @@ func (s *DirectoryScannerServer) Get(
 ) (*connect.Response[metarrv1.DirectoryScannerServiceGetResponse], error) {
 	appConfig := appconfig.Get()
 	return connect.NewResponse(&metarrv1.DirectoryScannerServiceGetResponse{
-		Config: directoryScannerConfigToProto(appConfig.DirectoryScanner),
+		Config: cloneMsg(appConfig.DirectoryScanner),
 	}), nil
 }
 
@@ -84,7 +84,7 @@ func (s *DirectoryScannerServer) ListDirectories(
 
 	dirs := make([]*metarrv1.ScanDirectory, 0, len(appConfig.DirectoryScanner.ScanDirectories))
 	for _, dir := range appConfig.DirectoryScanner.ScanDirectories {
-		dirs = append(dirs, scanDirectoryToProto(dir))
+		dirs = append(dirs, cloneMsg(dir))
 	}
 	return connect.NewResponse(&metarrv1.DirectoryScannerServiceListDirectoriesResponse{Directories: dirs}), nil
 }
@@ -100,7 +100,7 @@ func (s *DirectoryScannerServer) GetDirectory(
 		return nil, connectError(http.StatusNotFound, errors.New("no scan directory with that slug"))
 	}
 	return connect.NewResponse(&metarrv1.DirectoryScannerServiceGetDirectoryResponse{
-		Directory: scanDirectoryToProto(appConfig.DirectoryScanner.ScanDirectories[index]),
+		Directory: cloneMsg(appConfig.DirectoryScanner.ScanDirectories[index]),
 	}), nil
 }
 
@@ -110,7 +110,12 @@ func (s *DirectoryScannerServer) UpsertDirectory(
 ) (*connect.Response[metarrv1.AcceptedResponse], error) {
 	correlationID := correlation.FromContext(ctx)
 
-	entry := scanDirectoryFromProto(req.Msg.GetDirectory())
+	entry := req.Msg.GetDirectory()
+	if entry == nil {
+		entry = &appconfig.ScanDirectory{}
+	} else {
+		entry = cloneMsg(entry)
+	}
 	if entry.ScannerSlug == "" {
 		return nil, connectError(http.StatusBadRequest, errors.New("scanner_slug is required"))
 	}
@@ -166,7 +171,7 @@ func (s *DirectoryScannerServer) ListSidecarTypes(
 
 	types := make([]*metarrv1.SidecarTypeDefinition, 0, len(appConfig.DirectoryScanner.SidecarTypes))
 	for _, def := range appConfig.DirectoryScanner.SidecarTypes {
-		types = append(types, sidecarTypeDefinitionToProto(def))
+		types = append(types, cloneMsg(def))
 	}
 	return connect.NewResponse(&metarrv1.DirectoryScannerServiceListSidecarTypesResponse{Types: types}), nil
 }
@@ -182,7 +187,7 @@ func (s *DirectoryScannerServer) GetSidecarType(
 		return nil, connectError(http.StatusNotFound, errors.New("no sidecar type with that id"))
 	}
 	return connect.NewResponse(&metarrv1.DirectoryScannerServiceGetSidecarTypeResponse{
-		Type: sidecarTypeDefinitionToProto(appConfig.DirectoryScanner.SidecarTypes[index]),
+		Type: cloneMsg(appConfig.DirectoryScanner.SidecarTypes[index]),
 	}), nil
 }
 
@@ -192,7 +197,12 @@ func (s *DirectoryScannerServer) UpsertSidecarType(
 ) (*connect.Response[metarrv1.AcceptedResponse], error) {
 	correlationID := correlation.FromContext(ctx)
 
-	entry := sidecarTypeDefinitionFromProto(req.Msg.GetType())
+	entry := req.Msg.GetType()
+	if entry == nil {
+		entry = &appconfig.SidecarTypeDefinition{}
+	} else {
+		entry = cloneMsg(entry)
+	}
 	if entry.Type == "" {
 		return nil, connectError(http.StatusBadRequest, errors.New("type is required"))
 	}

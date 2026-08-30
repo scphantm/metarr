@@ -45,6 +45,43 @@ func TestConfigServerGet_ReadsLiveConfig(t *testing.T) {
 	}
 }
 
+// TestConfigServerGet_RedactsAdminCredentialsWithoutDisturbingLiveConfig is
+// the one genuinely new invariant of the config generation slice: a read of
+// the application config returns blanked admin credentials, AND leaves the
+// stored credentials intact. Both halves matter — live config holds the
+// running server's own password hash, and a redaction that mutated it in
+// place would lock the administrator out until the next reload.
+func TestConfigServerGet_RedactsAdminCredentialsWithoutDisturbingLiveConfig(t *testing.T) {
+	withLiveConfig(t, &appconfig.Config{
+		Admin: &appconfig.AdminUser{
+			Username:     "admin",
+			Email:        "admin@example.com",
+			PasswordSalt: "live-salt",
+			PasswordHash: "live-hash",
+		},
+	})
+
+	server := &ConfigServer{Handlers: &handlers.Handlers{}}
+
+	resp, err := server.Get(context.Background(), connect.NewRequest(&metarrv1.ConfigServiceGetRequest{}))
+	if err != nil {
+		t.Fatalf("Get returned error: %v", err)
+	}
+
+	admin := resp.Msg.GetConfig().GetAdmin()
+	if admin.GetPasswordSalt() != "" || admin.GetPasswordHash() != "" {
+		t.Errorf("response carried admin credentials: salt=%q hash=%q", admin.GetPasswordSalt(), admin.GetPasswordHash())
+	}
+	if admin.GetUsername() != "admin" || admin.GetEmail() != "admin@example.com" {
+		t.Errorf("response dropped the admin identity: %+v", admin)
+	}
+
+	live := appconfig.Get().Admin
+	if live.PasswordSalt != "live-salt" || live.PasswordHash != "live-hash" {
+		t.Fatalf("a config read erased the running server's own credentials: %+v", live)
+	}
+}
+
 func TestDirectoryScannerServerGetDirectory_ReadsLiveConfig(t *testing.T) {
 	withLiveConfig(t, &appconfig.Config{
 		DirectoryScanner: &appconfig.DirectoryScannerConfig{

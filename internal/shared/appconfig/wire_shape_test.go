@@ -4,30 +4,24 @@ import (
 	"encoding/json"
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
+
+	"google.golang.org/protobuf/proto"
 )
 
-// The Go field names on these types are spelled to match what the protobuf
-// generator produces for the same fields, so that swapping the hand-written
-// struct for the generated message is not also a rename of every call site.
-// The names that actually reach a stored document or the wire are the struct
-// tags, and those are deliberately *not* spelled that way — api_keys stays
-// api_keys, not apiKeys.
-//
-// That split is the whole reason the reshaping was safe, and it is invisible
-// in ordinary use: nothing fails at runtime if someone "tidies" a tag to
-// match its field. These tests are what fails instead.
+// The config document is stored and transported through MarshalStored /
+// UnmarshalStored — protojson with proto field names and every field
+// emitted. These tests pin the two properties that gives the stored
+// document: the field names an operator inspecting the collection sees are
+// the snake_case proto names, and a document written and read back is
+// unchanged.
 
-// TestConfigJSONKeysAreStable pins the serialized key names for the config
-// document. A renamed Go field that drags its tag along with it changes what
-// is written to the database and sent over the wire, which no other test in
-// the suite would notice.
-func TestConfigJSONKeysAreStable(t *testing.T) {
-	// Every field is populated, including the omitempty ones, so that no key
-	// is absent from the encoding merely because it was left at zero.
+// TestMarshalStoredUsesProtoFieldNames pins the serialized key names for the
+// config document. protojson defaults to camelCase; UseProtoNames is what
+// keeps api_keys as api_keys, and a regression there changes what is written
+// to the database.
+func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 	config := Default()
-	config.ID = SingletonID
 	config.Admin = &AdminUser{
 		Username: "admin", Email: "admin@example.com",
 		PasswordSalt: "salt", PasswordHash: "hash",
@@ -50,7 +44,7 @@ func TestConfigJSONKeysAreStable(t *testing.T) {
 		Mappings: []*AgentDirectoryMapping{{ScannerSlug: "s", AgentPath: "/p"}},
 	}}
 
-	encoded, err := json.Marshal(config)
+	encoded, err := MarshalStored(config)
 	if err != nil {
 		t.Fatalf("marshalling the config: %v", err)
 	}
@@ -106,13 +100,61 @@ func TestConfigJSONKeysAreStable(t *testing.T) {
 	})
 
 	// _id identifies the stored document rather than describing a setting,
-	// so it is the one field deliberately absent from the wire encoding.
+	// so it is deliberately not a field on the message and never in the
+	// encoding.
 	if _, present := document["_id"]; present {
-		t.Error("config carries _id on the wire; it belongs only to the stored document")
+		t.Error("config carries _id in its encoding; that belongs only to the stored document envelope")
 	}
 }
 
-// first returns the first element of the array at document[section][key].
+// TestMarshalStoredEmitsUnpopulatedFields is the "lists every setting"
+// property: a freshly defaulted config with an empty logging section still
+// serializes every logging key, so the stored document is self-describing
+// rather than showing only the fields that differ from zero.
+func TestMarshalStoredEmitsUnpopulatedFields(t *testing.T) {
+	config := Default()
+	config.Logging = &LoggingConfig{} // every field at its zero value
+
+	encoded, err := MarshalStored(config)
+	if err != nil {
+		t.Fatalf("marshalling the config: %v", err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(encoded, &document); err != nil {
+		t.Fatalf("decoding: %v", err)
+	}
+	assertKeys(t, "config.logging", document["logging"], []string{
+		"endpoint", "server_level", "sink", "stream",
+	})
+}
+
+// TestStoredRoundTrip is the store-level property the Mongo repo and the
+// config-update event payload both rely on: a config marshalled and
+// unmarshalled again is the same config.
+func TestStoredRoundTrip(t *testing.T) {
+	original := Default()
+	original.Admin = &AdminUser{Username: "admin", Email: "a@b.c", PasswordSalt: "s", PasswordHash: "h"}
+	original.ApiKeys.User = []*APIKeyEntry{{Id: "u1", Name: "ci", ApiKey: "secret"}}
+	original.Interfaces.Sonarr = []*SonarrInstance{{
+		InstanceSlug: "main", SonarrUrl: "http://sonarr", SonarrApiKey: "k",
+		Storage: &StorageConfig{Mode: "versioned", MaxCount: 5},
+	}}
+	original.Logging = &LoggingConfig{ServerLevel: LogLevelDebug, Sink: "openobserve"}
+
+	encoded, err := MarshalStored(original)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	decoded, err := UnmarshalStored(encoded)
+	if err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	if !proto.Equal(original, decoded) {
+		t.Fatalf("round trip changed the document:\n got %v\nwant %v", decoded, original)
+	}
+}
+
 func first(t *testing.T, document map[string]any, section, key string) any {
 	t.Helper()
 	object, ok := document[section].(map[string]any)
@@ -122,7 +164,6 @@ func first(t *testing.T, document map[string]any, section, key string) any {
 	return firstOf(t, object[key])
 }
 
-// firstOf returns the first element of value, which must be a non-empty array.
 func firstOf(t *testing.T, value any) any {
 	t.Helper()
 	array, ok := value.([]any)
@@ -133,57 +174,6 @@ func firstOf(t *testing.T, value any) any {
 		t.Fatal("expected a populated array; the fixture must set every field")
 	}
 	return array[0]
-}
-
-// TestConfigBSONTagsMatchJSONTags guards the other half: the stored document
-// and the wire payload have always used the same names, so a change to one
-// without the other would make a document written by one build unreadable by
-// the next.
-//
-// The two tags are compared rather than pinned to a list, because their
-// agreement is the property that matters and it holds for every field.
-func TestConfigBSONTagsMatchJSONTags(t *testing.T) {
-	types := []reflect.Type{
-		reflect.TypeOf(Config{}),
-		reflect.TypeOf(APIKeysConfig{}),
-		reflect.TypeOf(APIKeyEntry{}),
-		reflect.TypeOf(AdminUser{}),
-		reflect.TypeOf(InterfacesConfig{}),
-		reflect.TypeOf(SonarrInstance{}),
-		reflect.TypeOf(RootDirMapping{}),
-		reflect.TypeOf(StorageConfig{}),
-		reflect.TypeOf(DirectoryScannerConfig{}),
-		reflect.TypeOf(ScanDirectory{}),
-		reflect.TypeOf(SidecarTypeDefinition{}),
-		reflect.TypeOf(AgentConfig{}),
-		reflect.TypeOf(AgentDirectoryMapping{}),
-		reflect.TypeOf(LoggingConfig{}),
-	}
-
-	for _, structType := range types {
-		for i := range structType.NumField() {
-			field := structType.Field(i)
-			bsonName := tagName(field.Tag.Get("bson"))
-			jsonName := tagName(field.Tag.Get("json"))
-
-			// Config.ID is the stored document's _id and is deliberately
-			// absent from the wire — the one field where the two disagree.
-			if structType == reflect.TypeOf(Config{}) && field.Name == "ID" {
-				continue
-			}
-			if bsonName != jsonName {
-				t.Errorf("%s.%s: bson name %q and json name %q disagree; the stored and wire shapes must match",
-					structType.Name(), field.Name, bsonName, jsonName)
-			}
-		}
-	}
-}
-
-// tagName is the name portion of a struct tag, dropping options like
-// omitempty.
-func tagName(tag string) string {
-	name, _, _ := strings.Cut(tag, ",")
-	return name
 }
 
 func assertKeys(t *testing.T, where string, value any, want []string) {

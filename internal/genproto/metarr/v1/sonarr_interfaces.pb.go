@@ -21,8 +21,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// SonarrInstance mirrors internal/shared/appconfig.SonarrInstance
-// field-for-field.
+// SonarrInstance configures a single Sonarr instance to cache data from.
+// This message is the single definition of that config across the Go
+// server, the UI and the stored document.
 type SonarrInstance struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	InstanceName  string                 `protobuf:"bytes,1,opt,name=instance_name,json=instanceName,proto3" json:"instance_name,omitempty"`

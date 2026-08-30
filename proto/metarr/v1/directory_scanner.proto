@@ -6,21 +6,28 @@ import "metarr/v1/common.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
-// DirectoryScannerConfig mirrors internal/shared/appconfig.DirectoryScannerConfig.
+// DirectoryScannerConfig controls the background filesystem scanner: how
+// many directories it scans concurrently, which it scans, and how it
+// classifies the sidecar files it finds. This message is the single
+// definition of that config across the Go server, the UI and storage.
 message DirectoryScannerConfig {
   int32 parallel_count = 1;
   repeated ScanDirectory scan_directories = 2;
   repeated SidecarTypeDefinition sidecar_types = 3;
 }
 
-// ScanDirectory mirrors internal/shared/appconfig.ScanDirectory.
+// ScanDirectory is one filesystem path the directory scanner watches,
+// tagged with the media type expected under it.
 message ScanDirectory {
   string scanner_slug = 1;
   string scan_type = 2;
   string directory = 3;
 }
 
-// SidecarTypeDefinition mirrors internal/shared/appconfig.SidecarTypeDefinition.
+// SidecarTypeDefinition is one entry in the sidecar classification table.
+// patterns are case-insensitive Go regexps matched against a file base name;
+// extensions gates the match; order is the evaluation sequence, zero meaning
+// disabled.
 message SidecarTypeDefinition {
   string id = 1;
   string type = 2;

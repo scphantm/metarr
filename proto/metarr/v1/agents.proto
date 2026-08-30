@@ -7,8 +7,9 @@ import "metarr/v1/common.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
-// AgentConfig mirrors internal/shared/appconfig.AgentConfig — the operator's
-// side of one agent's configuration.
+// AgentConfig is the operator's side of one agent's configuration — what an
+// operator says about an agent that has announced itself. It is part of the
+// application config document.
 message AgentConfig {
   string slug = 1;
   string display_name = 2;
@@ -16,7 +17,8 @@ message AgentConfig {
   string log_level = 4;
 }
 
-// AgentDirectoryMapping mirrors internal/shared/appconfig.AgentDirectoryMapping.
+// AgentDirectoryMapping ties one configured scan directory to the path the
+// agent knows it by.
 message AgentDirectoryMapping {
   string scanner_slug = 1;
   string agent_path = 2;
