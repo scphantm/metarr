@@ -5,7 +5,7 @@ description: Run Metarr's linters the cheap way — golangci-lint for Go, stylel
 
 # Lint
 
-`make lint` runs `lint-go` (`go tool golangci-lint run ./...`) and `lint-ui` (`npm run lint` = ESLint + stylelint). Both are already silent on a clean pass (`golangci-lint`: one line, `0 issues.`; `stylelint`: nothing at all) — there's no verbose flag to avoid here. The token cost to manage is running the wrong scope, not reading noisy output.
+`make lint` runs `lint-go` (`go tool golangci-lint run ./...`) and `lint-ui` (`yarn workspace @metarr/metarr-ui run lint` = ESLint + stylelint). Both are already silent on a clean pass (`golangci-lint`: one line, `0 issues.`; `stylelint`: nothing at all) — there's no verbose flag to avoid here. The token cost to manage is running the wrong scope, not reading noisy output.
 
 ## Go — golangci-lint
 
@@ -23,7 +23,7 @@ This repo has exactly one `.css` file (`src/index.css` as of this writing) — t
 
 ## TypeScript/TSX — see `ui-checks`
 
-ESLint is `lint-ui`'s other half but has its own skill (`ui-checks`) alongside `tsc`, since both are the frontend's only regression signal (no unit test runner exists) rather than a lint-only concern. Don't duplicate that scoping logic here — invoke `ui-checks` for anything touching `ui/src/**/*.{ts,tsx}`.
+ESLint is `lint-ui`'s other half but has its own skill (`ui-checks`) alongside `tsc` and scoped Vitest runs, since all three together are the frontend's regression signal rather than a lint-only concern. Don't duplicate that scoping logic here — invoke `ui-checks` for anything touching `ui/src/**/*.{ts,tsx}`.
 
 ## When `make lint` (the full combined run) is worth it
 

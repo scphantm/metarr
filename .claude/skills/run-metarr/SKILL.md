@@ -27,7 +27,7 @@ From repo root:
 ```bash
 docker compose up -d          # Bring up mongodb:27017, redis:6379 (pass "metarr"), mongo-express, openobserve, fluent-bit, redis-insight
 docker compose ps --status=running  # Verify mongodb and redis are healthy
-npm ci --prefix=ui            # Install UI dependencies (one-time)
+yarn workspace @metarr/metarr-ui install  # Install UI dependencies (one-time) — matches `make ui-install`; the repo's real lockfile is root yarn.lock, not ui/package-lock.json
 npx playwright install chromium  # Install browser (one-time, if not already done)
 ```
 
@@ -38,8 +38,7 @@ All three components are built fresh each run:
 ```bash
 go build -o bin/metarr-server ./cmd/metarr-server
 go build -o bin/metarr-agent ./cmd/metarr-agent
-cd ui && npm run build        # Optional; dev server builds on demand
-cd ..
+yarn workspace @metarr/metarr-ui run build   # Optional; dev server builds on demand. Matches `make ui-build` (also syncs ui/package.json's version from VERSION — plain `npm run build` skips that step)
 ```
 
 ## Run (agent path)
@@ -125,17 +124,19 @@ Logs: `/tmp/metarr-ui.log`.
 
 ### Step 5: Cleanup
 
+Each step above (`smoke-server.sh`, `smoke-agent.sh`, `npm run dev`) runs as its own backgrounded process from its own command invocation, so a `$SERVER_PID`/`$AGENT_PID`/`$UI_PID` captured in one command's shell is not visible to a later command — the harness does not persist shell state (env vars, backgrounded job table) between separate tool calls, only the working directory. Kill by matching the process, not by a variable from an earlier step:
+
 ```bash
 # Kill processes (reverse order of launch)
-kill "$UI_PID" 2>/dev/null || true
-kill "$AGENT_PID" 2>/dev/null || true
-kill "$SERVER_PID" 2>/dev/null || true
+pkill -f 'npm run dev' || true
+pkill -f 'bin/metarr-agent' || true
+pkill -f 'bin/metarr-server' || true
 
 # Shut down docker-compose (does NOT wipe volumes — preserves dev data)
 docker compose down
 ```
 
-This matches the project's CLAUDE.md rule: **always kill spawned processes before ending a turn.**
+This matches the project's CLAUDE.md rule: **always kill spawned processes before ending a turn.** (`make down` runs the same three `pkill` patterns plus `docker compose down` in one shot, if you launched via `make run` instead of the smoke scripts.)
 
 ---
 
