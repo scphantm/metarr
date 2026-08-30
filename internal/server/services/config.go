@@ -37,13 +37,20 @@ func (s *ConfigServer) Get(
 	ctx context.Context,
 	req *connect.Request[metarrv1.ConfigServiceGetRequest],
 ) (*connect.Response[metarrv1.ConfigServiceGetResponse], error) {
-	appConfig := appconfig.Get()
+	// The config document is a generated message now — the type the store
+	// persists is the type this handler returns, so there is no conversion.
+	// The response is a clone: it must carry blanked admin credentials, and
+	// live config holds the running server's own password hash, so blanking
+	// in place would erase it and lock the administrator out until the next
+	// reload. UpdateAdmin stays the only write path for a new password.
+	response := cloneMsg(appconfig.Get())
+	if response.Admin != nil {
+		response.Admin.PasswordSalt = ""
+		response.Admin.PasswordHash = ""
+	}
 
-	// Redaction happens implicitly: configToProto's AdminUser conversion
-	// never reads PasswordSalt/PasswordHash off the Go struct at all — see
-	// config.proto's AdminUser doc comment.
 	return connect.NewResponse(&metarrv1.ConfigServiceGetResponse{
-		Config: configToProto(appConfig),
+		Config: response,
 	}), nil
 }
 
@@ -107,7 +114,14 @@ func (s *ConfigServer) UpsertApiKey(
 		return nil, connectError(http.StatusBadRequest, err)
 	}
 
-	entry := apiKeyEntryFromProto(req.Msg.GetEntry())
+	// Cloned out of the inbound request: an entry kept in the persisted
+	// config must not alias a message the RPC layer owns.
+	entry := req.Msg.GetEntry()
+	if entry == nil {
+		entry = &appconfig.APIKeyEntry{}
+	} else {
+		entry = cloneMsg(entry)
+	}
 	creating := entry.Id == ""
 	if creating {
 		entry.Id = uuid.NewString()
@@ -151,126 +165,4 @@ func (s *ConfigServer) DeleteApiKey(
 	}
 
 	return connect.NewResponse(acceptedResponse(correlationID)), nil
-}
-
-func apiKeyEntryFromProto(entry *metarrv1.APIKeyEntry) *appconfig.APIKeyEntry {
-	return &appconfig.APIKeyEntry{Id: entry.GetId(), Name: entry.GetName(), ApiKey: entry.GetApiKey()}
-}
-
-func configToProto(config *appconfig.Config) *metarrv1.Config {
-	return &metarrv1.Config{
-		ApiKeys: apiKeysConfigToProto(config.ApiKeys),
-		Admin: &metarrv1.AdminUser{
-			Username: config.Admin.Username,
-			Email:    config.Admin.Email,
-		},
-		Interfaces:       interfacesConfigToProto(config.Interfaces),
-		DirectoryScanner: directoryScannerConfigToProto(config.DirectoryScanner),
-		Agents:           agentConfigsToProto(config.Agents),
-		Logging: &metarrv1.LoggingConfig{
-			ServerLevel: config.Logging.ServerLevel,
-			Sink:        config.Logging.Sink,
-			Endpoint:    config.Logging.Endpoint,
-			Stream:      config.Logging.Stream,
-		},
-	}
-}
-
-func apiKeysConfigToProto(keys *appconfig.APIKeysConfig) *metarrv1.APIKeysConfig {
-	return &metarrv1.APIKeysConfig{
-		Admin:    apiKeyEntriesToProto(keys.Admin),
-		User:     apiKeyEntriesToProto(keys.User),
-		Webhook:  apiKeyEntriesToProto(keys.Webhook),
-		ReadOnly: apiKeyEntriesToProto(keys.ReadOnly),
-	}
-}
-
-func apiKeyEntriesToProto(entries []*appconfig.APIKeyEntry) []*metarrv1.APIKeyEntry {
-	out := make([]*metarrv1.APIKeyEntry, 0, len(entries))
-	for _, entry := range entries {
-		out = append(out, &metarrv1.APIKeyEntry{Id: entry.Id, Name: entry.Name, ApiKey: entry.ApiKey})
-	}
-	return out
-}
-
-func interfacesConfigToProto(interfaces *appconfig.InterfacesConfig) *metarrv1.InterfacesConfig {
-	sonarr := make([]*metarrv1.SonarrInstance, 0, len(interfaces.Sonarr))
-	for _, instance := range interfaces.Sonarr {
-		sonarr = append(sonarr, sonarrInstanceToProto(instance))
-	}
-	return &metarrv1.InterfacesConfig{Sonarr: sonarr}
-}
-
-func directoryScannerConfigToProto(scanner *appconfig.DirectoryScannerConfig) *metarrv1.DirectoryScannerConfig {
-	dirs := make([]*metarrv1.ScanDirectory, 0, len(scanner.ScanDirectories))
-	for _, dir := range scanner.ScanDirectories {
-		dirs = append(dirs, scanDirectoryToProto(dir))
-	}
-	types := make([]*metarrv1.SidecarTypeDefinition, 0, len(scanner.SidecarTypes))
-	for _, def := range scanner.SidecarTypes {
-		types = append(types, sidecarTypeDefinitionToProto(def))
-	}
-	return &metarrv1.DirectoryScannerConfig{
-		ParallelCount:   scanner.ParallelCount,
-		ScanDirectories: dirs,
-		SidecarTypes:    types,
-	}
-}
-
-func scanDirectoryToProto(dir *appconfig.ScanDirectory) *metarrv1.ScanDirectory {
-	return &metarrv1.ScanDirectory{
-		ScannerSlug: dir.ScannerSlug,
-		ScanType:    dir.ScanType,
-		Directory:   dir.Directory,
-	}
-}
-
-func scanDirectoryFromProto(dir *metarrv1.ScanDirectory) *appconfig.ScanDirectory {
-	return &appconfig.ScanDirectory{
-		ScannerSlug: dir.GetScannerSlug(),
-		ScanType:    dir.GetScanType(),
-		Directory:   dir.GetDirectory(),
-	}
-}
-
-func sidecarTypeDefinitionToProto(def *appconfig.SidecarTypeDefinition) *metarrv1.SidecarTypeDefinition {
-	return &metarrv1.SidecarTypeDefinition{
-		Id:         def.Id,
-		Type:       def.Type,
-		Category:   def.Category,
-		Order:      int32(def.Order),
-		Patterns:   def.Patterns,
-		Extensions: def.Extensions,
-	}
-}
-
-func sidecarTypeDefinitionFromProto(def *metarrv1.SidecarTypeDefinition) *appconfig.SidecarTypeDefinition {
-	return &appconfig.SidecarTypeDefinition{
-		Id:         def.GetId(),
-		Type:       def.GetType(),
-		Category:   def.GetCategory(),
-		Order:      def.GetOrder(),
-		Patterns:   def.GetPatterns(),
-		Extensions: def.GetExtensions(),
-	}
-}
-
-func agentConfigsToProto(agents []*appconfig.AgentConfig) []*metarrv1.AgentConfig {
-	out := make([]*metarrv1.AgentConfig, 0, len(agents))
-	for _, agent := range agents {
-		mappings := make([]*metarrv1.AgentDirectoryMapping, 0, len(agent.Mappings))
-		for _, m := range agent.Mappings {
-			mappings = append(mappings, &metarrv1.AgentDirectoryMapping{
-				ScannerSlug: m.ScannerSlug,
-				AgentPath:   m.AgentPath,
-			})
-		}
-		out = append(out, &metarrv1.AgentConfig{
-			Slug:        agent.Slug,
-			DisplayName: agent.DisplayName,
-			Mappings:    mappings,
-			LogLevel:    agent.LogLevel,
-		})
-	}
-	return out
 }

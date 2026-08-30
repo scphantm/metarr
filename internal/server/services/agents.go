@@ -104,7 +104,12 @@ func (s *AgentServer) Upsert(
 ) (*connect.Response[metarrv1.AcceptedResponse], error) {
 	correlationID := correlation.FromContext(ctx)
 
-	entry := agentConfigFromProto(req.Msg.GetAgent())
+	entry := req.Msg.GetAgent()
+	if entry == nil {
+		entry = &appconfig.AgentConfig{}
+	} else {
+		entry = cloneMsg(entry)
+	}
 
 	if err := agentproto.ValidateSlug(entry.Slug); err != nil {
 		return nil, connectError(http.StatusBadRequest, err)
@@ -216,22 +221,6 @@ func validateMappings(config *appconfig.Config, entry *appconfig.AgentConfig) (i
 	}
 
 	return 0, nil
-}
-
-func agentConfigFromProto(agent *metarrv1.AgentConfig) *appconfig.AgentConfig {
-	mappings := make([]*appconfig.AgentDirectoryMapping, 0, len(agent.GetMappings()))
-	for _, m := range agent.GetMappings() {
-		mappings = append(mappings, &appconfig.AgentDirectoryMapping{
-			ScannerSlug: m.GetScannerSlug(),
-			AgentPath:   m.GetAgentPath(),
-		})
-	}
-	return &appconfig.AgentConfig{
-		Slug:        agent.GetSlug(),
-		DisplayName: agent.GetDisplayName(),
-		Mappings:    mappings,
-		LogLevel:    agent.GetLogLevel(),
-	}
 }
 
 func agentViewToProto(view agentregistry.AgentView) *metarrv1.AgentView {

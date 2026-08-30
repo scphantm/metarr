@@ -14,7 +14,6 @@ package appconfigstore
 
 import (
 	"context"
-	"encoding/json"
 	"sync"
 	"time"
 
@@ -88,7 +87,7 @@ func (s *Store) Mutate(ctx context.Context, apply func(*appconfig.Config) error)
 		return err
 	}
 
-	payload, err := json.Marshal(cfg)
+	payload, err := appconfig.MarshalStored(cfg)
 	if err != nil {
 		return err
 	}

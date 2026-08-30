@@ -2,11 +2,12 @@ package appconfigstore
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"sync"
 	"testing"
 	"time"
+
+	"google.golang.org/protobuf/proto"
 
 	"Metarr/internal/shared/appconfig"
 	"Metarr/internal/shared/correlation"
@@ -16,12 +17,15 @@ import (
 // fakeBackend plays all three of the store's dependencies: it stores
 // whatever a Fire or Upsert call carries, so the next Get sees it — exactly
 // the property Mutate's and Bootstrap's lock exists to make safe to rely
-// on. Get sleeps briefly after copying the document so an unlocked caller
+// on. Get sleeps briefly after cloning the document so an unlocked caller
 // has room to interleave; without the lock,
-// TestMutate_ConcurrentMutationsOnDifferentFieldsBothSurvive fails.
+// TestMutate_ConcurrentMutationsOnDifferentFieldsBothSurvive fails. The
+// document is held and handed out as a clone so no caller shares the
+// backend's copy — the config types are proto messages now and must not be
+// aliased across the seam.
 type fakeBackend struct {
 	mu          sync.Mutex
-	cfg         appconfig.Config
+	cfg         *appconfig.Config
 	getCalls    int
 	upsertCalls int
 	fired       []eventbus.Event
@@ -30,17 +34,26 @@ type fakeBackend struct {
 func (f *fakeBackend) Get(_ context.Context) (*appconfig.Config, error) {
 	f.mu.Lock()
 	f.getCalls++
-	cfgCopy := f.cfg
+	cfgCopy := f.snapshotLocked()
 	f.mu.Unlock()
 
 	time.Sleep(5 * time.Millisecond)
 
-	return &cfgCopy, nil
+	return cfgCopy, nil
+}
+
+// snapshotLocked returns an independent copy of the stored document, or an
+// empty one if nothing has been stored yet. The caller must hold f.mu.
+func (f *fakeBackend) snapshotLocked() *appconfig.Config {
+	if f.cfg == nil {
+		return &appconfig.Config{}
+	}
+	return proto.Clone(f.cfg).(*appconfig.Config)
 }
 
 func (f *fakeBackend) Fire(_ context.Context, _ string, event eventbus.Event) error {
-	var cfg appconfig.Config
-	if err := json.Unmarshal(event.Payload, &cfg); err != nil {
+	cfg, err := appconfig.UnmarshalStored(event.Payload)
+	if err != nil {
 		return err
 	}
 
@@ -53,7 +66,7 @@ func (f *fakeBackend) Fire(_ context.Context, _ string, event eventbus.Event) er
 
 func (f *fakeBackend) Upsert(_ context.Context, cfg *appconfig.Config) error {
 	f.mu.Lock()
-	f.cfg = *cfg
+	f.cfg = proto.Clone(cfg).(*appconfig.Config)
 	f.upsertCalls++
 	f.mu.Unlock()
 	return nil
@@ -81,8 +94,8 @@ func TestMutate_ReadsAppliesAndFiresOneEvent(t *testing.T) {
 		t.Fatalf("unexpected event name: %q", backend.fired[0].Name)
 	}
 
-	var fired appconfig.Config
-	if err := json.Unmarshal(backend.fired[0].Payload, &fired); err != nil {
+	fired, err := appconfig.UnmarshalStored(backend.fired[0].Payload)
+	if err != nil {
 		t.Fatalf("fired payload did not decode: %v", err)
 	}
 	if fired.Logging.ServerLevel != appconfig.LogLevelDebug {
@@ -221,7 +234,7 @@ func TestBootstrap_ErrorFromApplyAbortsWithoutWriting(t *testing.T) {
 }
 
 func TestRead_DelegatesToReader(t *testing.T) {
-	backend := &fakeBackend{cfg: appconfig.Config{Admin: &appconfig.AdminUser{Username: "admin"}}}
+	backend := &fakeBackend{cfg: &appconfig.Config{Admin: &appconfig.AdminUser{Username: "admin"}}}
 	store := New(backend, backend, backend)
 
 	cfg, err := store.Read(context.Background())

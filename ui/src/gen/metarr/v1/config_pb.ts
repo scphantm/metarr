@@ -67,10 +67,9 @@ export const AdminUserSchema: GenMessage<AdminUser> = /*@__PURE__*/
   messageDesc(file_metarr_v1_config, 0);
 
 /**
- * APIKeyEntry mirrors internal/shared/appconfig.APIKeyEntry. id is the
- * stable handle a scoped edit addresses this entry by; it is empty only
- * when a client is proposing a brand new entry that has not been minted
- * one yet.
+ * APIKeyEntry is a single named API key. id is the stable handle a scoped
+ * edit addresses this entry by; it is empty only when a client is proposing
+ * a brand new entry that has not been minted one yet.
  *
  * @generated from message metarr.v1.APIKeyEntry
  */
@@ -99,7 +98,7 @@ export const APIKeyEntrySchema: GenMessage<APIKeyEntry> = /*@__PURE__*/
   messageDesc(file_metarr_v1_config, 1);
 
 /**
- * APIKeysConfig mirrors internal/shared/appconfig.APIKeysConfig.
+ * APIKeysConfig groups the API keys issued for each access-level category.
  *
  * @generated from message metarr.v1.APIKeysConfig
  */
@@ -133,7 +132,8 @@ export const APIKeysConfigSchema: GenMessage<APIKeysConfig> = /*@__PURE__*/
   messageDesc(file_metarr_v1_config, 2);
 
 /**
- * InterfacesConfig mirrors internal/shared/appconfig.InterfacesConfig.
+ * InterfacesConfig groups the configuration for every external service
+ * interface Metarr integrates with.
  *
  * @generated from message metarr.v1.InterfacesConfig
  */
@@ -152,8 +152,11 @@ export const InterfacesConfigSchema: GenMessage<InterfacesConfig> = /*@__PURE__*
   messageDesc(file_metarr_v1_config, 3);
 
 /**
- * Config mirrors internal/shared/appconfig.Config field-for-field — the
- * whole application configuration document.
+ * Config is the whole application configuration document. It is the single
+ * definition of that document: the Go server (internal/shared/appconfig
+ * aliases these messages), the TypeScript UI, and the stored Mongo document
+ * all read this one shape. The singleton _id the document is stored under
+ * is a storage concern and deliberately not a field here.
  *
  * @generated from message metarr.v1.Config
  */

@@ -25,7 +25,6 @@ const (
 
 func configWithEverySecret() *appconfig.Config {
 	return &appconfig.Config{
-		ID: appconfig.SingletonID,
 		ApiKeys: &appconfig.APIKeysConfig{
 			Admin:    []*appconfig.APIKeyEntry{{Name: "admin", ApiKey: adminKeySecret}},
 			User:     []*appconfig.APIKeyEntry{{Name: "user", ApiKey: userKeySecret}},

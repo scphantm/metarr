@@ -2,11 +2,11 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"testing"
 
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/proto"
 
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
 	"Metarr/internal/server/appconfigstore"
@@ -18,20 +18,23 @@ import (
 // fakeConfigBackend satisfies appconfigstore's Get/Upsert/Fire dependencies,
 // persisting whatever a Fire or Upsert call carries so the next Get sees it
 // — enough to drive a real ConfigServer end to end with no MongoDB or
-// Redis.
+// Redis. The config types are proto messages, so the document is held and
+// handed out as a clone rather than aliased across the seam.
 type fakeConfigBackend struct {
-	cfg   appconfig.Config
+	cfg   *appconfig.Config
 	fired []eventbus.Event
 }
 
 func (f *fakeConfigBackend) Get(_ context.Context) (*appconfig.Config, error) {
-	cfgCopy := f.cfg
-	return &cfgCopy, nil
+	if f.cfg == nil {
+		return &appconfig.Config{}, nil
+	}
+	return proto.Clone(f.cfg).(*appconfig.Config), nil
 }
 
 func (f *fakeConfigBackend) Fire(_ context.Context, _ string, event eventbus.Event) error {
-	var cfg appconfig.Config
-	if err := json.Unmarshal(event.Payload, &cfg); err != nil {
+	cfg, err := appconfig.UnmarshalStored(event.Payload)
+	if err != nil {
 		return err
 	}
 	f.cfg = cfg
@@ -40,11 +43,11 @@ func (f *fakeConfigBackend) Fire(_ context.Context, _ string, event eventbus.Eve
 }
 
 func (f *fakeConfigBackend) Upsert(_ context.Context, cfg *appconfig.Config) error {
-	f.cfg = *cfg
+	f.cfg = proto.Clone(cfg).(*appconfig.Config)
 	return nil
 }
 
-func newTestConfigServer(seed appconfig.Config) (*ConfigServer, *fakeConfigBackend) {
+func newTestConfigServer(seed *appconfig.Config) (*ConfigServer, *fakeConfigBackend) {
 	backend := &fakeConfigBackend{cfg: seed}
 	store := appconfigstore.New(backend, backend, backend)
 	return &ConfigServer{Handlers: &handlers.Handlers{
@@ -54,7 +57,7 @@ func newTestConfigServer(seed appconfig.Config) (*ConfigServer, *fakeConfigBacke
 }
 
 func TestUpsertApiKey_LeavesAdminCredentialsByteIdentical(t *testing.T) {
-	seed := appconfig.Config{
+	seed := &appconfig.Config{
 		Admin: &appconfig.AdminUser{
 			Username:     "admin",
 			Email:        "admin@example.com",
@@ -81,7 +84,7 @@ func TestUpsertApiKey_LeavesAdminCredentialsByteIdentical(t *testing.T) {
 }
 
 func TestUpsertApiKey_CreatesAnEntryWithAMintedID(t *testing.T) {
-	server, backend := newTestConfigServer(appconfig.Config{})
+	server, backend := newTestConfigServer(&appconfig.Config{})
 
 	_, err := server.UpsertApiKey(context.Background(), connect.NewRequest(&metarrv1.ConfigServiceUpsertApiKeyRequest{
 		Group: "admin",
@@ -104,7 +107,7 @@ func TestUpsertApiKey_CreatesAnEntryWithAMintedID(t *testing.T) {
 }
 
 func TestUpsertApiKey_ReplacesAnExistingEntryByID(t *testing.T) {
-	seed := appconfig.Config{
+	seed := &appconfig.Config{
 		ApiKeys: &appconfig.APIKeysConfig{
 			User: []*appconfig.APIKeyEntry{{Id: "existing-id", Name: "old-name", ApiKey: "old-key"}},
 		},
@@ -128,7 +131,7 @@ func TestUpsertApiKey_ReplacesAnExistingEntryByID(t *testing.T) {
 }
 
 func TestUpsertApiKey_RejectsAnUnknownID(t *testing.T) {
-	seed := appconfig.Config{
+	seed := &appconfig.Config{
 		ApiKeys: &appconfig.APIKeysConfig{
 			Admin: []*appconfig.APIKeyEntry{{Id: "still-here", Name: "unrelated"}},
 		},
@@ -158,7 +161,7 @@ func TestUpsertApiKey_RejectsAnUnknownID(t *testing.T) {
 }
 
 func TestUpsertApiKey_RejectsAnUnknownGroup(t *testing.T) {
-	server, _ := newTestConfigServer(appconfig.Config{})
+	server, _ := newTestConfigServer(&appconfig.Config{})
 
 	_, err := server.UpsertApiKey(context.Background(), connect.NewRequest(&metarrv1.ConfigServiceUpsertApiKeyRequest{
 		Group: "bogus",
@@ -173,7 +176,7 @@ func TestUpsertApiKey_RejectsAnUnknownGroup(t *testing.T) {
 }
 
 func TestDeleteApiKey_RemovesExactlyOneEntry(t *testing.T) {
-	seed := appconfig.Config{
+	seed := &appconfig.Config{
 		ApiKeys: &appconfig.APIKeysConfig{
 			Webhook: []*appconfig.APIKeyEntry{
 				{Id: "keep", Name: "keep-me"},
@@ -197,7 +200,7 @@ func TestDeleteApiKey_RemovesExactlyOneEntry(t *testing.T) {
 }
 
 func TestDeleteApiKey_ReportsNotFoundForAnUnknownID(t *testing.T) {
-	server, backend := newTestConfigServer(appconfig.Config{
+	server, backend := newTestConfigServer(&appconfig.Config{
 		ApiKeys: &appconfig.APIKeysConfig{ReadOnly: []*appconfig.APIKeyEntry{{Id: "a"}}},
 	})
 
@@ -220,7 +223,7 @@ func TestDeleteApiKey_ReportsNotFoundForAnUnknownID(t *testing.T) {
 }
 
 func TestDeleteApiKey_LeavesOtherGroupsUntouched(t *testing.T) {
-	seed := appconfig.Config{
+	seed := &appconfig.Config{
 		ApiKeys: &appconfig.APIKeysConfig{
 			Admin: []*appconfig.APIKeyEntry{{Id: "a", Name: "admin-key"}},
 			User:  []*appconfig.APIKeyEntry{{Id: "u", Name: "user-key"}},

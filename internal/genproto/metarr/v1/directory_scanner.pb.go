@@ -21,7 +21,10 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// DirectoryScannerConfig mirrors internal/shared/appconfig.DirectoryScannerConfig.
+// DirectoryScannerConfig controls the background filesystem scanner: how
+// many directories it scans concurrently, which it scans, and how it
+// classifies the sidecar files it finds. This message is the single
+// definition of that config across the Go server, the UI and storage.
 type DirectoryScannerConfig struct {
 	state           protoimpl.MessageState   `protogen:"open.v1"`
 	ParallelCount   int32                    `protobuf:"varint,1,opt,name=parallel_count,json=parallelCount,proto3" json:"parallel_count,omitempty"`
@@ -82,7 +85,8 @@ func (x *DirectoryScannerConfig) GetSidecarTypes() []*SidecarTypeDefinition {
 	return nil
 }
 
-// ScanDirectory mirrors internal/shared/appconfig.ScanDirectory.
+// ScanDirectory is one filesystem path the directory scanner watches,
+// tagged with the media type expected under it.
 type ScanDirectory struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ScannerSlug   string                 `protobuf:"bytes,1,opt,name=scanner_slug,json=scannerSlug,proto3" json:"scanner_slug,omitempty"`
@@ -143,7 +147,10 @@ func (x *ScanDirectory) GetDirectory() string {
 	return ""
 }
 
-// SidecarTypeDefinition mirrors internal/shared/appconfig.SidecarTypeDefinition.
+// SidecarTypeDefinition is one entry in the sidecar classification table.
+// patterns are case-insensitive Go regexps matched against a file base name;
+// extensions gates the match; order is the evaluation sequence, zero meaning
+// disabled.
 type SidecarTypeDefinition struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
