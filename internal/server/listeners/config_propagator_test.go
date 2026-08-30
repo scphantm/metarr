@@ -28,11 +28,11 @@ func (f *fakeLiveConfigSetter) Set(cfg *appconfig.Config) { f.cfg = cfg }
 
 type fakeSidecarRegistry struct {
 	err     error
-	compile []appconfig.SidecarTypeDefinition
+	compile []*appconfig.SidecarTypeDefinition
 	calls   int
 }
 
-func (f *fakeSidecarRegistry) Compile(defs []appconfig.SidecarTypeDefinition) error {
+func (f *fakeSidecarRegistry) Compile(defs []*appconfig.SidecarTypeDefinition) error {
 	f.calls++
 	f.compile = defs
 	return f.err
@@ -73,7 +73,7 @@ func newTestPropagator() (*configPropagator, *fakePersister, *fakeLiveConfigSett
 
 func TestApply_HappyPathInvokesEveryDependency(t *testing.T) {
 	propagator, persist, live, sidecar, agents, logLevel := newTestPropagator()
-	cfg := &appconfig.Config{Logging: appconfig.LoggingConfig{ServerLevel: appconfig.LogLevelDebug}}
+	cfg := &appconfig.Config{Logging: &appconfig.LoggingConfig{ServerLevel: appconfig.LogLevelDebug}}
 
 	if err := propagator.Apply(context.Background(), cfg); err != nil {
 		t.Fatalf("unexpected error: %v", err)

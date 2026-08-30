@@ -11,13 +11,13 @@ const SingletonID = "app_config"
 
 // Config is the root application configuration document.
 type Config struct {
-	ID               string                 `bson:"_id" json:"-"`
-	APIKeys          APIKeysConfig          `bson:"api_keys" json:"api_keys"`
-	Admin            AdminUser              `bson:"admin" json:"admin"`
-	Interfaces       InterfacesConfig       `bson:"interfaces" json:"interfaces"`
-	DirectoryScanner DirectoryScannerConfig `bson:"directory_scanner" json:"directory_scanner"`
-	Agents           []AgentConfig          `bson:"agents" json:"agents"`
-	Logging          LoggingConfig          `bson:"logging" json:"logging"`
+	ID               string                  `bson:"_id" json:"-"`
+	ApiKeys          *APIKeysConfig          `bson:"api_keys" json:"api_keys"`
+	Admin            *AdminUser              `bson:"admin" json:"admin"`
+	Interfaces       *InterfacesConfig       `bson:"interfaces" json:"interfaces"`
+	DirectoryScanner *DirectoryScannerConfig `bson:"directory_scanner" json:"directory_scanner"`
+	Agents           []*AgentConfig          `bson:"agents" json:"agents"`
+	Logging          *LoggingConfig          `bson:"logging" json:"logging"`
 }
 
 // LogLevelInfo and LogLevelDebug are the two levels the System > Logging
@@ -64,7 +64,7 @@ type AgentConfig struct {
 	// directory absent from this list is one the agent has no access to,
 	// which is normal: agents sit on different machines holding different
 	// storage.
-	Mappings []AgentDirectoryMapping `bson:"mappings" json:"mappings"`
+	Mappings []*AgentDirectoryMapping `bson:"mappings" json:"mappings"`
 
 	// LogLevel is this agent's own verbosity, set from the System > Logging
 	// screen. Empty means LogLevelInfo — most agents never need touching, so
@@ -85,10 +85,58 @@ type AgentDirectoryMapping struct {
 	AgentPath   string `bson:"agent_path" json:"agent_path"`
 }
 
+// Normalize fills in every section of config that is nil, and returns it.
+//
+// The sections are pointers, so a document that has never carried one — the
+// case startup bootstrap exists to handle — decodes with that section nil
+// rather than zeroed. Filling them once, where a config enters the process,
+// is what lets every read site use plain field access instead of guarding
+// each one; there are hundreds of read sites and one entry point.
+//
+// It only fills nils. A section that decoded with contents is left exactly
+// as it is, including one that is deliberately empty, so this can never be
+// mistaken for applying defaults — that is bootstrap's job and a separate
+// decision (see docs/adr/0004).
+func Normalize(config *Config) *Config {
+	if config == nil {
+		return Default()
+	}
+	if config.ApiKeys == nil {
+		config.ApiKeys = &APIKeysConfig{}
+	}
+	if config.Admin == nil {
+		config.Admin = &AdminUser{}
+	}
+	if config.Interfaces == nil {
+		config.Interfaces = &InterfacesConfig{}
+	}
+	if config.DirectoryScanner == nil {
+		config.DirectoryScanner = &DirectoryScannerConfig{}
+	}
+	if config.Logging == nil {
+		config.Logging = &LoggingConfig{}
+	}
+	// A Sonarr instance with no storage section would fail the first time
+	// the cache consulted its mode, and instances decode from the same
+	// documents the sections above do. A null entry in the array decodes to
+	// a nil instance, which is a malformed document rather than a shape to
+	// repair — it is skipped here so that reading the config reports the
+	// problem elsewhere instead of panicking during startup.
+	for _, instance := range config.Interfaces.Sonarr {
+		if instance == nil {
+			continue
+		}
+		if instance.Storage == nil {
+			instance.Storage = &StorageConfig{}
+		}
+	}
+	return config
+}
+
 // FindAgentIndex returns the index of the agent entry with the given slug, or
 // -1 if none matches.
-func (c Config) FindAgentIndex(slug string) int {
-	for i, agent := range c.Agents {
+func FindAgentIndex(config *Config, slug string) int {
+	for i, agent := range config.Agents {
 		if agent.Slug == slug {
 			return i
 		}
@@ -101,25 +149,25 @@ func (c Config) FindAgentIndex(slug string) int {
 // Only one agent may own a scan directory: two agents mapping the same library
 // would both scan it and each overwrite the other's records with its own view.
 // The API refuses the second mapping, so finding the first is finding the only.
-func (c Config) AgentForScanner(scannerSlug string) (AgentConfig, bool) {
-	for _, agent := range c.Agents {
+func AgentForScanner(config *Config, scannerSlug string) (*AgentConfig, bool) {
+	for _, agent := range config.Agents {
 		for _, mapping := range agent.Mappings {
 			if mapping.ScannerSlug == scannerSlug {
 				return agent, true
 			}
 		}
 	}
-	return AgentConfig{}, false
+	return nil, false
 }
 
-// FindMapping returns this agent's mapping for scannerSlug.
-func (a AgentConfig) FindMapping(scannerSlug string) (AgentDirectoryMapping, bool) {
-	for _, mapping := range a.Mappings {
+// FindMapping returns agent's mapping for scannerSlug.
+func FindMapping(agent *AgentConfig, scannerSlug string) (*AgentDirectoryMapping, bool) {
+	for _, mapping := range agent.Mappings {
 		if mapping.ScannerSlug == scannerSlug {
 			return mapping, true
 		}
 	}
-	return AgentDirectoryMapping{}, false
+	return nil, false
 }
 
 // AdminUser is the system's single administrative user account.
@@ -140,10 +188,10 @@ type AdminUser struct {
 
 // APIKeysConfig groups the API keys issued for each access-level category.
 type APIKeysConfig struct {
-	Admin    []APIKeyEntry `bson:"admin" json:"admin"`
-	User     []APIKeyEntry `bson:"user" json:"user"`
-	Webhook  []APIKeyEntry `bson:"webhook" json:"webhook"`
-	ReadOnly []APIKeyEntry `bson:"read_only" json:"read_only"`
+	Admin    []*APIKeyEntry `bson:"admin" json:"admin"`
+	User     []*APIKeyEntry `bson:"user" json:"user"`
+	Webhook  []*APIKeyEntry `bson:"webhook" json:"webhook"`
+	ReadOnly []*APIKeyEntry `bson:"read_only" json:"read_only"`
 }
 
 // APIKeyEntry is a single named API key.
@@ -152,24 +200,24 @@ type APIKeyEntry struct {
 	// minted once and never reused, so an entry survives being renamed —
 	// unlike Name, which is optional and not unique. Entries stored before
 	// this field existed are backfilled once at startup.
-	ID   string `bson:"id" json:"id"`
-	Name string `bson:"name" json:"name"`
-	Key  string `bson:"api_key" json:"api_key"`
+	Id     string `bson:"id" json:"id"`
+	Name   string `bson:"name" json:"name"`
+	ApiKey string `bson:"api_key" json:"api_key"`
 }
 
 // InterfacesConfig groups the configuration for every external service
 // interface Metarr integrates with.
 type InterfacesConfig struct {
-	Sonarr []SonarrInstance `bson:"sonarr" json:"sonarr"`
+	Sonarr []*SonarrInstance `bson:"sonarr" json:"sonarr"`
 }
 
 // AllInstanceSlugs returns every instance_slug currently in use across all
 // interface types. instance_slug must be unique across all interfaces, not
 // just within one type, so this is the one place to extend when a new
 // interface type (e.g. Radarr) is added alongside Sonarr.
-func (c InterfacesConfig) AllInstanceSlugs() []string {
-	slugs := make([]string, 0, len(c.Sonarr))
-	for _, instance := range c.Sonarr {
+func AllInstanceSlugs(interfaces *InterfacesConfig) []string {
+	slugs := make([]string, 0, len(interfaces.Sonarr))
+	for _, instance := range interfaces.Sonarr {
 		slugs = append(slugs, instance.InstanceSlug)
 	}
 	return slugs
@@ -177,8 +225,8 @@ func (c InterfacesConfig) AllInstanceSlugs() []string {
 
 // FindSonarrIndex returns the index of the Sonarr instance with the given
 // slug, or -1 if none matches.
-func (c InterfacesConfig) FindSonarrIndex(slug string) int {
-	for i, instance := range c.Sonarr {
+func FindSonarrIndex(interfaces *InterfacesConfig, slug string) int {
+	for i, instance := range interfaces.Sonarr {
 		if instance.InstanceSlug == slug {
 			return i
 		}
@@ -190,10 +238,10 @@ func (c InterfacesConfig) FindSonarrIndex(slug string) int {
 type SonarrInstance struct {
 	InstanceName string           `bson:"instance_name" json:"instance_name"`
 	InstanceSlug string           `bson:"instance_slug" json:"instance_slug"`
-	SonarrURL    string           `bson:"sonarr_url" json:"sonarr_url"`
-	SonarrAPIKey string           `bson:"sonarr_api_key" json:"sonarr_api_key"`
-	RootDirMap   []RootDirMapping `bson:"root_dir_map" json:"root_dir_map"`
-	Storage      StorageConfig    `bson:"storage" json:"storage"`
+	SonarrUrl    string           `bson:"sonarr_url" json:"sonarr_url"`
+	SonarrApiKey string           `bson:"sonarr_api_key" json:"sonarr_api_key"`
+	RootDirMap   []*RootDirMapping `bson:"root_dir_map" json:"root_dir_map"`
+	Storage      *StorageConfig    `bson:"storage" json:"storage"`
 }
 
 // RootDirMapping maps a root folder path as Sonarr sees it to the
@@ -208,17 +256,17 @@ type RootDirMapping struct {
 // MaxCount revisions.
 type StorageConfig struct {
 	Mode     string `bson:"mode" json:"mode"`
-	TTL      string `bson:"ttl,omitempty" json:"ttl,omitempty"`
-	MaxCount int    `bson:"max_count,omitempty" json:"max_count,omitempty"`
+	Ttl      string `bson:"ttl,omitempty" json:"ttl,omitempty"`
+	MaxCount int32  `bson:"max_count,omitempty" json:"max_count,omitempty"`
 }
 
 // DirectoryScannerConfig controls the background filesystem scanner: how
 // many directories it scans concurrently, which directories it scans, and how
 // it classifies the sidecar files it finds inside them.
 type DirectoryScannerConfig struct {
-	ParallelCount   int                     `bson:"parallel_count" json:"parallel_count"`
-	ScanDirectories []ScanDirectory         `bson:"scan_directories" json:"scan_directories"`
-	SidecarTypes    []SidecarTypeDefinition `bson:"sidecar_types" json:"sidecar_types"`
+	ParallelCount   int32                    `bson:"parallel_count" json:"parallel_count"`
+	ScanDirectories []*ScanDirectory         `bson:"scan_directories" json:"scan_directories"`
+	SidecarTypes    []*SidecarTypeDefinition `bson:"sidecar_types" json:"sidecar_types"`
 }
 
 // ScanDirectory is a single filesystem path the directory scanner watches,
@@ -233,8 +281,8 @@ type ScanDirectory struct {
 
 // FindScanDirectoryIndex returns the index of the scan directory entry with
 // the given scanner_slug, or -1 if none matches.
-func (c DirectoryScannerConfig) FindScanDirectoryIndex(slug string) int {
-	for i, entry := range c.ScanDirectories {
+func FindScanDirectoryIndex(scanner *DirectoryScannerConfig, slug string) int {
+	for i, entry := range scanner.ScanDirectories {
 		if entry.ScannerSlug == slug {
 			return i
 		}
@@ -246,9 +294,9 @@ func (c DirectoryScannerConfig) FindScanDirectoryIndex(slug string) int {
 // given id, or -1 if none matches. Sidecar types are keyed on a minted id rather
 // than on their type name, so an entry can be renamed without the API losing
 // track of it.
-func (c DirectoryScannerConfig) FindSidecarTypeIndexByID(id string) int {
-	for i, entry := range c.SidecarTypes {
-		if entry.ID == id {
+func FindSidecarTypeIndexByID(scanner *DirectoryScannerConfig, id string) int {
+	for i, entry := range scanner.SidecarTypes {
+		if entry.Id == id {
 			return i
 		}
 	}
@@ -269,19 +317,20 @@ func Default() *Config {
 	defaults := loadBuiltinDefaults()
 	return &Config{
 		ID: SingletonID,
-		APIKeys: APIKeysConfig{
-			Admin:    []APIKeyEntry{},
-			User:     []APIKeyEntry{},
-			Webhook:  []APIKeyEntry{},
-			ReadOnly: []APIKeyEntry{},
+		ApiKeys: &APIKeysConfig{
+			Admin:    []*APIKeyEntry{},
+			User:     []*APIKeyEntry{},
+			Webhook:  []*APIKeyEntry{},
+			ReadOnly: []*APIKeyEntry{},
 		},
-		Interfaces: InterfacesConfig{Sonarr: []SonarrInstance{}},
-		DirectoryScanner: DirectoryScannerConfig{
+		Admin:      &AdminUser{},
+		Interfaces: &InterfacesConfig{Sonarr: []*SonarrInstance{}},
+		DirectoryScanner: &DirectoryScannerConfig{
 			ParallelCount:   defaults.DirectoryScanner.ParallelCount,
-			ScanDirectories: []ScanDirectory{},
+			ScanDirectories: []*ScanDirectory{},
 			SidecarTypes:    DefaultSidecarTypes(),
 		},
-		Agents:  []AgentConfig{},
-		Logging: defaults.Logging,
+		Agents:  []*AgentConfig{},
+		Logging: &defaults.Logging,
 	}
 }

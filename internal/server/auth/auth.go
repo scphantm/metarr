@@ -46,23 +46,23 @@ func Resolve(config *appconfig.Config, apiKey string) (role Role, ok bool) {
 		return "", false
 	}
 
-	for _, entry := range config.APIKeys.Admin {
-		if entry.Key == apiKey {
+	for _, entry := range config.ApiKeys.Admin {
+		if entry.ApiKey == apiKey {
 			return RoleAdmin, true
 		}
 	}
-	for _, entry := range config.APIKeys.User {
-		if entry.Key == apiKey {
+	for _, entry := range config.ApiKeys.User {
+		if entry.ApiKey == apiKey {
 			return RoleUser, true
 		}
 	}
-	for _, entry := range config.APIKeys.Webhook {
-		if entry.Key == apiKey {
+	for _, entry := range config.ApiKeys.Webhook {
+		if entry.ApiKey == apiKey {
 			return RoleWebhook, true
 		}
 	}
-	for _, entry := range config.APIKeys.ReadOnly {
-		if entry.Key == apiKey {
+	for _, entry := range config.ApiKeys.ReadOnly {
+		if entry.ApiKey == apiKey {
 			return RoleReadOnly, true
 		}
 	}

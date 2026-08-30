@@ -5,9 +5,9 @@ import "testing"
 const trickplayTypeID = "9f6b1a2c-58e4-4c7f-9c4a-2f0f6f4b1d3e"
 
 // indexOfType returns the position of the entry with the given id, or -1.
-func indexOfType(table []SidecarTypeDefinition, id string) int {
+func indexOfType(table []*SidecarTypeDefinition, id string) int {
 	for i, entry := range table {
-		if entry.ID == id {
+		if entry.Id == id {
 			return i
 		}
 	}
@@ -16,11 +16,11 @@ func indexOfType(table []SidecarTypeDefinition, id string) int {
 
 // storedTableWithout builds a stored table from the defaults with one entry
 // removed, standing in for a database seeded before that entry existed.
-func storedTableWithout(id string) []SidecarTypeDefinition {
+func storedTableWithout(id string) []*SidecarTypeDefinition {
 	defaults := DefaultSidecarTypes()
-	stored := make([]SidecarTypeDefinition, 0, len(defaults))
+	stored := make([]*SidecarTypeDefinition, 0, len(defaults))
 	for _, entry := range defaults {
-		if entry.ID != id {
+		if entry.Id != id {
 			stored = append(stored, entry)
 		}
 	}
@@ -107,8 +107,8 @@ func TestMergeMissingSidecarTypesAvoidsOrderCollision(t *testing.T) {
 	stored := storedTableWithout(trickplayTypeID)
 
 	// A user-defined type already sitting in the slot the built-in wants.
-	stored = append(stored, SidecarTypeDefinition{
-		ID:         "6f1c0f38-0d0e-4a8f-97a9-1c9a5a4e7d21",
+	stored = append(stored, &SidecarTypeDefinition{
+		Id:         "6f1c0f38-0d0e-4a8f-97a9-1c9a5a4e7d21",
 		Type:       "user_defined",
 		Category:   "image",
 		Order:      210,
@@ -129,7 +129,7 @@ func TestMergeMissingSidecarTypesAvoidsOrderCollision(t *testing.T) {
 		t.Error("merged entry took order 210, which the stored table already used")
 	}
 
-	orders := map[int]string{}
+	orders := map[int32]string{}
 	for _, entry := range merged {
 		if entry.Order == 0 {
 			continue // the disabled sentinel, which any number of entries may hold

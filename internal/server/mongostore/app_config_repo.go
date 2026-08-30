@@ -36,7 +36,7 @@ func (r *AppConfigRepo) Get(ctx context.Context) (*appconfig.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &config, nil
+	return appconfig.Normalize(&config), nil
 }
 
 // Upsert replaces the singleton config document with config, creating it if

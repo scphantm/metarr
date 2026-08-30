@@ -150,7 +150,7 @@ func TestSeedAdmin_RecoveryCannotRunBeforeSeeding(t *testing.T) {
 
 func TestSeedAdmin_RecoversAnAccountLockedOutByStoredState(t *testing.T) {
 	backend := &fakeBackend{cfg: appconfig.Config{
-		Admin: appconfig.AdminUser{Username: "admin", Email: "admin@example.com"},
+		Admin: &appconfig.AdminUser{Username: "admin", Email: "admin@example.com"},
 	}}
 	store := New(backend, backend, backend)
 
@@ -168,7 +168,7 @@ func TestSeedAdmin_RecoversAnAccountLockedOutByStoredState(t *testing.T) {
 
 func TestSeedAdmin_NoopWhenAdminAlreadyIntact(t *testing.T) {
 	backend := &fakeBackend{cfg: appconfig.Config{
-		Admin: appconfig.AdminUser{
+		Admin: &appconfig.AdminUser{
 			Username:     "admin",
 			Email:        "admin@example.com",
 			PasswordSalt: "existing-salt",

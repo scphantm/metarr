@@ -60,7 +60,7 @@ func (s *LoggingServer) UpdateConfig(
 ) (*connect.Response[metarrv1.AcceptedResponse], error) {
 	correlationID := correlation.FromContext(ctx)
 
-	entry := appconfig.LoggingConfig{
+	entry := &appconfig.LoggingConfig{
 		ServerLevel: req.Msg.GetConfig().GetServerLevel(),
 		Sink:        req.Msg.GetConfig().GetSink(),
 		Endpoint:    req.Msg.GetConfig().GetEndpoint(),

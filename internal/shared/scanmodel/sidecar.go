@@ -198,7 +198,7 @@ type SidecarRegistry struct {
 //
 // An empty list yields the built-in defaults rather than a table that matches
 // nothing, so a configuration written before this section existed still scans.
-func NewSidecarRegistry(definitions []appconfig.SidecarTypeDefinition) (*SidecarRegistry, error) {
+func NewSidecarRegistry(definitions []*appconfig.SidecarTypeDefinition) (*SidecarRegistry, error) {
 	if len(definitions) == 0 {
 		definitions = appconfig.DefaultSidecarTypes()
 	}
@@ -211,19 +211,19 @@ func NewSidecarRegistry(definitions []appconfig.SidecarTypeDefinition) (*Sidecar
 
 	var problems []string
 	idsSeen := map[string]string{}
-	ordersSeen := map[int]string{}
+	ordersSeen := map[int32]string{}
 
 	for index, entry := range definitions {
 		if entry.Type == "" {
 			problems = append(problems, fmt.Sprintf("entry %d: type is required", index))
 			continue
 		}
-		if entry.ID == "" {
+		if entry.Id == "" {
 			problems = append(problems, fmt.Sprintf("entry %d (%q): id is required", index, entry.Type))
 			continue
 		}
-		if existing, duplicate := idsSeen[entry.ID]; duplicate {
-			problems = append(problems, fmt.Sprintf("entry %d (%q): id %q is already used by %q", index, entry.Type, entry.ID, existing))
+		if existing, duplicate := idsSeen[entry.Id]; duplicate {
+			problems = append(problems, fmt.Sprintf("entry %d (%q): id %q is already used by %q", index, entry.Type, entry.Id, existing))
 			continue
 		}
 		if _, duplicate := registry.byName[SidecarType(entry.Type)]; duplicate {
@@ -253,10 +253,10 @@ func NewSidecarRegistry(definitions []appconfig.SidecarTypeDefinition) (*Sidecar
 		}
 
 		definition := SidecarTypeDefinition{
-			ID:         entry.ID,
+			ID:         entry.Id,
 			Type:       SidecarType(entry.Type),
 			Category:   category,
-			Order:      entry.Order,
+			Order:      int(entry.Order),
 			Patterns:   append([]string(nil), entry.Patterns...),
 			Extensions: normalizedExtensions(entry.Extensions),
 			compiled:   make([]*regexp.Regexp, 0, len(entry.Patterns)),
@@ -280,7 +280,7 @@ func NewSidecarRegistry(definitions []appconfig.SidecarTypeDefinition) (*Sidecar
 
 		idsSeen[definition.ID] = entry.Type
 		if definition.Order != 0 {
-			ordersSeen[definition.Order] = entry.Type
+			ordersSeen[int32(definition.Order)] = entry.Type
 		}
 
 		registry.all = append(registry.all, definition)

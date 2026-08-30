@@ -21,14 +21,23 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// AdminUser mirrors internal/shared/appconfig.AdminUser, deliberately
-// omitting password_salt/password_hash: those never cross the wire in
-// either direction. GetConfig's REST equivalent redacts them to "" before
-// responding, and UpdateAdmin is the only write path for a new password.
+// AdminUser is the system's single administrative user account.
+//
+// password_salt and password_hash are here because this message is on its
+// way to being both the wire shape and the stored shape — the document
+// Mongo holds — and a stored admin account has to carry its credentials.
+//
+// They are never populated in a client-facing response: Get blanks both
+// before responding, and UpdateAdmin is the only write path for a new
+// password. A generated client therefore sees two fields that are always
+// empty, which is the deliberate cost of having one definition of this
+// message rather than a wire copy and a stored copy.
 type AdminUser struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
 	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	PasswordSalt  string                 `protobuf:"bytes,3,opt,name=password_salt,json=passwordSalt,proto3" json:"password_salt,omitempty"`
+	PasswordHash  string                 `protobuf:"bytes,4,opt,name=password_hash,json=passwordHash,proto3" json:"password_hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -73,6 +82,20 @@ func (x *AdminUser) GetUsername() string {
 func (x *AdminUser) GetEmail() string {
 	if x != nil {
 		return x.Email
+	}
+	return ""
+}
+
+func (x *AdminUser) GetPasswordSalt() string {
+	if x != nil {
+		return x.PasswordSalt
+	}
+	return ""
+}
+
+func (x *AdminUser) GetPasswordHash() string {
+	if x != nil {
+		return x.PasswordHash
 	}
 	return ""
 }
@@ -599,10 +622,12 @@ var File_metarr_v1_config_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_config_proto_rawDesc = "" +
 	"\n" +
-	"\x16metarr/v1/config.proto\x12\tmetarr.v1\x1a\x16metarr/v1/agents.proto\x1a\x16metarr/v1/common.proto\x1a!metarr/v1/directory_scanner.proto\x1a\x17metarr/v1/logging.proto\x1a!metarr/v1/sonarr_interfaces.proto\"=\n" +
+	"\x16metarr/v1/config.proto\x12\tmetarr.v1\x1a\x16metarr/v1/agents.proto\x1a\x16metarr/v1/common.proto\x1a!metarr/v1/directory_scanner.proto\x1a\x17metarr/v1/logging.proto\x1a!metarr/v1/sonarr_interfaces.proto\"\x87\x01\n" +
 	"\tAdminUser\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\"J\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12#\n" +
+	"\rpassword_salt\x18\x03 \x01(\tR\fpasswordSalt\x12#\n" +
+	"\rpassword_hash\x18\x04 \x01(\tR\fpasswordHash\"J\n" +
 	"\vAPIKeyEntry\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x17\n" +
 	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\x12\x0e\n" +
