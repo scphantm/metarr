@@ -1,6 +1,9 @@
 # Post processing cleanup
 Kill any spawned processes (node, metarr-server, metarr-agent) before ending a turn — don't leave dev servers running.
 
+# Git commits
+Never add a `Co-Authored-By` trailer, a "Generated with Claude Code" line, or any other marker indicating a commit came from Claude. Commits must show no sign of AI involvement — this is permanent and not subject to per-commit override.
+
 # General conventions
 * Descriptive names; standard clean-code practices.
 * CRUD APIs: one upserting POST, never separate POST/PUT. An empty id in the request means create (server mints the id); a non-empty id that doesn't match an existing entry is rejected as not found, never treated as a client-chosen id to create under — ids are always server-minted (see CONTEXT.md's "Minted id"). Keep the proto/API doc comment worded to match this exactly; issue #15 was filed because one drifted.
