@@ -234,6 +234,61 @@ func (WorkflowPortKind) EnumDescriptor() ([]byte, []int) {
 	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{2}
 }
 
+// WorkflowDiagnosticSeverity distinguishes what blocks a run from what merely
+// deserves attention. Static validation owns this vocabulary and it is closed,
+// so it is a proto enum rather than a free string. Invalid graphs block
+// running, not saving — people save half-built flows all the time.
+type WorkflowDiagnosticSeverity int32
+
+const (
+	WorkflowDiagnosticSeverity_WORKFLOW_DIAGNOSTIC_SEVERITY_UNSPECIFIED WorkflowDiagnosticSeverity = 0
+	// Blocks a run: a graph with any error-severity diagnostic is not runnable.
+	WorkflowDiagnosticSeverity_WORKFLOW_DIAGNOSTIC_SEVERITY_ERROR WorkflowDiagnosticSeverity = 1
+	// Deserves attention but does not block a run.
+	WorkflowDiagnosticSeverity_WORKFLOW_DIAGNOSTIC_SEVERITY_WARNING WorkflowDiagnosticSeverity = 2
+)
+
+// Enum value maps for WorkflowDiagnosticSeverity.
+var (
+	WorkflowDiagnosticSeverity_name = map[int32]string{
+		0: "WORKFLOW_DIAGNOSTIC_SEVERITY_UNSPECIFIED",
+		1: "WORKFLOW_DIAGNOSTIC_SEVERITY_ERROR",
+		2: "WORKFLOW_DIAGNOSTIC_SEVERITY_WARNING",
+	}
+	WorkflowDiagnosticSeverity_value = map[string]int32{
+		"WORKFLOW_DIAGNOSTIC_SEVERITY_UNSPECIFIED": 0,
+		"WORKFLOW_DIAGNOSTIC_SEVERITY_ERROR":       1,
+		"WORKFLOW_DIAGNOSTIC_SEVERITY_WARNING":     2,
+	}
+)
+
+func (x WorkflowDiagnosticSeverity) Enum() *WorkflowDiagnosticSeverity {
+	p := new(WorkflowDiagnosticSeverity)
+	*p = x
+	return p
+}
+
+func (x WorkflowDiagnosticSeverity) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WorkflowDiagnosticSeverity) Descriptor() protoreflect.EnumDescriptor {
+	return file_metarr_v1_workflow_catalog_proto_enumTypes[3].Descriptor()
+}
+
+func (WorkflowDiagnosticSeverity) Type() protoreflect.EnumType {
+	return &file_metarr_v1_workflow_catalog_proto_enumTypes[3]
+}
+
+func (x WorkflowDiagnosticSeverity) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WorkflowDiagnosticSeverity.Descriptor instead.
+func (WorkflowDiagnosticSeverity) EnumDescriptor() ([]byte, []int) {
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{3}
+}
+
 // WorkflowControlPorts declares a node type's execution wiring. An empty `in`
 // is what makes a node a starting point, and an empty `out` what makes it an
 // ending point — the catalog says so directly rather than the UI inferring it
@@ -1043,35 +1098,42 @@ func (x *WorkflowCatalogServiceValidateRequest) GetGraphJson() []byte {
 	return nil
 }
 
-// Diagnostic mirrors internal/server/workflow/validate.Diagnostic — small,
-// structured, and painted directly onto the canvas. The validation
-// diagnostics slice replaces this with a generated model end to end.
-type Diagnostic struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Severity      string                 `protobuf:"bytes,1,opt,name=severity,proto3" json:"severity,omitempty"`
-	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
-	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
-	NodeIds       []string               `protobuf:"bytes,4,rep,name=node_ids,json=nodeIds,proto3" json:"node_ids,omitempty"`
-	EdgeIds       []string               `protobuf:"bytes,5,rep,name=edge_ids,json=edgeIds,proto3" json:"edge_ids,omitempty"`
-	WitnessPath   []string               `protobuf:"bytes,6,rep,name=witness_path,json=witnessPath,proto3" json:"witness_path,omitempty"`
+// WorkflowDiagnostic is one finding from static validation — small,
+// structured, and painted directly onto the canvas.
+// internal/server/workflow/validate aliases this message
+// (Diagnostic = metarrv1.WorkflowDiagnostic); it is the single definition of
+// the model, produced by the server and rendered by the editor. See
+// docs/adr/0005.
+type WorkflowDiagnostic struct {
+	state    protoimpl.MessageState     `protogen:"open.v1"`
+	Severity WorkflowDiagnosticSeverity `protobuf:"varint,1,opt,name=severity,proto3,enum=metarr.v1.WorkflowDiagnosticSeverity" json:"severity,omitempty"`
+	Code     string                     `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	Message  string                     `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	NodeIds  []string                   `protobuf:"bytes,4,rep,name=node_ids,json=nodeIds,proto3" json:"node_ids,omitempty"`
+	EdgeIds  []string                   `protobuf:"bytes,5,rep,name=edge_ids,json=edgeIds,proto3" json:"edge_ids,omitempty"`
+	// witness_path is a concrete control path demonstrating the problem — for a
+	// MustHaveRun failure, a route from the start to the target that skips the
+	// source. A bare "dominance violation" is useless to a user; a highlighted
+	// path is not.
+	WitnessPath   []string `protobuf:"bytes,6,rep,name=witness_path,json=witnessPath,proto3" json:"witness_path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Diagnostic) Reset() {
-	*x = Diagnostic{}
+func (x *WorkflowDiagnostic) Reset() {
+	*x = WorkflowDiagnostic{}
 	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Diagnostic) String() string {
+func (x *WorkflowDiagnostic) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Diagnostic) ProtoMessage() {}
+func (*WorkflowDiagnostic) ProtoMessage() {}
 
-func (x *Diagnostic) ProtoReflect() protoreflect.Message {
+func (x *WorkflowDiagnostic) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1083,47 +1145,47 @@ func (x *Diagnostic) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Diagnostic.ProtoReflect.Descriptor instead.
-func (*Diagnostic) Descriptor() ([]byte, []int) {
+// Deprecated: Use WorkflowDiagnostic.ProtoReflect.Descriptor instead.
+func (*WorkflowDiagnostic) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *Diagnostic) GetSeverity() string {
+func (x *WorkflowDiagnostic) GetSeverity() WorkflowDiagnosticSeverity {
 	if x != nil {
 		return x.Severity
 	}
-	return ""
+	return WorkflowDiagnosticSeverity_WORKFLOW_DIAGNOSTIC_SEVERITY_UNSPECIFIED
 }
 
-func (x *Diagnostic) GetCode() string {
+func (x *WorkflowDiagnostic) GetCode() string {
 	if x != nil {
 		return x.Code
 	}
 	return ""
 }
 
-func (x *Diagnostic) GetMessage() string {
+func (x *WorkflowDiagnostic) GetMessage() string {
 	if x != nil {
 		return x.Message
 	}
 	return ""
 }
 
-func (x *Diagnostic) GetNodeIds() []string {
+func (x *WorkflowDiagnostic) GetNodeIds() []string {
 	if x != nil {
 		return x.NodeIds
 	}
 	return nil
 }
 
-func (x *Diagnostic) GetEdgeIds() []string {
+func (x *WorkflowDiagnostic) GetEdgeIds() []string {
 	if x != nil {
 		return x.EdgeIds
 	}
 	return nil
 }
 
-func (x *Diagnostic) GetWitnessPath() []string {
+func (x *WorkflowDiagnostic) GetWitnessPath() []string {
 	if x != nil {
 		return x.WitnessPath
 	}
@@ -1132,7 +1194,7 @@ func (x *Diagnostic) GetWitnessPath() []string {
 
 type WorkflowCatalogServiceValidateResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Diagnostics   []*Diagnostic          `protobuf:"bytes,1,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+	Diagnostics   []*WorkflowDiagnostic  `protobuf:"bytes,1,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
 	Runnable      bool                   `protobuf:"varint,2,opt,name=runnable,proto3" json:"runnable,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1168,7 +1230,7 @@ func (*WorkflowCatalogServiceValidateResponse) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *WorkflowCatalogServiceValidateResponse) GetDiagnostics() []*Diagnostic {
+func (x *WorkflowCatalogServiceValidateResponse) GetDiagnostics() []*WorkflowDiagnostic {
 	if x != nil {
 		return x.Diagnostics
 	}
@@ -1247,17 +1309,16 @@ const file_metarr_v1_workflow_catalog_proto_rawDesc = "" +
 	"\acatalog\x18\x01 \x01(\v2\x1a.metarr.v1.WorkflowCatalogR\acatalog\"F\n" +
 	"%WorkflowCatalogServiceValidateRequest\x12\x1d\n" +
 	"\n" +
-	"graph_json\x18\x01 \x01(\fR\tgraphJson\"\xaf\x01\n" +
-	"\n" +
-	"Diagnostic\x12\x1a\n" +
-	"\bseverity\x18\x01 \x01(\tR\bseverity\x12\x12\n" +
+	"graph_json\x18\x01 \x01(\fR\tgraphJson\"\xde\x01\n" +
+	"\x12WorkflowDiagnostic\x12A\n" +
+	"\bseverity\x18\x01 \x01(\x0e2%.metarr.v1.WorkflowDiagnosticSeverityR\bseverity\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x12\x18\n" +
 	"\amessage\x18\x03 \x01(\tR\amessage\x12\x19\n" +
 	"\bnode_ids\x18\x04 \x03(\tR\anodeIds\x12\x19\n" +
 	"\bedge_ids\x18\x05 \x03(\tR\aedgeIds\x12!\n" +
-	"\fwitness_path\x18\x06 \x03(\tR\vwitnessPath\"}\n" +
-	"&WorkflowCatalogServiceValidateResponse\x127\n" +
-	"\vdiagnostics\x18\x01 \x03(\v2\x15.metarr.v1.DiagnosticR\vdiagnostics\x12\x1a\n" +
+	"\fwitness_path\x18\x06 \x03(\tR\vwitnessPath\"\x85\x01\n" +
+	"&WorkflowCatalogServiceValidateResponse\x12?\n" +
+	"\vdiagnostics\x18\x01 \x03(\v2\x1d.metarr.v1.WorkflowDiagnosticR\vdiagnostics\x12\x1a\n" +
 	"\brunnable\x18\x02 \x01(\bR\brunnable*\x85\x03\n" +
 	"\x10WorkflowNodeKind\x12\"\n" +
 	"\x1eWORKFLOW_NODE_KIND_UNSPECIFIED\x10\x00\x12\x1c\n" +
@@ -1281,7 +1342,11 @@ const file_metarr_v1_workflow_catalog_proto_rawDesc = "" +
 	"\x10WorkflowPortKind\x12\"\n" +
 	"\x1eWORKFLOW_PORT_KIND_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aWORKFLOW_PORT_KIND_CONTROL\x10\x01\x12\x1b\n" +
-	"\x17WORKFLOW_PORT_KIND_DATA\x10\x022\xeb\x01\n" +
+	"\x17WORKFLOW_PORT_KIND_DATA\x10\x02*\x9c\x01\n" +
+	"\x1aWorkflowDiagnosticSeverity\x12,\n" +
+	"(WORKFLOW_DIAGNOSTIC_SEVERITY_UNSPECIFIED\x10\x00\x12&\n" +
+	"\"WORKFLOW_DIAGNOSTIC_SEVERITY_ERROR\x10\x01\x12(\n" +
+	"$WORKFLOW_DIAGNOSTIC_SEVERITY_WARNING\x10\x022\xeb\x01\n" +
 	"\x16WorkflowCatalogService\x12`\n" +
 	"\x03Get\x12+.metarr.v1.WorkflowCatalogServiceGetRequest\x1a,.metarr.v1.WorkflowCatalogServiceGetResponse\x12o\n" +
 	"\bValidate\x120.metarr.v1.WorkflowCatalogServiceValidateRequest\x1a1.metarr.v1.WorkflowCatalogServiceValidateResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
@@ -1298,52 +1363,54 @@ func file_metarr_v1_workflow_catalog_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_workflow_catalog_proto_rawDescData
 }
 
-var file_metarr_v1_workflow_catalog_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_metarr_v1_workflow_catalog_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
 var file_metarr_v1_workflow_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_metarr_v1_workflow_catalog_proto_goTypes = []any{
 	(WorkflowNodeKind)(0),                          // 0: metarr.v1.WorkflowNodeKind
 	(WorkflowEffects)(0),                           // 1: metarr.v1.WorkflowEffects
 	(WorkflowPortKind)(0),                          // 2: metarr.v1.WorkflowPortKind
-	(*WorkflowControlPorts)(nil),                   // 3: metarr.v1.WorkflowControlPorts
-	(*WorkflowSocket)(nil),                         // 4: metarr.v1.WorkflowSocket
-	(*WorkflowSetting)(nil),                        // 5: metarr.v1.WorkflowSetting
-	(*WorkflowRetrySpec)(nil),                      // 6: metarr.v1.WorkflowRetrySpec
-	(*WorkflowExecSpec)(nil),                       // 7: metarr.v1.WorkflowExecSpec
-	(*WorkflowNodeType)(nil),                       // 8: metarr.v1.WorkflowNodeType
-	(*WorkflowTransform)(nil),                      // 9: metarr.v1.WorkflowTransform
-	(*WorkflowCatalog)(nil),                        // 10: metarr.v1.WorkflowCatalog
-	(*WorkflowCatalogServiceGetRequest)(nil),       // 11: metarr.v1.WorkflowCatalogServiceGetRequest
-	(*WorkflowCatalogServiceGetResponse)(nil),      // 12: metarr.v1.WorkflowCatalogServiceGetResponse
-	(*WorkflowCatalogServiceValidateRequest)(nil),  // 13: metarr.v1.WorkflowCatalogServiceValidateRequest
-	(*Diagnostic)(nil),                             // 14: metarr.v1.Diagnostic
-	(*WorkflowCatalogServiceValidateResponse)(nil), // 15: metarr.v1.WorkflowCatalogServiceValidateResponse
-	(*structpb.Value)(nil),                         // 16: google.protobuf.Value
-	(*structpb.Struct)(nil),                        // 17: google.protobuf.Struct
+	(WorkflowDiagnosticSeverity)(0),                // 3: metarr.v1.WorkflowDiagnosticSeverity
+	(*WorkflowControlPorts)(nil),                   // 4: metarr.v1.WorkflowControlPorts
+	(*WorkflowSocket)(nil),                         // 5: metarr.v1.WorkflowSocket
+	(*WorkflowSetting)(nil),                        // 6: metarr.v1.WorkflowSetting
+	(*WorkflowRetrySpec)(nil),                      // 7: metarr.v1.WorkflowRetrySpec
+	(*WorkflowExecSpec)(nil),                       // 8: metarr.v1.WorkflowExecSpec
+	(*WorkflowNodeType)(nil),                       // 9: metarr.v1.WorkflowNodeType
+	(*WorkflowTransform)(nil),                      // 10: metarr.v1.WorkflowTransform
+	(*WorkflowCatalog)(nil),                        // 11: metarr.v1.WorkflowCatalog
+	(*WorkflowCatalogServiceGetRequest)(nil),       // 12: metarr.v1.WorkflowCatalogServiceGetRequest
+	(*WorkflowCatalogServiceGetResponse)(nil),      // 13: metarr.v1.WorkflowCatalogServiceGetResponse
+	(*WorkflowCatalogServiceValidateRequest)(nil),  // 14: metarr.v1.WorkflowCatalogServiceValidateRequest
+	(*WorkflowDiagnostic)(nil),                     // 15: metarr.v1.WorkflowDiagnostic
+	(*WorkflowCatalogServiceValidateResponse)(nil), // 16: metarr.v1.WorkflowCatalogServiceValidateResponse
+	(*structpb.Value)(nil),                         // 17: google.protobuf.Value
+	(*structpb.Struct)(nil),                        // 18: google.protobuf.Struct
 }
 var file_metarr_v1_workflow_catalog_proto_depIdxs = []int32{
-	16, // 0: metarr.v1.WorkflowSetting.default:type_name -> google.protobuf.Value
-	17, // 1: metarr.v1.WorkflowSetting.ui:type_name -> google.protobuf.Struct
+	17, // 0: metarr.v1.WorkflowSetting.default:type_name -> google.protobuf.Value
+	18, // 1: metarr.v1.WorkflowSetting.ui:type_name -> google.protobuf.Struct
 	1,  // 2: metarr.v1.WorkflowExecSpec.effects:type_name -> metarr.v1.WorkflowEffects
-	6,  // 3: metarr.v1.WorkflowExecSpec.retry:type_name -> metarr.v1.WorkflowRetrySpec
+	7,  // 3: metarr.v1.WorkflowExecSpec.retry:type_name -> metarr.v1.WorkflowRetrySpec
 	0,  // 4: metarr.v1.WorkflowNodeType.kind:type_name -> metarr.v1.WorkflowNodeKind
-	3,  // 5: metarr.v1.WorkflowNodeType.control:type_name -> metarr.v1.WorkflowControlPorts
-	4,  // 6: metarr.v1.WorkflowNodeType.data_in:type_name -> metarr.v1.WorkflowSocket
-	4,  // 7: metarr.v1.WorkflowNodeType.data_out:type_name -> metarr.v1.WorkflowSocket
-	5,  // 8: metarr.v1.WorkflowNodeType.settings:type_name -> metarr.v1.WorkflowSetting
-	7,  // 9: metarr.v1.WorkflowNodeType.exec:type_name -> metarr.v1.WorkflowExecSpec
-	8,  // 10: metarr.v1.WorkflowCatalog.node_types:type_name -> metarr.v1.WorkflowNodeType
-	9,  // 11: metarr.v1.WorkflowCatalog.transforms:type_name -> metarr.v1.WorkflowTransform
-	10, // 12: metarr.v1.WorkflowCatalogServiceGetResponse.catalog:type_name -> metarr.v1.WorkflowCatalog
-	14, // 13: metarr.v1.WorkflowCatalogServiceValidateResponse.diagnostics:type_name -> metarr.v1.Diagnostic
-	11, // 14: metarr.v1.WorkflowCatalogService.Get:input_type -> metarr.v1.WorkflowCatalogServiceGetRequest
-	13, // 15: metarr.v1.WorkflowCatalogService.Validate:input_type -> metarr.v1.WorkflowCatalogServiceValidateRequest
-	12, // 16: metarr.v1.WorkflowCatalogService.Get:output_type -> metarr.v1.WorkflowCatalogServiceGetResponse
-	15, // 17: metarr.v1.WorkflowCatalogService.Validate:output_type -> metarr.v1.WorkflowCatalogServiceValidateResponse
-	16, // [16:18] is the sub-list for method output_type
-	14, // [14:16] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	4,  // 5: metarr.v1.WorkflowNodeType.control:type_name -> metarr.v1.WorkflowControlPorts
+	5,  // 6: metarr.v1.WorkflowNodeType.data_in:type_name -> metarr.v1.WorkflowSocket
+	5,  // 7: metarr.v1.WorkflowNodeType.data_out:type_name -> metarr.v1.WorkflowSocket
+	6,  // 8: metarr.v1.WorkflowNodeType.settings:type_name -> metarr.v1.WorkflowSetting
+	8,  // 9: metarr.v1.WorkflowNodeType.exec:type_name -> metarr.v1.WorkflowExecSpec
+	9,  // 10: metarr.v1.WorkflowCatalog.node_types:type_name -> metarr.v1.WorkflowNodeType
+	10, // 11: metarr.v1.WorkflowCatalog.transforms:type_name -> metarr.v1.WorkflowTransform
+	11, // 12: metarr.v1.WorkflowCatalogServiceGetResponse.catalog:type_name -> metarr.v1.WorkflowCatalog
+	3,  // 13: metarr.v1.WorkflowDiagnostic.severity:type_name -> metarr.v1.WorkflowDiagnosticSeverity
+	15, // 14: metarr.v1.WorkflowCatalogServiceValidateResponse.diagnostics:type_name -> metarr.v1.WorkflowDiagnostic
+	12, // 15: metarr.v1.WorkflowCatalogService.Get:input_type -> metarr.v1.WorkflowCatalogServiceGetRequest
+	14, // 16: metarr.v1.WorkflowCatalogService.Validate:input_type -> metarr.v1.WorkflowCatalogServiceValidateRequest
+	13, // 17: metarr.v1.WorkflowCatalogService.Get:output_type -> metarr.v1.WorkflowCatalogServiceGetResponse
+	16, // 18: metarr.v1.WorkflowCatalogService.Validate:output_type -> metarr.v1.WorkflowCatalogServiceValidateResponse
+	17, // [17:19] is the sub-list for method output_type
+	15, // [15:17] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_workflow_catalog_proto_init() }
@@ -1356,7 +1423,7 @@ func file_metarr_v1_workflow_catalog_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_workflow_catalog_proto_rawDesc), len(file_metarr_v1_workflow_catalog_proto_rawDesc)),
-			NumEnums:      3,
+			NumEnums:      4,
 			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,

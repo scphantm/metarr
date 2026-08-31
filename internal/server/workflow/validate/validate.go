@@ -9,37 +9,31 @@ import (
 	"fmt"
 	"sort"
 
+	metarrv1 "Metarr/internal/genproto/metarr/v1"
 	"Metarr/internal/shared/workflow"
 )
 
 // Severity distinguishes what blocks a run from what merely deserves
 // attention. Invalid graphs block running, not saving — people save
-// half-built flows all the time.
-type Severity string
+// half-built flows all the time. It is an alias to the generated metarr.v1
+// enum, which is the single definition of the closed vocabulary — see
+// docs/adr/0005.
+type Severity = metarrv1.WorkflowDiagnosticSeverity
 
 const (
-	SeverityError   Severity = "error"
-	SeverityWarning Severity = "warning"
+	SeverityError   Severity = metarrv1.WorkflowDiagnosticSeverity_WORKFLOW_DIAGNOSTIC_SEVERITY_ERROR
+	SeverityWarning Severity = metarrv1.WorkflowDiagnosticSeverity_WORKFLOW_DIAGNOSTIC_SEVERITY_WARNING
 )
 
 // Diagnostic is one finding, shaped so the editor can paint it directly onto
-// the canvas.
-type Diagnostic struct {
-	Severity Severity `json:"severity"`
-	Code     string   `json:"code"`
-	Message  string   `json:"message"`
-	NodeIDs  []string `json:"node_ids,omitempty"`
-	EdgeIDs  []string `json:"edge_ids,omitempty"`
-	// WitnessPath is a concrete control path demonstrating the problem — for
-	// a MustHaveRun failure, a route from the start to the target that skips
-	// the source. A bare "dominance violation" is useless to a user; a
-	// highlighted path is not.
-	WitnessPath []string `json:"witness_path,omitempty"`
-}
+// the canvas. It is an alias to the generated metarr.v1 message: proto is the
+// single definition for this model, produced here and rendered by the editor
+// with no hand-written mirror on either side (docs/adr/0005).
+type Diagnostic = metarrv1.WorkflowDiagnostic
 
 // Result is the outcome of validating one graph.
 type Result struct {
-	Diagnostics []Diagnostic `json:"diagnostics"`
+	Diagnostics []*Diagnostic `json:"diagnostics"`
 }
 
 // Runnable reports whether the graph may be executed.
@@ -80,7 +74,7 @@ type analysis struct {
 	nodes map[string]workflow.Node
 	types map[string]*workflow.NodeType // node id -> resolved type
 
-	diagnostics []Diagnostic
+	diagnostics []*Diagnostic
 
 	// mustHaveRun[target] is the set of nodes guaranteed to have executed
 	// before target, computed once and reused by every data-edge check.
@@ -100,9 +94,9 @@ func newAnalysis(graph workflow.Graph, catalog *workflow.Catalog) *analysis {
 }
 
 func (a *analysis) report(severity Severity, code, message string, nodeIDs, edgeIDs []string) {
-	a.diagnostics = append(a.diagnostics, Diagnostic{
+	a.diagnostics = append(a.diagnostics, &Diagnostic{
 		Severity: severity, Code: code, Message: message,
-		NodeIDs: nodeIDs, EdgeIDs: edgeIDs,
+		NodeIds: nodeIDs, EdgeIds: edgeIDs,
 	})
 }
 

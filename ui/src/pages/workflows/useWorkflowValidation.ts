@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { workflowCatalogClient } from '../../api/clients'
+import type { WorkflowCatalogServiceValidateResponse } from '../../gen/metarr/v1/workflow_catalog_pb'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
-import type { Graph, Severity, ValidateResponse } from './catalogTypes'
+import type { Graph } from './catalogTypes'
 
-const emptyResult: ValidateResponse = { diagnostics: [], runnable: true }
+// The hook's return shape is the generated validate response itself, narrowed
+// to the two fields the editor reads — WorkflowDiagnostic flows through
+// unchanged, so there is no hand-written mirror of it (docs/adr/0005).
+type ValidationResult = Pick<WorkflowCatalogServiceValidateResponse, 'diagnostics' | 'runnable'>
+
+const emptyResult: ValidationResult = { diagnostics: [], runnable: true }
 
 /*
  * Drives the debounced POST /api/workflows/validate call — design.md §6.6:
@@ -15,9 +21,9 @@ const emptyResult: ValidateResponse = { diagnostics: [], runnable: true }
  * after a newer request has already gone out, so a fast typist's stale
  * result can never clobber a fresher one.
  */
-export function useWorkflowValidation(graph: Graph | null, enabled: boolean): ValidateResponse {
+export function useWorkflowValidation(graph: Graph | null, enabled: boolean): ValidationResult {
   const debouncedGraph = useDebouncedValue(graph, 500)
-  const [result, setResult] = useState<ValidateResponse>(emptyResult)
+  const [result, setResult] = useState<ValidationResult>(emptyResult)
   const requestId = useRef(0)
 
   useEffect(() => {
@@ -28,17 +34,7 @@ export function useWorkflowValidation(graph: Graph | null, enabled: boolean): Va
       .validate({ graphJson })
       .then((response) => {
         if (id !== requestId.current) return
-        setResult({
-          diagnostics: response.diagnostics.map((d) => ({
-            severity: d.severity as Severity,
-            code: d.code,
-            message: d.message,
-            node_ids: d.nodeIds,
-            edge_ids: d.edgeIds,
-            witness_path: d.witnessPath,
-          })),
-          runnable: response.runnable,
-        })
+        setResult({ diagnostics: response.diagnostics, runnable: response.runnable })
       })
       .catch(() => {
         // Best-effort — a failed validate call leaves diagnostics stale
