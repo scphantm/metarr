@@ -17,15 +17,7 @@ import {
   workflowClient,
 } from './clients'
 import { mapAsync, registerStream, Stream, useStream, useStreamStatus } from './streams'
-import type {
-  AcceptedResponse,
-  ReorderSidecarTypesRequest,
-  UpsertWorkflowRequest,
-  Workflow,
-  WorkflowListResponse,
-} from './types'
-import { create, type JsonObject, type MessageInitShape } from '@bufbuild/protobuf'
-import { timestampDate } from '@bufbuild/protobuf/wkt'
+import type { MessageInitShape } from '@bufbuild/protobuf'
 import type { AcceptedResponse as ConnectAcceptedResponse } from '../gen/metarr/v1/common_pb'
 import { SonarrInstanceSchema } from '../gen/metarr/v1/sonarr_interfaces_pb'
 import {
@@ -36,8 +28,7 @@ import {
 import { AgentConfigSchema } from '../gen/metarr/v1/agents_pb'
 import { ScanDirectorySchema, SidecarTypeDefinitionSchema } from '../gen/metarr/v1/directory_scanner_pb'
 import { LoggingConfigSchema } from '../gen/metarr/v1/logging_pb'
-import type { Workflow as ConnectWorkflow } from '../gen/metarr/v1/workflows_pb'
-import { WorkflowGraphSchema } from '../gen/metarr/v1/workflow_graph_pb'
+import type { WorkflowGraph } from '../gen/metarr/v1/workflow_graph_pb'
 
 export const queryKeys = {
   config: ['config'] as const,
@@ -221,15 +212,11 @@ export function useSetAgentLogLevel() {
  * refresh both its own list and the whole-config read.
  */
 
-type Accepted = AcceptedResponse
-
-// TResult defaults to the REST-era Accepted shape but any still-migrating
-// domain's mutationFn can return its own type instead — e.g. a gRPC-Web
-// domain returning the generated metarr.v1.AcceptedResponse message
-// (camelCase correlationId, not snake_case correlation_id) rather than
-// shimming one shape into the other. Nothing downstream reads these fields
-// today; onSuccess only triggers invalidation.
-function useConfigMutation<TVariables, TResult = Accepted>(
+// TResult defaults to the generated metarr.v1.AcceptedResponse message every
+// config mutation returns; a still-migrating domain's mutationFn can name its
+// own type instead. Nothing downstream reads these fields today — onSuccess
+// only triggers invalidation.
+function useConfigMutation<TVariables, TResult = ConnectAcceptedResponse>(
   mutationFn: (variables: TVariables) => Promise<TResult>,
   keysToInvalidate: readonly (readonly unknown[])[],
 ): UseMutationResult<TResult, Error, TVariables> {
@@ -315,7 +302,7 @@ export function useDeleteSidecarType() {
 // Ordering covers the whole table in one call — it is the only place an entry
 // can be enabled or disabled, since order zero is the disabled sentinel.
 export function useReorderSidecarTypes() {
-  return useConfigMutation<ReorderSidecarTypesRequest, ConnectAcceptedResponse>(
+  return useConfigMutation<Record<string, number>, ConnectAcceptedResponse>(
     (orders) => directoryScannerClient.reorderSidecarTypes({ orders }),
     [queryKeys.sidecarTypes, queryKeys.directoryScanner, queryKeys.config],
   )
@@ -349,32 +336,12 @@ export function useDeleteSonarrInstance() {
  * than useConfigMutation, whose return type is hardwired to AcceptedResponse.
  */
 
-// The graph is a typed WorkflowGraph message on the wire now (docs/adr/0005).
-// This still flattens it into the snake_case Workflow shape the editor pages
-// read; that shape is retired with api/types.ts in its own slice.
-function connectWorkflowToLegacyShape(w: ConnectWorkflow): Workflow {
-  const graph = w.graph
-  return {
-    id: w.id,
-    document_id: w.documentId,
-    version: w.version,
-    created_at: w.createdAt ? timestampDate(w.createdAt).toISOString() : new Date(0).toISOString(),
-    name: w.name,
-    description: w.description,
-    tags: w.tags,
-    schema_version: graph?.schemaVersion ?? 0,
-    nodes: graph?.nodes ?? [],
-    edges: graph?.edges ?? [],
-    viewport: graph?.viewport ?? {},
-  }
-}
-
 export function useWorkflow(id: string) {
   return useQuery({
     queryKey: queryKeys.workflow(id),
     queryFn: async () => {
       const { workflow } = await workflowClient.get({ id })
-      return workflow && connectWorkflowToLegacyShape(workflow)
+      return workflow
     },
     enabled: id !== '',
   })
@@ -383,8 +350,7 @@ export function useWorkflow(id: string) {
 export function useWorkflowVersions(id: string) {
   return useQuery({
     queryKey: queryKeys.workflowVersions(id),
-    queryFn: async () =>
-      (await workflowClient.listVersions({ id })).versions.map(connectWorkflowToLegacyShape),
+    queryFn: async () => (await workflowClient.listVersions({ id })).versions,
     enabled: id !== '',
   })
 }
@@ -394,7 +360,7 @@ export function useWorkflowVersion(id: string, version: number | null) {
     queryKey: [...queryKeys.workflow(id), 'v', version],
     queryFn: async () => {
       const { workflow } = await workflowClient.getVersion({ id, version: version ?? 0 })
-      return workflow && connectWorkflowToLegacyShape(workflow)
+      return workflow
     },
     enabled: id !== '' && version != null,
   })
@@ -407,14 +373,13 @@ export function useWorkflowList() {
     queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
       const response = await workflowClient.list({ limit: 20, cursor: pageParam ?? '' })
       return {
-        workflows: response.workflows.map(connectWorkflowToLegacyShape),
-        next_cursor: response.nextCursor,
-        has_more: response.hasMore,
-      } satisfies WorkflowListResponse
+        workflows: response.workflows,
+        nextCursor: response.nextCursor,
+        hasMore: response.hasMore,
+      }
     },
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) =>
-      lastPage.has_more ? lastPage.next_cursor : undefined,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
   })
 }
 
@@ -435,33 +400,35 @@ export function useWorkflowCatalog() {
   })
 }
 
+export type SaveWorkflowInput = {
+  documentId: string
+  name: string
+  description: string
+  tags: string[]
+  graph: WorkflowGraph
+}
+
 export function useSaveWorkflow() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (body: UpsertWorkflowRequest) => {
-      const graph = create(WorkflowGraphSchema, {
-        schemaVersion: body.schema_version,
-        nodes: body.nodes,
-        edges: body.edges,
-        viewport: body.viewport as JsonObject,
-      })
+    mutationFn: async (body: SaveWorkflowInput) => {
       const { workflow } = await workflowClient.upsert({
-        documentId: body.document_id ?? '',
+        documentId: body.documentId,
         name: body.name,
         description: body.description,
         tags: body.tags,
-        graph,
+        graph: body.graph,
       })
       if (!workflow) throw new Error('save did not return a workflow')
-      return connectWorkflowToLegacyShape(workflow)
+      return workflow
     },
     onSuccess: (saved) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.workflows })
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.workflow(saved.document_id),
+        queryKey: queryKeys.workflow(saved.documentId),
       })
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.workflowVersions(saved.document_id),
+        queryKey: queryKeys.workflowVersions(saved.documentId),
       })
     },
   })

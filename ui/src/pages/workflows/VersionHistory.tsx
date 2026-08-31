@@ -1,6 +1,7 @@
 import { Menu } from 'antd'
+import { timestampDate } from '@bufbuild/protobuf/wkt'
 
-import type { Workflow } from '../../api/types'
+import type { Workflow } from '../../gen/metarr/v1/workflows_pb'
 import './VersionHistory.css'
 
 export function VersionHistory({
@@ -29,7 +30,7 @@ export function VersionHistory({
             <>
               v{version.version}
               <span className="version-history-timestamp">
-                {new Date(version.created_at).toLocaleString()}
+                {version.createdAt ? timestampDate(version.createdAt).toLocaleString() : ''}
               </span>
             </>
           ),
