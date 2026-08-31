@@ -27,20 +27,9 @@ export type AcceptedResponse = {
 // AgentTelemetry / GPUTelemetry / AgentMappingView / AgentConfig from
 // ../gen/metarr/v1/agents_pb.
 
-/*
- * Logging.
- *
- * The logging config itself is the generated metarr.v1.LoggingConfig now;
- * only the tail entry stays hand-written until the log-record slice lands.
- */
-
-export type LogTailEntry = {
-  time: string
-  level: string
-  message: string
-  source: string
-  attrs?: Record<string, unknown>
-}
+// Logging is fully generated now: the config is metarr.v1.LoggingConfig and
+// the live-tail record is metarr.v1.LogRecord (attrs is a google.protobuf.Struct
+// value) — see ../gen/metarr/v1/logging_pb.
 
 /*
  * Workflows.
