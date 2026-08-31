@@ -12,28 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/tasks.proto.
  */
 export const file_metarr_v1_tasks: GenFile = /*@__PURE__*/
-  fileDesc("ChVtZXRhcnIvdjEvdGFza3MucHJvdG8SCW1ldGFyci52MSI3CiRUYXNrU2VydmljZVJ1blNvbmFyckNhY2hlRGF0YVJlcXVlc3QSDwoHY29tbWFuZBgBIAEoCSJLCiJUYXNrU2VydmljZVJ1bkRpcmVjdG9yeVNjYW5SZXF1ZXN0EhQKDHNjYW5uZXJfc2x1ZxgBIAEoCRIPCgdjb21tYW5kGAIgASgJMtEBCgtUYXNrU2VydmljZRJiChJSdW5Tb25hcnJDYWNoZURhdGESLy5tZXRhcnIudjEuVGFza1NlcnZpY2VSdW5Tb25hcnJDYWNoZURhdGFSZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2USXgoQUnVuRGlyZWN0b3J5U2NhbhItLm1ldGFyci52MS5UYXNrU2VydmljZVJ1bkRpcmVjdG9yeVNjYW5SZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_metarr_v1_common]);
-
-/**
- * TaskServiceRunSonarrCacheDataRequest mirrors the REST TaskRequest body —
- * command must be "run", kept as an explicit field (rather than a bare
- * trigger) so the wire shape matches what the handler already validates.
- *
- * @generated from message metarr.v1.TaskServiceRunSonarrCacheDataRequest
- */
-export type TaskServiceRunSonarrCacheDataRequest = Message<"metarr.v1.TaskServiceRunSonarrCacheDataRequest"> & {
-  /**
-   * @generated from field: string command = 1;
-   */
-  command: string;
-};
-
-/**
- * Describes the message metarr.v1.TaskServiceRunSonarrCacheDataRequest.
- * Use `create(TaskServiceRunSonarrCacheDataRequestSchema)` to create a new message.
- */
-export const TaskServiceRunSonarrCacheDataRequestSchema: GenMessage<TaskServiceRunSonarrCacheDataRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_tasks, 0);
+  fileDesc("ChVtZXRhcnIvdjEvdGFza3MucHJvdG8SCW1ldGFyci52MSJLCiJUYXNrU2VydmljZVJ1bkRpcmVjdG9yeVNjYW5SZXF1ZXN0EhQKDHNjYW5uZXJfc2x1ZxgBIAEoCRIPCgdjb21tYW5kGAIgASgJMm0KC1Rhc2tTZXJ2aWNlEl4KEFJ1bkRpcmVjdG9yeVNjYW4SLS5tZXRhcnIudjEuVGFza1NlcnZpY2VSdW5EaXJlY3RvcnlTY2FuUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_metarr_v1_common]);
 
 /**
  * @generated from message metarr.v1.TaskServiceRunDirectoryScanRequest
@@ -55,7 +34,7 @@ export type TaskServiceRunDirectoryScanRequest = Message<"metarr.v1.TaskServiceR
  * Use `create(TaskServiceRunDirectoryScanRequestSchema)` to create a new message.
  */
 export const TaskServiceRunDirectoryScanRequestSchema: GenMessage<TaskServiceRunDirectoryScanRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_tasks, 1);
+  messageDesc(file_metarr_v1_tasks, 0);
 
 /**
  * TaskService fires the same durable event-bus commands the REST /api/tasks
@@ -65,14 +44,6 @@ export const TaskServiceRunDirectoryScanRequestSchema: GenMessage<TaskServiceRun
  * @generated from service metarr.v1.TaskService
  */
 export const TaskService: GenService<{
-  /**
-   * @generated from rpc metarr.v1.TaskService.RunSonarrCacheData
-   */
-  runSonarrCacheData: {
-    methodKind: "unary";
-    input: typeof TaskServiceRunSonarrCacheDataRequestSchema;
-    output: typeof AcceptedResponseSchema;
-  },
   /**
    * @generated from rpc metarr.v1.TaskService.RunDirectoryScan
    */

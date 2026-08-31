@@ -106,7 +106,6 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	taskEventRepo := mongostore.NewTaskEventRepo(mongoClient, cfg.MongoDatabase)
 	appConfigRepo := mongostore.NewAppConfigRepo(mongoClient, cfg.MongoDatabase)
 	appConfigStore := appconfigstore.New(appConfigRepo, appConfigRepo, streamBus)
 	localDirectoryRepo := mongostore.NewLocalDirectoryRepo(mongoClient, cfg.MongoDatabase)
@@ -214,11 +213,6 @@ func run() error {
 
 	// single HTTP request.
 	go listeners.RunHeartbeatListener(ctx, pubsubBus, logger)
-	go func() {
-		if err := listeners.RunSonarrCacheDataListener(ctx, streamBus, taskEventRepo, logger); err != nil && ctx.Err() == nil {
-			logger.Error("sonarr_cache_data listener stopped unexpectedly", "error", err)
-		}
-	}()
 	go func() {
 		if err := listeners.RunSystemConfigUpdateListener(ctx, streamBus, appConfigRepo, agentRegistry, logShipper, logger); err != nil && ctx.Err() == nil {
 			logger.Error("system_config_update listener stopped unexpectedly", "error", err)

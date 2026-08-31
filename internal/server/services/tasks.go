@@ -32,36 +32,7 @@ type TaskServer struct {
 // TaskAuthPolicies is this service's method-name -> policy map. Mirrors
 // every task route in router.go being GroupTasks.
 var TaskAuthPolicies = map[string]httpserver.RPCPolicy{
-	"RunSonarrCacheData": {Group: auth.GroupTasks},
-	"RunDirectoryScan":   {Group: auth.GroupTasks},
-}
-
-func (s *TaskServer) RunSonarrCacheData(
-	ctx context.Context,
-	req *connect.Request[metarrv1.TaskServiceRunSonarrCacheDataRequest],
-) (*connect.Response[metarrv1.AcceptedResponse], error) {
-	correlationID := correlation.FromContext(ctx)
-
-	if req.Msg.GetCommand() != "run" {
-		return nil, connectError(http.StatusBadRequest, errors.New(`unsupported command, expected "run"`))
-	}
-
-	event := eventbus.Event{
-		CorrelationID: correlationID,
-		Name:          eventbus.SonarrCacheDataEventName,
-		Timestamp:     time.Now().UTC(),
-	}
-
-	if err := s.Streams.Fire(ctx, eventbus.SonarrCacheDataStream, event); err != nil {
-		s.Logger.Error("failed to fire sonarr_cache_data event", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue task"))
-	}
-
-	return connect.NewResponse(&metarrv1.AcceptedResponse{
-		Status:        "accepted",
-		Event:         eventbus.SonarrCacheDataEventName,
-		CorrelationId: correlationID,
-	}), nil
+	"RunDirectoryScan": {Group: auth.GroupTasks},
 }
 
 func (s *TaskServer) RunDirectoryScan(

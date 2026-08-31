@@ -33,9 +33,6 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// TaskServiceRunSonarrCacheDataProcedure is the fully-qualified name of the TaskService's
-	// RunSonarrCacheData RPC.
-	TaskServiceRunSonarrCacheDataProcedure = "/metarr.v1.TaskService/RunSonarrCacheData"
 	// TaskServiceRunDirectoryScanProcedure is the fully-qualified name of the TaskService's
 	// RunDirectoryScan RPC.
 	TaskServiceRunDirectoryScanProcedure = "/metarr.v1.TaskService/RunDirectoryScan"
@@ -43,7 +40,6 @@ const (
 
 // TaskServiceClient is a client for the metarr.v1.TaskService service.
 type TaskServiceClient interface {
-	RunSonarrCacheData(context.Context, *connect.Request[v1.TaskServiceRunSonarrCacheDataRequest]) (*connect.Response[v1.AcceptedResponse], error)
 	RunDirectoryScan(context.Context, *connect.Request[v1.TaskServiceRunDirectoryScanRequest]) (*connect.Response[v1.AcceptedResponse], error)
 }
 
@@ -58,12 +54,6 @@ func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 	baseURL = strings.TrimRight(baseURL, "/")
 	taskServiceMethods := v1.File_metarr_v1_tasks_proto.Services().ByName("TaskService").Methods()
 	return &taskServiceClient{
-		runSonarrCacheData: connect.NewClient[v1.TaskServiceRunSonarrCacheDataRequest, v1.AcceptedResponse](
-			httpClient,
-			baseURL+TaskServiceRunSonarrCacheDataProcedure,
-			connect.WithSchema(taskServiceMethods.ByName("RunSonarrCacheData")),
-			connect.WithClientOptions(opts...),
-		),
 		runDirectoryScan: connect.NewClient[v1.TaskServiceRunDirectoryScanRequest, v1.AcceptedResponse](
 			httpClient,
 			baseURL+TaskServiceRunDirectoryScanProcedure,
@@ -75,13 +65,7 @@ func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 
 // taskServiceClient implements TaskServiceClient.
 type taskServiceClient struct {
-	runSonarrCacheData *connect.Client[v1.TaskServiceRunSonarrCacheDataRequest, v1.AcceptedResponse]
-	runDirectoryScan   *connect.Client[v1.TaskServiceRunDirectoryScanRequest, v1.AcceptedResponse]
-}
-
-// RunSonarrCacheData calls metarr.v1.TaskService.RunSonarrCacheData.
-func (c *taskServiceClient) RunSonarrCacheData(ctx context.Context, req *connect.Request[v1.TaskServiceRunSonarrCacheDataRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return c.runSonarrCacheData.CallUnary(ctx, req)
+	runDirectoryScan *connect.Client[v1.TaskServiceRunDirectoryScanRequest, v1.AcceptedResponse]
 }
 
 // RunDirectoryScan calls metarr.v1.TaskService.RunDirectoryScan.
@@ -91,7 +75,6 @@ func (c *taskServiceClient) RunDirectoryScan(ctx context.Context, req *connect.R
 
 // TaskServiceHandler is an implementation of the metarr.v1.TaskService service.
 type TaskServiceHandler interface {
-	RunSonarrCacheData(context.Context, *connect.Request[v1.TaskServiceRunSonarrCacheDataRequest]) (*connect.Response[v1.AcceptedResponse], error)
 	RunDirectoryScan(context.Context, *connect.Request[v1.TaskServiceRunDirectoryScanRequest]) (*connect.Response[v1.AcceptedResponse], error)
 }
 
@@ -102,12 +85,6 @@ type TaskServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	taskServiceMethods := v1.File_metarr_v1_tasks_proto.Services().ByName("TaskService").Methods()
-	taskServiceRunSonarrCacheDataHandler := connect.NewUnaryHandler(
-		TaskServiceRunSonarrCacheDataProcedure,
-		svc.RunSonarrCacheData,
-		connect.WithSchema(taskServiceMethods.ByName("RunSonarrCacheData")),
-		connect.WithHandlerOptions(opts...),
-	)
 	taskServiceRunDirectoryScanHandler := connect.NewUnaryHandler(
 		TaskServiceRunDirectoryScanProcedure,
 		svc.RunDirectoryScan,
@@ -116,8 +93,6 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 	)
 	return "/metarr.v1.TaskService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case TaskServiceRunSonarrCacheDataProcedure:
-			taskServiceRunSonarrCacheDataHandler.ServeHTTP(w, r)
 		case TaskServiceRunDirectoryScanProcedure:
 			taskServiceRunDirectoryScanHandler.ServeHTTP(w, r)
 		default:
@@ -128,10 +103,6 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 
 // UnimplementedTaskServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedTaskServiceHandler struct{}
-
-func (UnimplementedTaskServiceHandler) RunSonarrCacheData(context.Context, *connect.Request[v1.TaskServiceRunSonarrCacheDataRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.TaskService.RunSonarrCacheData is not implemented"))
-}
 
 func (UnimplementedTaskServiceHandler) RunDirectoryScan(context.Context, *connect.Request[v1.TaskServiceRunDirectoryScanRequest]) (*connect.Response[v1.AcceptedResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.TaskService.RunDirectoryScan is not implemented"))
