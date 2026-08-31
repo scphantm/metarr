@@ -2,34 +2,206 @@ syntax = "proto3";
 
 package metarr.v1;
 
+import "google/protobuf/struct.proto";
+
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// WorkflowNodeKind tells the validator and engine how a node participates in
+// control flow. The engine owns this vocabulary and it is closed, so it is a
+// proto enum rather than a free string. A node's `type`, by contrast, stays a
+// free string: the catalog owns that vocabulary, so a new node type is a
+// catalog data change and never a proto change or a release.
+enum WorkflowNodeKind {
+  // An ordinary step. The zero value, so a catalog entry that names no kind
+  // is a plain task; catalog.json omits `kind` for these.
+  WORKFLOW_NODE_KIND_UNSPECIFIED = 0;
+  // The single entry point of a workflow.
+  WORKFLOW_NODE_KIND_START = 1;
+  // Terminates a run. Forbidden inside parallel branches and loop bodies.
+  WORKFLOW_NODE_KIND_END = 2;
+  // Terminates a run as failed.
+  WORKFLOW_NODE_KIND_FAIL = 3;
+  // A pure data source — a literal, a selector, a constant. It has no control
+  // ports at all and is exempt from MustHaveRun.
+  WORKFLOW_NODE_KIND_SOURCE = 4;
+  // Chooses exactly one of several control outs.
+  WORKFLOW_NODE_KIND_BRANCH = 5;
+  // Iterates, firing body per item then done once.
+  WORKFLOW_NODE_KIND_FOR_EACH = 6;
+  // Accumulates a value inside a loop body. Its output is attributed to the
+  // enclosing loop's done transition.
+  WORKFLOW_NODE_KIND_COLLECT = 7;
+  // Fans out into concurrent branches.
+  WORKFLOW_NODE_KIND_PARALLEL = 8;
+  // The barrier paired with a parallel.
+  WORKFLOW_NODE_KIND_JOIN = 9;
+  // Terminates the enclosing loop.
+  WORKFLOW_NODE_KIND_BREAK = 10;
+  // An annotation. It has no ports, is stripped before compilation, and is
+  // excluded from every validation pass.
+  WORKFLOW_NODE_KIND_NOTE = 11;
+}
+
+// WorkflowEffects classifies what a node type does to the filesystem. Every
+// catalog entry must declare it — it is what dry-run keys off, and it cannot
+// be retrofitted without re-auditing every handler ever written — so
+// WORKFLOW_EFFECTS_UNSPECIFIED is a catalog load error, never a default.
+enum WorkflowEffects {
+  WORKFLOW_EFFECTS_UNSPECIFIED = 0;
+  // Inspects only, and is unaffected by dry-run.
+  WORKFLOW_EFFECTS_READ = 1;
+  // Creates or modifies files.
+  WORKFLOW_EFFECTS_WRITE = 2;
+  // Deletes or overwrites existing library content. It is badged in the
+  // editor, and an agent refuses to invoke it at all while dry-run is set.
+  WORKFLOW_EFFECTS_DESTRUCTIVE = 3;
+}
+
+// WorkflowPortKind is the closed two-value vocabulary that separates a node's
+// control wiring from its data wiring. The engine owns it: handle ids in the
+// editor encode it (`c:` / `d:`), control and data edges are validated by
+// entirely different rules, and the two are never styled alike.
+enum WorkflowPortKind {
+  WORKFLOW_PORT_KIND_UNSPECIFIED = 0;
+  // A control port: says what runs next.
+  WORKFLOW_PORT_KIND_CONTROL = 1;
+  // A data port (socket): wires a typed value into a parameter.
+  WORKFLOW_PORT_KIND_DATA = 2;
+}
+
+// WorkflowControlPorts declares a node type's execution wiring. An empty `in`
+// is what makes a node a starting point, and an empty `out` what makes it an
+// ending point — the catalog says so directly rather than the UI inferring it
+// from a category name.
+message WorkflowControlPorts {
+  repeated string in = 1;
+  repeated string out = 2;
+  // error adds the red error out-port. It is an ordinary control branch; the
+  // only thing special about it is how it is drawn and that leaving it
+  // unwired aborts the run.
+  bool error = 3;
+}
+
+// WorkflowSocket is a typed data port.
+message WorkflowSocket {
+  // name is a permanent identifier that stored edges reference. Renaming one
+  // silently breaks every saved workflow — change label instead.
+  string name = 1;
+  string label = 2;
+  // type is a value type in the workflow type system: a dotted-prefix
+  // hierarchy with a generic list<T> constructor. It stays a free string, so
+  // a new type needs no proto change beyond a catalog entry naming it.
+  string type = 3;
+  bool required = 4;
+  string description = 5;
+}
+
+// WorkflowSetting is a literal the user types into the node's editor. It is
+// never wired, unless promoted on a specific instance.
+message WorkflowSetting {
+  string name = 1;
+  string label = 2;
+  string type = 3;
+  // default is the setting's initial value — any JSON scalar or structure.
+  google.protobuf.Value default = 4;
+  // ui carries editor hints (widget, options) with no fixed schema.
+  google.protobuf.Struct ui = 5;
+  string description = 6;
+}
+
+// WorkflowRetrySpec governs retries of infrastructure failures — an agent
+// going offline, Redis being unavailable, a dispatch timing out. Node errors
+// are not retried; they go to the error port.
+message WorkflowRetrySpec {
+  int32 attempts = 1;
+  string backoff = 2;
+}
+
+// WorkflowExecSpec says where and how a node runs.
+message WorkflowExecSpec {
+  // runs_on defaults to the server; a node names "agent" when its work can
+  // only happen where the files are. It stays a free string, validated by
+  // the catalog loader.
+  string runs_on = 1;
+  string agent_selector = 2;
+  string timeout = 3;
+  bool cancellable = 4;
+  // effects is mandatory. It is what dry-run keys off.
+  WorkflowEffects effects = 5;
+  WorkflowRetrySpec retry = 6;
+}
+
+// WorkflowNodeType is one catalog entry: the definition of a kind of node, as
+// distinct from an instance of one placed on a canvas. internal/shared/workflow
+// aliases this message (NodeType = metarrv1.WorkflowNodeType); it is the single
+// definition of the model, read by the editor palette, server-side validation
+// and the engine. See docs/adr/0005.
+message WorkflowNodeType {
+  string id = 1;
+  string type = 2;
+  string name = 3;
+  // category and subcategory are the palette's two accordion levels, both
+  // presentation-only: never dispatch behaviour on either, only on type.
+  string category = 4;
+  string subcategory = 5;
+  WorkflowNodeKind kind = 6;
+  string description = 7;
+  WorkflowControlPorts control = 8;
+  repeated WorkflowSocket data_in = 9;
+  repeated WorkflowSocket data_out = 10;
+  repeated WorkflowSetting settings = 11;
+  WorkflowExecSpec exec = 12;
+}
+
+// WorkflowTransform is a named, explicit conversion between two types,
+// recorded on the data edge that uses it. internal/shared/workflow aliases
+// this message (Transform = metarrv1.WorkflowTransform).
+message WorkflowTransform {
+  string name = 1;
+  string from = 2;
+  string to = 3;
+  // ambiguous marks a transform that must never be applied automatically
+  // even when it is the only candidate, because more than one answer is
+  // defensible and guessing wrong is silent.
+  bool ambiguous = 4;
+  string summary = 5;
+  // implies_iteration marks a transform whose value production is
+  // one-to-many at the data level (design.md §4.3's ETL transforms).
+  bool implies_iteration = 6;
+}
+
+// WorkflowCatalog is the loaded node type catalog plus the transform
+// registry, as served to the editor. catalog.json on disk is one of these
+// with node_types only; the service fills in transforms and schema_version.
+message WorkflowCatalog {
+  repeated WorkflowNodeType node_types = 1;
+  repeated WorkflowTransform transforms = 2;
+  // schema_version is the current stored graph format, served alongside the
+  // catalog so the editor knows which graph shape it is authoring.
+  int32 schema_version = 3;
+}
 
 message WorkflowCatalogServiceGetRequest {}
 
-// WorkflowCatalogServiceGetResponse carries the same JSON
-// internal/server/handlers/workflow_catalog.go's CatalogResponse already
-// produced — node types (with their sockets, settings, exec specs) and the
-// transform registry. Kept opaque rather than modeled field-for-field: it's
-// read-only, changes only on redeploy, deeply nested, and the frontend
-// already treats it as loosely-typed JSON (catalogTypes.ts is hand-written
-// against the JSON shape, not generated) — same reasoning as
-// local_directories.proto's opaque records, decided together.
+// WorkflowCatalogServiceGetResponse carries the typed catalog: node types
+// (with their control ports, sockets, settings and exec specs), the transform
+// registry, and the graph schema version. It replaced an opaque catalog_json
+// blob when the catalog became a generated message — see docs/adr/0005.
 message WorkflowCatalogServiceGetResponse {
-  bytes catalog_json = 1;
+  WorkflowCatalog catalog = 1;
 }
 
-// WorkflowCatalogServiceValidateRequest carries a workflow.Graph as the same
-// opaque bytes workflows.proto's Workflow message will carry (Step 7) —
-// Node.Extra must survive a round-trip losslessly, which a modeled proto
-// message can't guarantee, so the graph is never decoded into a typed
-// message on the wire at all.
+// WorkflowCatalogServiceValidateRequest carries a workflow.Graph as opaque
+// bytes: Node.Extra must survive a round-trip losslessly, which a modeled
+// proto message cannot yet guarantee, so the graph is not decoded into a
+// typed message on the wire. The workflow graph slice revisits this.
 message WorkflowCatalogServiceValidateRequest {
   bytes graph_json = 1;
 }
 
 // Diagnostic mirrors internal/server/workflow/validate.Diagnostic — small,
-// structured, and painted directly onto the canvas, so unlike the catalog
-// and the graph it gets real fields rather than opaque bytes.
+// structured, and painted directly onto the canvas. The validation
+// diagnostics slice replaces this with a generated model end to end.
 message Diagnostic {
   string severity = 1;
   string code = 2;

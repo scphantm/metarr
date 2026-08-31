@@ -1,111 +1,19 @@
 /*
  * Hand-written mirrors of the Go workflow contract's JSON shapes, field for
- * field against their `json:` tags — internal/shared/workflow/{catalog,graph,
- * types,handler}.go — and internal/server/workflow/validate/validate.go for
- * the diagnostics shape. Graph node/edge types are prefixed `Graph*` because
- * React Flow already owns the bare `Node`/`Edge` names.
+ * field against their `json:` tags — internal/shared/workflow/graph.go — and
+ * internal/server/workflow/validate/validate.go for the diagnostics shape.
+ * Graph node/edge types are prefixed `Graph*` because React Flow already owns
+ * the bare `Node`/`Edge` names.
+ *
+ * The catalog half (node types, sockets, settings, transforms, the node-kind
+ * and effects vocabularies) is generated now — see ../../gen/metarr/v1/
+ * workflow_catalog_pb and docs/adr/0005. The graph and diagnostics halves
+ * follow in their own slices.
  *
  * This file has no logic of its own — see graphAdapter.ts for the canonical
  * graph <-> React Flow boundary and connectionRules.ts for the type-lattice
  * rules ported from types.go.
  */
-
-// ---- types.go ----------------------------------------------------------
-
-// A dotted-prefix hierarchy ("path.dir" is a subtype of "path", "agent.slug"
-// is a subtype of "agent"), plus the generic `list<T>` constructor. See
-// connectionRules.ts for the subtyping/coercion logic itself.
-export type Type = string
-
-export type Transform = {
-  name: string
-  from: Type
-  to: Type
-  ambiguous?: boolean
-  summary?: string
-  implies_iteration?: boolean
-}
-
-// ---- catalog.go ---------------------------------------------------------
-
-export type NodeKind =
-  | ''
-  | 'start'
-  | 'end'
-  | 'fail'
-  | 'source'
-  | 'branch'
-  | 'forEach'
-  | 'collect'
-  | 'parallel'
-  | 'join'
-  | 'break'
-  | 'note'
-
-export type Effects = 'read' | 'write' | 'destructive'
-
-export type ControlPorts = {
-  in: string[]
-  out: string[]
-  error?: boolean
-}
-
-export type Socket = {
-  name: string
-  label?: string
-  type: Type
-  required?: boolean
-  description?: string
-}
-
-export type Setting = {
-  name: string
-  label?: string
-  type: Type
-  default?: unknown
-  ui?: Record<string, unknown>
-  description?: string
-}
-
-export type RetrySpec = {
-  attempts?: number
-  backoff?: string
-}
-
-export type ExecSpec = {
-  runsOn?: 'server' | 'agent' | ''
-  agentSelector?: string
-  timeout?: string
-  cancellable?: boolean
-  effects: Effects
-  retry?: RetrySpec
-}
-
-export type NodeType = {
-  id: string
-  type: string
-  name: string
-  // The palette's two accordion levels — category is the outer group (e.g.
-  // "workflow"), subcategory the inner one (e.g. "start"). Presentation
-  // only, same as before this split. subcategory isn't assigned catalog-wide
-  // yet; category is absent on most entries until it is — see
-  // NodePalette.tsx's grouping fallback.
-  category?: string
-  subcategory?: string
-  kind?: NodeKind
-  description?: string
-  control: ControlPorts
-  dataIn?: Socket[]
-  dataOut?: Socket[]
-  settings?: Setting[]
-  exec: ExecSpec
-}
-
-export type CatalogResponse = {
-  node_types: NodeType[]
-  transforms: Transform[]
-  schema_version: number
-}
 
 // ---- graph.go -------------------------------------------------------------
 

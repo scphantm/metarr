@@ -1,11 +1,12 @@
-[
+{
+  "node_types": [
   {
     "type": "core/start",
     "id": "72f8e409-bf15-4dd6-ab8c-70a2ec512ec7",
     "name": "Start Path",
     "category": "workflow",
     "subcategory": "start",
-    "kind": "start",
+    "kind": "WORKFLOW_NODE_KIND_START",
     "description": "Where the run begins. The input type of this is path, which translates to a file on a drive",
     "control": { "in": [], "out": ["next"] },
     "dataOut": [
@@ -21,7 +22,7 @@
         "description": "What starts this workflow. Only manual is honoured today; the rest are reserved."
       }
     ],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "core/start",
@@ -29,7 +30,7 @@
     "name": "Start Media",
     "category": "workflow",
     "subcategory": "start",
-    "kind": "start",
+    "kind": "WORKFLOW_NODE_KIND_START",
     "description": "Where the run begins. The input type of this is media, media is a database record in mongo",
     "control": { "in": [], "out": ["next"] },
     "dataOut": [
@@ -45,7 +46,7 @@
         "description": "What starts this workflow. Only manual is honoured today; the rest are reserved."
       }
     ],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "core/writeChanges",
@@ -53,10 +54,10 @@
     "name": "Write changes",
     "category": "workflow",
     "subcategory": "end",
-    "kind": "end",
+    "kind": "WORKFLOW_NODE_KIND_END",
     "description": "Commits pending changes and ends this path of the run.",
     "control": { "in": ["in"], "out": [], "error": true },
-    "exec": { "runsOn": "server", "effects": "write" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_WRITE" }
   },
   {
     "type": "core/errorOutput",
@@ -64,13 +65,13 @@
     "name": "Error Output",
     "category": "workflow",
     "subcategory": "end",
-    "kind": "end",
+    "kind": "WORKFLOW_NODE_KIND_END",
     "description": "Ends this path of the run, recording the incoming error.",
     "control": { "in": ["in"], "out": [] },
     "dataIn": [
       { "name": "error", "label": "Error", "type": "error", "required": false }
     ],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "core/note",
@@ -78,20 +79,20 @@
     "name": "Notes",
     "category": "workflow",
     "subcategory": "misc",
-    "kind": "note",
+    "kind": "WORKFLOW_NODE_KIND_NOTE",
     "description": "An annotation. Has no ports, is stripped before compilation, and is excluded from validation.",
     "control": { "in": [], "out": [] },
     "settings": [
       { "name": "notes", "label": "Note", "type": "string", "default": "", "ui": { "widget": "textarea" } }
     ],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "core/checkFlowVariable",
     "id": "6b32e34c-c356-4536-a073-9c40f0b4ec91",
     "name": "Check flow variable",
     "subcategory": "check",
-    "kind": "branch",
+    "kind": "WORKFLOW_NODE_KIND_BRANCH",
     "description": "Compares two values and takes the yes or no branch. The branches are control flow, not booleans — nothing downstream consumes them as data.",
     "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
     "dataIn": [
@@ -108,7 +109,7 @@
       },
       { "name": "data2", "label": "Right", "type": "string", "default": "" }
     ],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "core/trickplay",
@@ -133,7 +134,7 @@
       "agentSelector": "path",
       "timeout": "2h",
       "cancellable": true,
-      "effects": "write",
+      "effects": "WORKFLOW_EFFECTS_WRITE",
       "retry": { "attempts": 3, "backoff": "30s" }
     }
   },
@@ -143,7 +144,7 @@
     "name": "For Each",
     "category": "workflow",
     "subcategory": "control",
-    "kind": "forEach",
+    "kind": "WORKFLOW_NODE_KIND_FOR_EACH",
     "description": "Runs the body once per item, then fires done. Both body and done come from this node, so the zero-iteration path exists in the graph.",
     "control": { "in": ["in"], "out": ["body", "done"], "error": true },
     "dataIn": [
@@ -165,7 +166,7 @@
         "ui": { "widget": "dropdown", "options": ["abort", "skip"] }
       }
     ],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "core/collect",
@@ -173,7 +174,7 @@
     "name": "Collect",
     "category": "workflow",
     "subcategory": "control",
-    "kind": "collect",
+    "kind": "WORKFLOW_NODE_KIND_COLLECT",
     "description": "Accumulates one value per iteration. Placed inside a loop body; its collected output is readable after the loop's done, in collection order.",
     "control": { "in": ["in"], "out": ["next"] },
     "dataIn": [
@@ -182,7 +183,7 @@
     "dataOut": [
       { "name": "collected", "label": "Collected", "type": "list<any>", "description": "All collected values, in collection order. Element type is inferred from the wired value." }
     ],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "core/parallel",
@@ -190,7 +191,7 @@
     "name": "Parallel",
     "subcategory": "control",
     "category": "workflow",
-    "kind": "parallel",
+    "kind": "WORKFLOW_NODE_KIND_PARALLEL",
     "description": "Runs its branches concurrently. Parallelism is always explicit — a second wire on one out-port is a validation error, never an implicit fork.",
     "control": {
       "in": ["in"],
@@ -207,7 +208,7 @@
         "ui": { "widget": "dropdown", "options": ["cancelSiblings", "waitForSiblings"] }
       }
     ],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "core/join",
@@ -215,7 +216,7 @@
     "name": "Join",
     "subcategory": "control",
     "category": "workflow",
-    "kind": "join",
+    "kind": "WORKFLOW_NODE_KIND_JOIN",
     "description": "Waits for every branch of its paired Parallel. Fires error instead of next if any branch failed.",
     "control": {
       "in": ["branch1", "branch2", "branch3", "branch4", "branch5", "branch6", "branch7", "branch8"],
@@ -223,7 +224,7 @@
       "error": true
     },
     "settings": [{ "name": "branches", "label": "Branches", "type": "any", "default": 2 }],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "core/break",
@@ -231,10 +232,10 @@
     "name": "Break",
     "category": "workflow",
     "subcategory": "control",
-    "kind": "break",
+    "kind": "WORKFLOW_NODE_KIND_BREAK",
     "description": "Ends the enclosing loop early and fires its done port. Legal only inside a loop body.",
     "control": { "in": ["in"], "out": [] },
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "core/end",
@@ -242,10 +243,10 @@
     "name": "End",
     "category": "workflow",
     "subcategory": "end",
-    "kind": "end",
+    "kind": "WORKFLOW_NODE_KIND_END",
     "description": "Ends the run successfully. Forbidden inside parallel branches and loop bodies.",
     "control": { "in": ["in"], "out": [] },
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "core/fail",
@@ -253,13 +254,13 @@
     "name": "Fail",
     "category": "workflow",
     "subcategory": "end",
-    "kind": "fail",
+    "kind": "WORKFLOW_NODE_KIND_FAIL",
     "description": "Ends the run as failed. Forbidden inside parallel branches and loop bodies.",
     "control": { "in": ["in"], "out": [] },
     "dataIn": [
       { "name": "message", "label": "Message", "type": "string", "required": false }
     ],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "fs/listDirectory",
@@ -278,7 +279,7 @@
     "settings": [
       { "name": "recursive", "label": "Recursive", "type": "bool", "default": false }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "fs/moveFile",
@@ -295,7 +296,7 @@
     "dataOut": [
       { "name": "movedTo", "label": "Moved to", "type": "path.file" }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write", "retry": { "attempts": 2, "backoff": "5s" } }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_WRITE", "retry": { "attempts": 2, "backoff": "5s" } }
   },
   {
     "type": "fs/copyFile",
@@ -312,7 +313,7 @@
     "dataOut": [
       { "name": "copiedTo", "label": "Copied to", "type": "path.file" }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write", "retry": { "attempts": 2, "backoff": "5s" } }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_WRITE", "retry": { "attempts": 2, "backoff": "5s" } }
   },
   {
     "type": "fs/deleteFile",
@@ -325,7 +326,7 @@
     "dataIn": [
       { "name": "target", "label": "File", "type": "path.file", "required": true }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "destructive" }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_DESTRUCTIVE" }
   },
   {
     "type": "fs/exists",
@@ -333,13 +334,13 @@
     "name": "File Exists",
     "category": "agent",
     "subcategory": "filesystem",
-    "kind": "branch",
+    "kind": "WORKFLOW_NODE_KIND_BRANCH",
     "description": "Checks whether a path exists on disk and takes the yes or no branch. The branches are control flow, not booleans.",
     "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
     "dataIn": [
       { "name": "target", "label": "Path", "type": "path", "required": true }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "fs/isdir",
@@ -347,13 +348,13 @@
     "name": "Is Directory?",
     "category": "agent",
     "subcategory": "filesystem",
-    "kind": "branch",
+    "kind": "WORKFLOW_NODE_KIND_BRANCH",
     "description": "Checks if the path is a directory or not",
     "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
     "dataIn": [
       { "name": "target", "label": "Path", "type": "path", "required": true }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "fs/isfile",
@@ -361,13 +362,13 @@
     "name": "Is File?",
     "category": "agent",
     "subcategory": "filesystem",
-    "kind": "branch",
+    "kind": "WORKFLOW_NODE_KIND_BRANCH",
     "description": "Checks if the path is a file or not",
     "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
     "dataIn": [
       { "name": "target", "label": "Path", "type": "path", "required": true }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "fs/makeDirectory",
@@ -383,7 +384,7 @@
     "dataOut": [
       { "name": "created", "label": "Created", "type": "path.dir" }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write" }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_WRITE" }
   },
   {
     "type": "fs/fileSize",
@@ -399,7 +400,7 @@
     "dataOut": [
       { "name": "size", "label": "Size", "type": "any" }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "fs/readTextFile",
@@ -415,7 +416,7 @@
     "dataOut": [
       { "name": "content", "label": "Content", "type": "string" }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "fs/writeTextFile",
@@ -432,7 +433,7 @@
     "dataOut": [
       { "name": "written", "label": "Written to", "type": "path.file" }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write" }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_WRITE" }
   },
   {
     "type": "media/probe",
@@ -449,7 +450,7 @@
       { "name": "duration", "label": "Duration", "type": "any" },
       { "name": "streams", "label": "Streams", "type": "list<any>" }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "1m", "effects": "read" }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "1m", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "media/transcode",
@@ -471,7 +472,7 @@
       { "name": "audioCodec", "label": "Audio codec", "type": "any", "default": "aac", "ui": { "widget": "dropdown", "options": ["aac", "ac3", "copy"] } },
       { "name": "crf", "label": "Quality (CRF)", "type": "any", "default": 20 }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "6h", "cancellable": true, "effects": "write", "retry": { "attempts": 1 } }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "6h", "cancellable": true, "effects": "WORKFLOW_EFFECTS_WRITE", "retry": { "attempts": 1 } }
   },
   {
     "type": "media/extractStream",
@@ -492,7 +493,7 @@
       { "name": "streamIndex", "label": "Stream index", "type": "any", "default": 0 },
       { "name": "kind", "label": "Stream kind", "type": "any", "default": "subtitle", "ui": { "widget": "dropdown", "options": ["subtitle", "audio"] } }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "5m", "effects": "write" }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "5m", "effects": "WORKFLOW_EFFECTS_WRITE" }
   },
   {
     "type": "media/generateThumbnail",
@@ -512,7 +513,7 @@
       { "name": "atSeconds", "label": "Capture at (seconds)", "type": "number", "default": 30 },
       { "name": "width", "label": "Width", "type": "any", "default": 640 }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "1m", "effects": "write" }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "1m", "effects": "WORKFLOW_EFFECTS_WRITE" }
   },
   {
     "type": "nfo/read",
@@ -527,7 +528,7 @@
     "dataOut": [
       { "name": "metadata", "label": "Metadata", "type": "any" }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "read" }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "nfo/write",
@@ -543,7 +544,7 @@
     "dataOut": [
       { "name": "written", "label": "Written to", "type": "any" }
     ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "write" }
+    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_WRITE" }
   },
   {
     "type": "string/format",
@@ -562,14 +563,14 @@
     "settings": [
       { "name": "template", "label": "Template", "type": "string", "default": "", "description": "Use {value1}, {value2} as placeholders." }
     ],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "string/regexMatch",
     "id": "a72025a1-41b4-469b-907b-b0034c73901a",
     "name": "Regex Match",
     "subcategory": "string",
-    "kind": "branch",
+    "kind": "WORKFLOW_NODE_KIND_BRANCH",
     "description": "Tests a string against a regular expression and takes the matched or unmatched branch.",
     "control": { "in": ["in"], "out": ["matched", "unmatched"], "error": true },
     "dataIn": [
@@ -581,7 +582,7 @@
     "settings": [
       { "name": "pattern", "label": "Pattern", "type": "string", "default": "" }
     ],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "string/concat",
@@ -600,14 +601,14 @@
     "settings": [
       { "name": "separator", "label": "Separator", "type": "string", "default": "" }
     ],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "string/parseNumber",
     "id": "48b4ef68-2b41-417d-a26a-e8d6f06afd8d",
     "name": "Parse Number",
     "subcategory": "string",
-    "kind": "branch",
+    "kind": "WORKFLOW_NODE_KIND_BRANCH",
     "description": "Parses text as a number and takes the parsed or failed branch, for when the value needs branching on rather than just wiring through the parseNumber transform.",
     "control": { "in": ["in"], "out": ["parsed", "failed"] },
     "dataIn": [
@@ -616,7 +617,7 @@
     "dataOut": [
       { "name": "value", "label": "Value", "type": "number", "description": "Readable only on the parsed branch." }
     ],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
     "type": "string/trim",
@@ -631,6 +632,7 @@
     "dataOut": [
       { "name": "result", "label": "Result", "type": "string" }
     ],
-    "exec": { "runsOn": "server", "effects": "read" }
+    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   }
-]
+  ]
+}

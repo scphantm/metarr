@@ -1,6 +1,18 @@
+import { create } from '@bufbuild/protobuf'
 import type { Connection as RFConnection, Edge as RFEdge } from '@xyflow/react'
 
-import type { NodeType, Transform, Type } from './catalogTypes'
+import {
+  type WorkflowNodeType as NodeType,
+  type WorkflowTransform as Transform,
+  WorkflowTransformSchema,
+} from '../../gen/metarr/v1/workflow_catalog_pb'
+
+// A workflow value type is a dotted-prefix hierarchy ("path.dir" is a subtype
+// of "path", "agent.slug" of "agent") plus the generic `list<T>` constructor.
+// It is a free string on the wire — the catalog owns the vocabulary — so this
+// is the one place the alias is declared; the subtyping/coercion logic below
+// is the behavioural port of types.go and is deliberately not generated.
+export type Type = string
 
 /*
  * TS port of internal/shared/workflow/types.go's subtyping/coercion logic,
@@ -89,7 +101,12 @@ function wrapTransform(from: Type, to: Type): Transform | null {
   if (isListType(from)) return null
   const element = elementType(to)
   if (element == null || !isSubtypeOf(from, element)) return null
-  return { name: 'wrap', from, to, summary: 'Wraps the single value into a one-element list' }
+  return create(WorkflowTransformSchema, {
+    name: 'wrap',
+    from,
+    to,
+    summary: 'Wraps the single value into a one-element list',
+  })
 }
 
 export function canConnect(from: Type, to: Type, transforms: Transform[]): TypeConnection {
@@ -194,9 +211,9 @@ export function evaluateConnection(
   if (sourceHandle.kind === 'control') {
     const sourceIsOut =
       sourceHandle.name === 'error'
-        ? Boolean(sourceType.control.error)
-        : sourceType.control.out.includes(sourceHandle.name)
-    const targetIsIn = targetType.control.in.includes(targetHandle.name)
+        ? Boolean(sourceType.control?.error)
+        : Boolean(sourceType.control?.out.includes(sourceHandle.name))
+    const targetIsIn = Boolean(targetType.control?.in.includes(targetHandle.name))
     if (!sourceIsOut || !targetIsIn) {
       return { allowed: false, reason: 'Not a valid control connection.' }
     }

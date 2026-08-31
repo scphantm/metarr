@@ -153,7 +153,7 @@ export function DataEdge({
               className="data-edge-endpoint"
             >
               <span className={`${sourceIconClass} data-edge-icon`} />
-              {activeTransform?.implies_iteration ? <span className={`${ITERATE_ICON_CLASS} data-edge-icon`} /> : null}
+              {activeTransform?.impliesIteration ? <span className={`${ITERATE_ICON_CLASS} data-edge-icon`} /> : null}
             </div>
           ) : null}
           {targetIconClass ? (

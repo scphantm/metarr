@@ -7,7 +7,11 @@
 // owns. See design.md for the full specification.
 package workflow
 
-import "strings"
+import (
+	"strings"
+
+	metarrv1 "Metarr/internal/genproto/metarr/v1"
+)
 
 // Type is a value type in the workflow type system.
 //
@@ -159,57 +163,47 @@ func SameRepresentation(a, b Type) bool {
 // Transforms are deliberately single names rather than chains: a chain is
 // unreadable on an edge and untestable. Useful compositions are registered
 // here as their own transform instead — media.file.parentDir is exactly that.
-type Transform struct {
-	Name string `json:"name"`
-	From Type   `json:"from"`
-	To   Type   `json:"to"`
-	// Ambiguous marks a transform that must never be applied automatically
-	// even when it is the only candidate, because more than one answer is
-	// defensible and guessing wrong is silent. The UI always prompts.
-	Ambiguous bool   `json:"ambiguous,omitempty"`
-	Summary   string `json:"summary,omitempty"`
-	// ImpliesIteration marks a transform whose value production is
-	// one-to-many at the data level — eachFile fans a directory out to one
-	// run per file, the way a SQL UNNEST fans a column out to one row per
-	// element, without the graph author drawing an explicit loop. This is
-	// deliberately NOT a control-flow construct: neither side is a list<T>,
-	// no new frame or token is created, and no whole-graph analysis
-	// (parallel/join arity, MustHaveRun) needs to reason about it — it's
-	// local detail on one edge, the same category as a future string->date
-	// transform needing a format parameter. The engine does not yet execute
-	// the implied fan-out (design.md §13); today this is UI/documentation
-	// metadata that drives the editor's iteration badge.
-	ImpliesIteration bool `json:"implies_iteration,omitempty"`
-}
+//
+// It is an alias to the generated metarr.v1 message, since it is served to
+// the editor alongside the catalog (docs/adr/0005). ImpliesIteration marks a
+// transform whose value production is one-to-many at the data level — eachFile
+// fans a directory out to one run per file, the way a SQL UNNEST fans a
+// column out to one row per element, without the graph author drawing an
+// explicit loop. That is deliberately NOT a control-flow construct: neither
+// side is a list<T>, no new frame or token is created, and no whole-graph
+// analysis needs to reason about it; the engine does not yet execute the
+// implied fan-out (design.md §13), so today it only drives the editor's
+// iteration badge.
+type Transform = metarrv1.WorkflowTransform
 
 // transformRegistry is the complete set of explicit conversions. Anything not
 // listed here and not covered by subtyping is a connection error.
-var transformRegistry = []Transform{
+var transformRegistry = []*Transform{
 	{
-		Name: "parentDir", From: TypePathFile, To: TypePathDir,
+		Name: "parentDir", From: string(TypePathFile), To: string(TypePathDir),
 		Summary: "The directory containing the file",
 	},
 	{
-		Name: "eachFile", From: TypePathDir, To: TypePathFile, ImpliesIteration: true,
+		Name: "eachFile", From: string(TypePathDir), To: string(TypePathFile), ImpliesIteration: true,
 		Summary: "Every file in the directory, one per downstream run",
 	},
 	{
 		// Also covers path.dir/path.file -> string implicitly, via ordinary
 		// subtyping (IsSubtypeOf(path.file, path) is already true) — no
 		// separate registry entry needed per subtype. See design.md §4.3.
-		Name: "toString", From: TypePath, To: TypeString,
+		Name: "toString", From: string(TypePath), To: string(TypeString),
 		Summary: "The path as text",
 	},
 	{
-		Name: "media.file.parentDir", From: TypeMediaFile, To: TypePathDir,
+		Name: "media.file.parentDir", From: string(TypeMediaFile), To: string(TypePathDir),
 		Summary: "The directory containing the record's file",
 	},
 	{
-		Name: "parseNumber", From: TypeString, To: TypeNumber,
+		Name: "parseNumber", From: string(TypeString), To: string(TypeNumber),
 		Summary: "Parse text as a number (may fail at run time)",
 	},
 	{
-		Name: "format", From: TypeNumber, To: TypeString,
+		Name: "format", From: string(TypeNumber), To: string(TypeString),
 		Summary: "Format the number as text",
 	},
 }
@@ -218,13 +212,13 @@ var transformRegistry = []Transform{
 // does not know about "wrap" (see ResolveTransform) — wrap is synthesized
 // per-connection, not a static registry entry, since it must match list<T>
 // for every T rather than one hardcoded element type.
-func FindTransform(name string) (Transform, bool) {
+func FindTransform(name string) (*Transform, bool) {
 	for _, transform := range transformRegistry {
 		if transform.Name == name {
 			return transform, true
 		}
 	}
-	return Transform{}, false
+	return nil, false
 }
 
 // ResolveTransform is FindTransform plus the one case FindTransform can't
@@ -232,20 +226,20 @@ func FindTransform(name string) (Transform, bool) {
 // actual from/to types, the same way CanConnect synthesizes it live. Callers
 // re-validating a saved edge's named transform (as opposed to offering fresh
 // candidates) should use this instead of FindTransform.
-func ResolveTransform(name string, from, to Type) (Transform, bool) {
+func ResolveTransform(name string, from, to Type) (*Transform, bool) {
 	if transform, found := FindTransform(name); found {
 		return transform, true
 	}
 	if name == "wrap" {
 		return wrapTransform(from, to)
 	}
-	return Transform{}, false
+	return nil, false
 }
 
 // Transforms returns the full registry, for serving to the editor alongside
 // the catalog.
-func Transforms() []Transform {
-	registryCopy := make([]Transform, len(transformRegistry))
+func Transforms() []*Transform {
+	registryCopy := make([]*Transform, len(transformRegistry))
 	copy(registryCopy, transformRegistry)
 	return registryCopy
 }
@@ -258,7 +252,7 @@ type Connection struct {
 	Direct bool
 	// Candidates are the explicit transforms that would bridge the gap, in
 	// registry order. Empty when Direct is true.
-	Candidates []Transform
+	Candidates []*Transform
 	// TypeUnsafe marks a Direct connection made by narrowing — the source
 	// declares a supertype and the target declares one of its subtypes
 	// (e.g. path -> path.dir). Structural, not scoped to any one type
@@ -280,12 +274,12 @@ func (c Connection) Allowed() bool {
 // Exactly one unambiguous candidate is applied silently and shown as a chip
 // on the edge; anything else prompts. This keeps the common file-to-directory
 // case at one click while never guessing between defensible alternatives.
-func (c Connection) AutoApply() (Transform, bool) {
+func (c Connection) AutoApply() (*Transform, bool) {
 	if c.Direct || len(c.Candidates) != 1 {
-		return Transform{}, false
+		return nil, false
 	}
 	if c.Candidates[0].Ambiguous {
-		return Transform{}, false
+		return nil, false
 	}
 	return c.Candidates[0], true
 }
@@ -305,13 +299,13 @@ func CanConnect(from, to Type) Connection {
 		return Connection{Direct: true}
 	}
 
-	var candidates []Transform
+	var candidates []*Transform
 	for _, transform := range transformRegistry {
 		// The source must satisfy the transform's input, and the transform's
 		// output must satisfy the target — both by subtyping, so that
 		// path.dir reaches media.file.parentDir's From and its path.dir
 		// result reaches a socket declared merely path.
-		if IsSubtypeOf(from, transform.From) && IsSubtypeOf(transform.To, to) {
+		if IsSubtypeOf(from, Type(transform.From)) && IsSubtypeOf(Type(transform.To), to) {
 			candidates = append(candidates, transform)
 		}
 	}
@@ -326,16 +320,16 @@ func CanConnect(from, to Type) Connection {
 // type. This can't be one static transformRegistry entry: a registry entry
 // tests subtyping against a *concrete* From/To pair, but "wrap" must match
 // list<T> for every T, not just one hardcoded element type.
-func wrapTransform(from, to Type) (Transform, bool) {
+func wrapTransform(from, to Type) (*Transform, bool) {
 	if _, fromIsList := from.ElementType(); fromIsList {
-		return Transform{}, false
+		return nil, false
 	}
 	element, toIsList := to.ElementType()
 	if !toIsList || !IsSubtypeOf(from, element) {
-		return Transform{}, false
+		return nil, false
 	}
-	return Transform{
-		Name: "wrap", From: from, To: to,
+	return &Transform{
+		Name: "wrap", From: string(from), To: string(to),
 		Summary: "Wraps the single value into a one-element list",
 	}, true
 }

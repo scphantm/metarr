@@ -2,13 +2,13 @@ package workflow
 
 import "testing"
 
-func minimalEntry(id, nodeType string) NodeType {
-	return NodeType{
-		ID:      id,
+func minimalEntry(id, nodeType string) *NodeType {
+	return &NodeType{
+		Id:      id,
 		Type:    nodeType,
 		Name:    id,
-		Control: ControlPorts{In: []string{"in"}, Out: []string{"next"}},
-		Exec:    ExecSpec{Effects: EffectsRead},
+		Control: &ControlPorts{In: []string{"in"}, Out: []string{"next"}},
+		Exec:    &ExecSpec{Effects: EffectsRead},
 	}
 }
 
@@ -17,7 +17,7 @@ func minimalEntry(id, nodeType string) NodeType {
 // two core/start entries with different dataOut shapes) without a new
 // registered type per variation — as long as their IDs differ.
 func TestNewCatalogAllowsSharedTypeDistinctID(t *testing.T) {
-	_, err := NewCatalog([]NodeType{
+	_, err := NewCatalog([]*NodeType{
 		minimalEntry("a", "core/start"),
 		minimalEntry("b", "core/start"),
 	})
@@ -29,7 +29,7 @@ func TestNewCatalogAllowsSharedTypeDistinctID(t *testing.T) {
 // TestNewCatalogRejectsDuplicateID confirms id, not type, is the catalog's
 // uniqueness key.
 func TestNewCatalogRejectsDuplicateID(t *testing.T) {
-	_, err := NewCatalog([]NodeType{
+	_, err := NewCatalog([]*NodeType{
 		minimalEntry("dup", "core/start"),
 		minimalEntry("dup", "core/end"),
 	})
@@ -41,7 +41,7 @@ func TestNewCatalogRejectsDuplicateID(t *testing.T) {
 // TestCatalogLookupResolvesByID confirms Lookup finds the exact entry by id,
 // not merely a same-typed entry.
 func TestCatalogLookupResolvesByID(t *testing.T) {
-	catalog, err := NewCatalog([]NodeType{
+	catalog, err := NewCatalog([]*NodeType{
 		minimalEntry("a", "core/start"),
 		minimalEntry("b", "core/start"),
 	})
@@ -53,8 +53,8 @@ func TestCatalogLookupResolvesByID(t *testing.T) {
 	if !found {
 		t.Fatal("Lookup(\"b\") not found")
 	}
-	if entry.ID != "b" {
-		t.Errorf("Lookup(\"b\").ID = %q, want %q", entry.ID, "b")
+	if entry.Id != "b" {
+		t.Errorf("Lookup(\"b\").Id = %q, want %q", entry.Id, "b")
 	}
 
 	if _, found := catalog.Lookup("nonexistent"); found {
@@ -67,7 +67,7 @@ func TestCatalogLookupResolvesByID(t *testing.T) {
 // Type alone, deterministic (catalog-file order) but arbitrary when several
 // entries share a Type.
 func TestCatalogLookupByTypeFallback(t *testing.T) {
-	catalog, err := NewCatalog([]NodeType{
+	catalog, err := NewCatalog([]*NodeType{
 		minimalEntry("a", "core/start"),
 		minimalEntry("b", "core/start"),
 	})
@@ -79,8 +79,8 @@ func TestCatalogLookupByTypeFallback(t *testing.T) {
 	if !found {
 		t.Fatal("LookupByType(\"core/start\") not found")
 	}
-	if entry.ID != "a" {
-		t.Errorf("LookupByType(\"core/start\").ID = %q, want first-in-file %q", entry.ID, "a")
+	if entry.Id != "a" {
+		t.Errorf("LookupByType(\"core/start\").Id = %q, want first-in-file %q", entry.Id, "a")
 	}
 
 	if _, found := catalog.LookupByType("nonexistent/type"); found {

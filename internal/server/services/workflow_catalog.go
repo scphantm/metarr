@@ -17,10 +17,9 @@ import (
 )
 
 // WorkflowCatalogServer implements
-// metarrv1connect.WorkflowCatalogServiceHandler, ported directly from
-// internal/server/handlers/workflow_catalog.go. The catalog and the graph
-// both cross the wire as opaque JSON bytes rather than modeled proto
-// messages — see workflow_catalog.proto's doc comments for why.
+// metarrv1connect.WorkflowCatalogServiceHandler. The catalog crosses the wire
+// as a typed WorkflowCatalog message now (docs/adr/0005); the graph is still
+// carried as opaque JSON bytes on Validate — see workflow_catalog.proto.
 type WorkflowCatalogServer struct {
 	*handlers.Handlers
 }
@@ -32,14 +31,6 @@ var WorkflowCatalogAuthPolicies = map[string]httpserver.RPCPolicy{
 	"Validate": {Group: auth.GroupTasks},
 }
 
-// catalogResponse mirrors handlers.CatalogResponse — kept private here since
-// it exists only to be marshaled into the opaque catalog_json field.
-type catalogResponse struct {
-	NodeTypes     []workflow.NodeType  `json:"node_types"`
-	Transforms    []workflow.Transform `json:"transforms"`
-	SchemaVersion int                  `json:"schema_version"`
-}
-
 func (s *WorkflowCatalogServer) Get(
 	ctx context.Context,
 	req *connect.Request[metarrv1.WorkflowCatalogServiceGetRequest],
@@ -49,17 +40,13 @@ func (s *WorkflowCatalogServer) Get(
 		return nil, connectError(http.StatusInternalServerError, errors.New("workflow catalog is not available"))
 	}
 
-	catalogJSON, err := json.Marshal(catalogResponse{
-		NodeTypes:     s.WorkflowCatalog.All(),
-		Transforms:    workflow.Transforms(),
-		SchemaVersion: workflow.SchemaVersion,
-	})
-	if err != nil {
-		s.Logger.Error("failed to encode workflow catalog", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to encode workflow catalog"))
-	}
-
-	return connect.NewResponse(&metarrv1.WorkflowCatalogServiceGetResponse{CatalogJson: catalogJSON}), nil
+	return connect.NewResponse(&metarrv1.WorkflowCatalogServiceGetResponse{
+		Catalog: &metarrv1.WorkflowCatalog{
+			NodeTypes:     s.WorkflowCatalog.All(),
+			Transforms:    workflow.Transforms(),
+			SchemaVersion: workflow.SchemaVersion,
+		},
+	}), nil
 }
 
 func (s *WorkflowCatalogServer) Validate(

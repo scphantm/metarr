@@ -37,7 +37,7 @@ import { AgentConfigSchema } from '../gen/metarr/v1/agents_pb'
 import { ScanDirectorySchema, SidecarTypeDefinitionSchema } from '../gen/metarr/v1/directory_scanner_pb'
 import { LoggingConfigSchema } from '../gen/metarr/v1/logging_pb'
 import type { Workflow as ConnectWorkflow } from '../gen/metarr/v1/workflows_pb'
-import type { CatalogResponse, GraphEdge, GraphNode } from '../pages/workflows/catalogTypes'
+import type { GraphEdge, GraphNode } from '../pages/workflows/catalogTypes'
 
 export const queryKeys = {
   config: ['config'] as const,
@@ -425,15 +425,17 @@ export function useWorkflowList() {
 }
 
 // The node/socket/transform catalog the palette, the node renderers, and
-// isValidConnection all read from. staleTime: Infinity like useAgents/
-// useConfig: it only changes on a server redeploy, never mid-session, so
-// there's no socket topic behind it — just a plain fetch-once query.
+// isValidConnection all read from. It arrives as a typed WorkflowCatalog
+// message now (docs/adr/0005), not an opaque JSON blob. staleTime: Infinity
+// like useAgents/useConfig: it only changes on a server redeploy, never
+// mid-session, so there's no socket topic behind it — just a plain
+// fetch-once query.
 export function useWorkflowCatalog() {
   return useQuery({
     queryKey: queryKeys.workflowCatalog,
     queryFn: async () => {
-      const { catalogJson } = await workflowCatalogClient.get({})
-      return JSON.parse(new TextDecoder().decode(catalogJson)) as CatalogResponse
+      const { catalog } = await workflowCatalogClient.get({})
+      return catalog
     },
     staleTime: Infinity,
   })

@@ -78,7 +78,7 @@ type analysis struct {
 	catalog *workflow.Catalog
 
 	nodes map[string]workflow.Node
-	types map[string]workflow.NodeType // node id -> resolved type
+	types map[string]*workflow.NodeType // node id -> resolved type
 
 	diagnostics []Diagnostic
 
@@ -95,7 +95,7 @@ func newAnalysis(graph workflow.Graph, catalog *workflow.Catalog) *analysis {
 		graph:   graph,
 		catalog: catalog,
 		nodes:   graph.NodeByID(),
-		types:   make(map[string]workflow.NodeType),
+		types:   make(map[string]*workflow.NodeType),
 	}
 }
 
@@ -163,23 +163,23 @@ func (a *analysis) checkPortsExist() {
 
 		switch edge.Kind {
 		case workflow.EdgeControl:
-			if !fromType.HasControlOut(edge.From.Port) {
+			if !workflow.HasControlOut(fromType, edge.From.Port) {
 				a.report(SeverityError, "port.unknownControlOut",
 					fmt.Sprintf("%s has no control output named %q.", fromType.Name, edge.From.Port),
 					[]string{edge.From.Node}, []string{edge.ID})
 			}
-			if !toType.HasControlIn(edge.To.Port) {
+			if !workflow.HasControlIn(toType, edge.To.Port) {
 				a.report(SeverityError, "port.unknownControlIn",
 					fmt.Sprintf("%s has no control input named %q.", toType.Name, edge.To.Port),
 					[]string{edge.To.Node}, []string{edge.ID})
 			}
 		case workflow.EdgeData:
-			if _, found := fromType.DataOutSocket(edge.From.Port); !found && !a.isInferredOutput(fromType, edge.From.Port) {
+			if _, found := workflow.DataOutSocket(fromType, edge.From.Port); !found && !a.isInferredOutput(fromType, edge.From.Port) {
 				a.report(SeverityError, "port.unknownDataOut",
 					fmt.Sprintf("%s has no data output named %q.", fromType.Name, edge.From.Port),
 					[]string{edge.From.Node}, []string{edge.ID})
 			}
-			if _, found := toType.DataInSocket(edge.To.Port); !found {
+			if _, found := workflow.DataInSocket(toType, edge.To.Port); !found {
 				a.report(SeverityError, "port.unknownDataIn",
 					fmt.Sprintf("%s has no data input named %q.", toType.Name, edge.To.Port),
 					[]string{edge.To.Node}, []string{edge.ID})
@@ -194,7 +194,7 @@ func (a *analysis) checkPortsExist() {
 
 // isInferredOutput covers the two ports whose declared type is a placeholder
 // resolved from what is wired in — see resolveOutputType.
-func (a *analysis) isInferredOutput(nodeType workflow.NodeType, port string) bool {
+func (a *analysis) isInferredOutput(nodeType *workflow.NodeType, port string) bool {
 	switch nodeType.Kind {
 	case workflow.KindForEach:
 		return port == "item"

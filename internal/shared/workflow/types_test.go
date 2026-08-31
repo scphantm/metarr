@@ -10,7 +10,7 @@ func TestEachFileTransformIsRegistered(t *testing.T) {
 	if !found {
 		t.Fatal("eachFile is not registered")
 	}
-	if transform.From != TypePathDir || transform.To != TypePathFile {
+	if transform.From != string(TypePathDir) || transform.To != string(TypePathFile) {
 		t.Errorf("eachFile = {From: %q, To: %q}, want {From: %q, To: %q}",
 			transform.From, transform.To, TypePathDir, TypePathFile)
 	}

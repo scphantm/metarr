@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react'
 import { Handle, Position, useReactFlow } from '@xyflow/react'
 
+import { WorkflowEffects } from '../../../../gen/metarr/v1/workflow_catalog_pb'
 import { iconClassForControlPort, iconClassForType } from '../../../../lib/typeIcons'
 import { controlHandleId } from '../../connectionRules'
 import { useCatalogEntry } from '../../useCatalogEntry'
@@ -125,7 +126,7 @@ export function NodeShell({
   }
 
   const label = data.label ?? nodeType.name
-  const settings = nodeType.settings ?? []
+  const settings = nodeType.settings
   // Every non-readonly node is editable now, not just ones with catalog
   // settings — color is a per-instance property of the node, not the node
   // type, so even a settings-less node (e.g. core/collect) still needs a
@@ -233,7 +234,7 @@ export function NodeShell({
             <EditIcon />
           </button>
         ) : null}
-        {nodeType.exec.effects === 'destructive' ? (
+        {nodeType.exec?.effects === WorkflowEffects.DESTRUCTIVE ? (
           <span
             title="Destructive: deletes or overwrites existing content"
             className="node-shell-destructive-dot"
