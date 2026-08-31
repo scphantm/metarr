@@ -19,9 +19,15 @@ type StreamBus struct {
 }
 
 // NewStreamBus wraps client as a StreamBus, publishing through a
-// watermill-redisstream Publisher configured with logger.
-func NewStreamBus(client redis.UniversalClient, logger watermill.LoggerAdapter) (*StreamBus, error) {
-	publisher, err := redisstream.NewPublisher(redisstream.PublisherConfig{Client: client}, logger)
+// watermill-redisstream Publisher configured with logger. Every publish sets
+// an approximate MAXLEN from policy: HighVolumeStreams at MaxLenHigh, the
+// rest at MaxLenDefault (docs/adr/0006).
+func NewStreamBus(client redis.UniversalClient, policy RetentionPolicy, logger watermill.LoggerAdapter) (*StreamBus, error) {
+	publisher, err := redisstream.NewPublisher(redisstream.PublisherConfig{
+		Client:        client,
+		Maxlens:       policy.Maxlens(),
+		DefaultMaxlen: policy.MaxLenDefault,
+	}, logger)
 	if err != nil {
 		return nil, err
 	}
