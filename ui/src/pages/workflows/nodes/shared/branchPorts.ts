@@ -3,7 +3,7 @@ import { useNodeConnections, useUpdateNodeInternals } from '@xyflow/react'
 
 import { parseHandleId } from '../../connectionRules'
 import type { WorkflowNodeType as NodeType } from '../../../../gen/metarr/v1/workflow_catalog_pb'
-import type { CatalogNodeData } from '../../catalogTypes'
+import type { CatalogNodeData } from '../../editorNodeData'
 import { settingDefault } from '../../catalogValue'
 import type { ArrangedHandle } from './useNodeHandles'
 

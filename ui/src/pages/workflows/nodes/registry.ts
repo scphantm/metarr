@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react'
 import type { Node, NodeProps } from '@xyflow/react'
 
-import type { CatalogNodeData, UnknownNodeData } from '../catalogTypes'
+import type { CatalogNodeData, UnknownNodeData } from '../editorNodeData'
 import { BreakNode } from './core/BreakNode'
 import { CheckFlowVariableNode } from './core/CheckFlowVariableNode'
 import { CollectNode } from './core/CollectNode'

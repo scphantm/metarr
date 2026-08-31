@@ -3,7 +3,7 @@ import { BaseEdge, EdgeLabelRenderer, getBezierPath, Position, useReactFlow, typ
 
 import { iconClassForType, ITERATE_ICON_CLASS, RECURSIVE_ICON_CLASS, TYPE_UNSAFE_ICON_CLASS } from '../../../lib/typeIcons'
 import { canConnect, parseHandleId } from '../connectionRules'
-import type { CatalogNodeData } from '../catalogTypes'
+import type { CatalogNodeData } from '../editorNodeData'
 import { useCatalogEntry, useTransforms } from '../useCatalogEntry'
 import { useIconZoomVisibility } from '../useIconZoomVisibility'
 import { EdgeSettingsEditor } from './EdgeSettingsEditor'
