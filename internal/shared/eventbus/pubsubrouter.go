@@ -115,9 +115,10 @@ func (r *PubSubRouter) Run(ctx context.Context) error {
 	var wg sync.WaitGroup
 
 	for _, reg := range regs {
-		// Same low-level subscribe path Request uses; PubSubBus.Subscribe can
-		// be unexported without touching this.
-		sub := r.bus.client.Subscribe(ctx, reg.channel)
+		// Same low-level subscribe path Request uses — the unexported
+		// PubSubBus.subscribe, the only way to open a Pub/Sub subscription
+		// left in this package.
+		sub := r.bus.subscribe(ctx, reg.channel)
 
 		// Wait for the subscription to be acknowledged before declaring the
 		// router live, so a publish that races Run cannot slip past the loop.

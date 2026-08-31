@@ -102,6 +102,12 @@ func run() error {
 	logShipper.Attach(redisClient)
 
 	pubsubBus := eventbus.NewPubSubBus(redisClient)
+	// The Pub/Sub counterpart of the stream Router: every notification
+	// subscriber and the answering side of every request/reply on this
+	// process register on it, then one Run(ctx) drives them (docs/adr/0006).
+	// #58 folds this and the stream router into one uniform "register on both,
+	// run both" entrypoint shape.
+	pubsubRouter := eventbus.NewPubSubRouter(redisClient, eventbus.SourceServer, logger)
 	// A first StreamBus with built-in caps, enough for bootstrap to fire
 	// through. Once bootstrap has seeded the config and the live singleton is
 	// warm, both the StreamBus and the config store are rebuilt against the
@@ -230,8 +236,9 @@ func run() error {
 		logger.Warn("could not publish agent configuration at startup", "error", err)
 	}
 
-	// single HTTP request.
-	go listeners.RunHeartbeatListener(ctx, pubsubBus, logger)
+	// single HTTP request. Registered on the Pub/Sub router; pubsubRouter.Run
+	// below drives it once every registration is in.
+	listeners.RegisterHeartbeatResponder(pubsubRouter, logger)
 
 	// One process-wide watcher for agents losing their presence key. It emits
 	// an "agent offline" signal that in-flight work reacts to; the workflow
@@ -275,7 +282,7 @@ func run() error {
 	// every process publishing to eventbus.LogChannel — this server included
 	// — regardless of which one is running the listener that fills it.
 	logTailBuffer := logtail.NewBuffer(200)
-	go listeners.RunLogTailListener(ctx, pubsubBus, logTailBuffer, logger)
+	listeners.RegisterLogTailListener(pubsubRouter, logTailBuffer, logger)
 
 	// The one hop that leaves Metarr's own infrastructure: forwarding to
 	// Fluent Bit, which ships on to OpenObserve (or whatever it's configured
@@ -284,8 +291,16 @@ func run() error {
 	if cfg.LogForwardURL != "" {
 		forwarder := logforward.New(cfg.LogForwardURL)
 		go forwarder.Run(ctx)
-		go listeners.RunLogForwardListener(ctx, pubsubBus, forwarder, logger)
+		listeners.RegisterLogForwardListener(pubsubRouter, forwarder, logger)
 	}
+
+	// Every Pub/Sub registration is in; drive them for the lifetime of the
+	// process. #58 collapses this into the shared router-lifecycle pattern.
+	go func() {
+		if err := pubsubRouter.Run(ctx); err != nil && ctx.Err() == nil {
+			logger.Error("pub/sub router stopped unexpectedly", "error", err)
+		}
+	}()
 
 	// The streaming layer: stats.redis, agents.presence and logging.tail all
 	// migrated to their own server-streaming gRPC-Web RPCs — see
