@@ -1050,13 +1050,14 @@ func (x *WorkflowCatalogServiceGetResponse) GetCatalog() *WorkflowCatalog {
 	return nil
 }
 
-// WorkflowCatalogServiceValidateRequest carries a workflow.Graph as opaque
-// bytes: Node.Extra must survive a round-trip losslessly, which a modeled
-// proto message cannot yet guarantee, so the graph is not decoded into a
-// typed message on the wire. The workflow graph slice revisits this.
+// WorkflowCatalogServiceValidateRequest carries the graph to validate as a
+// typed WorkflowGraph. A node's settings and its extra field are structured
+// values, so a node type or setting this build does not recognise survives
+// the round trip losslessly — the concern that kept this an opaque blob is
+// answered by the graph message's shape.
 type WorkflowCatalogServiceValidateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	GraphJson     []byte                 `protobuf:"bytes,1,opt,name=graph_json,json=graphJson,proto3" json:"graph_json,omitempty"`
+	Graph         *WorkflowGraph         `protobuf:"bytes,1,opt,name=graph,proto3" json:"graph,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1091,9 +1092,9 @@ func (*WorkflowCatalogServiceValidateRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{10}
 }
 
-func (x *WorkflowCatalogServiceValidateRequest) GetGraphJson() []byte {
+func (x *WorkflowCatalogServiceValidateRequest) GetGraph() *WorkflowGraph {
 	if x != nil {
-		return x.GraphJson
+		return x.Graph
 	}
 	return nil
 }
@@ -1248,7 +1249,7 @@ var File_metarr_v1_workflow_catalog_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_workflow_catalog_proto_rawDesc = "" +
 	"\n" +
-	" metarr/v1/workflow_catalog.proto\x12\tmetarr.v1\x1a\x1cgoogle/protobuf/struct.proto\"N\n" +
+	" metarr/v1/workflow_catalog.proto\x12\tmetarr.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1emetarr/v1/workflow_graph.proto\"N\n" +
 	"\x14WorkflowControlPorts\x12\x0e\n" +
 	"\x02in\x18\x01 \x03(\tR\x02in\x12\x10\n" +
 	"\x03out\x18\x02 \x03(\tR\x03out\x12\x14\n" +
@@ -1306,10 +1307,9 @@ const file_metarr_v1_workflow_catalog_proto_rawDesc = "" +
 	"\x0eschema_version\x18\x03 \x01(\x05R\rschemaVersion\"\"\n" +
 	" WorkflowCatalogServiceGetRequest\"Y\n" +
 	"!WorkflowCatalogServiceGetResponse\x124\n" +
-	"\acatalog\x18\x01 \x01(\v2\x1a.metarr.v1.WorkflowCatalogR\acatalog\"F\n" +
-	"%WorkflowCatalogServiceValidateRequest\x12\x1d\n" +
-	"\n" +
-	"graph_json\x18\x01 \x01(\fR\tgraphJson\"\xde\x01\n" +
+	"\acatalog\x18\x01 \x01(\v2\x1a.metarr.v1.WorkflowCatalogR\acatalog\"W\n" +
+	"%WorkflowCatalogServiceValidateRequest\x12.\n" +
+	"\x05graph\x18\x01 \x01(\v2\x18.metarr.v1.WorkflowGraphR\x05graph\"\xde\x01\n" +
 	"\x12WorkflowDiagnostic\x12A\n" +
 	"\bseverity\x18\x01 \x01(\x0e2%.metarr.v1.WorkflowDiagnosticSeverityR\bseverity\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x12\x18\n" +
@@ -1385,6 +1385,7 @@ var file_metarr_v1_workflow_catalog_proto_goTypes = []any{
 	(*WorkflowCatalogServiceValidateResponse)(nil), // 16: metarr.v1.WorkflowCatalogServiceValidateResponse
 	(*structpb.Value)(nil),                         // 17: google.protobuf.Value
 	(*structpb.Struct)(nil),                        // 18: google.protobuf.Struct
+	(*WorkflowGraph)(nil),                          // 19: metarr.v1.WorkflowGraph
 }
 var file_metarr_v1_workflow_catalog_proto_depIdxs = []int32{
 	17, // 0: metarr.v1.WorkflowSetting.default:type_name -> google.protobuf.Value
@@ -1400,17 +1401,18 @@ var file_metarr_v1_workflow_catalog_proto_depIdxs = []int32{
 	9,  // 10: metarr.v1.WorkflowCatalog.node_types:type_name -> metarr.v1.WorkflowNodeType
 	10, // 11: metarr.v1.WorkflowCatalog.transforms:type_name -> metarr.v1.WorkflowTransform
 	11, // 12: metarr.v1.WorkflowCatalogServiceGetResponse.catalog:type_name -> metarr.v1.WorkflowCatalog
-	3,  // 13: metarr.v1.WorkflowDiagnostic.severity:type_name -> metarr.v1.WorkflowDiagnosticSeverity
-	15, // 14: metarr.v1.WorkflowCatalogServiceValidateResponse.diagnostics:type_name -> metarr.v1.WorkflowDiagnostic
-	12, // 15: metarr.v1.WorkflowCatalogService.Get:input_type -> metarr.v1.WorkflowCatalogServiceGetRequest
-	14, // 16: metarr.v1.WorkflowCatalogService.Validate:input_type -> metarr.v1.WorkflowCatalogServiceValidateRequest
-	13, // 17: metarr.v1.WorkflowCatalogService.Get:output_type -> metarr.v1.WorkflowCatalogServiceGetResponse
-	16, // 18: metarr.v1.WorkflowCatalogService.Validate:output_type -> metarr.v1.WorkflowCatalogServiceValidateResponse
-	17, // [17:19] is the sub-list for method output_type
-	15, // [15:17] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	19, // 13: metarr.v1.WorkflowCatalogServiceValidateRequest.graph:type_name -> metarr.v1.WorkflowGraph
+	3,  // 14: metarr.v1.WorkflowDiagnostic.severity:type_name -> metarr.v1.WorkflowDiagnosticSeverity
+	15, // 15: metarr.v1.WorkflowCatalogServiceValidateResponse.diagnostics:type_name -> metarr.v1.WorkflowDiagnostic
+	12, // 16: metarr.v1.WorkflowCatalogService.Get:input_type -> metarr.v1.WorkflowCatalogServiceGetRequest
+	14, // 17: metarr.v1.WorkflowCatalogService.Validate:input_type -> metarr.v1.WorkflowCatalogServiceValidateRequest
+	13, // 18: metarr.v1.WorkflowCatalogService.Get:output_type -> metarr.v1.WorkflowCatalogServiceGetResponse
+	16, // 19: metarr.v1.WorkflowCatalogService.Validate:output_type -> metarr.v1.WorkflowCatalogServiceValidateResponse
+	18, // [18:20] is the sub-list for method output_type
+	16, // [16:18] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_workflow_catalog_proto_init() }
@@ -1418,6 +1420,7 @@ func file_metarr_v1_workflow_catalog_proto_init() {
 	if File_metarr_v1_workflow_catalog_proto != nil {
 		return
 	}
+	file_metarr_v1_workflow_graph_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

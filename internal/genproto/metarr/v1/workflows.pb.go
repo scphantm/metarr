@@ -22,17 +22,16 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Workflow mirrors mongostore.Workflow — the versioned document type, with
-// nodes/edges/viewport carried as one opaque graph_json blob rather than
-// modeled proto fields.
+// Workflow is one version of a versioned workflow document: the scalar
+// metadata plus the authored graph. internal/server/mongostore.Workflow is
+// the stored form; internal/shared/workflow aliases WorkflowGraph and its
+// parts. See docs/adr/0005.
 //
-// mongostore.Workflow itself already stores Nodes/Edges/Viewport as loose
-// bson.M rather than typed Go structs specifically so a catalog-driven
-// schema change on the frontend never needs a backend release in lockstep
-// (see its doc comment) — the server has never round-tripped these fields
-// through a typed model. graph_json is exactly {"nodes": [...], "edges":
-// [...], "viewport": {...}} as JSON, matching the REST body/response shape
-// exactly, so nothing about that design changes here.
+// The graph's open content — a node's settings, and its extra field — is
+// carried as structured values so a node whose type this build does not
+// recognise, and settings it does not recognise, round-trip through storage
+// unchanged. schema_version lives on WorkflowGraph, which is the canonical
+// graph shape the catalog also advertises.
 type Workflow struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -42,8 +41,7 @@ type Workflow struct {
 	Name          string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
 	Description   string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
 	Tags          []string               `protobuf:"bytes,7,rep,name=tags,proto3" json:"tags,omitempty"`
-	SchemaVersion int32                  `protobuf:"varint,8,opt,name=schema_version,json=schemaVersion,proto3" json:"schema_version,omitempty"`
-	GraphJson     []byte                 `protobuf:"bytes,9,opt,name=graph_json,json=graphJson,proto3" json:"graph_json,omitempty"`
+	Graph         *WorkflowGraph         `protobuf:"bytes,8,opt,name=graph,proto3" json:"graph,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -127,16 +125,9 @@ func (x *Workflow) GetTags() []string {
 	return nil
 }
 
-func (x *Workflow) GetSchemaVersion() int32 {
+func (x *Workflow) GetGraph() *WorkflowGraph {
 	if x != nil {
-		return x.SchemaVersion
-	}
-	return 0
-}
-
-func (x *Workflow) GetGraphJson() []byte {
-	if x != nil {
-		return x.GraphJson
+		return x.Graph
 	}
 	return nil
 }
@@ -534,8 +525,7 @@ type WorkflowServiceUpsertRequest struct {
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	Tags          []string               `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
-	SchemaVersion int32                  `protobuf:"varint,5,opt,name=schema_version,json=schemaVersion,proto3" json:"schema_version,omitempty"`
-	GraphJson     []byte                 `protobuf:"bytes,6,opt,name=graph_json,json=graphJson,proto3" json:"graph_json,omitempty"`
+	Graph         *WorkflowGraph         `protobuf:"bytes,5,opt,name=graph,proto3" json:"graph,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -598,16 +588,9 @@ func (x *WorkflowServiceUpsertRequest) GetTags() []string {
 	return nil
 }
 
-func (x *WorkflowServiceUpsertRequest) GetSchemaVersion() int32 {
+func (x *WorkflowServiceUpsertRequest) GetGraph() *WorkflowGraph {
 	if x != nil {
-		return x.SchemaVersion
-	}
-	return 0
-}
-
-func (x *WorkflowServiceUpsertRequest) GetGraphJson() []byte {
-	if x != nil {
-		return x.GraphJson
+		return x.Graph
 	}
 	return nil
 }
@@ -660,7 +643,7 @@ var File_metarr_v1_workflows_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_workflows_proto_rawDesc = "" +
 	"\n" +
-	"\x19metarr/v1/workflows.proto\x12\tmetarr.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa0\x02\n" +
+	"\x19metarr/v1/workflows.proto\x12\tmetarr.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1emetarr/v1/workflow_graph.proto\"\x8a\x02\n" +
 	"\bWorkflow\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vdocument_id\x18\x02 \x01(\tR\n" +
@@ -670,10 +653,8 @@ const file_metarr_v1_workflows_proto_rawDesc = "" +
 	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x12\n" +
 	"\x04name\x18\x05 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x06 \x01(\tR\vdescription\x12\x12\n" +
-	"\x04tags\x18\a \x03(\tR\x04tags\x12%\n" +
-	"\x0eschema_version\x18\b \x01(\x05R\rschemaVersion\x12\x1d\n" +
-	"\n" +
-	"graph_json\x18\t \x01(\fR\tgraphJson\"J\n" +
+	"\x04tags\x18\a \x03(\tR\x04tags\x12.\n" +
+	"\x05graph\x18\b \x01(\v2\x18.metarr.v1.WorkflowGraphR\x05graph\"J\n" +
 	"\x1aWorkflowServiceListRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06cursor\x18\x02 \x01(\tR\x06cursor\"\x8c\x01\n" +
@@ -694,16 +675,14 @@ const file_metarr_v1_workflows_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\x05R\aversion\"T\n" +
 	"!WorkflowServiceGetVersionResponse\x12/\n" +
-	"\bworkflow\x18\x01 \x01(\v2\x13.metarr.v1.WorkflowR\bworkflow\"\xcf\x01\n" +
+	"\bworkflow\x18\x01 \x01(\v2\x13.metarr.v1.WorkflowR\bworkflow\"\xb9\x01\n" +
 	"\x1cWorkflowServiceUpsertRequest\x12\x1f\n" +
 	"\vdocument_id\x18\x01 \x01(\tR\n" +
 	"documentId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x12\n" +
-	"\x04tags\x18\x04 \x03(\tR\x04tags\x12%\n" +
-	"\x0eschema_version\x18\x05 \x01(\x05R\rschemaVersion\x12\x1d\n" +
-	"\n" +
-	"graph_json\x18\x06 \x01(\fR\tgraphJson\"P\n" +
+	"\x04tags\x18\x04 \x03(\tR\x04tags\x12.\n" +
+	"\x05graph\x18\x05 \x01(\v2\x18.metarr.v1.WorkflowGraphR\x05graph\"P\n" +
 	"\x1dWorkflowServiceUpsertResponse\x12/\n" +
 	"\bworkflow\x18\x01 \x01(\v2\x13.metarr.v1.WorkflowR\bworkflow2\xf1\x03\n" +
 	"\x0fWorkflowService\x12U\n" +
@@ -740,29 +719,32 @@ var file_metarr_v1_workflows_proto_goTypes = []any{
 	(*WorkflowServiceUpsertRequest)(nil),        // 9: metarr.v1.WorkflowServiceUpsertRequest
 	(*WorkflowServiceUpsertResponse)(nil),       // 10: metarr.v1.WorkflowServiceUpsertResponse
 	(*timestamppb.Timestamp)(nil),               // 11: google.protobuf.Timestamp
+	(*WorkflowGraph)(nil),                       // 12: metarr.v1.WorkflowGraph
 }
 var file_metarr_v1_workflows_proto_depIdxs = []int32{
 	11, // 0: metarr.v1.Workflow.created_at:type_name -> google.protobuf.Timestamp
-	0,  // 1: metarr.v1.WorkflowServiceListResponse.workflows:type_name -> metarr.v1.Workflow
-	0,  // 2: metarr.v1.WorkflowServiceGetResponse.workflow:type_name -> metarr.v1.Workflow
-	0,  // 3: metarr.v1.WorkflowServiceListVersionsResponse.versions:type_name -> metarr.v1.Workflow
-	0,  // 4: metarr.v1.WorkflowServiceGetVersionResponse.workflow:type_name -> metarr.v1.Workflow
-	0,  // 5: metarr.v1.WorkflowServiceUpsertResponse.workflow:type_name -> metarr.v1.Workflow
-	1,  // 6: metarr.v1.WorkflowService.List:input_type -> metarr.v1.WorkflowServiceListRequest
-	3,  // 7: metarr.v1.WorkflowService.Get:input_type -> metarr.v1.WorkflowServiceGetRequest
-	5,  // 8: metarr.v1.WorkflowService.ListVersions:input_type -> metarr.v1.WorkflowServiceListVersionsRequest
-	7,  // 9: metarr.v1.WorkflowService.GetVersion:input_type -> metarr.v1.WorkflowServiceGetVersionRequest
-	9,  // 10: metarr.v1.WorkflowService.Upsert:input_type -> metarr.v1.WorkflowServiceUpsertRequest
-	2,  // 11: metarr.v1.WorkflowService.List:output_type -> metarr.v1.WorkflowServiceListResponse
-	4,  // 12: metarr.v1.WorkflowService.Get:output_type -> metarr.v1.WorkflowServiceGetResponse
-	6,  // 13: metarr.v1.WorkflowService.ListVersions:output_type -> metarr.v1.WorkflowServiceListVersionsResponse
-	8,  // 14: metarr.v1.WorkflowService.GetVersion:output_type -> metarr.v1.WorkflowServiceGetVersionResponse
-	10, // 15: metarr.v1.WorkflowService.Upsert:output_type -> metarr.v1.WorkflowServiceUpsertResponse
-	11, // [11:16] is the sub-list for method output_type
-	6,  // [6:11] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	12, // 1: metarr.v1.Workflow.graph:type_name -> metarr.v1.WorkflowGraph
+	0,  // 2: metarr.v1.WorkflowServiceListResponse.workflows:type_name -> metarr.v1.Workflow
+	0,  // 3: metarr.v1.WorkflowServiceGetResponse.workflow:type_name -> metarr.v1.Workflow
+	0,  // 4: metarr.v1.WorkflowServiceListVersionsResponse.versions:type_name -> metarr.v1.Workflow
+	0,  // 5: metarr.v1.WorkflowServiceGetVersionResponse.workflow:type_name -> metarr.v1.Workflow
+	12, // 6: metarr.v1.WorkflowServiceUpsertRequest.graph:type_name -> metarr.v1.WorkflowGraph
+	0,  // 7: metarr.v1.WorkflowServiceUpsertResponse.workflow:type_name -> metarr.v1.Workflow
+	1,  // 8: metarr.v1.WorkflowService.List:input_type -> metarr.v1.WorkflowServiceListRequest
+	3,  // 9: metarr.v1.WorkflowService.Get:input_type -> metarr.v1.WorkflowServiceGetRequest
+	5,  // 10: metarr.v1.WorkflowService.ListVersions:input_type -> metarr.v1.WorkflowServiceListVersionsRequest
+	7,  // 11: metarr.v1.WorkflowService.GetVersion:input_type -> metarr.v1.WorkflowServiceGetVersionRequest
+	9,  // 12: metarr.v1.WorkflowService.Upsert:input_type -> metarr.v1.WorkflowServiceUpsertRequest
+	2,  // 13: metarr.v1.WorkflowService.List:output_type -> metarr.v1.WorkflowServiceListResponse
+	4,  // 14: metarr.v1.WorkflowService.Get:output_type -> metarr.v1.WorkflowServiceGetResponse
+	6,  // 15: metarr.v1.WorkflowService.ListVersions:output_type -> metarr.v1.WorkflowServiceListVersionsResponse
+	8,  // 16: metarr.v1.WorkflowService.GetVersion:output_type -> metarr.v1.WorkflowServiceGetVersionResponse
+	10, // 17: metarr.v1.WorkflowService.Upsert:output_type -> metarr.v1.WorkflowServiceUpsertResponse
+	13, // [13:18] is the sub-list for method output_type
+	8,  // [8:13] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_workflows_proto_init() }
@@ -770,6 +752,7 @@ func file_metarr_v1_workflows_proto_init() {
 	if File_metarr_v1_workflows_proto != nil {
 		return
 	}
+	file_metarr_v1_workflow_graph_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

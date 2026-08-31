@@ -13,7 +13,7 @@ func (a *analysis) checkDataEdges() {
 	a.computeLoopScopes()
 	a.computeMustHaveRun()
 
-	for _, edge := range a.graph.DataEdges() {
+	for _, edge := range workflow.DataEdges(a.graph) {
 		sourceType, sourceResolved := a.types[edge.From.Node]
 		targetType, targetResolved := a.types[edge.To.Node]
 		if !sourceResolved || !targetResolved {
@@ -27,7 +27,7 @@ func (a *analysis) checkDataEdges() {
 }
 
 // checkDataEdgeAvailability is the MustHaveRun check.
-func (a *analysis) checkDataEdgeAvailability(edge workflow.Edge, sourceType *workflow.NodeType) {
+func (a *analysis) checkDataEdgeAvailability(edge *workflow.Edge, sourceType *workflow.NodeType) {
 	// A pure data source is not an execution step — a literal or a selector
 	// always has its value — so it is exempt. Without this carve-out the
 	// whole relation falls apart on constants.
@@ -53,7 +53,7 @@ func (a *analysis) checkDataEdgeAvailability(edge workflow.Edge, sourceType *wor
 		a.report(SeverityError, "data.parallelSiblings",
 			fmt.Sprintf("%s and %s run at the same time in different branches of %s, so %s cannot read from %s. Connect from a node before the Parallel, or from after the Join.",
 				sourceLabel, targetLabel, a.nodeLabel(parallelID), targetLabel, sourceLabel),
-			[]string{edge.From.Node, edge.To.Node, parallelID}, []string{edge.ID})
+			[]string{edge.From.Node, edge.To.Node, parallelID}, []string{edge.Id})
 		return
 	}
 
@@ -63,7 +63,7 @@ func (a *analysis) checkDataEdgeAvailability(edge workflow.Edge, sourceType *wor
 		Message: fmt.Sprintf("%s does not run on every path to %s, so the value may not exist when it is needed.",
 			sourceLabel, targetLabel),
 		NodeIds:     []string{edge.From.Node, edge.To.Node},
-		EdgeIds:     []string{edge.ID},
+		EdgeIds:     []string{edge.Id},
 		WitnessPath: a.witnessPath(edge.To.Node, edge.From.Node),
 	}
 	a.diagnostics = append(a.diagnostics, diagnostic)
@@ -91,7 +91,7 @@ func (a *analysis) availabilityProducer(nodeID string) string {
 // same parallel.
 func (a *analysis) parallelSiblings(left, right string) (string, bool) {
 	for _, node := range a.graph.Nodes {
-		nodeType, resolved := a.types[node.ID]
+		nodeType, resolved := a.types[node.Id]
 		if !resolved || nodeType.Kind != workflow.KindParallel {
 			continue
 		}
@@ -100,7 +100,7 @@ func (a *analysis) parallelSiblings(left, right string) (string, bool) {
 		for _, port := range nodeType.Control.Out {
 			// Bounded at the join: two nodes after the join are not siblings,
 			// they are sequential.
-			reached := a.branchRegion(node.ID, port)
+			reached := a.branchRegion(node.Id, port)
 			if reached[left] {
 				leftBranch = port
 			}
@@ -109,7 +109,7 @@ func (a *analysis) parallelSiblings(left, right string) (string, bool) {
 			}
 		}
 		if leftBranch != "" && rightBranch != "" && leftBranch != rightBranch {
-			return node.ID, true
+			return node.Id, true
 		}
 	}
 	return "", false
@@ -118,7 +118,7 @@ func (a *analysis) parallelSiblings(left, right string) (string, bool) {
 // checkDataEdgeScope is the frame-visibility check. It is not implied by
 // MustHaveRun: that establishes some value exists, this establishes that
 // *this iteration's* value does.
-func (a *analysis) checkDataEdgeScope(edge workflow.Edge) {
+func (a *analysis) checkDataEdgeScope(edge *workflow.Edge) {
 	sourceScope := a.effectiveScope(edge.From.Node)
 	targetScope := a.loopScope[edge.To.Node]
 	if a.scopeVisible(sourceScope, targetScope) {
@@ -132,12 +132,12 @@ func (a *analysis) checkDataEdgeScope(edge workflow.Edge) {
 	a.report(SeverityError, "data.escapesLoop",
 		fmt.Sprintf("%s runs once per item inside %s, but %s is outside that loop, so there is no single value to read — the loop may even run zero times. Insert a Collect node inside the loop and connect that instead.",
 			sourceLabel, loopLabel, targetLabel),
-		[]string{edge.From.Node, edge.To.Node, sourceScope}, []string{edge.ID})
+		[]string{edge.From.Node, edge.To.Node, sourceScope}, []string{edge.Id})
 }
 
 // checkDataEdgeTypes verifies the value can reach the socket, applying the
 // edge's recorded transform if it has one.
-func (a *analysis) checkDataEdgeTypes(edge workflow.Edge, targetType *workflow.NodeType) {
+func (a *analysis) checkDataEdgeTypes(edge *workflow.Edge, targetType *workflow.NodeType) {
 	targetSocket, found := workflow.DataInSocket(targetType, edge.To.Port)
 	if !found {
 		return // already reported by checkPortsExist
@@ -151,19 +151,19 @@ func (a *analysis) checkDataEdgeTypes(edge workflow.Edge, targetType *workflow.N
 		if !known {
 			a.report(SeverityError, "data.unknownTransform",
 				fmt.Sprintf("This connection uses a conversion called %q, which this build does not know about.", edge.Transform),
-				nil, []string{edge.ID})
+				nil, []string{edge.Id})
 			return
 		}
 		if !workflow.IsSubtypeOf(producedType, workflow.Type(transform.From)) {
 			a.report(SeverityError, "data.transformInputMismatch",
 				fmt.Sprintf("The %s conversion expects %s but receives %s.", transform.Name, transform.From, producedType),
-				nil, []string{edge.ID})
+				nil, []string{edge.Id})
 			return
 		}
 		if !workflow.IsSubtypeOf(workflow.Type(transform.To), targetSocketType) {
 			a.report(SeverityError, "data.transformOutputMismatch",
 				fmt.Sprintf("The %s conversion produces %s, which %q does not accept.", transform.Name, transform.To, targetSocket.Name),
-				nil, []string{edge.ID})
+				nil, []string{edge.Id})
 		}
 		return
 	}
@@ -180,13 +180,13 @@ func (a *analysis) checkDataEdgeTypes(edge workflow.Edge, targetType *workflow.N
 		a.report(SeverityError, "data.transformRequired",
 			fmt.Sprintf("%s cannot feed %q (%s) directly. Choose a conversion: %v.",
 				producedType, targetSocket.Name, targetSocket.Type, names),
-			nil, []string{edge.ID})
+			nil, []string{edge.Id})
 		return
 	}
 
 	a.report(SeverityError, "data.incompatible",
 		workflow.ExplainIncompatible(producedType, targetSocketType),
-		nil, []string{edge.ID})
+		nil, []string{edge.Id})
 }
 
 // resolveOutputType returns the concrete type a data-out port produces.
@@ -241,7 +241,7 @@ func (a *analysis) resolveOutputType(nodeID, port string, visiting map[string]bo
 // wiredInputType is the type actually arriving at a data-in socket, after any
 // transform on the incoming edge.
 func (a *analysis) wiredInputType(nodeID, port string, visiting map[string]bool) (workflow.Type, bool) {
-	for _, edge := range a.graph.DataEdges() {
+	for _, edge := range workflow.DataEdges(a.graph) {
 		if edge.To.Node != nodeID || edge.To.Port != port {
 			continue
 		}

@@ -15,7 +15,10 @@ import {
   type Viewport,
 } from '@xyflow/react'
 
+import { create, type JsonObject } from '@bufbuild/protobuf'
+
 import { useWorkflowCatalog } from '../../api/queries'
+import { WorkflowGraphNodeSchema } from '../../gen/metarr/v1/workflow_graph_pb'
 import { autoApplyTransform, evaluateConnection } from './connectionRules'
 import { DiagnosticsPanel } from './DiagnosticsPanel'
 import { useDnD } from './DnDContext'
@@ -216,13 +219,13 @@ export function WorkflowCanvas({
       }
 
       const newNode = toRFNode(
-        {
+        create(WorkflowGraphNodeSchema, {
           id: crypto.randomUUID(),
           type: nodeType.type,
           catalogId: nodeType.id,
           position,
-          settings: defaultSettings,
-        },
+          settings: defaultSettings as JsonObject,
+        }),
         registeredTypes,
       )
       setNodes((current) => current.concat(newNode))

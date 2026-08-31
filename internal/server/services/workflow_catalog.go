@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -58,9 +57,9 @@ func (s *WorkflowCatalogServer) Validate(
 		return nil, connectError(http.StatusInternalServerError, errors.New("workflow catalog is not available"))
 	}
 
-	var graph workflow.Graph
-	if err := json.Unmarshal(req.Msg.GetGraphJson(), &graph); err != nil {
-		return nil, connectError(http.StatusBadRequest, errors.New("malformed graph"))
+	graph := req.Msg.Graph
+	if graph == nil {
+		return nil, connectError(http.StatusBadRequest, errors.New("no graph to validate"))
 	}
 
 	result := validate.Graph(graph, s.WorkflowCatalog)

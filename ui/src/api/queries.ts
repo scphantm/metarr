@@ -24,7 +24,7 @@ import type {
   Workflow,
   WorkflowListResponse,
 } from './types'
-import type { MessageInitShape } from '@bufbuild/protobuf'
+import { create, type JsonObject, type MessageInitShape } from '@bufbuild/protobuf'
 import { timestampDate } from '@bufbuild/protobuf/wkt'
 import type { AcceptedResponse as ConnectAcceptedResponse } from '../gen/metarr/v1/common_pb'
 import { SonarrInstanceSchema } from '../gen/metarr/v1/sonarr_interfaces_pb'
@@ -37,7 +37,7 @@ import { AgentConfigSchema } from '../gen/metarr/v1/agents_pb'
 import { ScanDirectorySchema, SidecarTypeDefinitionSchema } from '../gen/metarr/v1/directory_scanner_pb'
 import { LoggingConfigSchema } from '../gen/metarr/v1/logging_pb'
 import type { Workflow as ConnectWorkflow } from '../gen/metarr/v1/workflows_pb'
-import type { GraphEdge, GraphNode } from '../pages/workflows/catalogTypes'
+import { WorkflowGraphSchema } from '../gen/metarr/v1/workflow_graph_pb'
 
 export const queryKeys = {
   config: ['config'] as const,
@@ -349,17 +349,11 @@ export function useDeleteSonarrInstance() {
  * than useConfigMutation, whose return type is hardwired to AcceptedResponse.
  */
 
-// Nodes/edges/viewport travel as one opaque graph_json blob on the wire
-// (see workflows.proto's doc comment — mongostore.Workflow itself has always
-// stored them as loose bson.M, never a typed model), decoded back into the
-// same flat Workflow shape types.ts already had so WorkflowEditorPage,
-// WorkflowCanvas etc. need no changes.
+// The graph is a typed WorkflowGraph message on the wire now (docs/adr/0005).
+// This still flattens it into the snake_case Workflow shape the editor pages
+// read; that shape is retired with api/types.ts in its own slice.
 function connectWorkflowToLegacyShape(w: ConnectWorkflow): Workflow {
-  const graph = JSON.parse(new TextDecoder().decode(w.graphJson)) as {
-    nodes: GraphNode[]
-    edges: GraphEdge[]
-    viewport: Record<string, unknown>
-  }
+  const graph = w.graph
   return {
     id: w.id,
     document_id: w.documentId,
@@ -368,10 +362,10 @@ function connectWorkflowToLegacyShape(w: ConnectWorkflow): Workflow {
     name: w.name,
     description: w.description,
     tags: w.tags,
-    schema_version: w.schemaVersion,
-    nodes: graph.nodes,
-    edges: graph.edges,
-    viewport: graph.viewport,
+    schema_version: graph?.schemaVersion ?? 0,
+    nodes: graph?.nodes ?? [],
+    edges: graph?.edges ?? [],
+    viewport: graph?.viewport ?? {},
   }
 }
 
@@ -445,16 +439,18 @@ export function useSaveWorkflow() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (body: UpsertWorkflowRequest) => {
-      const graphJson = new TextEncoder().encode(
-        JSON.stringify({ nodes: body.nodes, edges: body.edges, viewport: body.viewport }),
-      )
+      const graph = create(WorkflowGraphSchema, {
+        schemaVersion: body.schema_version,
+        nodes: body.nodes,
+        edges: body.edges,
+        viewport: body.viewport as JsonObject,
+      })
       const { workflow } = await workflowClient.upsert({
         documentId: body.document_id ?? '',
         name: body.name,
         description: body.description,
         tags: body.tags,
-        schemaVersion: body.schema_version,
-        graphJson,
+        graph,
       })
       if (!workflow) throw new Error('save did not return a workflow')
       return connectWorkflowToLegacyShape(workflow)

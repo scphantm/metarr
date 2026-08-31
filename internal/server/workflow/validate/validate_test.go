@@ -119,28 +119,28 @@ func testCatalog(t *testing.T) *workflow.Catalog {
 	return catalog
 }
 
-func node(id, nodeType string) workflow.Node {
-	return workflow.Node{ID: id, Type: nodeType}
+func node(id, nodeType string) *workflow.Node {
+	return &workflow.Node{Id: id, Type: nodeType}
 }
 
-func control(id, fromNode, fromPort, toNode, toPort string) workflow.Edge {
-	return workflow.Edge{
-		ID: id, Kind: workflow.EdgeControl,
-		From: workflow.Endpoint{Node: fromNode, Port: fromPort},
-		To:   workflow.Endpoint{Node: toNode, Port: toPort},
+func control(id, fromNode, fromPort, toNode, toPort string) *workflow.Edge {
+	return &workflow.Edge{
+		Id: id, Kind: workflow.EdgeControl,
+		From: &workflow.Endpoint{Node: fromNode, Port: fromPort},
+		To:   &workflow.Endpoint{Node: toNode, Port: toPort},
 	}
 }
 
-func data(id, fromNode, fromPort, toNode, toPort string) workflow.Edge {
-	return workflow.Edge{
-		ID: id, Kind: workflow.EdgeData,
-		From: workflow.Endpoint{Node: fromNode, Port: fromPort},
-		To:   workflow.Endpoint{Node: toNode, Port: toPort},
+func data(id, fromNode, fromPort, toNode, toPort string) *workflow.Edge {
+	return &workflow.Edge{
+		Id: id, Kind: workflow.EdgeData,
+		From: &workflow.Endpoint{Node: fromNode, Port: fromPort},
+		To:   &workflow.Endpoint{Node: toNode, Port: toPort},
 	}
 }
 
-func graphOf(nodes []workflow.Node, edges []workflow.Edge) workflow.Graph {
-	return workflow.Graph{SchemaVersion: workflow.SchemaVersion, Nodes: nodes, Edges: edges}
+func graphOf(nodes []*workflow.Node, edges []*workflow.Edge) *workflow.Graph {
+	return &workflow.Graph{SchemaVersion: workflow.SchemaVersion, Nodes: nodes, Edges: edges}
 }
 
 func codesIn(result validate.Result) []string {
@@ -178,11 +178,11 @@ func requireCode(t *testing.T, result validate.Result, code string) {
 // a downstream one on the only path there.
 func TestStraightLineDataEdgeIsAllowed(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{
+		[]*workflow.Node{
 			node("start", "t/start"), node("a", "t/task"), node("b", "t/task"),
 			node("literal", "t/source"), node("stop", "t/end"),
 		},
-		[]workflow.Edge{
+		[]*workflow.Edge{
 			control("c1", "start", "next", "a", "in"),
 			control("c2", "a", "next", "b", "in"),
 			control("c3", "b", "next", "stop", "in"),
@@ -204,13 +204,13 @@ func TestStraightLineDataEdgeIsAllowed(t *testing.T) {
 // run and the Join waits for both, so A provably completed before X started.
 func TestParallelBranchToAfterJoinIsAllowed(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{
+		[]*workflow.Node{
 			node("start", "t/start"), node("par", "t/parallel"),
 			node("a", "t/task"), node("b", "t/task"),
 			node("join", "t/join"), node("x", "t/task"),
 			node("literal", "t/source"), node("stop", "t/end"),
 		},
-		[]workflow.Edge{
+		[]*workflow.Edge{
 			control("c1", "start", "next", "par", "in"),
 			control("c2", "par", "branch1", "a", "in"),
 			control("c3", "par", "branch2", "b", "in"),
@@ -234,11 +234,11 @@ func TestParallelBranchToAfterJoinIsAllowed(t *testing.T) {
 // must not be confused with.
 func TestSiblingParallelBranchesAreRejected(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{
+		[]*workflow.Node{
 			node("start", "t/start"), node("par", "t/parallel"),
 			node("a", "t/task"), node("b", "t/task"), node("join", "t/join"),
 		},
-		[]workflow.Edge{
+		[]*workflow.Edge{
 			control("c1", "start", "next", "par", "in"),
 			control("c2", "par", "branch1", "a", "in"),
 			control("c3", "par", "branch2", "b", "in"),
@@ -256,11 +256,11 @@ func TestSiblingParallelBranchesAreRejected(t *testing.T) {
 // does not run on every path to the merge point.
 func TestConditionalBranchToAfterMergeIsRejected(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{
+		[]*workflow.Node{
 			node("start", "t/start"), node("branch", "t/branch"),
 			node("yes", "t/task"), node("no", "t/task"), node("merge", "t/task"),
 		},
-		[]workflow.Edge{
+		[]*workflow.Edge{
 			control("c1", "start", "next", "branch", "in"),
 			control("c2", "branch", "yes", "yes", "in"),
 			control("c3", "branch", "no", "no", "in"),
@@ -294,11 +294,11 @@ func TestConditionalBranchToAfterMergeIsRejected(t *testing.T) {
 // single value is guaranteed to exist afterwards.
 func TestLoopBodyValueCannotEscapeTheLoop(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{
+		[]*workflow.Node{
 			node("start", "t/start"), node("list", "t/listSource"),
 			node("loop", "t/forEach"), node("body", "t/task"), node("after", "t/task"),
 		},
-		[]workflow.Edge{
+		[]*workflow.Edge{
 			control("c1", "start", "next", "loop", "in"),
 			control("c2", "loop", "body", "body", "in"),
 			control("c3", "loop", "done", "after", "in"),
@@ -315,12 +315,12 @@ func TestLoopBodyValueCannotEscapeTheLoop(t *testing.T) {
 // legal through a Collect, whose output is attributed to the loop's done.
 func TestCollectMakesLoopValuesReadableAfterTheLoop(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{
+		[]*workflow.Node{
 			node("start", "t/start"), node("list", "t/listSource"),
 			node("loop", "t/forEach"), node("body", "t/task"),
 			node("collect", "t/collect"), node("after", "t/task"),
 		},
-		[]workflow.Edge{
+		[]*workflow.Edge{
 			control("c1", "start", "next", "loop", "in"),
 			control("c2", "loop", "body", "body", "in"),
 			control("c3", "body", "next", "collect", "in"),
@@ -340,11 +340,11 @@ func TestCollectMakesLoopValuesReadableAfterTheLoop(t *testing.T) {
 // is not an execution step, so it may feed anything.
 func TestPureSourceIsExemptFromRunOrdering(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{
+		[]*workflow.Node{
 			node("start", "t/start"), node("branch", "t/branch"),
 			node("yes", "t/task"), node("literal", "t/source"),
 		},
-		[]workflow.Edge{
+		[]*workflow.Edge{
 			control("c1", "start", "next", "branch", "in"),
 			control("c2", "branch", "yes", "yes", "in"),
 			data("d1", "literal", "path", "yes", "value"),
@@ -359,10 +359,10 @@ func TestPureSourceIsExemptFromRunOrdering(t *testing.T) {
 // join arity unknowable, so a second wire is refused outright.
 func TestControlOutPortTakesOnlyOneEdge(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{
+		[]*workflow.Node{
 			node("start", "t/start"), node("a", "t/task"), node("b", "t/task"),
 		},
-		[]workflow.Edge{
+		[]*workflow.Edge{
 			control("c1", "start", "next", "a", "in"),
 			control("c2", "start", "next", "b", "in"),
 		},
@@ -376,11 +376,11 @@ func TestControlOutPortTakesOnlyOneEdge(t *testing.T) {
 // value ambiguous.
 func TestDataInSocketTakesOnlyOneEdge(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{
+		[]*workflow.Node{
 			node("start", "t/start"), node("one", "t/source"), node("two", "t/source"),
 			node("task", "t/task"),
 		},
-		[]workflow.Edge{
+		[]*workflow.Edge{
 			control("c1", "start", "next", "task", "in"),
 			data("d1", "one", "path", "task", "value"),
 			data("d2", "two", "path", "task", "value"),
@@ -395,11 +395,11 @@ func TestDataInSocketTakesOnlyOneEdge(t *testing.T) {
 // typing: passing a file where a directory is wanted silently means the
 // parent, so it must be visible on the wire rather than implicit.
 func TestFileToDirectoryNeedsAnExplicitTransform(t *testing.T) {
-	nodes := []workflow.Node{
+	nodes := []*workflow.Node{
 		node("start", "t/start"), node("literal", "t/source"), node("dir", "t/dirTask"),
 		node("stop", "t/end"),
 	}
-	edges := []workflow.Edge{
+	edges := []*workflow.Edge{
 		control("c1", "start", "next", "dir", "in"),
 		data("d1", "literal", "path", "dir", "folder"),
 		control("c2", "dir", "next", "stop", "in"),
@@ -420,11 +420,11 @@ func TestFileToDirectoryNeedsAnExplicitTransform(t *testing.T) {
 // rather than degrading everything downstream to "any".
 func TestForEachItemTypeIsInferredFromItsCollection(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{
+		[]*workflow.Node{
 			node("start", "t/start"), node("list", "t/listSource"),
 			node("loop", "t/forEach"), node("dir", "t/dirTask"),
 		},
-		[]workflow.Edge{
+		[]*workflow.Edge{
 			control("c1", "start", "next", "loop", "in"),
 			control("c2", "loop", "body", "dir", "in"),
 			data("d1", "list", "files", "loop", "collection"),
@@ -448,12 +448,12 @@ func TestForEachItemTypeIsInferredFromItsCollection(t *testing.T) {
 // would leave the join waiting forever.
 func TestTerminalInsideParallelBranchIsRejected(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{
+		[]*workflow.Node{
 			node("start", "t/start"), node("par", "t/parallel"),
 			node("a", "t/task"), node("stop", "t/end"),
 			node("b", "t/task"), node("join", "t/join"),
 		},
-		[]workflow.Edge{
+		[]*workflow.Edge{
 			control("c1", "start", "next", "par", "in"),
 			control("c2", "par", "branch1", "a", "in"),
 			control("c3", "a", "next", "stop", "in"),
@@ -472,13 +472,13 @@ func TestTerminalInsideParallelBranchIsRejected(t *testing.T) {
 // sits inside a branch.
 func TestTerminalAfterJoinIsAllowed(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{
+		[]*workflow.Node{
 			node("start", "t/start"), node("par", "t/parallel"),
 			node("a", "t/task"), node("b", "t/task"),
 			node("join", "t/join"), node("stop", "t/end"),
 			node("literal", "t/source"),
 		},
-		[]workflow.Edge{
+		[]*workflow.Edge{
 			control("c1", "start", "next", "par", "in"),
 			control("c2", "par", "branch1", "a", "in"),
 			control("c3", "par", "branch2", "b", "in"),
@@ -497,7 +497,7 @@ func TestTerminalAfterJoinIsAllowed(t *testing.T) {
 
 // TestMissingStartIsRejected.
 func TestMissingStartIsRejected(t *testing.T) {
-	graph := graphOf([]workflow.Node{node("a", "t/task")}, nil)
+	graph := graphOf([]*workflow.Node{node("a", "t/task")}, nil)
 
 	result := validate.Graph(graph, testCatalog(t))
 	requireCode(t, result, "start.missing")
@@ -506,7 +506,7 @@ func TestMissingStartIsRejected(t *testing.T) {
 // TestMissingEndIsRejected: a run with nowhere to finish.
 func TestMissingEndIsRejected(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{node("start", "t/start"), node("literal", "t/source")},
+		[]*workflow.Node{node("start", "t/start"), node("literal", "t/source")},
 		nil,
 	)
 
@@ -519,8 +519,8 @@ func TestMissingEndIsRejected(t *testing.T) {
 // End, nothing else required.
 func TestStartAndEndAloneAreSufficient(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{node("start", "t/start"), node("stop", "t/end")},
-		[]workflow.Edge{control("c1", "start", "next", "stop", "in")},
+		[]*workflow.Node{node("start", "t/start"), node("stop", "t/end")},
+		[]*workflow.Edge{control("c1", "start", "next", "stop", "in")},
 	)
 
 	result := validate.Graph(graph, testCatalog(t))
@@ -536,7 +536,7 @@ func TestStartAndEndAloneAreSufficient(t *testing.T) {
 // can be opened and re-saved without losing the user's work.
 func TestUnknownNodeTypeIsReportedNotDropped(t *testing.T) {
 	graph := graphOf(
-		[]workflow.Node{node("start", "t/start"), node("mystery", "t/doesNotExist")},
+		[]*workflow.Node{node("start", "t/start"), node("mystery", "t/doesNotExist")},
 		nil,
 	)
 
@@ -548,7 +548,7 @@ func TestUnknownNodeTypeIsReportedNotDropped(t *testing.T) {
 // control edges entirely, and a guessed migration would produce flows that
 // look right and run wrong.
 func TestLegacySchemaIsRefusedRatherThanGuessed(t *testing.T) {
-	graph := workflow.Graph{SchemaVersion: 0, Nodes: []workflow.Node{node("start", "t/start")}}
+	graph := &workflow.Graph{SchemaVersion: 0, Nodes: []*workflow.Node{node("start", "t/start")}}
 
 	result := validate.Graph(graph, testCatalog(t))
 	requireCode(t, result, "schema.legacy")
@@ -561,11 +561,11 @@ func TestLegacySchemaIsRefusedRatherThanGuessed(t *testing.T) {
 // (outA vs outB); a node instance pinned to variantB must expose outB and
 // must not expose outA.
 func TestNodeResolvesByIDNotByType(t *testing.T) {
-	variantB := workflow.Node{ID: "n", Type: "t/variant", CatalogID: "t/variantB"}
+	variantB := &workflow.Node{Id: "n", Type: "t/variant", CatalogId: "t/variantB"}
 
 	wiredToOutB := graphOf(
-		[]workflow.Node{node("start", "t/start"), variantB, node("sink", "t/task")},
-		[]workflow.Edge{
+		[]*workflow.Node{node("start", "t/start"), variantB, node("sink", "t/task")},
+		[]*workflow.Edge{
 			control("c1", "start", "next", "n", "in"),
 			data("d1", "n", "outB", "sink", "value"),
 		},
@@ -574,8 +574,8 @@ func TestNodeResolvesByIDNotByType(t *testing.T) {
 	requireNoCode(t, result, "port.unknownDataOut")
 
 	wiredToOutA := graphOf(
-		[]workflow.Node{node("start", "t/start"), variantB, node("sink", "t/task")},
-		[]workflow.Edge{
+		[]*workflow.Node{node("start", "t/start"), variantB, node("sink", "t/task")},
+		[]*workflow.Edge{
 			control("c1", "start", "next", "n", "in"),
 			data("d1", "n", "outA", "sink", "value"),
 		},
