@@ -290,9 +290,9 @@ func workflowFromUpsertProto(req *metarrv1.WorkflowServiceUpsertRequest) (mongos
 		return mongostore.Workflow{}, errors.New("malformed graph")
 	}
 	return mongostore.Workflow{
-		Name:          req.GetName(),
-		Description:   req.GetDescription(),
-		Tags:          req.GetTags(),
+		Name:          req.Name,
+		Description:   req.Description,
+		Tags:          req.Tags,
 		SchemaVersion: stored.SchemaVersion,
 		Nodes:         stored.Nodes,
 		Edges:         stored.Edges,
