@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"connectrpc.com/connect"
 
@@ -89,12 +88,7 @@ func (s *TaskServer) RunDirectoryScan(
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue task"))
 	}
 
-	event := eventbus.Event{
-		CorrelationID: correlationID,
-		Name:          eventbus.AgentScanCommandEventName,
-		Payload:       payload,
-		Timestamp:     time.Now().UTC(),
-	}
+	event := eventbus.NewEvent(eventbus.SourceServer, eventbus.AgentScanCommandEventName, correlationID, payload)
 
 	if err := s.Streams.Fire(ctx, eventbus.AgentCommandStream(agent.Slug), event); err != nil {
 		s.Logger.Error("failed to send scan command to agent", "agent", agent.Slug, "correlation_id", correlationID, "error", err)

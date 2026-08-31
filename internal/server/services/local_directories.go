@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"connectrpc.com/connect"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -195,12 +194,8 @@ func (s *LocalDirectoryServer) GetDirectoryNFO(
 	timeoutCtx, cancel := context.WithTimeout(ctx, s.HeartbeatTimeout)
 	defer cancel()
 
-	reply, err := s.PubSub.Request(timeoutCtx, eventbus.AgentRequestChannel(agent), eventbus.Event{
-		CorrelationID: correlationID,
-		Name:          eventbus.AgentNFOReadEventName,
-		Payload:       payload,
-		Timestamp:     time.Now().UTC(),
-	})
+	reply, err := s.PubSub.Request(timeoutCtx, eventbus.AgentRequestChannel(agent),
+		eventbus.NewEvent(eventbus.SourceServer, eventbus.AgentNFOReadEventName, correlationID, payload))
 	if err != nil {
 		// A timeout here means the agent is not answering, which is a different
 		// problem from the file being unreadable and deserves its own status.

@@ -2,7 +2,6 @@ package eventbus
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-redisstream/pkg/redisstream"
@@ -38,8 +37,8 @@ func NewStreamBus(client redis.UniversalClient, logger watermill.LoggerAdapter) 
 }
 
 // Fire appends event to stream and returns immediately (non-blocking).
-func (b *StreamBus) Fire(ctx context.Context, stream string, event Event) error {
-	payload, err := json.Marshal(event)
+func (b *StreamBus) Fire(ctx context.Context, stream string, event *Event) error {
+	payload, err := MarshalEvent(event)
 	if err != nil {
 		return err
 	}
@@ -52,7 +51,7 @@ func (b *StreamBus) Fire(ctx context.Context, stream string, event Event) error 
 // Consume runs a blocking read loop for a single consumer within group,
 // invoking handler for each event and acknowledging it on success. It
 // returns when ctx is canceled.
-func (b *StreamBus) Consume(ctx context.Context, stream, group, consumer string, handler func(context.Context, Event) error) error {
+func (b *StreamBus) Consume(ctx context.Context, stream, group, consumer string, handler func(context.Context, *Event) error) error {
 	subscriber, err := redisstream.NewSubscriber(redisstream.SubscriberConfig{
 		Client:        b.client,
 		ConsumerGroup: group,
@@ -70,12 +69,12 @@ func (b *StreamBus) Consume(ctx context.Context, stream, group, consumer string,
 
 	for msg := range messages {
 		var event Event
-		if err := json.Unmarshal(msg.Payload, &event); err != nil {
+		if err := UnmarshalEvent(msg.Payload, &event); err != nil {
 			msg.Nack()
 			continue
 		}
 
-		if err := handler(ctx, event); err != nil {
+		if err := handler(ctx, &event); err != nil {
 			msg.Nack()
 			continue
 		}

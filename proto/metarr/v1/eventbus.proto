@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// EventEnvelope is the wire form of every message that flows through the
+// server<->agent event bus, over Redis Streams and Redis Pub/Sub alike. It
+// is encoded with protojson using the same options as the stored config
+// (proto field names, unpopulated fields emitted), so a durable stream entry
+// carries the envelope as readable JSON in its payload field and an external
+// subscriber needs only a Redis client and a JSON parser.
+//
+// A breaking change to an inner payload is expressed as a new value of
+// `name` with a `.vN` suffix rather than a schema-version field: a consumer
+// dispatches on `name` regardless.
+message EventEnvelope {
+  // name is the dispatch discriminator, e.g. "agent.scan" or
+  // "system_config_update". Consumers switch on it to choose a payload type.
+  string name = 1;
+
+  // source is the process that published the event: "metarr-server" or
+  // "metarr-agent-{slug}". It matches the logging `source` convention.
+  string source = 2;
+
+  // correlation_id ties an event to the request or run that produced it, so
+  // a message can be traced end to end across both transports.
+  string correlation_id = 3;
+
+  // timestamp is when the event was published, in UTC.
+  google.protobuf.Timestamp timestamp = 4;
+
+  // payload is the inner message. It is opaque to the bus: publishers encode
+  // it and consumers decode it by `name`. Today's payloads are JSON; as the
+  // model-generation work converts them they become protojson of a proto
+  // message, with no change to this envelope.
+  bytes payload = 5;
+}
