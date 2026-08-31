@@ -65,20 +65,11 @@ func (s *WorkflowCatalogServer) Validate(
 
 	result := validate.Graph(graph, s.WorkflowCatalog)
 
-	diagnostics := make([]*metarrv1.Diagnostic, 0, len(result.Diagnostics))
-	for _, d := range result.Diagnostics {
-		diagnostics = append(diagnostics, &metarrv1.Diagnostic{
-			Severity:    string(d.Severity),
-			Code:        d.Code,
-			Message:     d.Message,
-			NodeIds:     d.NodeIDs,
-			EdgeIds:     d.EdgeIDs,
-			WitnessPath: d.WitnessPath,
-		})
-	}
-
+	// result.Diagnostics is already []*metarrv1.WorkflowDiagnostic — the
+	// validate package aliases the generated message, so there is no
+	// conversion layer to keep in step (docs/adr/0005).
 	return connect.NewResponse(&metarrv1.WorkflowCatalogServiceValidateResponse{
-		Diagnostics: diagnostics,
+		Diagnostics: result.Diagnostics,
 		Runnable:    result.Runnable(),
 	}), nil
 }

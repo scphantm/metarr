@@ -1,14 +1,14 @@
 /*
- * Hand-written mirrors of the Go workflow contract's JSON shapes, field for
- * field against their `json:` tags — internal/shared/workflow/graph.go — and
- * internal/server/workflow/validate/validate.go for the diagnostics shape.
+ * Hand-written mirror of the Go workflow contract's graph JSON shape, field
+ * for field against its `json:` tags — internal/shared/workflow/graph.go.
  * Graph node/edge types are prefixed `Graph*` because React Flow already owns
  * the bare `Node`/`Edge` names.
  *
  * The catalog half (node types, sockets, settings, transforms, the node-kind
- * and effects vocabularies) is generated now — see ../../gen/metarr/v1/
- * workflow_catalog_pb and docs/adr/0005. The graph and diagnostics halves
- * follow in their own slices.
+ * and effects vocabularies) and the validation diagnostics (WorkflowDiagnostic,
+ * WorkflowDiagnosticSeverity) are generated now — see ../../gen/metarr/v1/
+ * workflow_catalog_pb and docs/adr/0005. The graph half follows in its own
+ * slice.
  *
  * This file has no logic of its own — see graphAdapter.ts for the canonical
  * graph <-> React Flow boundary and connectionRules.ts for the type-lattice
@@ -73,24 +73,6 @@ export type Graph = {
   nodes: GraphNode[]
   edges: GraphEdge[]
   viewport?: Record<string, unknown>
-}
-
-// ---- validate.go ----------------------------------------------------------
-
-export type Severity = 'error' | 'warning'
-
-export type Diagnostic = {
-  severity: Severity
-  code: string
-  message: string
-  node_ids?: string[]
-  edge_ids?: string[]
-  witness_path?: string[]
-}
-
-export type ValidateResponse = {
-  diagnostics: Diagnostic[]
-  runnable: boolean
 }
 
 // ---- editor-only data carried on a React Flow node -------------------------
