@@ -34,11 +34,23 @@ func NewStreamBus(client redis.UniversalClient, policy RetentionPolicy, logger w
 	return &StreamBus{publisher: publisher}, nil
 }
 
-// Fire appends event to stream and returns immediately (non-blocking).
+// Publish appends event to topic's stream and returns immediately
+// (non-blocking). topic is the same StreamTopic value the consumer registers
+// with — stream name and consumer group bundled — so a publish and its
+// listener cannot name different streams.
+//
+// It rejects a topic it must not append to: a pattern topic (a glob names
+// many streams, not one) and a hand-built topic whose Name is not one the
+// stream topic table resolves to. The topic constructors are the primary
+// safety; this guard catches a StreamTopic assembled by hand.
 //
 // Consuming a durable stream is the Router's job (router.go), not this
 // type's: StreamBus is the publish side only.
-func (b *StreamBus) Fire(ctx context.Context, stream string, event *Event) error {
+func (b *StreamBus) Publish(ctx context.Context, topic StreamTopic, event *Event) error {
+	if err := streamTopicPublishable(topic); err != nil {
+		return err
+	}
+
 	payload, err := MarshalEvent(event)
 	if err != nil {
 		return err
@@ -46,7 +58,7 @@ func (b *StreamBus) Fire(ctx context.Context, stream string, event *Event) error
 
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.SetContext(ctx)
-	return b.publisher.Publish(stream, msg)
+	return b.publisher.Publish(topic.Name, msg)
 }
 
 // Close releases the underlying publisher. The shared Redis client is not

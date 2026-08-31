@@ -51,7 +51,7 @@ func (f *fakeBackend) snapshotLocked() *appconfig.Config {
 	return proto.Clone(f.cfg).(*appconfig.Config)
 }
 
-func (f *fakeBackend) Fire(_ context.Context, _ string, event *eventbus.Event) error {
+func (f *fakeBackend) Publish(_ context.Context, _ eventbus.StreamTopic, event *eventbus.Event) error {
 	cfg, err := appconfig.UnmarshalStored(event.Payload)
 	if err != nil {
 		return err
