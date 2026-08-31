@@ -18,6 +18,7 @@ import (
 
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"Metarr/internal/shared/agentproto"
 )
@@ -25,18 +26,18 @@ import (
 // Identity gathers the facts about this host that do not change while the
 // process runs. Fields that cannot be determined are left empty rather than
 // guessed.
-func Identity(slug, instanceID, version string, started time.Time) agentproto.AgentIdentity {
-	identity := agentproto.AgentIdentity{
+func Identity(slug, instanceID, version string, started time.Time) *agentproto.AgentIdentity {
+	identity := &agentproto.AgentIdentity{
 		Slug:       slug,
-		InstanceID: instanceID,
-		OS:         runtime.GOOS,
+		InstanceId: instanceID,
+		Os:         runtime.GOOS,
 		Arch:       runtime.GOARCH,
 		Version:    version,
-		Started:    started,
+		Started:    timestamppb.New(started),
 		// Getuid returns -1 on Windows, which has no uid at all. Reporting
 		// that verbatim is honest: the UI shows the account name there, which
 		// is the thing that decides what the service can read either way.
-		UID: os.Getuid(),
+		Uid: int32(os.Getuid()),
 	}
 
 	if hostname, err := os.Hostname(); err == nil {
@@ -48,7 +49,7 @@ func Identity(slug, instanceID, version string, started time.Time) agentproto.Ag
 		identity.Username = account.Username
 	}
 
-	identity.IP = primaryIP()
+	identity.Ip = primaryIP()
 
 	return identity
 }
@@ -102,11 +103,11 @@ func NewCollector() *Collector {
 // each cover one heartbeat interval. Sampling this way costs nothing; asking
 // for an instantaneous figure would mean blocking the heartbeat for a second
 // to measure one.
-func (c *Collector) Telemetry(ctx context.Context) agentproto.AgentTelemetry {
-	telemetry := agentproto.AgentTelemetry{}
+func (c *Collector) Telemetry(ctx context.Context) *agentproto.AgentTelemetry {
+	telemetry := &agentproto.AgentTelemetry{}
 
 	if percentages, err := cpu.PercentWithContext(ctx, 0, false); err == nil && len(percentages) > 0 {
-		telemetry.CPUPercent = percentages[0]
+		telemetry.CpuPercent = percentages[0]
 	}
 
 	if virtualMemory, err := mem.VirtualMemoryWithContext(ctx); err == nil && virtualMemory != nil {
@@ -115,7 +116,7 @@ func (c *Collector) Telemetry(ctx context.Context) agentproto.AgentTelemetry {
 	}
 
 	if c.gpu != nil {
-		telemetry.GPUs = c.gpu.probe(ctx)
+		telemetry.Gpus = c.gpu.probe(ctx)
 	}
 
 	return telemetry

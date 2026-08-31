@@ -2,13 +2,13 @@ package agentregistry
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"sort"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 
+	metarrv1 "Metarr/internal/genproto/metarr/v1"
 	"Metarr/internal/shared/agentproto"
 	"Metarr/internal/shared/appconfig"
 )
@@ -26,43 +26,20 @@ func New(client redis.UniversalClient, logger *slog.Logger) *Registry {
 }
 
 // AgentView is one agent as the UI sees it: what the operator configured, what
-// the agent itself reports, and whether it is currently there.
-type AgentView struct {
-	Slug        string `json:"slug"`
-	DisplayName string `json:"display_name,omitempty"`
-
-	// Online is presence, not health. It is true while the agent is still
-	// refreshing its key, which is the only thing the server can actually know
-	// about a machine it does not control.
-	Online bool `json:"online"`
-
-	// Configured separates an agent that has announced itself from one someone
-	// has actually set up. An agent that is online but not configured is the
-	// state every new agent starts in, and the one the UI has to surface.
-	Configured bool `json:"configured"`
-
-	Identity   *agentproto.AgentIdentity  `json:"identity,omitempty"`
-	Telemetry  *agentproto.AgentTelemetry `json:"telemetry,omitempty"`
-	ReportedAt *time.Time                 `json:"reported_at,omitempty"`
-
-	// Mappings is what this agent has been told it can see, in the server's own
-	// terms as well as the agent's, since the UI shows both.
-	Mappings []MappingView `json:"mappings"`
-
-	// LogLevel is this agent's current verbosity, defaulted the same way
-	// BuildProjection defaults it — so the Logging screen's toggle always has
-	// a real value to show, never an empty string, even for an agent nobody
-	// has touched yet.
-	LogLevel string `json:"log_level"`
-}
-
-// MappingView is one library mapping, showing both machines' names for it.
-type MappingView struct {
-	ScannerSlug string `json:"scanner_slug"`
-	ScanType    string `json:"scan_type"`
-	ServerPath  string `json:"server_path"`
-	AgentPath   string `json:"agent_path"`
-}
+// the agent itself reports, and whether it is currently there. MappingView is
+// one of its library mappings, showing both machines' names for it. Both are
+// aliases to their generated metarr.v1 messages — proto is the single
+// definition for a model the UI reads. See docs/adr/0005.
+//
+// On the message, Online is presence rather than health (true while the agent
+// still refreshes its key); Configured separates an agent that has announced
+// itself from one someone has set up; LogLevel is defaulted the same way
+// BuildProjection defaults it, so the Logging screen's toggle always has a
+// real value.
+type (
+	AgentView   = metarrv1.AgentView
+	MappingView = metarrv1.AgentMappingView
+)
 
 // List returns every agent the server knows about: those configured in config,
 // those currently present in Redis, and the union of the two.
@@ -71,7 +48,7 @@ type MappingView struct {
 // or a machine going offline would look like a machine that was never set up.
 // An unconfigured agent that has appeared must also show, because that is the
 // only way anyone learns it is there.
-func (r *Registry) List(ctx context.Context, config *appconfig.Config) ([]AgentView, error) {
+func (r *Registry) List(ctx context.Context, config *appconfig.Config) ([]*AgentView, error) {
 	presence, err := r.presence(ctx)
 	if err != nil {
 		return nil, err
@@ -96,23 +73,19 @@ func (r *Registry) List(ctx context.Context, config *appconfig.Config) ([]AgentV
 	for slug, reported := range presence {
 		view, known := views[slug]
 		if !known {
-			view = &AgentView{Slug: slug, Mappings: []MappingView{}, LogLevel: appconfig.LogLevelInfo}
+			view = &AgentView{Slug: slug, Mappings: []*MappingView{}, LogLevel: appconfig.LogLevelInfo}
 			views[slug] = view
 		}
 
-		identity := reported.Identity
-		telemetry := reported.Telemetry
-		reportedAt := reported.ReportedAt
-
 		view.Online = true
-		view.Identity = &identity
-		view.Telemetry = &telemetry
-		view.ReportedAt = &reportedAt
+		view.Identity = reported.Identity
+		view.Telemetry = reported.Telemetry
+		view.ReportedAt = reported.ReportedAt
 	}
 
-	list := make([]AgentView, 0, len(views))
+	list := make([]*AgentView, 0, len(views))
 	for _, view := range views {
-		list = append(list, *view)
+		list = append(list, view)
 	}
 	// Stable order so the UI does not reshuffle its cards on every poll.
 	sort.Slice(list, func(i, j int) bool { return list[i].Slug < list[j].Slug })
@@ -120,10 +93,10 @@ func (r *Registry) List(ctx context.Context, config *appconfig.Config) ([]AgentV
 	return list, nil
 }
 
-func mappingViews(config *appconfig.Config, agent *appconfig.AgentConfig) []MappingView {
-	mappings := make([]MappingView, 0, len(agent.Mappings))
+func mappingViews(config *appconfig.Config, agent *appconfig.AgentConfig) []*MappingView {
+	mappings := make([]*MappingView, 0, len(agent.Mappings))
 	for _, mapping := range agent.Mappings {
-		view := MappingView{
+		view := &MappingView{
 			ScannerSlug: mapping.ScannerSlug,
 			AgentPath:   mapping.AgentPath,
 		}
@@ -137,8 +110,8 @@ func mappingViews(config *appconfig.Config, agent *appconfig.AgentConfig) []Mapp
 }
 
 // presence reads every live agent's presence record.
-func (r *Registry) presence(ctx context.Context) (map[string]agentproto.AgentPresence, error) {
-	found := map[string]agentproto.AgentPresence{}
+func (r *Registry) presence(ctx context.Context) (map[string]*agentproto.AgentPresence, error) {
+	found := map[string]*agentproto.AgentPresence{}
 
 	// SCAN rather than KEYS: this runs on a poll behind a live UI, and KEYS
 	// blocks the whole server for the duration of the sweep.
@@ -156,8 +129,8 @@ func (r *Registry) presence(ctx context.Context) (map[string]agentproto.AgentPre
 			return nil, err
 		}
 
-		var presence agentproto.AgentPresence
-		if err := json.Unmarshal([]byte(raw), &presence); err != nil {
+		presence := &agentproto.AgentPresence{}
+		if err := agentproto.UnmarshalStored([]byte(raw), presence); err != nil {
 			r.logger.Warn("skipping unreadable agent presence record", "key", key, "error", err)
 			continue
 		}
@@ -204,7 +177,7 @@ func (r *Registry) PublishAll(ctx context.Context, config *appconfig.Config) err
 func (r *Registry) publish(ctx context.Context, config *appconfig.Config, slug string, updatedAt time.Time) error {
 	projection := BuildProjection(config, slug, updatedAt)
 
-	encoded, err := json.Marshal(projection)
+	encoded, err := agentproto.MarshalStored(projection)
 	if err != nil {
 		return err
 	}

@@ -8,13 +8,15 @@ import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { AcceptedResponseSchema } from "./common_pb";
 import { file_metarr_v1_common } from "./common_pb";
+import type { SidecarTypeDefinition } from "./directory_scanner_pb";
+import { file_metarr_v1_directory_scanner } from "./directory_scanner_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metarr/v1/agents.proto.
  */
 export const file_metarr_v1_agents: GenFile = /*@__PURE__*/
-  fileDesc("ChZtZXRhcnIvdjEvYWdlbnRzLnByb3RvEgltZXRhcnIudjEieAoLQWdlbnRDb25maWcSDAoEc2x1ZxgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSMgoIbWFwcGluZ3MYAyADKAsyIC5tZXRhcnIudjEuQWdlbnREaXJlY3RvcnlNYXBwaW5nEhEKCWxvZ19sZXZlbBgEIAEoCSJBChVBZ2VudERpcmVjdG9yeU1hcHBpbmcSFAoMc2Nhbm5lcl9zbHVnGAEgASgJEhIKCmFnZW50X3BhdGgYAiABKAkicAoMR1BVVGVsZW1ldHJ5EgwKBG5hbWUYASABKAkSGwoTdXRpbGl6YXRpb25fcGVyY2VudBgCIAEoARIZChFtZW1vcnlfdXNlZF9ieXRlcxgDIAEoBBIaChJtZW1vcnlfdG90YWxfYnl0ZXMYBCABKAQigwEKDkFnZW50VGVsZW1ldHJ5EhMKC2NwdV9wZXJjZW50GAEgASgBEhkKEW1lbW9yeV91c2VkX2J5dGVzGAIgASgEEhoKEm1lbW9yeV90b3RhbF9ieXRlcxgDIAEoBBIlCgRncHVzGAQgAygLMhcubWV0YXJyLnYxLkdQVVRlbGVtZXRyeSLHAQoNQWdlbnRJZGVudGl0eRIMCgRzbHVnGAEgASgJEhMKC2luc3RhbmNlX2lkGAIgASgJEhAKCGhvc3RuYW1lGAMgASgJEgoKAmlwGAQgASgJEgsKA3VpZBgFIAEoBRIQCgh1c2VybmFtZRgGIAEoCRIKCgJvcxgHIAEoCRIMCgRhcmNoGAggASgJEg8KB3ZlcnNpb24YCSABKAkSKwoHc3RhcnRlZBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiZAoQQWdlbnRNYXBwaW5nVmlldxIUCgxzY2FubmVyX3NsdWcYASABKAkSEQoJc2Nhbl90eXBlGAIgASgJEhMKC3NlcnZlcl9wYXRoGAMgASgJEhIKCmFnZW50X3BhdGgYBCABKAkioAIKCUFnZW50VmlldxIMCgRzbHVnGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIOCgZvbmxpbmUYAyABKAgSEgoKY29uZmlndXJlZBgEIAEoCBIqCghpZGVudGl0eRgFIAEoCzIYLm1ldGFyci52MS5BZ2VudElkZW50aXR5EiwKCXRlbGVtZXRyeRgGIAEoCzIZLm1ldGFyci52MS5BZ2VudFRlbGVtZXRyeRIvCgtyZXBvcnRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLQoIbWFwcGluZ3MYCCADKAsyGy5tZXRhcnIudjEuQWdlbnRNYXBwaW5nVmlldxIRCglsb2dfbGV2ZWwYCSABKAkiGQoXQWdlbnRTZXJ2aWNlTGlzdFJlcXVlc3QiQAoYQWdlbnRTZXJ2aWNlTGlzdFJlc3BvbnNlEiQKBmFnZW50cxgBIAMoCzIULm1ldGFyci52MS5BZ2VudFZpZXciQgoZQWdlbnRTZXJ2aWNlVXBzZXJ0UmVxdWVzdBIlCgVhZ2VudBgBIAEoCzIWLm1ldGFyci52MS5BZ2VudENvbmZpZyIpChlBZ2VudFNlcnZpY2VEZWxldGVSZXF1ZXN0EgwKBHNsdWcYASABKAkiQQoeQWdlbnRTZXJ2aWNlU2V0TG9nTGV2ZWxSZXF1ZXN0EgwKBHNsdWcYASABKAkSEQoJbG9nX2xldmVsGAIgASgJIiMKIUFnZW50U2VydmljZVN0cmVhbVByZXNlbmNlUmVxdWVzdCJKCiJBZ2VudFNlcnZpY2VTdHJlYW1QcmVzZW5jZVJlc3BvbnNlEiQKBmFnZW50cxgBIAMoCzIULm1ldGFyci52MS5BZ2VudFZpZXcywQMKDEFnZW50U2VydmljZRJPCgRMaXN0EiIubWV0YXJyLnYxLkFnZW50U2VydmljZUxpc3RSZXF1ZXN0GiMubWV0YXJyLnYxLkFnZW50U2VydmljZUxpc3RSZXNwb25zZRJvCg5TdHJlYW1QcmVzZW5jZRIsLm1ldGFyci52MS5BZ2VudFNlcnZpY2VTdHJlYW1QcmVzZW5jZVJlcXVlc3QaLS5tZXRhcnIudjEuQWdlbnRTZXJ2aWNlU3RyZWFtUHJlc2VuY2VSZXNwb25zZTABEksKBlVwc2VydBIkLm1ldGFyci52MS5BZ2VudFNlcnZpY2VVcHNlcnRSZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2USSwoGRGVsZXRlEiQubWV0YXJyLnYxLkFnZW50U2VydmljZURlbGV0ZVJlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZRJVCgtTZXRMb2dMZXZlbBIpLm1ldGFyci52MS5BZ2VudFNlcnZpY2VTZXRMb2dMZXZlbFJlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_metarr_v1_common]);
+  fileDesc("ChZtZXRhcnIvdjEvYWdlbnRzLnByb3RvEgltZXRhcnIudjEieAoLQWdlbnRDb25maWcSDAoEc2x1ZxgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSMgoIbWFwcGluZ3MYAyADKAsyIC5tZXRhcnIudjEuQWdlbnREaXJlY3RvcnlNYXBwaW5nEhEKCWxvZ19sZXZlbBgEIAEoCSJBChVBZ2VudERpcmVjdG9yeU1hcHBpbmcSFAoMc2Nhbm5lcl9zbHVnGAEgASgJEhIKCmFnZW50X3BhdGgYAiABKAkicAoMR1BVVGVsZW1ldHJ5EgwKBG5hbWUYASABKAkSGwoTdXRpbGl6YXRpb25fcGVyY2VudBgCIAEoARIZChFtZW1vcnlfdXNlZF9ieXRlcxgDIAEoBBIaChJtZW1vcnlfdG90YWxfYnl0ZXMYBCABKAQigwEKDkFnZW50VGVsZW1ldHJ5EhMKC2NwdV9wZXJjZW50GAEgASgBEhkKEW1lbW9yeV91c2VkX2J5dGVzGAIgASgEEhoKEm1lbW9yeV90b3RhbF9ieXRlcxgDIAEoBBIlCgRncHVzGAQgAygLMhcubWV0YXJyLnYxLkdQVVRlbGVtZXRyeSLHAQoNQWdlbnRJZGVudGl0eRIMCgRzbHVnGAEgASgJEhMKC2luc3RhbmNlX2lkGAIgASgJEhAKCGhvc3RuYW1lGAMgASgJEgoKAmlwGAQgASgJEgsKA3VpZBgFIAEoBRIQCgh1c2VybmFtZRgGIAEoCRIKCgJvcxgHIAEoCRIMCgRhcmNoGAggASgJEg8KB3ZlcnNpb24YCSABKAkSKwoHc3RhcnRlZBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAimgEKDUFnZW50UHJlc2VuY2USKgoIaWRlbnRpdHkYASABKAsyGC5tZXRhcnIudjEuQWdlbnRJZGVudGl0eRIsCgl0ZWxlbWV0cnkYAiABKAsyGS5tZXRhcnIudjEuQWdlbnRUZWxlbWV0cnkSLwoLcmVwb3J0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIk4KD01hcHBlZERpcmVjdG9yeRIUCgxzY2FubmVyX3NsdWcYASABKAkSEQoJc2Nhbl90eXBlGAIgASgJEhIKCmFnZW50X3BhdGgYAyABKAkigAIKFUFnZW50Q29uZmlnUHJvamVjdGlvbhIMCgRzbHVnGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIWCg5wYXJhbGxlbF9jb3VudBgDIAEoBRI3Cg1zaWRlY2FyX3R5cGVzGAQgAygLMiAubWV0YXJyLnYxLlNpZGVjYXJUeXBlRGVmaW5pdGlvbhIvCgtkaXJlY3RvcmllcxgFIAMoCzIaLm1ldGFyci52MS5NYXBwZWREaXJlY3RvcnkSEQoJbG9nX2xldmVsGAYgASgJEi4KCnVwZGF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wImQKEEFnZW50TWFwcGluZ1ZpZXcSFAoMc2Nhbm5lcl9zbHVnGAEgASgJEhEKCXNjYW5fdHlwZRgCIAEoCRITCgtzZXJ2ZXJfcGF0aBgDIAEoCRISCgphZ2VudF9wYXRoGAQgASgJIqACCglBZ2VudFZpZXcSDAoEc2x1ZxgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSDgoGb25saW5lGAMgASgIEhIKCmNvbmZpZ3VyZWQYBCABKAgSKgoIaWRlbnRpdHkYBSABKAsyGC5tZXRhcnIudjEuQWdlbnRJZGVudGl0eRIsCgl0ZWxlbWV0cnkYBiABKAsyGS5tZXRhcnIudjEuQWdlbnRUZWxlbWV0cnkSLwoLcmVwb3J0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi0KCG1hcHBpbmdzGAggAygLMhsubWV0YXJyLnYxLkFnZW50TWFwcGluZ1ZpZXcSEQoJbG9nX2xldmVsGAkgASgJIhkKF0FnZW50U2VydmljZUxpc3RSZXF1ZXN0IkAKGEFnZW50U2VydmljZUxpc3RSZXNwb25zZRIkCgZhZ2VudHMYASADKAsyFC5tZXRhcnIudjEuQWdlbnRWaWV3IkIKGUFnZW50U2VydmljZVVwc2VydFJlcXVlc3QSJQoFYWdlbnQYASABKAsyFi5tZXRhcnIudjEuQWdlbnRDb25maWciKQoZQWdlbnRTZXJ2aWNlRGVsZXRlUmVxdWVzdBIMCgRzbHVnGAEgASgJIkEKHkFnZW50U2VydmljZVNldExvZ0xldmVsUmVxdWVzdBIMCgRzbHVnGAEgASgJEhEKCWxvZ19sZXZlbBgCIAEoCSIjCiFBZ2VudFNlcnZpY2VTdHJlYW1QcmVzZW5jZVJlcXVlc3QiSgoiQWdlbnRTZXJ2aWNlU3RyZWFtUHJlc2VuY2VSZXNwb25zZRIkCgZhZ2VudHMYASADKAsyFC5tZXRhcnIudjEuQWdlbnRWaWV3MsEDCgxBZ2VudFNlcnZpY2USTwoETGlzdBIiLm1ldGFyci52MS5BZ2VudFNlcnZpY2VMaXN0UmVxdWVzdBojLm1ldGFyci52MS5BZ2VudFNlcnZpY2VMaXN0UmVzcG9uc2USbwoOU3RyZWFtUHJlc2VuY2USLC5tZXRhcnIudjEuQWdlbnRTZXJ2aWNlU3RyZWFtUHJlc2VuY2VSZXF1ZXN0Gi0ubWV0YXJyLnYxLkFnZW50U2VydmljZVN0cmVhbVByZXNlbmNlUmVzcG9uc2UwARJLCgZVcHNlcnQSJC5tZXRhcnIudjEuQWdlbnRTZXJ2aWNlVXBzZXJ0UmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlEksKBkRlbGV0ZRIkLm1ldGFyci52MS5BZ2VudFNlcnZpY2VEZWxldGVSZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2USVQoLU2V0TG9nTGV2ZWwSKS5tZXRhcnIudjEuQWdlbnRTZXJ2aWNlU2V0TG9nTGV2ZWxSZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_google_protobuf_timestamp, file_metarr_v1_common, file_metarr_v1_directory_scanner]);
 
 /**
  * AgentConfig is the operator's side of one agent's configuration — what an
@@ -78,7 +80,7 @@ export const AgentDirectoryMappingSchema: GenMessage<AgentDirectoryMapping> = /*
   messageDesc(file_metarr_v1_agents, 1);
 
 /**
- * GPUTelemetry mirrors internal/shared/agentproto.GPUTelemetry.
+ * GPUTelemetry is one GPU's live state.
  *
  * @generated from message metarr.v1.GPUTelemetry
  */
@@ -112,7 +114,7 @@ export const GPUTelemetrySchema: GenMessage<GPUTelemetry> = /*@__PURE__*/
   messageDesc(file_metarr_v1_agents, 2);
 
 /**
- * AgentTelemetry mirrors internal/shared/agentproto.AgentTelemetry.
+ * AgentTelemetry is the live host state, refreshed on every heartbeat.
  *
  * @generated from message metarr.v1.AgentTelemetry
  */
@@ -146,7 +148,8 @@ export const AgentTelemetrySchema: GenMessage<AgentTelemetry> = /*@__PURE__*/
   messageDesc(file_metarr_v1_agents, 3);
 
 /**
- * AgentIdentity mirrors internal/shared/agentproto.AgentIdentity.
+ * AgentIdentity is who and where an agent is. Collected once at startup, since
+ * none of it changes while the process lives.
  *
  * @generated from message metarr.v1.AgentIdentity
  */
@@ -157,6 +160,9 @@ export type AgentIdentity = Message<"metarr.v1.AgentIdentity"> & {
   slug: string;
 
   /**
+   * instance_id distinguishes one run of an agent from the next, so a restart
+   * is visible as a restart rather than continuous uptime.
+   *
    * @generated from field: string instance_id = 2;
    */
   instanceId: string;
@@ -172,6 +178,9 @@ export type AgentIdentity = Message<"metarr.v1.AgentIdentity"> & {
   ip: string;
 
   /**
+   * uid and username are the account the service runs as. uid is -1 on
+   * Windows, which has no uid at all.
+   *
    * @generated from field: int32 uid = 5;
    */
   uid: number;
@@ -210,8 +219,139 @@ export const AgentIdentitySchema: GenMessage<AgentIdentity> = /*@__PURE__*/
   messageDesc(file_metarr_v1_agents, 4);
 
 /**
- * AgentMappingView mirrors internal/server/agentregistry.MappingView — one
- * library mapping shown in both machines' terms.
+ * AgentPresence is the whole value stored at the agent's Redis presence key:
+ * identity plus a fresh telemetry sample, written by the agent every
+ * heartbeat with a TTL.
+ *
+ * @generated from message metarr.v1.AgentPresence
+ */
+export type AgentPresence = Message<"metarr.v1.AgentPresence"> & {
+  /**
+   * @generated from field: metarr.v1.AgentIdentity identity = 1;
+   */
+  identity?: AgentIdentity | undefined;
+
+  /**
+   * @generated from field: metarr.v1.AgentTelemetry telemetry = 2;
+   */
+  telemetry?: AgentTelemetry | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp reported_at = 3;
+   */
+  reportedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message metarr.v1.AgentPresence.
+ * Use `create(AgentPresenceSchema)` to create a new message.
+ */
+export const AgentPresenceSchema: GenMessage<AgentPresence> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_agents, 5);
+
+/**
+ * MappedDirectory is one scan directory as one agent sees it. The server's own
+ * path for the same library is deliberately absent — the agent has no use for
+ * it, and translating back is the server's job on the way in.
+ *
+ * @generated from message metarr.v1.MappedDirectory
+ */
+export type MappedDirectory = Message<"metarr.v1.MappedDirectory"> & {
+  /**
+   * @generated from field: string scanner_slug = 1;
+   */
+  scannerSlug: string;
+
+  /**
+   * @generated from field: string scan_type = 2;
+   */
+  scanType: string;
+
+  /**
+   * @generated from field: string agent_path = 3;
+   */
+  agentPath: string;
+};
+
+/**
+ * Describes the message metarr.v1.MappedDirectory.
+ * Use `create(MappedDirectorySchema)` to create a new message.
+ */
+export const MappedDirectorySchema: GenMessage<MappedDirectory> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_agents, 6);
+
+/**
+ * AgentConfigProjection is everything an agent is allowed to know — the
+ * redacted configuration the server publishes to the agent's Redis config
+ * key. It is the security boundary of the agent design: the application config
+ * it is derived from holds the admin password hash, every API key and every
+ * Sonarr credential, so this is built as an explicit allow-list rather than a
+ * copy-with-secrets-deleted. Adding a field here is a decision that every
+ * agent host may read it. See internal/server/agentregistry.BuildProjection.
+ *
+ * @generated from message metarr.v1.AgentConfigProjection
+ */
+export type AgentConfigProjection = Message<"metarr.v1.AgentConfigProjection"> & {
+  /**
+   * @generated from field: string slug = 1;
+   */
+  slug: string;
+
+  /**
+   * @generated from field: string display_name = 2;
+   */
+  displayName: string;
+
+  /**
+   * parallel_count is how many item directories the agent walks at once.
+   *
+   * @generated from field: int32 parallel_count = 3;
+   */
+  parallelCount: number;
+
+  /**
+   * sidecar_types is the classification table; the agent holds it because
+   * classification happens where the files are.
+   *
+   * @generated from field: repeated metarr.v1.SidecarTypeDefinition sidecar_types = 4;
+   */
+  sidecarTypes: SidecarTypeDefinition[];
+
+  /**
+   * directories are only those mapped to this agent — it is told nothing
+   * about libraries it cannot see.
+   *
+   * @generated from field: repeated metarr.v1.MappedDirectory directories = 5;
+   */
+  directories: MappedDirectory[];
+
+  /**
+   * log_level is this agent's own verbosity ("info" or "debug"). Not a
+   * secret-boundary concern; it lives here because it is per-agent state
+   * delivered the same way as everything else the agent needs.
+   *
+   * @generated from field: string log_level = 6;
+   */
+  logLevel: string;
+
+  /**
+   * updated_at lets the agent log which revision it is running, telling "the
+   * mapping is wrong" apart from "the agent never got the new mapping".
+   *
+   * @generated from field: google.protobuf.Timestamp updated_at = 7;
+   */
+  updatedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message metarr.v1.AgentConfigProjection.
+ * Use `create(AgentConfigProjectionSchema)` to create a new message.
+ */
+export const AgentConfigProjectionSchema: GenMessage<AgentConfigProjection> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_agents, 7);
+
+/**
+ * AgentMappingView is one library mapping shown in both machines' terms.
  *
  * @generated from message metarr.v1.AgentMappingView
  */
@@ -242,11 +382,11 @@ export type AgentMappingView = Message<"metarr.v1.AgentMappingView"> & {
  * Use `create(AgentMappingViewSchema)` to create a new message.
  */
 export const AgentMappingViewSchema: GenMessage<AgentMappingView> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_agents, 5);
+  messageDesc(file_metarr_v1_agents, 8);
 
 /**
- * AgentView mirrors internal/server/agentregistry.AgentView — what List
- * returns: configuration merged with live presence.
+ * AgentView is one agent as the UI sees it: what the operator configured,
+ * what the agent itself reports, and whether it is currently present.
  *
  * @generated from message metarr.v1.AgentView
  */
@@ -262,11 +402,17 @@ export type AgentView = Message<"metarr.v1.AgentView"> & {
   displayName: string;
 
   /**
+   * online is presence, not health — true while the agent is still refreshing
+   * its key.
+   *
    * @generated from field: bool online = 3;
    */
   online: boolean;
 
   /**
+   * configured separates an agent that has announced itself from one someone
+   * has actually set up.
+   *
    * @generated from field: bool configured = 4;
    */
   configured: boolean;
@@ -302,7 +448,7 @@ export type AgentView = Message<"metarr.v1.AgentView"> & {
  * Use `create(AgentViewSchema)` to create a new message.
  */
 export const AgentViewSchema: GenMessage<AgentView> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_agents, 6);
+  messageDesc(file_metarr_v1_agents, 9);
 
 /**
  * @generated from message metarr.v1.AgentServiceListRequest
@@ -315,7 +461,7 @@ export type AgentServiceListRequest = Message<"metarr.v1.AgentServiceListRequest
  * Use `create(AgentServiceListRequestSchema)` to create a new message.
  */
 export const AgentServiceListRequestSchema: GenMessage<AgentServiceListRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_agents, 7);
+  messageDesc(file_metarr_v1_agents, 10);
 
 /**
  * @generated from message metarr.v1.AgentServiceListResponse
@@ -332,7 +478,7 @@ export type AgentServiceListResponse = Message<"metarr.v1.AgentServiceListRespon
  * Use `create(AgentServiceListResponseSchema)` to create a new message.
  */
 export const AgentServiceListResponseSchema: GenMessage<AgentServiceListResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_agents, 8);
+  messageDesc(file_metarr_v1_agents, 11);
 
 /**
  * @generated from message metarr.v1.AgentServiceUpsertRequest
@@ -349,7 +495,7 @@ export type AgentServiceUpsertRequest = Message<"metarr.v1.AgentServiceUpsertReq
  * Use `create(AgentServiceUpsertRequestSchema)` to create a new message.
  */
 export const AgentServiceUpsertRequestSchema: GenMessage<AgentServiceUpsertRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_agents, 9);
+  messageDesc(file_metarr_v1_agents, 12);
 
 /**
  * @generated from message metarr.v1.AgentServiceDeleteRequest
@@ -366,7 +512,7 @@ export type AgentServiceDeleteRequest = Message<"metarr.v1.AgentServiceDeleteReq
  * Use `create(AgentServiceDeleteRequestSchema)` to create a new message.
  */
 export const AgentServiceDeleteRequestSchema: GenMessage<AgentServiceDeleteRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_agents, 10);
+  messageDesc(file_metarr_v1_agents, 13);
 
 /**
  * @generated from message metarr.v1.AgentServiceSetLogLevelRequest
@@ -388,7 +534,7 @@ export type AgentServiceSetLogLevelRequest = Message<"metarr.v1.AgentServiceSetL
  * Use `create(AgentServiceSetLogLevelRequestSchema)` to create a new message.
  */
 export const AgentServiceSetLogLevelRequestSchema: GenMessage<AgentServiceSetLogLevelRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_agents, 11);
+  messageDesc(file_metarr_v1_agents, 14);
 
 /**
  * @generated from message metarr.v1.AgentServiceStreamPresenceRequest
@@ -401,7 +547,7 @@ export type AgentServiceStreamPresenceRequest = Message<"metarr.v1.AgentServiceS
  * Use `create(AgentServiceStreamPresenceRequestSchema)` to create a new message.
  */
 export const AgentServiceStreamPresenceRequestSchema: GenMessage<AgentServiceStreamPresenceRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_agents, 12);
+  messageDesc(file_metarr_v1_agents, 15);
 
 /**
  * @generated from message metarr.v1.AgentServiceStreamPresenceResponse
@@ -418,7 +564,7 @@ export type AgentServiceStreamPresenceResponse = Message<"metarr.v1.AgentService
  * Use `create(AgentServiceStreamPresenceResponseSchema)` to create a new message.
  */
 export const AgentServiceStreamPresenceResponseSchema: GenMessage<AgentServiceStreamPresenceResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_agents, 13);
+  messageDesc(file_metarr_v1_agents, 16);
 
 /**
  * AgentService is the config half of agent management: List merges configured

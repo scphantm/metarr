@@ -1,11 +1,11 @@
 package agentregistry
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 	"time"
 
+	"Metarr/internal/shared/agentproto"
 	"Metarr/internal/shared/appconfig"
 )
 
@@ -76,7 +76,7 @@ func TestProjectionNeverCarriesASecret(t *testing.T) {
 	for _, slug := range []string{"nas-01", "unconfigured-agent"} {
 		projection := BuildProjection(config, slug, time.Now())
 
-		encoded, err := json.Marshal(projection)
+		encoded, err := agentproto.MarshalStored(projection)
 		if err != nil {
 			t.Fatalf("marshalling projection: %v", err)
 		}
@@ -111,7 +111,7 @@ func TestProjectionCarriesOnlyMappedLibraries(t *testing.T) {
 	if directory.AgentPath != "/mnt/tank/movies" {
 		t.Errorf("agent path = %q, want /mnt/tank/movies", directory.AgentPath)
 	}
-	if encoded, _ := json.Marshal(projection); strings.Contains(string(encoded), "/media/movies") {
+	if encoded, _ := agentproto.MarshalStored(projection); strings.Contains(string(encoded), "/media/movies") {
 		t.Error("projection carried the server's own path for the library")
 	}
 }

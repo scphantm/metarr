@@ -19,8 +19,6 @@ import {
 import { mapAsync, registerStream, Stream, useStream, useStreamStatus } from './streams'
 import type {
   AcceptedResponse,
-  AgentConfig,
-  AgentView,
   LogTailEntry,
   ReorderSidecarTypesRequest,
   UpsertWorkflowRequest,
@@ -36,7 +34,7 @@ import {
   ConfigServiceUpdateAdminRequestSchema,
   ConfigServiceUpsertApiKeyRequestSchema,
 } from '../gen/metarr/v1/config_pb'
-import type { AgentView as ConnectAgentView } from '../gen/metarr/v1/agents_pb'
+import { AgentConfigSchema } from '../gen/metarr/v1/agents_pb'
 import { ScanDirectorySchema, SidecarTypeDefinitionSchema } from '../gen/metarr/v1/directory_scanner_pb'
 import { LoggingConfigSchema } from '../gen/metarr/v1/logging_pb'
 import type { Workflow as ConnectWorkflow } from '../gen/metarr/v1/workflows_pb'
@@ -112,66 +110,16 @@ export function useSonarrInstances() {
 // something to fall back on if it never connects.
 // Agents stream over the socket for the same reason the Redis stats do: the
 // telemetry is live and the presence half changes on its own, with no user
-// action to hang a refetch off. The queryFn covers the first paint.
-// agents.presence still streams the REST-era, snake_case AgentView shape
-// (that migrates in the streaming step) — so List's response is mapped down
-// to the exact same shape here, letting every socket frame and every refetch
-// land in the same cache entry without a shape mismatch.
-function connectAgentViewToLegacyShape(agent: ConnectAgentView): AgentView {
-  return {
-    slug: agent.slug,
-    display_name: agent.displayName || undefined,
-    online: agent.online,
-    configured: agent.configured,
-    identity: agent.identity
-      ? {
-          slug: agent.identity.slug,
-          instance_id: agent.identity.instanceId,
-          hostname: agent.identity.hostname,
-          ip: agent.identity.ip,
-          uid: agent.identity.uid,
-          username: agent.identity.username,
-          os: agent.identity.os,
-          arch: agent.identity.arch,
-          version: agent.identity.version,
-          started: (agent.identity.started
-            ? timestampDate(agent.identity.started)
-            : new Date(0)
-          ).toISOString(),
-        }
-      : undefined,
-    telemetry: agent.telemetry
-      ? {
-          cpu_percent: agent.telemetry.cpuPercent,
-          memory_used_bytes: Number(agent.telemetry.memoryUsedBytes),
-          memory_total_bytes: Number(agent.telemetry.memoryTotalBytes),
-          gpus: agent.telemetry.gpus.map((gpu) => ({
-            name: gpu.name,
-            utilization_percent: gpu.utilizationPercent,
-            memory_used_bytes: Number(gpu.memoryUsedBytes),
-            memory_total_bytes: Number(gpu.memoryTotalBytes),
-          })),
-        }
-      : undefined,
-    reported_at: agent.reportedAt ? timestampDate(agent.reportedAt).toISOString() : undefined,
-    mappings: agent.mappings.map((mapping) => ({
-      scanner_slug: mapping.scannerSlug,
-      scan_type: mapping.scanType,
-      server_path: mapping.serverPath,
-      agent_path: mapping.agentPath,
-    })),
-    log_level: agent.logLevel,
-  }
-}
+// action to hang a refetch off. The queryFn covers the first paint. Both the
+// stream frame and the refetch yield the generated AgentView directly, so
+// they land in the same cache entry with no shape mismatch.
 
 // One singleton per server-streaming RPC, refcounted across every component
 // watching it — see streams.ts. Registered so resetStreams() (called on
 // sign-out from AuthContext.clearSession) can close all three at once.
 const agentsPresenceStream = registerStream(
   new Stream((signal) =>
-    mapAsync(agentClient.streamPresence({}, { signal }), (response) =>
-      response.agents.map(connectAgentViewToLegacyShape),
-    ),
+    mapAsync(agentClient.streamPresence({}, { signal }), (response) => response.agents),
   ),
 )
 
@@ -184,28 +132,15 @@ export function useAgents() {
 
   return useQuery({
     queryKey: queryKeys.agents,
-    queryFn: async () =>
-      (await agentClient.list({})).agents.map(connectAgentViewToLegacyShape),
+    queryFn: async () => (await agentClient.list({})).agents,
     staleTime: Infinity,
   })
 }
 
-// Agents are upserted by slug, like every other config collection here. The
-// call site keeps the same snake_case shape it always has (AgentConfig from
-// types.ts) — only the transport underneath changed.
+// Agents are upserted by slug, like every other config collection here.
 export function useUpsertAgent() {
-  return useConfigMutation<AgentConfig, ConnectAcceptedResponse>(
-    (body) =>
-      agentClient.upsert({
-        agent: {
-          slug: body.slug,
-          displayName: body.display_name ?? '',
-          mappings: body.mappings.map((mapping) => ({
-            scannerSlug: mapping.scanner_slug,
-            agentPath: mapping.agent_path,
-          })),
-        },
-      }),
+  return useConfigMutation<MessageInitShape<typeof AgentConfigSchema>, ConnectAcceptedResponse>(
+    (agent) => agentClient.upsert({ agent }),
     [queryKeys.config, queryKeys.agents],
   )
 }
