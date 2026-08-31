@@ -15,7 +15,7 @@ import { TagsInput } from './TagsInput'
 import { VersionHistory } from './VersionHistory'
 import { WorkflowCanvas } from './WorkflowCanvas'
 import { clearStashedDraft, readStashedDraft, stashDraft, type StashedDraft } from './draftStorage'
-import { SchemaVersion } from './catalogTypes'
+import { SchemaVersion } from './editorNodeData'
 import './WorkflowEditorPage.css'
 
 const emptyViewport: Viewport = { x: 0, y: 0, zoom: 1 }

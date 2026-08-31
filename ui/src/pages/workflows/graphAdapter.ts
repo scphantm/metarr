@@ -10,7 +10,7 @@ import {
   type WorkflowGraphEdge,
   type WorkflowGraphNode,
 } from '../../gen/metarr/v1/workflow_graph_pb'
-import { SchemaVersion, type CatalogNodeData } from './catalogTypes'
+import { SchemaVersion, type CatalogNodeData } from './editorNodeData'
 import { controlHandleId, dataHandleId, parseHandleId } from './connectionRules'
 
 /*

@@ -4,7 +4,7 @@ import { NodeShell } from '../shared/NodeShell'
 import { limitBranchPorts, useVisibleBranchCount } from '../shared/branchPorts'
 import { useCatalogEntry } from '../../useCatalogEntry'
 import { useNodeHandles } from '../shared/useNodeHandles'
-import type { CatalogNodeData } from '../../catalogTypes'
+import type { CatalogNodeData } from '../../editorNodeData'
 
 const TYPE_KEY = 'core/parallel'
 

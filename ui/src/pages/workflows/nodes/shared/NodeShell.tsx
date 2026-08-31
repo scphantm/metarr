@@ -6,7 +6,7 @@ import { iconClassForControlPort, iconClassForType } from '../../../../lib/typeI
 import { controlHandleId } from '../../connectionRules'
 import { useCatalogEntry } from '../../useCatalogEntry'
 import { useIconZoomVisibility } from '../../useIconZoomVisibility'
-import type { CatalogNodeData } from '../../catalogTypes'
+import type { CatalogNodeData } from '../../editorNodeData'
 import { EditIcon } from './EditIcon'
 import { NodeSettingsEditor } from './NodeSettingsEditor'
 import {
