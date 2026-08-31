@@ -16,10 +16,13 @@ type heartbeatReply struct {
 	Version       string `json:"version"`
 }
 
-// RunHeartbeatListener subscribes to the heartbeat request channel and, for
-// every request it sees, replies on that request's correlation-scoped reply
-// channel with the current time and the correlation ID — the reply the
-// heartbeat handler is blocked waiting on.
+// RunHeartbeatListener is the responder half of the heartbeat Redis
+// round-trip health check. It subscribes to the heartbeat request channel
+// and, for every request, replies on that request's correlation-scoped reply
+// channel with the current time and correlation ID — the reply the heartbeat
+// handler is blocked waiting on. Both ends run in metarr-server; a completed
+// round trip proves the server's Redis request/reply path, not that any
+// agent is reachable.
 func RunHeartbeatListener(ctx context.Context, bus *eventbus.PubSubBus, logger *slog.Logger) {
 	sub := bus.Subscribe(ctx, eventbus.HeartbeatRequestChannel)
 	defer func() { _ = sub.Close() }()

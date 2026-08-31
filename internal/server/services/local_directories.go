@@ -197,9 +197,9 @@ func (s *LocalDirectoryServer) GetDirectoryNFO(
 	reply, err := s.PubSub.Request(timeoutCtx, eventbus.AgentRequestChannel(agent),
 		eventbus.NewEvent(eventbus.SourceServer, eventbus.AgentNFOReadEventName, correlationID, payload))
 	if err != nil {
-		// A timeout here means the agent is not answering, which is a different
-		// problem from the file being unreadable and deserves its own status.
-		if errors.Is(err, context.DeadlineExceeded) {
+		// No answer means the agent is not there, which is a different problem
+		// from the file being unreadable and deserves its own status.
+		if errors.Is(err, eventbus.ErrNoResponder) {
 			return nil, connectError(http.StatusGatewayTimeout, errors.New("agent "+agent+" did not respond"))
 		}
 		s.Logger.Error("NFO request to agent failed", "agent", agent, "error", err)
