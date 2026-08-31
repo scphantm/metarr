@@ -269,7 +269,7 @@ func run() error {
 	// this bounds a low-volume stream by age so nothing outlives the window.
 	go eventbus.NewRetentionSweeper(redisClient, retentionPolicy, logger).Run(ctx, eventbus.DefaultSweepInterval)
 
-	statsCollector := redisstats.New(redisClient)
+	statsCollector := redisstats.New(redisClient, logger)
 
 	// The live tail on the Logging screen. The buffer holds records from
 	// every process publishing to eventbus.LogChannel — this server included
