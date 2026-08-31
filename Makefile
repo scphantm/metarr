@@ -19,7 +19,7 @@ help:
 	@echo "  make down             Stop all components and bring down docker compose"
 	@echo ""
 	@echo "BUILD:"
-	@echo "  make generate         Run go:generate directives (Swagger, Sonarr client)"
+	@echo "  make generate         Run go:generate directives (Swagger, Sonarr client, gRPC-Web proto stubs)"
 	@echo "  make build            Compile all Go binaries (no output)"
 	@echo "  make build-server     Build metarr-server to bin/metarr-server"
 	@echo "  make build-agent      Build metarr-agent to bin/metarr-agent"
@@ -66,9 +66,11 @@ help:
 	@echo ""
 
 # Generate code: run all go:generate directives in the repo.
-# Produces Swagger docs (api/docs.go, api/swagger.json, api/swagger.yaml) and
-# Sonarr OpenAPI client code (generated/sonarr/sonarr.go).
-# Run before build, test, or when generator directives change.
+# Produces:
+#   - Swagger docs:          api/docs.go, api/swagger.json, api/swagger.yaml
+#   - Sonarr OpenAPI client: generated/sonarr/sonarr.go
+#   - gRPC-Web stubs:        internal/genproto/ (Go) and ui/src/gen/ (TypeScript), from proto/
+# Run before build, test, or when generator directives or .proto files change.
 generate:
 	go generate ./...
 
