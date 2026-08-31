@@ -13,24 +13,29 @@ import (
 	"Metarr/internal/shared/eventbus"
 )
 
-// RunAgentScanResultListener consumes what the agents report from their scans
-// and persists it.
+// RegisterAgentScanResultListener registers the consumer for what the agents
+// report from their scans, and persists it.
 //
 // This is the half of the old in-process directory scan that stayed on the
 // server. The agent walks the filesystem and sends what it found; nothing here
 // touches a disk. Results arrive per item directory as the agent finds them, so
 // the library fills in progressively, and the sweep that removes what the scan
 // no longer found runs only when the agent reports it finished.
-func RunAgentScanResultListener(
-	ctx context.Context,
-	bus *eventbus.StreamBus,
+//
+// A result that cannot be persisted or cannot be placed — an undecodable
+// payload, Mongo unreachable, or an agent/mapping deleted out from under a
+// scan already in flight — is returned as an error, so the Router retries it
+// and then parks it on events.dead_letter. It is inspectable there rather
+// than silently dropped, which is what the old return-nil workarounds did.
+func RegisterAgentScanResultListener(
+	router *eventbus.Router,
 	repo *mongostore.LocalDirectoryRepo,
 	logger *slog.Logger,
 ) error {
-	logger.Info("agent scan result listener started", "stream", eventbus.AgentScanResultStream)
+	logger.Info("registering agent scan result listener", "stream", eventbus.AgentScanResultStream)
 
-	return bus.Consume(
-		ctx,
+	return router.Handle(
+		"agent_scan_results",
 		eventbus.AgentScanResultStream,
 		eventbus.AgentScanResultGroup,
 		eventbus.ConsumerName,
@@ -68,10 +73,7 @@ func storeScanResult(
 ) error {
 	var message agentproto.ScanResultMessage
 	if err := json.Unmarshal(event.Payload, &message); err != nil {
-		// A payload that will never decode must not be retried forever, so it
-		// is logged and acknowledged rather than returned.
-		logger.Error("could not decode agent scan result", "error", err)
-		return nil
+		return fmt.Errorf("decode agent scan result: %w", err)
 	}
 
 	log := logger.With(
@@ -82,8 +84,11 @@ func storeScanResult(
 
 	translator, err := translatorFor(message.AgentSlug, message.ScannerSlug)
 	if err != nil {
+		// The agent or its mapping was removed while this scan was in flight.
+		// There is no defensible place for the record, so it is parked rather
+		// than guessed at or dropped.
 		log.Error("cannot store scan result", "error", err)
-		return nil
+		return err
 	}
 
 	// Everything the agent sent is in its own filesystem's terms. It has to be
@@ -91,18 +96,16 @@ func storeScanResult(
 	// only mean something on another machine.
 	if err := translator.Result(message.Result); err != nil {
 		log.Error("rejecting scan result with untranslatable paths", "error", err)
-		return nil
+		return err
 	}
 
 	serverRoot, err := translator.Path(message.ScanRootPath)
 	if err != nil {
 		log.Error("rejecting scan result with an unexpected scan root",
 			"scan_root", message.ScanRootPath, "error", err)
-		return nil
+		return err
 	}
 
-	// A storage failure is returned, so the message is redelivered: unlike a
-	// malformed payload, this is the kind of error that succeeds on a retry.
 	if err := repo.UpsertScanResult(ctx, serverRoot, message.Result); err != nil {
 		log.Error("failed to store scan result", "error", err)
 		return err
@@ -119,8 +122,7 @@ func completeScan(
 ) error {
 	var message agentproto.ScanCompleteMessage
 	if err := json.Unmarshal(event.Payload, &message); err != nil {
-		logger.Error("could not decode agent scan completion", "error", err)
-		return nil
+		return fmt.Errorf("decode agent scan completion: %w", err)
 	}
 
 	log := logger.With(
@@ -132,13 +134,13 @@ func completeScan(
 	translator, err := translatorFor(message.AgentSlug, message.ScannerSlug)
 	if err != nil {
 		log.Error("cannot complete scan", "error", err)
-		return nil
+		return err
 	}
 
 	serverRoot, err := translator.Path(message.ScanRootPath)
 	if err != nil {
 		log.Error("cannot complete scan", "scan_root", message.ScanRootPath, "error", err)
-		return nil
+		return err
 	}
 
 	// Only now, and only for a scan that ran to the end. Sweeping on a scan

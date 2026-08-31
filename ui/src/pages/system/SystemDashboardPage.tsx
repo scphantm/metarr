@@ -4,6 +4,8 @@ import type { ColumnsType } from 'antd/es/table'
 import { useRedisStats, useRedisStatsStreamStatus } from '../../api/queries'
 import type {
   RedisChannelStat,
+  RedisDeadLetterStat,
+  RedisGroupStat,
   RedisStreamStat,
   RedisServerInfo,
 } from '../../gen/metarr/v1/stats_pb'
@@ -59,9 +61,16 @@ export function SystemDashboardPage() {
 
         <Card
           title="Event streams"
-          description="Durable Redis Streams. Events sit on a stream until a consumer group acknowledges them, so depth and pending are real counts."
+          description="Durable Redis Streams. Events sit on a stream until a consumer group acknowledges them, so depth and pending are real counts. Expand a row for per-consumer-group lag."
         >
           <StreamsTable streams={stats.data.streams} />
+        </Card>
+
+        <Card
+          title="Dead-letter stream"
+          description="events.dead_letter holds messages that a handler could not process past the retry cap. Nothing consumes it — a non-zero length is parked work waiting to be inspected and replayed."
+        >
+          <DeadLetterTiles deadLetter={stats.data.deadLetter} />
         </Card>
 
         <Card
@@ -113,6 +122,82 @@ function ServerTiles({ server }: { server: RedisServerInfo }) {
         </Col>
       ))}
     </AntRow>
+  )
+}
+
+// The dead-letter stream has no consumer group, so it reports a depth and a
+// freshness rather than group state. Zero is the healthy reading; a rising
+// count or a recent newest entry means handlers are failing.
+function DeadLetterTiles({ deadLetter }: { deadLetter?: RedisDeadLetterStat }) {
+  if (!deadLetter) {
+    return <Typography.Text type="secondary">No dead-letter data in this snapshot.</Typography.Text>
+  }
+  if (deadLetter.error) {
+    return <Alert type="warning" showIcon message="Could not read events.dead_letter" description={deadLetter.error} />
+  }
+
+  const length = Number(deadLetter.length)
+  const newest = deadLetter.newestEntry
+    ? timestampDate(deadLetter.newestEntry).toLocaleString()
+    : '—'
+
+  return (
+    <AntRow gutter={[12, 12]}>
+      <Col xs={12} sm={8} lg={4}>
+        <div className="system-dashboard-tile">
+          <div
+            className="system-dashboard-tile-value"
+            style={length > 0 ? { color: 'var(--color-orange)' } : undefined}
+          >
+            {length.toLocaleString()}
+          </div>
+          <div className="system-dashboard-tile-label">Parked messages</div>
+        </div>
+      </Col>
+      <Col xs={12} sm={8} lg={6}>
+        <div className="system-dashboard-tile">
+          <div className="system-dashboard-tile-value">{newest}</div>
+          <div className="system-dashboard-tile-label">Newest entry</div>
+        </div>
+      </Col>
+    </AntRow>
+  )
+}
+
+// One consumer group's position on a stream, shown when a stream row is
+// expanded. Lag is the headline: it is how far this group is behind the tail.
+function GroupsTable({ groups }: { groups: RedisGroupStat[] }) {
+  const columns: ColumnsType<RedisGroupStat> = [
+    {
+      title: 'Consumer group',
+      dataIndex: 'name',
+      render: (_, group) => <span className="system-dashboard-mono">{group.name}</span>,
+    },
+    { title: 'Consumers', align: 'right', render: (_, group) => Number(group.consumers).toLocaleString() },
+    { title: 'Pending', align: 'right', render: (_, group) => Number(group.pending).toLocaleString() },
+    {
+      title: 'Lag',
+      align: 'right',
+      render: (_, group) => {
+        const lag = Number(group.lag)
+        return lag > 0 ? (
+          <span style={{ color: 'var(--color-yellow)' }}>{lag.toLocaleString()}</span>
+        ) : (
+          <Typography.Text type="secondary">0</Typography.Text>
+        )
+      },
+    },
+  ]
+
+  return (
+    <Table
+      size="small"
+      rowKey="name"
+      pagination={false}
+      columns={columns}
+      dataSource={groups}
+      locale={{ emptyText: 'No consumer groups on this stream yet.' }}
+    />
   )
 }
 
@@ -176,6 +261,10 @@ function StreamsTable({ streams }: { streams: RedisStreamStat[] }) {
       pagination={false}
       columns={columns}
       dataSource={streams}
+      expandable={{
+        expandedRowRender: (stream) => <GroupsTable groups={stream.groups} />,
+        rowExpandable: (stream) => stream.exists && stream.groups.length > 0,
+      }}
     />
   )
 }

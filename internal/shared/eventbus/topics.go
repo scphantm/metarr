@@ -54,6 +54,14 @@ const (
 	// AgentScanResultGroup is the consumer group the server reads
 	// AgentScanResultStream with.
 	AgentScanResultGroup = "agent_scan_results_group"
+
+	// DeadLetterStream is where the Router parks a message that errored past
+	// the retry cap, with the failure reason recorded in its metadata. Nothing
+	// consumes it: it is size-capped (docs/adr/0006) and read by hand with
+	// redis-cli to diagnose a stuck handler, and a parked entry is replayed by
+	// re-adding it to its origin stream once the cause is fixed. It has no
+	// consumer group.
+	DeadLetterStream = "events.dead_letter"
 )
 
 // Event-name discriminators carried in the Event envelope's Name field.

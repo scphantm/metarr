@@ -22,6 +22,27 @@ message RedisSnapshot {
   RedisServerInfo server = 2;
   repeated RedisStreamStat streams = 3;
   repeated RedisChannelStat pubsub = 4;
+  // dead_letter is the events.dead_letter parking stream: messages that
+  // errored past the Router's retry cap. A length that climbs, or a recent
+  // newest_entry, means handlers are failing and their messages are being
+  // parked for inspection rather than lost.
+  RedisDeadLetterStat dead_letter = 5;
+}
+
+// RedisDeadLetterStat is the depth and freshness of the events.dead_letter
+// stream. It has no consumer group — nothing reads it — so it reports a
+// length and the time of its newest entry rather than group state.
+message RedisDeadLetterStat {
+  int64 length = 1;
+  // exists is false before the first message is ever parked, since the
+  // stream is created lazily on first publish.
+  bool exists = 2;
+  // newest_entry is the publish time of the most recently parked message,
+  // recovered from its stream ID. Unset when the stream is empty.
+  google.protobuf.Timestamp newest_entry = 3;
+  // error records a failure reading the stream; it should not cost the
+  // caller the rest of the snapshot.
+  string error = 4;
 }
 
 // RedisServerInfo holds the instance-wide counters, read from INFO and DBSIZE.

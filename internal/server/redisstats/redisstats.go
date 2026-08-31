@@ -14,6 +14,7 @@ package redisstats
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,12 +40,13 @@ func New(client redis.UniversalClient) *Collector {
 // model that crosses a language boundary, and this one crosses the wire to
 // the dashboard. See docs/adr/0005.
 type (
-	Snapshot     = metarrv1.RedisSnapshot
-	ServerInfo   = metarrv1.RedisServerInfo
-	StreamStat   = metarrv1.RedisStreamStat
-	GroupStat    = metarrv1.RedisGroupStat
-	ConsumerStat = metarrv1.RedisConsumerStat
-	ChannelStat  = metarrv1.RedisChannelStat
+	Snapshot       = metarrv1.RedisSnapshot
+	ServerInfo     = metarrv1.RedisServerInfo
+	StreamStat     = metarrv1.RedisStreamStat
+	GroupStat      = metarrv1.RedisGroupStat
+	ConsumerStat   = metarrv1.RedisConsumerStat
+	ChannelStat    = metarrv1.RedisChannelStat
+	DeadLetterStat = metarrv1.RedisDeadLetterStat
 )
 
 // Collect gathers a snapshot. Errors reading an individual stream are
@@ -66,7 +68,49 @@ func (c *Collector) Collect(ctx context.Context) (*Snapshot, error) {
 		Server:      server,
 		Streams:     c.collectStreams(ctx),
 		Pubsub:      pubsub,
+		DeadLetter:  c.collectDeadLetter(ctx),
 	}, nil
+}
+
+// collectDeadLetter reports the depth and freshness of events.dead_letter.
+// Nothing consumes it, so there is no group state to read — just how many
+// messages have been parked and when the newest one arrived.
+func (c *Collector) collectDeadLetter(ctx context.Context) *DeadLetterStat {
+	stat := &DeadLetterStat{}
+
+	length, err := c.client.XLen(ctx, eventbus.DeadLetterStream).Result()
+	if err != nil {
+		stat.Error = err.Error()
+		return stat
+	}
+	stat.Length = length
+	if length == 0 {
+		return stat
+	}
+	stat.Exists = true
+
+	newest, err := c.client.XRevRangeN(ctx, eventbus.DeadLetterStream, "+", "-", 1).Result()
+	if err != nil {
+		stat.Error = err.Error()
+		return stat
+	}
+	if len(newest) == 1 {
+		if when, ok := timeFromStreamID(newest[0].ID); ok {
+			stat.NewestEntry = timestamppb.New(when)
+		}
+	}
+	return stat
+}
+
+// timeFromStreamID recovers the publish time from a Redis Stream entry ID,
+// which is "<unix-millis>-<sequence>". The sequence is ignored.
+func timeFromStreamID(id string) (time.Time, bool) {
+	millisText, _, _ := strings.Cut(id, "-")
+	millis, err := strconv.ParseInt(millisText, 10, 64)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return time.UnixMilli(millis).UTC(), true
 }
 
 func (c *Collector) collectServer(ctx context.Context) (*ServerInfo, error) {
