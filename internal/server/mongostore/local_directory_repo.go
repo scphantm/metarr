@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"Metarr/internal/shared/scanmodel"
 )
@@ -156,9 +159,12 @@ func (r *LocalDirectoryRepo) UpsertScanResult(
 	}
 
 	mediaFileWrites := make([]mongo.WriteModel, 0, len(result.MediaFiles))
-	for i := range result.MediaFiles {
-		mediaFile := result.MediaFiles[i]
-		mediaFile.DirectoryID = directoryID
+	for _, mediaFile := range result.MediaFiles {
+		// An unlinked media file (no directory record written yet) leaves
+		// directory_id absent rather than storing a zero-value id string.
+		if directoryID != bson.NilObjectID {
+			mediaFile.DirectoryId = directoryID.Hex()
+		}
 		mediaFile.ScanRootPath = scanRootPath
 
 		replacement, err := replacementDocumentFrom(mediaFile)
@@ -212,7 +218,7 @@ func (r *LocalDirectoryRepo) directoryIDForPath(ctx context.Context, directoryPa
 // _id in the same round trip whether the document was just inserted or already
 // existed, which the media file records need before they can be written.
 func (r *LocalDirectoryRepo) upsertDirectory(ctx context.Context, directory *scanmodel.TVSeries) (bson.ObjectID, error) {
-	replacement, err := replacementDocumentFrom(*directory)
+	replacement, err := replacementDocumentFrom(directory)
 	if err != nil {
 		return bson.NilObjectID, fmt.Errorf("mongostore: encoding directory %s: %w", directory.Path, err)
 	}
@@ -230,7 +236,7 @@ func (r *LocalDirectoryRepo) upsertDirectory(ctx context.Context, directory *sca
 		return bson.NilObjectID, fmt.Errorf("mongostore: upserting directory %s: %w", directory.Path, err)
 	}
 
-	directory.ID = stored.ID
+	directory.Id = stored.ID.Hex()
 	return stored.ID, nil
 }
 
@@ -248,9 +254,12 @@ func (r *LocalDirectoryRepo) upsertDirectory(ctx context.Context, directory *sca
 // through must never reach it — sweeping on a partial scan would delete the
 // half the agent never got to.
 func (r *LocalDirectoryRepo) DeleteStaleRecords(ctx context.Context, scanRootPath string, scanStartedAt time.Time) error {
+	// scanned_at is stored as the protojson timestamp string (UTC RFC 3339),
+	// so the cutoff is formatted the same way and compared lexicographically —
+	// which is chronological order for these "…Z" strings.
 	filter := bson.M{
 		"scan_root_path": scanRootPath,
-		"scanned_at":     bson.M{"$lt": scanStartedAt},
+		"scanned_at":     bson.M{"$lt": scanmodel.FormatStoredTime(scanStartedAt)},
 	}
 	if _, err := r.collection.DeleteMany(ctx, filter); err != nil {
 		return fmt.Errorf("mongostore: removing stale records under %s: %w", scanRootPath, err)
@@ -258,33 +267,163 @@ func (r *LocalDirectoryRepo) DeleteStaleRecords(ctx context.Context, scanRootPat
 	return nil
 }
 
-// replacementDocumentFrom encodes record as a whole-document replacement,
-// dropping _id.
+// replacementDocumentFrom encodes record as a whole-document replacement.
+//
+// The record is a generated message, so it is serialized through
+// scanmodel.MarshalStored (protojson with proto field names) and the resulting
+// JSON expanded into a BSON subdocument — not stored as an opaque blob — so the
+// stored field names stay snake_case and the indexes keep matching. See
+// docs/adr/0005.
 //
 // A replacement rather than a $set update is essential here, not a style
-// preference. Most fields on these records are tagged omitempty, so a $set built
-// from a rescan simply would not mention a field that had become empty — and
-// MongoDB would leave the previous value in place. Warnings that had been fixed,
-// metadata from a deleted NFO, subtitles that are no longer on disk: all of it
-// would survive forever, which is the opposite of the rebuildable-cache
-// behaviour this collection is meant to have. Replacing the document makes
-// absent fields actually absent.
+// preference. Unpopulated fields are not emitted, so a $set built from a rescan
+// simply would not mention a field that had become empty — and MongoDB would
+// leave the previous value in place. Warnings that had been fixed, metadata from
+// a deleted NFO, subtitles that are no longer on disk: all of it would survive
+// forever, which is the opposite of the rebuildable-cache behaviour this
+// collection is meant to have. Replacing the document makes absent fields
+// actually absent.
 //
-// Dropping _id is what preserves identity: with the field omitted, MongoDB keeps
-// the existing _id when replacing and mints a new one when inserting.
-func replacementDocumentFrom(record any) (bson.M, error) {
-	raw, err := bson.Marshal(record)
+// A record's own identity is the collection's _id, a storage concern the
+// message does not carry. The message's id field (empty on a fresh scan, the
+// _id hex once a record has been read back) is dropped here too, so the stored
+// document names itself only through _id: with _id absent from the replacement
+// MongoDB keeps the existing one when replacing and mints a new one when
+// inserting, which is what keeps ids stable across rescans. directory_id is a
+// link between records rather than identity, so it stays.
+func replacementDocumentFrom(record proto.Message) (bson.M, error) {
+	storedJSON, err := scanmodel.MarshalStored(record)
 	if err != nil {
 		return nil, err
 	}
 
 	var fields bson.M
-	if err := bson.Unmarshal(raw, &fields); err != nil {
+	if err := bson.UnmarshalExtJSON(storedJSON, false, &fields); err != nil {
 		return nil, err
 	}
 	delete(fields, "_id")
+	delete(fields, "id")
+
+	// protojson renders 64-bit integers as quoted strings (size_bytes, and every
+	// stat.* count), which would land in Mongo as strings — unsortable and
+	// unqueryable as numbers. Put them back to int64, guided by the message
+	// descriptor so the set is not a hand-maintained list.
+	coerceStoredNumbers(fields, record.ProtoReflect().Descriptor())
+
+	// The stale sweep range-queries scanned_at as a string, which is only
+	// correct if every stored value has the same fixed-width shape — protojson's
+	// own timestamp form does not. Normalize it on the way in; the nested
+	// stat/*_at timestamps are never range-queried and keep protojson's form.
+	if scannedAt, ok := fields["scanned_at"].(string); ok && scannedAt != "" {
+		fields["scanned_at"] = scanmodel.NormalizeStoredTime(scannedAt)
+	}
 
 	return fields, nil
+}
+
+// coerceStoredNumbers walks node against md and converts any value protojson
+// wrote as a quoted 64-bit integer back to int64, recursing into nested and
+// repeated messages. bson.UnmarshalExtJSON nests documents as bson.D and the
+// top level as bson.M, so both are handled. A 64-bit message field serialized
+// as a scalar (google.protobuf.Timestamp is a string) is simply not a document
+// and falls through untouched.
+func coerceStoredNumbers(node any, md protoreflect.MessageDescriptor) {
+	fields := md.Fields()
+
+	coerce := func(key string, value any, set func(any)) {
+		fd := fields.ByName(protoreflect.Name(key))
+		if fd == nil {
+			return
+		}
+		if fd.IsList() {
+			if list, ok := value.(bson.A); ok {
+				for i := range list {
+					list[i] = coerceStoredValue(list[i], fd)
+				}
+			}
+			return
+		}
+		set(coerceStoredValue(value, fd))
+	}
+
+	switch doc := node.(type) {
+	case bson.M:
+		for key, value := range doc {
+			coerce(key, value, func(v any) { doc[key] = v })
+		}
+	case bson.D:
+		for i := range doc {
+			coerce(doc[i].Key, doc[i].Value, func(v any) { doc[i].Value = v })
+		}
+	}
+}
+
+func coerceStoredValue(value any, fd protoreflect.FieldDescriptor) any {
+	switch fd.Kind() {
+	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		if s, ok := value.(string); ok {
+			if n, err := strconv.ParseInt(s, 10, 64); err == nil {
+				return n
+			}
+		}
+	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		if s, ok := value.(string); ok {
+			// BSON has no uint64; store as int64, the same as a uint64 struct
+			// field would encode. These fields (inode, link_count, device_id)
+			// never approach int64's ceiling in practice.
+			if n, err := strconv.ParseUint(s, 10, 64); err == nil {
+				return int64(n)
+			}
+		}
+	case protoreflect.MessageKind, protoreflect.GroupKind:
+		coerceStoredNumbers(value, fd.Message())
+	}
+	return value
+}
+
+// decodeStoredRecord expands one stored document back into record and stamps the
+// document's _id onto the message's own id field — the _id is a storage concern
+// the message does not otherwise carry.
+func decodeStoredRecord(row bson.M, record proto.Message) error {
+	id, _ := row["_id"].(bson.ObjectID)
+	delete(row, "_id")
+
+	storedJSON, err := bson.MarshalExtJSON(row, false, false)
+	if err != nil {
+		return err
+	}
+	if err := scanmodel.UnmarshalStored(storedJSON, record); err != nil {
+		return err
+	}
+
+	if id != bson.NilObjectID {
+		if fd := record.ProtoReflect().Descriptor().Fields().ByName("id"); fd != nil && fd.Kind() == protoreflect.StringKind {
+			record.ProtoReflect().Set(fd, protoreflect.ValueOfString(id.Hex()))
+		}
+	}
+	return nil
+}
+
+// decodeStoredAll drains cursor into a slice of freshly decoded records. what
+// names the record kind for the error message.
+func decodeStoredAll[T any, PT interface {
+	*T
+	proto.Message
+}](ctx context.Context, cursor *mongo.Cursor, what string) ([]PT, error) {
+	var rows []bson.M
+	if err := cursor.All(ctx, &rows); err != nil {
+		return nil, fmt.Errorf("mongostore: decoding %s: %w", what, err)
+	}
+
+	records := make([]PT, 0, len(rows))
+	for _, row := range rows {
+		record := PT(new(T))
+		if err := decodeStoredRecord(row, record); err != nil {
+			return nil, fmt.Errorf("mongostore: decoding %s: %w", what, err)
+		}
+		records = append(records, record)
+	}
+	return records, nil
 }
 
 // ListFilter narrows a directory listing.
@@ -295,8 +434,8 @@ type ListFilter struct {
 	Skip         int64
 }
 
-// ListDirectories returns directory records matching filter, newest scan first.
-func (r *LocalDirectoryRepo) ListDirectories(ctx context.Context, filter ListFilter) ([]scanmodel.TVSeries, error) {
+// ListDirectories returns directory records matching filter, ordered by path.
+func (r *LocalDirectoryRepo) ListDirectories(ctx context.Context, filter ListFilter) ([]*scanmodel.TVSeries, error) {
 	query := bson.M{"record_type": scanmodel.RecordTypeTVSeries}
 	if filter.ScanRootPath != "" {
 		query["scan_root_path"] = filter.ScanRootPath
@@ -317,34 +456,34 @@ func (r *LocalDirectoryRepo) ListDirectories(ctx context.Context, filter ListFil
 	if err != nil {
 		return nil, fmt.Errorf("mongostore: listing directories: %w", err)
 	}
-
-	directories := []scanmodel.TVSeries{}
-	if err := cursor.All(ctx, &directories); err != nil {
-		return nil, fmt.Errorf("mongostore: decoding directories: %w", err)
-	}
-	return directories, nil
+	return decodeStoredAll[scanmodel.TVSeries](ctx, cursor, "directories")
 }
 
 // GetDirectory fetches one directory record by id.
 func (r *LocalDirectoryRepo) GetDirectory(ctx context.Context, id bson.ObjectID) (*scanmodel.TVSeries, error) {
 	query := bson.M{"_id": id, "record_type": scanmodel.RecordTypeTVSeries}
 
-	var directory scanmodel.TVSeries
-	err := r.collection.FindOne(ctx, query).Decode(&directory)
+	var row bson.M
+	err := r.collection.FindOne(ctx, query).Decode(&row)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("mongostore: fetching directory %s: %w", id.Hex(), err)
 	}
+
+	var directory scanmodel.TVSeries
+	if err := decodeStoredRecord(row, &directory); err != nil {
+		return nil, fmt.Errorf("mongostore: decoding directory %s: %w", id.Hex(), err)
+	}
 	return &directory, nil
 }
 
 // ListMediaFiles returns the media file records belonging to one directory.
-func (r *LocalDirectoryRepo) ListMediaFiles(ctx context.Context, directoryID bson.ObjectID) ([]scanmodel.MediaFile, error) {
+func (r *LocalDirectoryRepo) ListMediaFiles(ctx context.Context, directoryID bson.ObjectID) ([]*scanmodel.MediaFile, error) {
 	query := bson.M{
 		"record_type":  scanmodel.RecordTypeMediaFile,
-		"directory_id": directoryID,
+		"directory_id": directoryID.Hex(),
 	}
 	findOptions := options.Find().SetSort(bson.D{{Key: "relative_path", Value: 1}})
 
@@ -352,32 +491,32 @@ func (r *LocalDirectoryRepo) ListMediaFiles(ctx context.Context, directoryID bso
 	if err != nil {
 		return nil, fmt.Errorf("mongostore: listing media files: %w", err)
 	}
-
-	mediaFiles := []scanmodel.MediaFile{}
-	if err := cursor.All(ctx, &mediaFiles); err != nil {
-		return nil, fmt.Errorf("mongostore: decoding media files: %w", err)
-	}
-	return mediaFiles, nil
+	return decodeStoredAll[scanmodel.MediaFile](ctx, cursor, "media files")
 }
 
 // GetMediaFile fetches one media file record by id.
 func (r *LocalDirectoryRepo) GetMediaFile(ctx context.Context, id bson.ObjectID) (*scanmodel.MediaFile, error) {
 	query := bson.M{"_id": id, "record_type": scanmodel.RecordTypeMediaFile}
 
-	var mediaFile scanmodel.MediaFile
-	err := r.collection.FindOne(ctx, query).Decode(&mediaFile)
+	var row bson.M
+	err := r.collection.FindOne(ctx, query).Decode(&row)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("mongostore: fetching media file %s: %w", id.Hex(), err)
 	}
+
+	var mediaFile scanmodel.MediaFile
+	if err := decodeStoredRecord(row, &mediaFile); err != nil {
+		return nil, fmt.Errorf("mongostore: decoding media file %s: %w", id.Hex(), err)
+	}
 	return &mediaFile, nil
 }
 
 // FindByExternalLink returns the directories carrying a given provider id, e.g.
 // key "tvdb" and value "81189".
-func (r *LocalDirectoryRepo) FindByExternalLink(ctx context.Context, key, value string) ([]scanmodel.TVSeries, error) {
+func (r *LocalDirectoryRepo) FindByExternalLink(ctx context.Context, key, value string) ([]*scanmodel.TVSeries, error) {
 	query := bson.M{
 		"record_type": scanmodel.RecordTypeTVSeries,
 		"metadata.external_links": bson.M{
@@ -389,12 +528,7 @@ func (r *LocalDirectoryRepo) FindByExternalLink(ctx context.Context, key, value 
 	if err != nil {
 		return nil, fmt.Errorf("mongostore: finding directories by external link: %w", err)
 	}
-
-	directories := []scanmodel.TVSeries{}
-	if err := cursor.All(ctx, &directories); err != nil {
-		return nil, fmt.Errorf("mongostore: decoding directories: %w", err)
-	}
-	return directories, nil
+	return decodeStoredAll[scanmodel.TVSeries](ctx, cursor, "directories")
 }
 
 // FindByEpisodeID returns the media files carrying a given episode-level
@@ -404,7 +538,7 @@ func (r *LocalDirectoryRepo) FindByExternalLink(ctx context.Context, key, value 
 // record type is what separates them. An episode's ids come from its own NFO and
 // describe the episode, so restricting to media file records is what makes this
 // an episode lookup rather than a series one.
-func (r *LocalDirectoryRepo) FindByEpisodeID(ctx context.Context, key, value string) ([]scanmodel.MediaFile, error) {
+func (r *LocalDirectoryRepo) FindByEpisodeID(ctx context.Context, key, value string) ([]*scanmodel.MediaFile, error) {
 	query := bson.M{
 		"record_type": scanmodel.RecordTypeMediaFile,
 		"metadata.external_links": bson.M{
@@ -416,10 +550,5 @@ func (r *LocalDirectoryRepo) FindByEpisodeID(ctx context.Context, key, value str
 	if err != nil {
 		return nil, fmt.Errorf("mongostore: finding media files by episode id: %w", err)
 	}
-
-	mediaFiles := []scanmodel.MediaFile{}
-	if err := cursor.All(ctx, &mediaFiles); err != nil {
-		return nil, fmt.Errorf("mongostore: decoding media files: %w", err)
-	}
-	return mediaFiles, nil
+	return decodeStoredAll[scanmodel.MediaFile](ctx, cursor, "media files")
 }

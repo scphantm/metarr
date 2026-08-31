@@ -4,13 +4,17 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Metadata } from "./metadata_pb";
+import { file_metarr_v1_metadata } from "./metadata_pb";
+import type { MediaFile, TVSeries } from "./scan_pb";
+import { file_metarr_v1_scan } from "./scan_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metarr/v1/local_directories.proto.
  */
 export const file_metarr_v1_local_directories: GenFile = /*@__PURE__*/
-  fileDesc("CiFtZXRhcnIvdjEvbG9jYWxfZGlyZWN0b3JpZXMucHJvdG8SCW1ldGFyci52MSJrCitMb2NhbERpcmVjdG9yeVNlcnZpY2VMaXN0RGlyZWN0b3JpZXNSZXF1ZXN0EgwKBHR5cGUYASABKAkSEQoJc2Nhbl9yb290GAIgASgJEg0KBWxpbWl0GAMgASgFEgwKBHNraXAYBCABKAUiSAosTG9jYWxEaXJlY3RvcnlTZXJ2aWNlTGlzdERpcmVjdG9yaWVzUmVzcG9uc2USGAoQZGlyZWN0b3JpZXNfanNvbhgBIAEoDCI2CihMb2NhbERpcmVjdG9yeVNlcnZpY2VHZXREaXJlY3RvcnlSZXF1ZXN0EgoKAmlkGAEgASgJIkMKKUxvY2FsRGlyZWN0b3J5U2VydmljZUdldERpcmVjdG9yeVJlc3BvbnNlEhYKDmRpcmVjdG9yeV9qc29uGAEgASgMIkIKKkxvY2FsRGlyZWN0b3J5U2VydmljZUxpc3RNZWRpYUZpbGVzUmVxdWVzdBIUCgxkaXJlY3RvcnlfaWQYASABKAkiRworTG9jYWxEaXJlY3RvcnlTZXJ2aWNlTGlzdE1lZGlhRmlsZXNSZXNwb25zZRIYChBtZWRpYV9maWxlc19qc29uGAEgASgMIjYKKExvY2FsRGlyZWN0b3J5U2VydmljZUdldE1lZGlhRmlsZVJlcXVlc3QSCgoCaWQYASABKAkiRAopTG9jYWxEaXJlY3RvcnlTZXJ2aWNlR2V0TWVkaWFGaWxlUmVzcG9uc2USFwoPbWVkaWFfZmlsZV9qc29uGAEgASgMIlEKK0xvY2FsRGlyZWN0b3J5U2VydmljZUdldERpcmVjdG9yeU5GT1JlcXVlc3QSFAoMZGlyZWN0b3J5X2lkGAEgASgJEgwKBHBhdGgYAiABKAkiRQosTG9jYWxEaXJlY3RvcnlTZXJ2aWNlR2V0RGlyZWN0b3J5TkZPUmVzcG9uc2USFQoNbWV0YWRhdGFfanNvbhgBIAEoDDKYBQoVTG9jYWxEaXJlY3RvcnlTZXJ2aWNlEoIBCg9MaXN0RGlyZWN0b3JpZXMSNi5tZXRhcnIudjEuTG9jYWxEaXJlY3RvcnlTZXJ2aWNlTGlzdERpcmVjdG9yaWVzUmVxdWVzdBo3Lm1ldGFyci52MS5Mb2NhbERpcmVjdG9yeVNlcnZpY2VMaXN0RGlyZWN0b3JpZXNSZXNwb25zZRJ5CgxHZXREaXJlY3RvcnkSMy5tZXRhcnIudjEuTG9jYWxEaXJlY3RvcnlTZXJ2aWNlR2V0RGlyZWN0b3J5UmVxdWVzdBo0Lm1ldGFyci52MS5Mb2NhbERpcmVjdG9yeVNlcnZpY2VHZXREaXJlY3RvcnlSZXNwb25zZRJ/Cg5MaXN0TWVkaWFGaWxlcxI1Lm1ldGFyci52MS5Mb2NhbERpcmVjdG9yeVNlcnZpY2VMaXN0TWVkaWFGaWxlc1JlcXVlc3QaNi5tZXRhcnIudjEuTG9jYWxEaXJlY3RvcnlTZXJ2aWNlTGlzdE1lZGlhRmlsZXNSZXNwb25zZRJ5CgxHZXRNZWRpYUZpbGUSMy5tZXRhcnIudjEuTG9jYWxEaXJlY3RvcnlTZXJ2aWNlR2V0TWVkaWFGaWxlUmVxdWVzdBo0Lm1ldGFyci52MS5Mb2NhbERpcmVjdG9yeVNlcnZpY2VHZXRNZWRpYUZpbGVSZXNwb25zZRKCAQoPR2V0RGlyZWN0b3J5TkZPEjYubWV0YXJyLnYxLkxvY2FsRGlyZWN0b3J5U2VydmljZUdldERpcmVjdG9yeU5GT1JlcXVlc3QaNy5tZXRhcnIudjEuTG9jYWxEaXJlY3RvcnlTZXJ2aWNlR2V0RGlyZWN0b3J5TkZPUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z");
+  fileDesc("CiFtZXRhcnIvdjEvbG9jYWxfZGlyZWN0b3JpZXMucHJvdG8SCW1ldGFyci52MSJrCitMb2NhbERpcmVjdG9yeVNlcnZpY2VMaXN0RGlyZWN0b3JpZXNSZXF1ZXN0EgwKBHR5cGUYASABKAkSEQoJc2Nhbl9yb290GAIgASgJEg0KBWxpbWl0GAMgASgFEgwKBHNraXAYBCABKAUiWAosTG9jYWxEaXJlY3RvcnlTZXJ2aWNlTGlzdERpcmVjdG9yaWVzUmVzcG9uc2USKAoLZGlyZWN0b3JpZXMYASADKAsyEy5tZXRhcnIudjEuVFZTZXJpZXMiNgooTG9jYWxEaXJlY3RvcnlTZXJ2aWNlR2V0RGlyZWN0b3J5UmVxdWVzdBIKCgJpZBgBIAEoCSJTCilMb2NhbERpcmVjdG9yeVNlcnZpY2VHZXREaXJlY3RvcnlSZXNwb25zZRImCglkaXJlY3RvcnkYASABKAsyEy5tZXRhcnIudjEuVFZTZXJpZXMiQgoqTG9jYWxEaXJlY3RvcnlTZXJ2aWNlTGlzdE1lZGlhRmlsZXNSZXF1ZXN0EhQKDGRpcmVjdG9yeV9pZBgBIAEoCSJYCitMb2NhbERpcmVjdG9yeVNlcnZpY2VMaXN0TWVkaWFGaWxlc1Jlc3BvbnNlEikKC21lZGlhX2ZpbGVzGAEgAygLMhQubWV0YXJyLnYxLk1lZGlhRmlsZSI2CihMb2NhbERpcmVjdG9yeVNlcnZpY2VHZXRNZWRpYUZpbGVSZXF1ZXN0EgoKAmlkGAEgASgJIlUKKUxvY2FsRGlyZWN0b3J5U2VydmljZUdldE1lZGlhRmlsZVJlc3BvbnNlEigKCm1lZGlhX2ZpbGUYASABKAsyFC5tZXRhcnIudjEuTWVkaWFGaWxlIlEKK0xvY2FsRGlyZWN0b3J5U2VydmljZUdldERpcmVjdG9yeU5GT1JlcXVlc3QSFAoMZGlyZWN0b3J5X2lkGAEgASgJEgwKBHBhdGgYAiABKAkiVQosTG9jYWxEaXJlY3RvcnlTZXJ2aWNlR2V0RGlyZWN0b3J5TkZPUmVzcG9uc2USJQoIbWV0YWRhdGEYASABKAsyEy5tZXRhcnIudjEuTWV0YWRhdGEymAUKFUxvY2FsRGlyZWN0b3J5U2VydmljZRKCAQoPTGlzdERpcmVjdG9yaWVzEjYubWV0YXJyLnYxLkxvY2FsRGlyZWN0b3J5U2VydmljZUxpc3REaXJlY3Rvcmllc1JlcXVlc3QaNy5tZXRhcnIudjEuTG9jYWxEaXJlY3RvcnlTZXJ2aWNlTGlzdERpcmVjdG9yaWVzUmVzcG9uc2USeQoMR2V0RGlyZWN0b3J5EjMubWV0YXJyLnYxLkxvY2FsRGlyZWN0b3J5U2VydmljZUdldERpcmVjdG9yeVJlcXVlc3QaNC5tZXRhcnIudjEuTG9jYWxEaXJlY3RvcnlTZXJ2aWNlR2V0RGlyZWN0b3J5UmVzcG9uc2USfwoOTGlzdE1lZGlhRmlsZXMSNS5tZXRhcnIudjEuTG9jYWxEaXJlY3RvcnlTZXJ2aWNlTGlzdE1lZGlhRmlsZXNSZXF1ZXN0GjYubWV0YXJyLnYxLkxvY2FsRGlyZWN0b3J5U2VydmljZUxpc3RNZWRpYUZpbGVzUmVzcG9uc2USeQoMR2V0TWVkaWFGaWxlEjMubWV0YXJyLnYxLkxvY2FsRGlyZWN0b3J5U2VydmljZUdldE1lZGlhRmlsZVJlcXVlc3QaNC5tZXRhcnIudjEuTG9jYWxEaXJlY3RvcnlTZXJ2aWNlR2V0TWVkaWFGaWxlUmVzcG9uc2USggEKD0dldERpcmVjdG9yeU5GTxI2Lm1ldGFyci52MS5Mb2NhbERpcmVjdG9yeVNlcnZpY2VHZXREaXJlY3RvcnlORk9SZXF1ZXN0GjcubWV0YXJyLnYxLkxvY2FsRGlyZWN0b3J5U2VydmljZUdldERpcmVjdG9yeU5GT1Jlc3BvbnNlQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_metarr_v1_metadata, file_metarr_v1_scan]);
 
 /**
  * @generated from message metarr.v1.LocalDirectoryServiceListDirectoriesRequest
@@ -49,9 +53,9 @@ export const LocalDirectoryServiceListDirectoriesRequestSchema: GenMessage<Local
  */
 export type LocalDirectoryServiceListDirectoriesResponse = Message<"metarr.v1.LocalDirectoryServiceListDirectoriesResponse"> & {
   /**
-   * @generated from field: bytes directories_json = 1;
+   * @generated from field: repeated metarr.v1.TVSeries directories = 1;
    */
-  directoriesJson: Uint8Array;
+  directories: TVSeries[];
 };
 
 /**
@@ -83,9 +87,9 @@ export const LocalDirectoryServiceGetDirectoryRequestSchema: GenMessage<LocalDir
  */
 export type LocalDirectoryServiceGetDirectoryResponse = Message<"metarr.v1.LocalDirectoryServiceGetDirectoryResponse"> & {
   /**
-   * @generated from field: bytes directory_json = 1;
+   * @generated from field: metarr.v1.TVSeries directory = 1;
    */
-  directoryJson: Uint8Array;
+  directory?: TVSeries | undefined;
 };
 
 /**
@@ -117,9 +121,9 @@ export const LocalDirectoryServiceListMediaFilesRequestSchema: GenMessage<LocalD
  */
 export type LocalDirectoryServiceListMediaFilesResponse = Message<"metarr.v1.LocalDirectoryServiceListMediaFilesResponse"> & {
   /**
-   * @generated from field: bytes media_files_json = 1;
+   * @generated from field: repeated metarr.v1.MediaFile media_files = 1;
    */
-  mediaFilesJson: Uint8Array;
+  mediaFiles: MediaFile[];
 };
 
 /**
@@ -151,9 +155,9 @@ export const LocalDirectoryServiceGetMediaFileRequestSchema: GenMessage<LocalDir
  */
 export type LocalDirectoryServiceGetMediaFileResponse = Message<"metarr.v1.LocalDirectoryServiceGetMediaFileResponse"> & {
   /**
-   * @generated from field: bytes media_file_json = 1;
+   * @generated from field: metarr.v1.MediaFile media_file = 1;
    */
-  mediaFileJson: Uint8Array;
+  mediaFile?: MediaFile | undefined;
 };
 
 /**
@@ -190,9 +194,9 @@ export const LocalDirectoryServiceGetDirectoryNFORequestSchema: GenMessage<Local
  */
 export type LocalDirectoryServiceGetDirectoryNFOResponse = Message<"metarr.v1.LocalDirectoryServiceGetDirectoryNFOResponse"> & {
   /**
-   * @generated from field: bytes metadata_json = 1;
+   * @generated from field: metarr.v1.Metadata metadata = 1;
    */
-  metadataJson: Uint8Array;
+  metadata?: Metadata | undefined;
 };
 
 /**

@@ -25,18 +25,20 @@ import (
 // declare itself as one of these.
 type SidecarCategory string
 
+// The values SidecarCategory takes. Untyped so they compare directly against
+// the plain string category field on the generated SidecarFile message.
 const (
-	SidecarCategoryImage         SidecarCategory = "image"
-	SidecarCategoryVideoExtra    SidecarCategory = "video_extra"
-	SidecarCategorySubtitle      SidecarCategory = "subtitle"
-	SidecarCategoryMetadata      SidecarCategory = "metadata"
-	SidecarCategoryAudio         SidecarCategory = "audio"
-	SidecarCategoryDiscStructure SidecarCategory = "disc_structure"
+	SidecarCategoryImage         = "image"
+	SidecarCategoryVideoExtra    = "video_extra"
+	SidecarCategorySubtitle      = "subtitle"
+	SidecarCategoryMetadata      = "metadata"
+	SidecarCategoryAudio         = "audio"
+	SidecarCategoryDiscStructure = "disc_structure"
 	// SidecarCategoryTrickplay is its own class rather than a kind of image
 	// because a single video's previews run to hundreds of tiles, which would
 	// swamp the artwork queries "every image" exists to answer.
-	SidecarCategoryTrickplay SidecarCategory = "trickplay"
-	SidecarCategoryUnknown   SidecarCategory = "unknown"
+	SidecarCategoryTrickplay = "trickplay"
+	SidecarCategoryUnknown   = "unknown"
 )
 
 // validSidecarCategories is ordered so error messages list the vocabulary
@@ -81,40 +83,43 @@ func ValidSidecarCategoriesText() string {
 // bounding what is possible.
 type SidecarType string
 
+// The built-in sidecar type names. Untyped so they compare directly against
+// the plain string type field on the generated SidecarFile message; the
+// vocabulary is open, so these name the defaults rather than bound it.
 const (
 	// Artwork types, category "image".
 
-	SidecarPoster    SidecarType = "poster"
-	SidecarFanart    SidecarType = "fanart"
-	SidecarBanner    SidecarType = "banner"
-	SidecarClearLogo SidecarType = "clearlogo"
-	SidecarClearArt  SidecarType = "clearart"
-	SidecarDiscArt   SidecarType = "discart"
-	SidecarThumb     SidecarType = "thumb"
-	SidecarLandscape SidecarType = "landscape"
+	SidecarPoster    = "poster"
+	SidecarFanart    = "fanart"
+	SidecarBanner    = "banner"
+	SidecarClearLogo = "clearlogo"
+	SidecarClearArt  = "clearart"
+	SidecarDiscArt   = "discart"
+	SidecarThumb     = "thumb"
+	SidecarLandscape = "landscape"
 
 	// Extra video types, category "video_extra".
 
-	SidecarTrailer         SidecarType = "trailer"
-	SidecarBehindTheScenes SidecarType = "behind_the_scenes"
-	SidecarDeletedScene    SidecarType = "deleted_scene"
-	SidecarFeaturette      SidecarType = "featurette"
-	SidecarInterview       SidecarType = "interview"
-	SidecarScene           SidecarType = "scene"
-	SidecarShort           SidecarType = "short"
-	SidecarOtherExtra      SidecarType = "other_extra"
+	SidecarTrailer         = "trailer"
+	SidecarBehindTheScenes = "behind_the_scenes"
+	SidecarDeletedScene    = "deleted_scene"
+	SidecarFeaturette      = "featurette"
+	SidecarInterview       = "interview"
+	SidecarScene           = "scene"
+	SidecarShort           = "short"
+	SidecarOtherExtra      = "other_extra"
 
-	SidecarSubtitle      SidecarType = "subtitle"
-	SidecarNFO           SidecarType = "nfo"
-	SidecarTheme         SidecarType = "theme"
-	SidecarDiscStructure SidecarType = "disc_structure"
+	SidecarSubtitle      = "subtitle"
+	SidecarNFO           = "nfo"
+	SidecarTheme         = "theme"
+	SidecarDiscStructure = "disc_structure"
 
 	// SidecarTrickplay is one tile sheet from Jellyfin's scrubbing previews.
-	SidecarTrickplay SidecarType = "trickplay"
+	SidecarTrickplay = "trickplay"
 
 	// SidecarUnknown is a file the scanner recorded but the table could not
 	// name, which is different from a file that was never looked at.
-	SidecarUnknown SidecarType = "unknown"
+	SidecarUnknown = "unknown"
 )
 
 // SidecarTypeDefinition is the compiled, typed form of one stored table entry.

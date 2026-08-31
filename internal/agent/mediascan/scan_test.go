@@ -50,7 +50,7 @@ func scanTree(t *testing.T, folderName string, directoryType scanmodel.Directory
 }
 
 // mediaFileByName finds a media file record by its file name.
-func mediaFileByName(t *testing.T, result *scanmodel.ScanResult, fileName string) scanmodel.MediaFile {
+func mediaFileByName(t *testing.T, result *scanmodel.ScanResult, fileName string) *scanmodel.MediaFile {
 	t.Helper()
 	for _, mediaFile := range result.MediaFiles {
 		if mediaFile.FileName == fileName {
@@ -58,7 +58,7 @@ func mediaFileByName(t *testing.T, result *scanmodel.ScanResult, fileName string
 		}
 	}
 	t.Fatalf("no media file record named %q; got %s", fileName, mediaFileNames(result))
-	return scanmodel.MediaFile{}
+	return nil
 }
 
 func mediaFileNames(result *scanmodel.ScanResult) string {
@@ -71,7 +71,7 @@ func mediaFileNames(result *scanmodel.ScanResult) string {
 
 // directorySidecarByName finds a sidecar on the directory record itself,
 // excluding the ones filed under a season.
-func directorySidecarByName(t *testing.T, result *scanmodel.ScanResult, fileName string) scanmodel.SidecarFile {
+func directorySidecarByName(t *testing.T, result *scanmodel.ScanResult, fileName string) *scanmodel.SidecarFile {
 	t.Helper()
 	for _, sidecar := range result.Directory.Sidecars {
 		if sidecar.FileName == fileName {
@@ -79,11 +79,11 @@ func directorySidecarByName(t *testing.T, result *scanmodel.ScanResult, fileName
 		}
 	}
 	t.Fatalf("no directory sidecar named %q; got %s", fileName, sidecarNames(result.Directory.Sidecars))
-	return scanmodel.SidecarFile{}
+	return nil
 }
 
 // seasonSidecarByName finds a sidecar filed under one season.
-func seasonSidecarByName(t *testing.T, result *scanmodel.ScanResult, seasonNumber int, fileName string) scanmodel.SidecarFile {
+func seasonSidecarByName(t *testing.T, result *scanmodel.ScanResult, seasonNumber int, fileName string) *scanmodel.SidecarFile {
 	t.Helper()
 	season := seasonByNumber(t, result, seasonNumber)
 	for _, sidecar := range season.Sidecars {
@@ -92,22 +92,22 @@ func seasonSidecarByName(t *testing.T, result *scanmodel.ScanResult, seasonNumbe
 		}
 	}
 	t.Fatalf("no sidecar named %q on season %d; got %s", fileName, seasonNumber, sidecarNames(season.Sidecars))
-	return scanmodel.SidecarFile{}
+	return nil
 }
 
-func seasonByNumber(t *testing.T, result *scanmodel.ScanResult, seasonNumber int) scanmodel.TVSeason {
+func seasonByNumber(t *testing.T, result *scanmodel.ScanResult, seasonNumber int) *scanmodel.TVSeason {
 	t.Helper()
 	for _, season := range result.Directory.Seasons {
-		if season.SeasonNumber == seasonNumber {
+		if int(season.SeasonNumber) == seasonNumber {
 			return season
 		}
 	}
 	t.Fatalf("no season record numbered %d; got %+v", seasonNumber, result.Directory.Seasons)
-	return scanmodel.TVSeason{}
+	return nil
 }
 
 // mediaSidecarByName finds a sidecar attached to one media file record.
-func mediaSidecarByName(t *testing.T, mediaFile scanmodel.MediaFile, fileName string) scanmodel.SidecarFile {
+func mediaSidecarByName(t *testing.T, mediaFile *scanmodel.MediaFile, fileName string) *scanmodel.SidecarFile {
 	t.Helper()
 	for _, sidecar := range mediaFile.Sidecars {
 		if sidecar.FileName == fileName {
@@ -115,25 +115,25 @@ func mediaSidecarByName(t *testing.T, mediaFile scanmodel.MediaFile, fileName st
 		}
 	}
 	t.Fatalf("no sidecar named %q on %q; got %s", fileName, mediaFile.FileName, sidecarNames(mediaFile.Sidecars))
-	return scanmodel.SidecarFile{}
+	return nil
 }
 
 // sidecarsInCategory filters a sidecar list down to one category, which is the
 // query the categories exist to serve.
-func sidecarsInCategory(sidecars []scanmodel.SidecarFile, category scanmodel.SidecarCategory) []scanmodel.SidecarFile {
-	matching := make([]scanmodel.SidecarFile, 0, len(sidecars))
+func sidecarsInCategory(sidecars []*scanmodel.SidecarFile, category scanmodel.SidecarCategory) []*scanmodel.SidecarFile {
+	matching := make([]*scanmodel.SidecarFile, 0, len(sidecars))
 	for _, sidecar := range sidecars {
-		if sidecar.Category == category {
+		if sidecar.Category == string(category) {
 			matching = append(matching, sidecar)
 		}
 	}
 	return matching
 }
 
-func sidecarNames(sidecars []scanmodel.SidecarFile) string {
+func sidecarNames(sidecars []*scanmodel.SidecarFile) string {
 	names := make([]string, 0, len(sidecars))
 	for _, sidecar := range sidecars {
-		names = append(names, sidecar.FileName+"("+string(sidecar.Type)+")")
+		names = append(names, sidecar.FileName+"("+sidecar.Type+")")
 	}
 	return "[" + strings.Join(names, ", ") + "]"
 }
@@ -190,7 +190,7 @@ func TestScanMovieRecordSplit(t *testing.T) {
 		directorySidecarByName(t, result, name)
 	}
 
-	wantTypes := map[string]scanmodel.SidecarType{
+	wantTypes := map[string]string{
 		"poster.jpg":     scanmodel.SidecarPoster,
 		"fanart.jpg":     scanmodel.SidecarFanart,
 		"backdrop-1.jpg": scanmodel.SidecarFanart,
@@ -429,7 +429,7 @@ func TestScanSeriesLinkSeparation(t *testing.T) {
 
 // mediaFileLinks reads a media file's provider ids, which live on its own
 // metadata record rather than beside it.
-func mediaFileLinks(t *testing.T, mediaFile scanmodel.MediaFile) []*metadata.Link {
+func mediaFileLinks(t *testing.T, mediaFile *scanmodel.MediaFile) []*metadata.Link {
 	t.Helper()
 	if mediaFile.Metadata == nil {
 		t.Fatalf("%q has no metadata record, so no external links", mediaFile.FileName)
@@ -641,7 +641,7 @@ func TestScanSeasonScopedArtwork(t *testing.T) {
 	wantSeasonArtwork := []struct {
 		fileName     string
 		seasonNumber int
-		wantType     scanmodel.SidecarType
+		wantType     string
 	}{
 		{"Season01-poster.jpg", 1, scanmodel.SidecarPoster},
 		{"Season01.jpg", 1, scanmodel.SidecarPoster},
@@ -768,17 +768,17 @@ func TestScanRecordsPathsAndMetadata(t *testing.T) {
 	if !filepath.IsAbs(directory.Path) {
 		t.Errorf("Path = %q, want absolute", directory.Path)
 	}
-	if directory.ScannedAt.IsZero() {
+	if directory.ScannedAt == nil {
 		t.Error("ScannedAt not set")
 	}
 	// IDs are assigned by MongoDB on insert, never by the scanner.
-	if !directory.ID.IsZero() {
-		t.Errorf("directory ID = %v, want zero so Mongo can assign it", directory.ID)
+	if directory.Id != "" {
+		t.Errorf("directory id = %q, want empty so Mongo can assign it", directory.Id)
 	}
 
 	mediaFile := result.MediaFiles[0]
-	if !mediaFile.ID.IsZero() || !mediaFile.DirectoryID.IsZero() {
-		t.Errorf("media file ids should be zero before storage: %v / %v", mediaFile.ID, mediaFile.DirectoryID)
+	if mediaFile.Id != "" || mediaFile.DirectoryId != "" {
+		t.Errorf("media file ids should be empty before storage: %q / %q", mediaFile.Id, mediaFile.DirectoryId)
 	}
 	if mediaFile.DirectoryPath != directory.Path {
 		t.Errorf("DirectoryPath = %q, want %q", mediaFile.DirectoryPath, directory.Path)
@@ -792,7 +792,7 @@ func TestScanRecordsPathsAndMetadata(t *testing.T) {
 	if mediaFile.RelativePath != "Movie (2000).mkv" {
 		t.Errorf("RelativePath = %q", mediaFile.RelativePath)
 	}
-	if mediaFile.ModifiedAt.IsZero() {
+	if mediaFile.ModifiedAt == nil {
 		t.Error("ModifiedAt not set")
 	}
 }
@@ -958,7 +958,7 @@ func TestScanRecordsSidecarFileFacts(t *testing.T) {
 	if poster.SizeBytes != int64(len("some bytes")) {
 		t.Errorf("SizeBytes = %d, want %d", poster.SizeBytes, len("some bytes"))
 	}
-	if poster.ModifiedAt.IsZero() {
+	if poster.ModifiedAt == nil {
 		t.Error("ModifiedAt not set")
 	}
 }

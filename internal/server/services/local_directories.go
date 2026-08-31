@@ -31,10 +31,8 @@ const (
 )
 
 // LocalDirectoryServer implements
-// metarrv1connect.LocalDirectoryServiceHandler, ported directly from
-// internal/server/handlers/local_directories.go. Every response carries
-// the same JSON the REST handler already produced, kept opaque — see
-// local_directories.proto's doc comment.
+// metarrv1connect.LocalDirectoryServiceHandler. Responses carry the generated
+// scan record messages directly (scanmodel aliases them) — see docs/adr/0005.
 type LocalDirectoryServer struct {
 	*handlers.Handlers
 }
@@ -90,13 +88,7 @@ func (s *LocalDirectoryServer) ListDirectories(
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to list directories"))
 	}
 
-	directoriesJSON, err := json.Marshal(directories)
-	if err != nil {
-		s.Logger.Error("failed to encode local directories", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to encode directories"))
-	}
-
-	return connect.NewResponse(&metarrv1.LocalDirectoryServiceListDirectoriesResponse{DirectoriesJson: directoriesJSON}), nil
+	return connect.NewResponse(&metarrv1.LocalDirectoryServiceListDirectoriesResponse{Directories: directories}), nil
 }
 
 func (s *LocalDirectoryServer) GetDirectory(
@@ -113,13 +105,7 @@ func (s *LocalDirectoryServer) GetDirectory(
 		return nil, directoryLookupError(err, directoryID, s.Logger)
 	}
 
-	directoryJSON, err := json.Marshal(directory)
-	if err != nil {
-		s.Logger.Error("failed to encode local directory", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to encode directory"))
-	}
-
-	return connect.NewResponse(&metarrv1.LocalDirectoryServiceGetDirectoryResponse{DirectoryJson: directoryJSON}), nil
+	return connect.NewResponse(&metarrv1.LocalDirectoryServiceGetDirectoryResponse{Directory: directory}), nil
 }
 
 func (s *LocalDirectoryServer) ListMediaFiles(
@@ -143,13 +129,7 @@ func (s *LocalDirectoryServer) ListMediaFiles(
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to list media files"))
 	}
 
-	mediaFilesJSON, err := json.Marshal(mediaFiles)
-	if err != nil {
-		s.Logger.Error("failed to encode media files", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to encode media files"))
-	}
-
-	return connect.NewResponse(&metarrv1.LocalDirectoryServiceListMediaFilesResponse{MediaFilesJson: mediaFilesJSON}), nil
+	return connect.NewResponse(&metarrv1.LocalDirectoryServiceListMediaFilesResponse{MediaFiles: mediaFiles}), nil
 }
 
 func (s *LocalDirectoryServer) GetMediaFile(
@@ -170,13 +150,7 @@ func (s *LocalDirectoryServer) GetMediaFile(
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to fetch media file"))
 	}
 
-	mediaFileJSON, err := json.Marshal(mediaFile)
-	if err != nil {
-		s.Logger.Error("failed to encode media file", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to encode media file"))
-	}
-
-	return connect.NewResponse(&metarrv1.LocalDirectoryServiceGetMediaFileResponse{MediaFileJson: mediaFileJSON}), nil
+	return connect.NewResponse(&metarrv1.LocalDirectoryServiceGetMediaFileResponse{MediaFile: mediaFile}), nil
 }
 
 func (s *LocalDirectoryServer) GetDirectoryNFO(
@@ -249,13 +223,7 @@ func (s *LocalDirectoryServer) GetDirectoryNFO(
 		return nil, connectError(http.StatusUnprocessableEntity, errors.New("could not read that NFO file: "+body.Error))
 	}
 
-	metadataJSON, err := json.Marshal(body.Metadata)
-	if err != nil {
-		s.Logger.Error("failed to encode NFO metadata", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to encode NFO metadata"))
-	}
-
-	return connect.NewResponse(&metarrv1.LocalDirectoryServiceGetDirectoryNFOResponse{MetadataJson: metadataJSON}), nil
+	return connect.NewResponse(&metarrv1.LocalDirectoryServiceGetDirectoryNFOResponse{Metadata: body.Metadata}), nil
 }
 
 func parseRecordID(rawID string) (bson.ObjectID, error) {
