@@ -15,7 +15,7 @@ import (
 func newStreamBusOnRedis(t *testing.T) (*StreamBus, redis.UniversalClient) {
 	t.Helper()
 	_, client := newRetentionRedis(t)
-	bus, err := NewStreamBus(client, DefaultRetentionPolicy(), NewSlogAdapter(discardSlog()))
+	bus, err := NewStreamBus(client, DefaultBusPolicy().Retention, NewSlogAdapter(discardSlog()))
 	if err != nil {
 		t.Fatalf("NewStreamBus: %v", err)
 	}

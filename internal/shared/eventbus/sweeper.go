@@ -11,6 +11,7 @@ import (
 // DefaultSweepInterval is how often the retention sweep runs. Well under the
 // retention window, so a stream is never more than this far past its age
 // floor, but infrequent enough that the repeated XTRIM cost is negligible.
+// It travels with the rest of the bus tuning as BusPolicy.SweepInterval.
 const DefaultSweepInterval = time.Hour
 
 // RetentionSweeper trims every discovered stream by age on an interval.
@@ -18,26 +19,30 @@ const DefaultSweepInterval = time.Hour
 // bounds a low-volume stream that would otherwise keep months of history
 // under its count cap.
 type RetentionSweeper struct {
-	client redis.UniversalClient
-	policy RetentionPolicy
-	logger *slog.Logger
-	now    func() time.Time
+	client   redis.UniversalClient
+	policy   RetentionPolicy
+	interval time.Duration
+	logger   *slog.Logger
+	now      func() time.Time
 }
 
-// NewRetentionSweeper builds a sweeper for client using policy.
-func NewRetentionSweeper(client redis.UniversalClient, policy RetentionPolicy, logger *slog.Logger) *RetentionSweeper {
+// NewRetentionSweeper builds a sweeper for client that trims by
+// policy.RetentionHours every interval. The interval is BusPolicy's
+// SweepInterval slice — the sweeper takes only the tuning it uses.
+func NewRetentionSweeper(client redis.UniversalClient, policy RetentionPolicy, interval time.Duration, logger *slog.Logger) *RetentionSweeper {
 	return &RetentionSweeper{
-		client: client,
-		policy: policy,
-		logger: logger,
-		now:    func() time.Time { return time.Now().UTC() },
+		client:   client,
+		policy:   policy,
+		interval: interval,
+		logger:   logger,
+		now:      func() time.Time { return time.Now().UTC() },
 	}
 }
 
-// Run sweeps once immediately and then every interval until ctx is
+// Run sweeps once immediately and then every SweepInterval until ctx is
 // cancelled.
-func (s *RetentionSweeper) Run(ctx context.Context, interval time.Duration) {
-	ticker := time.NewTicker(interval)
+func (s *RetentionSweeper) Run(ctx context.Context) {
+	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
 
 	for {

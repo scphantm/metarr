@@ -69,7 +69,7 @@ func TestRetentionSweepTrimsByAge(t *testing.T) {
 		addAt(t, client, stream, now.Add(-time.Minute), "fresh")
 	}
 
-	sweeper := NewRetentionSweeper(client, policy, discardSlog())
+	sweeper := NewRetentionSweeper(client, policy, DefaultSweepInterval, discardSlog())
 	sweeper.now = func() time.Time { return now }
 
 	if err := sweeper.SweepOnce(ctx); err != nil {
@@ -93,14 +93,14 @@ func TestRetentionSweepTrimsByAge(t *testing.T) {
 func TestRetentionSweepIgnoresAStreamThatDoesNotExist(t *testing.T) {
 	_, client := newRetentionRedis(t)
 
-	sweeper := NewRetentionSweeper(client, DefaultRetentionPolicy(), discardSlog())
+	sweeper := NewRetentionSweeper(client, DefaultBusPolicy().Retention, DefaultSweepInterval, discardSlog())
 	if err := sweeper.SweepOnce(context.Background()); err != nil {
 		t.Fatalf("a sweep over streams that were never created is not an error: %v", err)
 	}
 }
 
 func TestDefaultRetentionPolicyMatchesTheDocumentedFloor(t *testing.T) {
-	policy := DefaultRetentionPolicy()
+	policy := DefaultBusPolicy().Retention
 	if policy.RetentionHours != 48 {
 		t.Errorf("RetentionHours = %d, want the documented 48-hour floor", policy.RetentionHours)
 	}
