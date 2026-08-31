@@ -46,6 +46,43 @@ The redacted per-agent view of the application config. An agent reads its own
 projection and never the document itself, which carries every credential.
 _Avoid_: agent config, agent view
 
+### Event bus
+
+**Event bus**:
+The Redis-backed path through which the server and agents exchange everything.
+Neither side calls the other directly. It has two halves: durable streams for
+work that must survive a restart, and Pub/Sub for notifications and one
+synchronous pattern.
+_Avoid_: message queue, broker, Redis
+
+**Envelope**:
+The fixed outer shape every event shares: `name`, `source`, `correlation_id`,
+`timestamp`, and an inner `payload`. A consumer dispatches on `name`; a breaking
+change to a payload gives its `name` a `.vN` suffix so both shapes can coexist.
+_Avoid_: message header, event metadata
+
+**Command stream**:
+The durable per-agent stream carrying work the server has assigned to one agent.
+It survives an agent restart, and the agent consumes it on return.
+_Avoid_: task queue, job queue
+
+**Result stream**:
+A durable stream carrying outcomes from agents back to the server, one per kind
+of work. Scans and workflow nodes have separate result streams so one kind's
+backlog cannot hide another's.
+_Avoid_: response queue, callback stream
+
+**Dead-letter stream**:
+Where a message goes once its handler has failed the retry limit. It has no
+consumer and is read by hand when something needs investigating.
+_Avoid_: poison queue, error queue, DLQ
+
+**Request/reply**:
+The one synchronous pattern on the bus. The server publishes a request on an
+agent's Pub/Sub channel and waits on a correlation-scoped reply channel with a
+timeout. Used only where a miss should fail fast rather than be retried.
+_Avoid_: RPC, sync call
+
 ### Identity
 
 Two idioms exist, and which one a thing uses is a decision, not an accident.
