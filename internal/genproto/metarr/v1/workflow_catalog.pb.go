@@ -9,6 +9,7 @@ package metarrv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -21,6 +22,895 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// WorkflowNodeKind tells the validator and engine how a node participates in
+// control flow. The engine owns this vocabulary and it is closed, so it is a
+// proto enum rather than a free string. A node's `type`, by contrast, stays a
+// free string: the catalog owns that vocabulary, so a new node type is a
+// catalog data change and never a proto change or a release.
+type WorkflowNodeKind int32
+
+const (
+	// An ordinary step. The zero value, so a catalog entry that names no kind
+	// is a plain task; catalog.json omits `kind` for these.
+	WorkflowNodeKind_WORKFLOW_NODE_KIND_UNSPECIFIED WorkflowNodeKind = 0
+	// The single entry point of a workflow.
+	WorkflowNodeKind_WORKFLOW_NODE_KIND_START WorkflowNodeKind = 1
+	// Terminates a run. Forbidden inside parallel branches and loop bodies.
+	WorkflowNodeKind_WORKFLOW_NODE_KIND_END WorkflowNodeKind = 2
+	// Terminates a run as failed.
+	WorkflowNodeKind_WORKFLOW_NODE_KIND_FAIL WorkflowNodeKind = 3
+	// A pure data source — a literal, a selector, a constant. It has no control
+	// ports at all and is exempt from MustHaveRun.
+	WorkflowNodeKind_WORKFLOW_NODE_KIND_SOURCE WorkflowNodeKind = 4
+	// Chooses exactly one of several control outs.
+	WorkflowNodeKind_WORKFLOW_NODE_KIND_BRANCH WorkflowNodeKind = 5
+	// Iterates, firing body per item then done once.
+	WorkflowNodeKind_WORKFLOW_NODE_KIND_FOR_EACH WorkflowNodeKind = 6
+	// Accumulates a value inside a loop body. Its output is attributed to the
+	// enclosing loop's done transition.
+	WorkflowNodeKind_WORKFLOW_NODE_KIND_COLLECT WorkflowNodeKind = 7
+	// Fans out into concurrent branches.
+	WorkflowNodeKind_WORKFLOW_NODE_KIND_PARALLEL WorkflowNodeKind = 8
+	// The barrier paired with a parallel.
+	WorkflowNodeKind_WORKFLOW_NODE_KIND_JOIN WorkflowNodeKind = 9
+	// Terminates the enclosing loop.
+	WorkflowNodeKind_WORKFLOW_NODE_KIND_BREAK WorkflowNodeKind = 10
+	// An annotation. It has no ports, is stripped before compilation, and is
+	// excluded from every validation pass.
+	WorkflowNodeKind_WORKFLOW_NODE_KIND_NOTE WorkflowNodeKind = 11
+)
+
+// Enum value maps for WorkflowNodeKind.
+var (
+	WorkflowNodeKind_name = map[int32]string{
+		0:  "WORKFLOW_NODE_KIND_UNSPECIFIED",
+		1:  "WORKFLOW_NODE_KIND_START",
+		2:  "WORKFLOW_NODE_KIND_END",
+		3:  "WORKFLOW_NODE_KIND_FAIL",
+		4:  "WORKFLOW_NODE_KIND_SOURCE",
+		5:  "WORKFLOW_NODE_KIND_BRANCH",
+		6:  "WORKFLOW_NODE_KIND_FOR_EACH",
+		7:  "WORKFLOW_NODE_KIND_COLLECT",
+		8:  "WORKFLOW_NODE_KIND_PARALLEL",
+		9:  "WORKFLOW_NODE_KIND_JOIN",
+		10: "WORKFLOW_NODE_KIND_BREAK",
+		11: "WORKFLOW_NODE_KIND_NOTE",
+	}
+	WorkflowNodeKind_value = map[string]int32{
+		"WORKFLOW_NODE_KIND_UNSPECIFIED": 0,
+		"WORKFLOW_NODE_KIND_START":       1,
+		"WORKFLOW_NODE_KIND_END":         2,
+		"WORKFLOW_NODE_KIND_FAIL":        3,
+		"WORKFLOW_NODE_KIND_SOURCE":      4,
+		"WORKFLOW_NODE_KIND_BRANCH":      5,
+		"WORKFLOW_NODE_KIND_FOR_EACH":    6,
+		"WORKFLOW_NODE_KIND_COLLECT":     7,
+		"WORKFLOW_NODE_KIND_PARALLEL":    8,
+		"WORKFLOW_NODE_KIND_JOIN":        9,
+		"WORKFLOW_NODE_KIND_BREAK":       10,
+		"WORKFLOW_NODE_KIND_NOTE":        11,
+	}
+)
+
+func (x WorkflowNodeKind) Enum() *WorkflowNodeKind {
+	p := new(WorkflowNodeKind)
+	*p = x
+	return p
+}
+
+func (x WorkflowNodeKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WorkflowNodeKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_metarr_v1_workflow_catalog_proto_enumTypes[0].Descriptor()
+}
+
+func (WorkflowNodeKind) Type() protoreflect.EnumType {
+	return &file_metarr_v1_workflow_catalog_proto_enumTypes[0]
+}
+
+func (x WorkflowNodeKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WorkflowNodeKind.Descriptor instead.
+func (WorkflowNodeKind) EnumDescriptor() ([]byte, []int) {
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{0}
+}
+
+// WorkflowEffects classifies what a node type does to the filesystem. Every
+// catalog entry must declare it — it is what dry-run keys off, and it cannot
+// be retrofitted without re-auditing every handler ever written — so
+// WORKFLOW_EFFECTS_UNSPECIFIED is a catalog load error, never a default.
+type WorkflowEffects int32
+
+const (
+	WorkflowEffects_WORKFLOW_EFFECTS_UNSPECIFIED WorkflowEffects = 0
+	// Inspects only, and is unaffected by dry-run.
+	WorkflowEffects_WORKFLOW_EFFECTS_READ WorkflowEffects = 1
+	// Creates or modifies files.
+	WorkflowEffects_WORKFLOW_EFFECTS_WRITE WorkflowEffects = 2
+	// Deletes or overwrites existing library content. It is badged in the
+	// editor, and an agent refuses to invoke it at all while dry-run is set.
+	WorkflowEffects_WORKFLOW_EFFECTS_DESTRUCTIVE WorkflowEffects = 3
+)
+
+// Enum value maps for WorkflowEffects.
+var (
+	WorkflowEffects_name = map[int32]string{
+		0: "WORKFLOW_EFFECTS_UNSPECIFIED",
+		1: "WORKFLOW_EFFECTS_READ",
+		2: "WORKFLOW_EFFECTS_WRITE",
+		3: "WORKFLOW_EFFECTS_DESTRUCTIVE",
+	}
+	WorkflowEffects_value = map[string]int32{
+		"WORKFLOW_EFFECTS_UNSPECIFIED": 0,
+		"WORKFLOW_EFFECTS_READ":        1,
+		"WORKFLOW_EFFECTS_WRITE":       2,
+		"WORKFLOW_EFFECTS_DESTRUCTIVE": 3,
+	}
+)
+
+func (x WorkflowEffects) Enum() *WorkflowEffects {
+	p := new(WorkflowEffects)
+	*p = x
+	return p
+}
+
+func (x WorkflowEffects) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WorkflowEffects) Descriptor() protoreflect.EnumDescriptor {
+	return file_metarr_v1_workflow_catalog_proto_enumTypes[1].Descriptor()
+}
+
+func (WorkflowEffects) Type() protoreflect.EnumType {
+	return &file_metarr_v1_workflow_catalog_proto_enumTypes[1]
+}
+
+func (x WorkflowEffects) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WorkflowEffects.Descriptor instead.
+func (WorkflowEffects) EnumDescriptor() ([]byte, []int) {
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{1}
+}
+
+// WorkflowPortKind is the closed two-value vocabulary that separates a node's
+// control wiring from its data wiring. The engine owns it: handle ids in the
+// editor encode it (`c:` / `d:`), control and data edges are validated by
+// entirely different rules, and the two are never styled alike.
+type WorkflowPortKind int32
+
+const (
+	WorkflowPortKind_WORKFLOW_PORT_KIND_UNSPECIFIED WorkflowPortKind = 0
+	// A control port: says what runs next.
+	WorkflowPortKind_WORKFLOW_PORT_KIND_CONTROL WorkflowPortKind = 1
+	// A data port (socket): wires a typed value into a parameter.
+	WorkflowPortKind_WORKFLOW_PORT_KIND_DATA WorkflowPortKind = 2
+)
+
+// Enum value maps for WorkflowPortKind.
+var (
+	WorkflowPortKind_name = map[int32]string{
+		0: "WORKFLOW_PORT_KIND_UNSPECIFIED",
+		1: "WORKFLOW_PORT_KIND_CONTROL",
+		2: "WORKFLOW_PORT_KIND_DATA",
+	}
+	WorkflowPortKind_value = map[string]int32{
+		"WORKFLOW_PORT_KIND_UNSPECIFIED": 0,
+		"WORKFLOW_PORT_KIND_CONTROL":     1,
+		"WORKFLOW_PORT_KIND_DATA":        2,
+	}
+)
+
+func (x WorkflowPortKind) Enum() *WorkflowPortKind {
+	p := new(WorkflowPortKind)
+	*p = x
+	return p
+}
+
+func (x WorkflowPortKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WorkflowPortKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_metarr_v1_workflow_catalog_proto_enumTypes[2].Descriptor()
+}
+
+func (WorkflowPortKind) Type() protoreflect.EnumType {
+	return &file_metarr_v1_workflow_catalog_proto_enumTypes[2]
+}
+
+func (x WorkflowPortKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WorkflowPortKind.Descriptor instead.
+func (WorkflowPortKind) EnumDescriptor() ([]byte, []int) {
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{2}
+}
+
+// WorkflowControlPorts declares a node type's execution wiring. An empty `in`
+// is what makes a node a starting point, and an empty `out` what makes it an
+// ending point — the catalog says so directly rather than the UI inferring it
+// from a category name.
+type WorkflowControlPorts struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	In    []string               `protobuf:"bytes,1,rep,name=in,proto3" json:"in,omitempty"`
+	Out   []string               `protobuf:"bytes,2,rep,name=out,proto3" json:"out,omitempty"`
+	// error adds the red error out-port. It is an ordinary control branch; the
+	// only thing special about it is how it is drawn and that leaving it
+	// unwired aborts the run.
+	Error         bool `protobuf:"varint,3,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkflowControlPorts) Reset() {
+	*x = WorkflowControlPorts{}
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkflowControlPorts) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkflowControlPorts) ProtoMessage() {}
+
+func (x *WorkflowControlPorts) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkflowControlPorts.ProtoReflect.Descriptor instead.
+func (*WorkflowControlPorts) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *WorkflowControlPorts) GetIn() []string {
+	if x != nil {
+		return x.In
+	}
+	return nil
+}
+
+func (x *WorkflowControlPorts) GetOut() []string {
+	if x != nil {
+		return x.Out
+	}
+	return nil
+}
+
+func (x *WorkflowControlPorts) GetError() bool {
+	if x != nil {
+		return x.Error
+	}
+	return false
+}
+
+// WorkflowSocket is a typed data port.
+type WorkflowSocket struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// name is a permanent identifier that stored edges reference. Renaming one
+	// silently breaks every saved workflow — change label instead.
+	Name  string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// type is a value type in the workflow type system: a dotted-prefix
+	// hierarchy with a generic list<T> constructor. It stays a free string, so
+	// a new type needs no proto change beyond a catalog entry naming it.
+	Type          string `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Required      bool   `protobuf:"varint,4,opt,name=required,proto3" json:"required,omitempty"`
+	Description   string `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkflowSocket) Reset() {
+	*x = WorkflowSocket{}
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkflowSocket) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkflowSocket) ProtoMessage() {}
+
+func (x *WorkflowSocket) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkflowSocket.ProtoReflect.Descriptor instead.
+func (*WorkflowSocket) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *WorkflowSocket) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *WorkflowSocket) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *WorkflowSocket) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *WorkflowSocket) GetRequired() bool {
+	if x != nil {
+		return x.Required
+	}
+	return false
+}
+
+func (x *WorkflowSocket) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+// WorkflowSetting is a literal the user types into the node's editor. It is
+// never wired, unless promoted on a specific instance.
+type WorkflowSetting struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Label string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Type  string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	// default is the setting's initial value — any JSON scalar or structure.
+	Default *structpb.Value `protobuf:"bytes,4,opt,name=default,proto3" json:"default,omitempty"`
+	// ui carries editor hints (widget, options) with no fixed schema.
+	Ui            *structpb.Struct `protobuf:"bytes,5,opt,name=ui,proto3" json:"ui,omitempty"`
+	Description   string           `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkflowSetting) Reset() {
+	*x = WorkflowSetting{}
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkflowSetting) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkflowSetting) ProtoMessage() {}
+
+func (x *WorkflowSetting) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkflowSetting.ProtoReflect.Descriptor instead.
+func (*WorkflowSetting) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *WorkflowSetting) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *WorkflowSetting) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *WorkflowSetting) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *WorkflowSetting) GetDefault() *structpb.Value {
+	if x != nil {
+		return x.Default
+	}
+	return nil
+}
+
+func (x *WorkflowSetting) GetUi() *structpb.Struct {
+	if x != nil {
+		return x.Ui
+	}
+	return nil
+}
+
+func (x *WorkflowSetting) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+// WorkflowRetrySpec governs retries of infrastructure failures — an agent
+// going offline, Redis being unavailable, a dispatch timing out. Node errors
+// are not retried; they go to the error port.
+type WorkflowRetrySpec struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Attempts      int32                  `protobuf:"varint,1,opt,name=attempts,proto3" json:"attempts,omitempty"`
+	Backoff       string                 `protobuf:"bytes,2,opt,name=backoff,proto3" json:"backoff,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkflowRetrySpec) Reset() {
+	*x = WorkflowRetrySpec{}
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkflowRetrySpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkflowRetrySpec) ProtoMessage() {}
+
+func (x *WorkflowRetrySpec) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkflowRetrySpec.ProtoReflect.Descriptor instead.
+func (*WorkflowRetrySpec) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *WorkflowRetrySpec) GetAttempts() int32 {
+	if x != nil {
+		return x.Attempts
+	}
+	return 0
+}
+
+func (x *WorkflowRetrySpec) GetBackoff() string {
+	if x != nil {
+		return x.Backoff
+	}
+	return ""
+}
+
+// WorkflowExecSpec says where and how a node runs.
+type WorkflowExecSpec struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// runs_on defaults to the server; a node names "agent" when its work can
+	// only happen where the files are. It stays a free string, validated by
+	// the catalog loader.
+	RunsOn        string `protobuf:"bytes,1,opt,name=runs_on,json=runsOn,proto3" json:"runs_on,omitempty"`
+	AgentSelector string `protobuf:"bytes,2,opt,name=agent_selector,json=agentSelector,proto3" json:"agent_selector,omitempty"`
+	Timeout       string `protobuf:"bytes,3,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	Cancellable   bool   `protobuf:"varint,4,opt,name=cancellable,proto3" json:"cancellable,omitempty"`
+	// effects is mandatory. It is what dry-run keys off.
+	Effects       WorkflowEffects    `protobuf:"varint,5,opt,name=effects,proto3,enum=metarr.v1.WorkflowEffects" json:"effects,omitempty"`
+	Retry         *WorkflowRetrySpec `protobuf:"bytes,6,opt,name=retry,proto3" json:"retry,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkflowExecSpec) Reset() {
+	*x = WorkflowExecSpec{}
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkflowExecSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkflowExecSpec) ProtoMessage() {}
+
+func (x *WorkflowExecSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkflowExecSpec.ProtoReflect.Descriptor instead.
+func (*WorkflowExecSpec) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *WorkflowExecSpec) GetRunsOn() string {
+	if x != nil {
+		return x.RunsOn
+	}
+	return ""
+}
+
+func (x *WorkflowExecSpec) GetAgentSelector() string {
+	if x != nil {
+		return x.AgentSelector
+	}
+	return ""
+}
+
+func (x *WorkflowExecSpec) GetTimeout() string {
+	if x != nil {
+		return x.Timeout
+	}
+	return ""
+}
+
+func (x *WorkflowExecSpec) GetCancellable() bool {
+	if x != nil {
+		return x.Cancellable
+	}
+	return false
+}
+
+func (x *WorkflowExecSpec) GetEffects() WorkflowEffects {
+	if x != nil {
+		return x.Effects
+	}
+	return WorkflowEffects_WORKFLOW_EFFECTS_UNSPECIFIED
+}
+
+func (x *WorkflowExecSpec) GetRetry() *WorkflowRetrySpec {
+	if x != nil {
+		return x.Retry
+	}
+	return nil
+}
+
+// WorkflowNodeType is one catalog entry: the definition of a kind of node, as
+// distinct from an instance of one placed on a canvas. internal/shared/workflow
+// aliases this message (NodeType = metarrv1.WorkflowNodeType); it is the single
+// definition of the model, read by the editor palette, server-side validation
+// and the engine. See docs/adr/0005.
+type WorkflowNodeType struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Type  string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	Name  string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	// category and subcategory are the palette's two accordion levels, both
+	// presentation-only: never dispatch behaviour on either, only on type.
+	Category      string                `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
+	Subcategory   string                `protobuf:"bytes,5,opt,name=subcategory,proto3" json:"subcategory,omitempty"`
+	Kind          WorkflowNodeKind      `protobuf:"varint,6,opt,name=kind,proto3,enum=metarr.v1.WorkflowNodeKind" json:"kind,omitempty"`
+	Description   string                `protobuf:"bytes,7,opt,name=description,proto3" json:"description,omitempty"`
+	Control       *WorkflowControlPorts `protobuf:"bytes,8,opt,name=control,proto3" json:"control,omitempty"`
+	DataIn        []*WorkflowSocket     `protobuf:"bytes,9,rep,name=data_in,json=dataIn,proto3" json:"data_in,omitempty"`
+	DataOut       []*WorkflowSocket     `protobuf:"bytes,10,rep,name=data_out,json=dataOut,proto3" json:"data_out,omitempty"`
+	Settings      []*WorkflowSetting    `protobuf:"bytes,11,rep,name=settings,proto3" json:"settings,omitempty"`
+	Exec          *WorkflowExecSpec     `protobuf:"bytes,12,opt,name=exec,proto3" json:"exec,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkflowNodeType) Reset() {
+	*x = WorkflowNodeType{}
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkflowNodeType) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkflowNodeType) ProtoMessage() {}
+
+func (x *WorkflowNodeType) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkflowNodeType.ProtoReflect.Descriptor instead.
+func (*WorkflowNodeType) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *WorkflowNodeType) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *WorkflowNodeType) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *WorkflowNodeType) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *WorkflowNodeType) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *WorkflowNodeType) GetSubcategory() string {
+	if x != nil {
+		return x.Subcategory
+	}
+	return ""
+}
+
+func (x *WorkflowNodeType) GetKind() WorkflowNodeKind {
+	if x != nil {
+		return x.Kind
+	}
+	return WorkflowNodeKind_WORKFLOW_NODE_KIND_UNSPECIFIED
+}
+
+func (x *WorkflowNodeType) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *WorkflowNodeType) GetControl() *WorkflowControlPorts {
+	if x != nil {
+		return x.Control
+	}
+	return nil
+}
+
+func (x *WorkflowNodeType) GetDataIn() []*WorkflowSocket {
+	if x != nil {
+		return x.DataIn
+	}
+	return nil
+}
+
+func (x *WorkflowNodeType) GetDataOut() []*WorkflowSocket {
+	if x != nil {
+		return x.DataOut
+	}
+	return nil
+}
+
+func (x *WorkflowNodeType) GetSettings() []*WorkflowSetting {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+func (x *WorkflowNodeType) GetExec() *WorkflowExecSpec {
+	if x != nil {
+		return x.Exec
+	}
+	return nil
+}
+
+// WorkflowTransform is a named, explicit conversion between two types,
+// recorded on the data edge that uses it. internal/shared/workflow aliases
+// this message (Transform = metarrv1.WorkflowTransform).
+type WorkflowTransform struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	From  string                 `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
+	To    string                 `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
+	// ambiguous marks a transform that must never be applied automatically
+	// even when it is the only candidate, because more than one answer is
+	// defensible and guessing wrong is silent.
+	Ambiguous bool   `protobuf:"varint,4,opt,name=ambiguous,proto3" json:"ambiguous,omitempty"`
+	Summary   string `protobuf:"bytes,5,opt,name=summary,proto3" json:"summary,omitempty"`
+	// implies_iteration marks a transform whose value production is
+	// one-to-many at the data level (design.md §4.3's ETL transforms).
+	ImpliesIteration bool `protobuf:"varint,6,opt,name=implies_iteration,json=impliesIteration,proto3" json:"implies_iteration,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *WorkflowTransform) Reset() {
+	*x = WorkflowTransform{}
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkflowTransform) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkflowTransform) ProtoMessage() {}
+
+func (x *WorkflowTransform) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkflowTransform.ProtoReflect.Descriptor instead.
+func (*WorkflowTransform) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *WorkflowTransform) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *WorkflowTransform) GetFrom() string {
+	if x != nil {
+		return x.From
+	}
+	return ""
+}
+
+func (x *WorkflowTransform) GetTo() string {
+	if x != nil {
+		return x.To
+	}
+	return ""
+}
+
+func (x *WorkflowTransform) GetAmbiguous() bool {
+	if x != nil {
+		return x.Ambiguous
+	}
+	return false
+}
+
+func (x *WorkflowTransform) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *WorkflowTransform) GetImpliesIteration() bool {
+	if x != nil {
+		return x.ImpliesIteration
+	}
+	return false
+}
+
+// WorkflowCatalog is the loaded node type catalog plus the transform
+// registry, as served to the editor. catalog.json on disk is one of these
+// with node_types only; the service fills in transforms and schema_version.
+type WorkflowCatalog struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	NodeTypes  []*WorkflowNodeType    `protobuf:"bytes,1,rep,name=node_types,json=nodeTypes,proto3" json:"node_types,omitempty"`
+	Transforms []*WorkflowTransform   `protobuf:"bytes,2,rep,name=transforms,proto3" json:"transforms,omitempty"`
+	// schema_version is the current stored graph format, served alongside the
+	// catalog so the editor knows which graph shape it is authoring.
+	SchemaVersion int32 `protobuf:"varint,3,opt,name=schema_version,json=schemaVersion,proto3" json:"schema_version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkflowCatalog) Reset() {
+	*x = WorkflowCatalog{}
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkflowCatalog) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkflowCatalog) ProtoMessage() {}
+
+func (x *WorkflowCatalog) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkflowCatalog.ProtoReflect.Descriptor instead.
+func (*WorkflowCatalog) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *WorkflowCatalog) GetNodeTypes() []*WorkflowNodeType {
+	if x != nil {
+		return x.NodeTypes
+	}
+	return nil
+}
+
+func (x *WorkflowCatalog) GetTransforms() []*WorkflowTransform {
+	if x != nil {
+		return x.Transforms
+	}
+	return nil
+}
+
+func (x *WorkflowCatalog) GetSchemaVersion() int32 {
+	if x != nil {
+		return x.SchemaVersion
+	}
+	return 0
+}
+
 type WorkflowCatalogServiceGetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -29,7 +919,7 @@ type WorkflowCatalogServiceGetRequest struct {
 
 func (x *WorkflowCatalogServiceGetRequest) Reset() {
 	*x = WorkflowCatalogServiceGetRequest{}
-	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[0]
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -41,7 +931,7 @@ func (x *WorkflowCatalogServiceGetRequest) String() string {
 func (*WorkflowCatalogServiceGetRequest) ProtoMessage() {}
 
 func (x *WorkflowCatalogServiceGetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[0]
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -54,27 +944,23 @@ func (x *WorkflowCatalogServiceGetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowCatalogServiceGetRequest.ProtoReflect.Descriptor instead.
 func (*WorkflowCatalogServiceGetRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{0}
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{8}
 }
 
-// WorkflowCatalogServiceGetResponse carries the same JSON
-// internal/server/handlers/workflow_catalog.go's CatalogResponse already
-// produced — node types (with their sockets, settings, exec specs) and the
-// transform registry. Kept opaque rather than modeled field-for-field: it's
-// read-only, changes only on redeploy, deeply nested, and the frontend
-// already treats it as loosely-typed JSON (catalogTypes.ts is hand-written
-// against the JSON shape, not generated) — same reasoning as
-// local_directories.proto's opaque records, decided together.
+// WorkflowCatalogServiceGetResponse carries the typed catalog: node types
+// (with their control ports, sockets, settings and exec specs), the transform
+// registry, and the graph schema version. It replaced an opaque catalog_json
+// blob when the catalog became a generated message — see docs/adr/0005.
 type WorkflowCatalogServiceGetResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CatalogJson   []byte                 `protobuf:"bytes,1,opt,name=catalog_json,json=catalogJson,proto3" json:"catalog_json,omitempty"`
+	Catalog       *WorkflowCatalog       `protobuf:"bytes,1,opt,name=catalog,proto3" json:"catalog,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *WorkflowCatalogServiceGetResponse) Reset() {
 	*x = WorkflowCatalogServiceGetResponse{}
-	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[1]
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -86,7 +972,7 @@ func (x *WorkflowCatalogServiceGetResponse) String() string {
 func (*WorkflowCatalogServiceGetResponse) ProtoMessage() {}
 
 func (x *WorkflowCatalogServiceGetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[1]
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -99,21 +985,20 @@ func (x *WorkflowCatalogServiceGetResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use WorkflowCatalogServiceGetResponse.ProtoReflect.Descriptor instead.
 func (*WorkflowCatalogServiceGetResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{1}
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *WorkflowCatalogServiceGetResponse) GetCatalogJson() []byte {
+func (x *WorkflowCatalogServiceGetResponse) GetCatalog() *WorkflowCatalog {
 	if x != nil {
-		return x.CatalogJson
+		return x.Catalog
 	}
 	return nil
 }
 
-// WorkflowCatalogServiceValidateRequest carries a workflow.Graph as the same
-// opaque bytes workflows.proto's Workflow message will carry (Step 7) —
-// Node.Extra must survive a round-trip losslessly, which a modeled proto
-// message can't guarantee, so the graph is never decoded into a typed
-// message on the wire at all.
+// WorkflowCatalogServiceValidateRequest carries a workflow.Graph as opaque
+// bytes: Node.Extra must survive a round-trip losslessly, which a modeled
+// proto message cannot yet guarantee, so the graph is not decoded into a
+// typed message on the wire. The workflow graph slice revisits this.
 type WorkflowCatalogServiceValidateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	GraphJson     []byte                 `protobuf:"bytes,1,opt,name=graph_json,json=graphJson,proto3" json:"graph_json,omitempty"`
@@ -123,7 +1008,7 @@ type WorkflowCatalogServiceValidateRequest struct {
 
 func (x *WorkflowCatalogServiceValidateRequest) Reset() {
 	*x = WorkflowCatalogServiceValidateRequest{}
-	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[2]
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -135,7 +1020,7 @@ func (x *WorkflowCatalogServiceValidateRequest) String() string {
 func (*WorkflowCatalogServiceValidateRequest) ProtoMessage() {}
 
 func (x *WorkflowCatalogServiceValidateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[2]
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -148,7 +1033,7 @@ func (x *WorkflowCatalogServiceValidateRequest) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use WorkflowCatalogServiceValidateRequest.ProtoReflect.Descriptor instead.
 func (*WorkflowCatalogServiceValidateRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{2}
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *WorkflowCatalogServiceValidateRequest) GetGraphJson() []byte {
@@ -159,8 +1044,8 @@ func (x *WorkflowCatalogServiceValidateRequest) GetGraphJson() []byte {
 }
 
 // Diagnostic mirrors internal/server/workflow/validate.Diagnostic — small,
-// structured, and painted directly onto the canvas, so unlike the catalog
-// and the graph it gets real fields rather than opaque bytes.
+// structured, and painted directly onto the canvas. The validation
+// diagnostics slice replaces this with a generated model end to end.
 type Diagnostic struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Severity      string                 `protobuf:"bytes,1,opt,name=severity,proto3" json:"severity,omitempty"`
@@ -175,7 +1060,7 @@ type Diagnostic struct {
 
 func (x *Diagnostic) Reset() {
 	*x = Diagnostic{}
-	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[3]
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -187,7 +1072,7 @@ func (x *Diagnostic) String() string {
 func (*Diagnostic) ProtoMessage() {}
 
 func (x *Diagnostic) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[3]
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -200,7 +1085,7 @@ func (x *Diagnostic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Diagnostic.ProtoReflect.Descriptor instead.
 func (*Diagnostic) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{3}
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Diagnostic) GetSeverity() string {
@@ -255,7 +1140,7 @@ type WorkflowCatalogServiceValidateResponse struct {
 
 func (x *WorkflowCatalogServiceValidateResponse) Reset() {
 	*x = WorkflowCatalogServiceValidateResponse{}
-	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[4]
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -267,7 +1152,7 @@ func (x *WorkflowCatalogServiceValidateResponse) String() string {
 func (*WorkflowCatalogServiceValidateResponse) ProtoMessage() {}
 
 func (x *WorkflowCatalogServiceValidateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[4]
+	mi := &file_metarr_v1_workflow_catalog_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -280,7 +1165,7 @@ func (x *WorkflowCatalogServiceValidateResponse) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use WorkflowCatalogServiceValidateResponse.ProtoReflect.Descriptor instead.
 func (*WorkflowCatalogServiceValidateResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{4}
+	return file_metarr_v1_workflow_catalog_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *WorkflowCatalogServiceValidateResponse) GetDiagnostics() []*Diagnostic {
@@ -301,10 +1186,65 @@ var File_metarr_v1_workflow_catalog_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_workflow_catalog_proto_rawDesc = "" +
 	"\n" +
-	" metarr/v1/workflow_catalog.proto\x12\tmetarr.v1\"\"\n" +
-	" WorkflowCatalogServiceGetRequest\"F\n" +
-	"!WorkflowCatalogServiceGetResponse\x12!\n" +
-	"\fcatalog_json\x18\x01 \x01(\fR\vcatalogJson\"F\n" +
+	" metarr/v1/workflow_catalog.proto\x12\tmetarr.v1\x1a\x1cgoogle/protobuf/struct.proto\"N\n" +
+	"\x14WorkflowControlPorts\x12\x0e\n" +
+	"\x02in\x18\x01 \x03(\tR\x02in\x12\x10\n" +
+	"\x03out\x18\x02 \x03(\tR\x03out\x12\x14\n" +
+	"\x05error\x18\x03 \x01(\bR\x05error\"\x8c\x01\n" +
+	"\x0eWorkflowSocket\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x12\n" +
+	"\x04type\x18\x03 \x01(\tR\x04type\x12\x1a\n" +
+	"\brequired\x18\x04 \x01(\bR\brequired\x12 \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\"\xcc\x01\n" +
+	"\x0fWorkflowSetting\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x12\n" +
+	"\x04type\x18\x03 \x01(\tR\x04type\x120\n" +
+	"\adefault\x18\x04 \x01(\v2\x16.google.protobuf.ValueR\adefault\x12'\n" +
+	"\x02ui\x18\x05 \x01(\v2\x17.google.protobuf.StructR\x02ui\x12 \n" +
+	"\vdescription\x18\x06 \x01(\tR\vdescription\"I\n" +
+	"\x11WorkflowRetrySpec\x12\x1a\n" +
+	"\battempts\x18\x01 \x01(\x05R\battempts\x12\x18\n" +
+	"\abackoff\x18\x02 \x01(\tR\abackoff\"\xf8\x01\n" +
+	"\x10WorkflowExecSpec\x12\x17\n" +
+	"\aruns_on\x18\x01 \x01(\tR\x06runsOn\x12%\n" +
+	"\x0eagent_selector\x18\x02 \x01(\tR\ragentSelector\x12\x18\n" +
+	"\atimeout\x18\x03 \x01(\tR\atimeout\x12 \n" +
+	"\vcancellable\x18\x04 \x01(\bR\vcancellable\x124\n" +
+	"\aeffects\x18\x05 \x01(\x0e2\x1a.metarr.v1.WorkflowEffectsR\aeffects\x122\n" +
+	"\x05retry\x18\x06 \x01(\v2\x1c.metarr.v1.WorkflowRetrySpecR\x05retry\"\xe9\x03\n" +
+	"\x10WorkflowNodeType\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04type\x18\x02 \x01(\tR\x04type\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1a\n" +
+	"\bcategory\x18\x04 \x01(\tR\bcategory\x12 \n" +
+	"\vsubcategory\x18\x05 \x01(\tR\vsubcategory\x12/\n" +
+	"\x04kind\x18\x06 \x01(\x0e2\x1b.metarr.v1.WorkflowNodeKindR\x04kind\x12 \n" +
+	"\vdescription\x18\a \x01(\tR\vdescription\x129\n" +
+	"\acontrol\x18\b \x01(\v2\x1f.metarr.v1.WorkflowControlPortsR\acontrol\x122\n" +
+	"\adata_in\x18\t \x03(\v2\x19.metarr.v1.WorkflowSocketR\x06dataIn\x124\n" +
+	"\bdata_out\x18\n" +
+	" \x03(\v2\x19.metarr.v1.WorkflowSocketR\adataOut\x126\n" +
+	"\bsettings\x18\v \x03(\v2\x1a.metarr.v1.WorkflowSettingR\bsettings\x12/\n" +
+	"\x04exec\x18\f \x01(\v2\x1b.metarr.v1.WorkflowExecSpecR\x04exec\"\xb0\x01\n" +
+	"\x11WorkflowTransform\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
+	"\x04from\x18\x02 \x01(\tR\x04from\x12\x0e\n" +
+	"\x02to\x18\x03 \x01(\tR\x02to\x12\x1c\n" +
+	"\tambiguous\x18\x04 \x01(\bR\tambiguous\x12\x18\n" +
+	"\asummary\x18\x05 \x01(\tR\asummary\x12+\n" +
+	"\x11implies_iteration\x18\x06 \x01(\bR\x10impliesIteration\"\xb2\x01\n" +
+	"\x0fWorkflowCatalog\x12:\n" +
+	"\n" +
+	"node_types\x18\x01 \x03(\v2\x1b.metarr.v1.WorkflowNodeTypeR\tnodeTypes\x12<\n" +
+	"\n" +
+	"transforms\x18\x02 \x03(\v2\x1c.metarr.v1.WorkflowTransformR\n" +
+	"transforms\x12%\n" +
+	"\x0eschema_version\x18\x03 \x01(\x05R\rschemaVersion\"\"\n" +
+	" WorkflowCatalogServiceGetRequest\"Y\n" +
+	"!WorkflowCatalogServiceGetResponse\x124\n" +
+	"\acatalog\x18\x01 \x01(\v2\x1a.metarr.v1.WorkflowCatalogR\acatalog\"F\n" +
 	"%WorkflowCatalogServiceValidateRequest\x12\x1d\n" +
 	"\n" +
 	"graph_json\x18\x01 \x01(\fR\tgraphJson\"\xaf\x01\n" +
@@ -318,7 +1258,30 @@ const file_metarr_v1_workflow_catalog_proto_rawDesc = "" +
 	"\fwitness_path\x18\x06 \x03(\tR\vwitnessPath\"}\n" +
 	"&WorkflowCatalogServiceValidateResponse\x127\n" +
 	"\vdiagnostics\x18\x01 \x03(\v2\x15.metarr.v1.DiagnosticR\vdiagnostics\x12\x1a\n" +
-	"\brunnable\x18\x02 \x01(\bR\brunnable2\xeb\x01\n" +
+	"\brunnable\x18\x02 \x01(\bR\brunnable*\x85\x03\n" +
+	"\x10WorkflowNodeKind\x12\"\n" +
+	"\x1eWORKFLOW_NODE_KIND_UNSPECIFIED\x10\x00\x12\x1c\n" +
+	"\x18WORKFLOW_NODE_KIND_START\x10\x01\x12\x1a\n" +
+	"\x16WORKFLOW_NODE_KIND_END\x10\x02\x12\x1b\n" +
+	"\x17WORKFLOW_NODE_KIND_FAIL\x10\x03\x12\x1d\n" +
+	"\x19WORKFLOW_NODE_KIND_SOURCE\x10\x04\x12\x1d\n" +
+	"\x19WORKFLOW_NODE_KIND_BRANCH\x10\x05\x12\x1f\n" +
+	"\x1bWORKFLOW_NODE_KIND_FOR_EACH\x10\x06\x12\x1e\n" +
+	"\x1aWORKFLOW_NODE_KIND_COLLECT\x10\a\x12\x1f\n" +
+	"\x1bWORKFLOW_NODE_KIND_PARALLEL\x10\b\x12\x1b\n" +
+	"\x17WORKFLOW_NODE_KIND_JOIN\x10\t\x12\x1c\n" +
+	"\x18WORKFLOW_NODE_KIND_BREAK\x10\n" +
+	"\x12\x1b\n" +
+	"\x17WORKFLOW_NODE_KIND_NOTE\x10\v*\x8c\x01\n" +
+	"\x0fWorkflowEffects\x12 \n" +
+	"\x1cWORKFLOW_EFFECTS_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15WORKFLOW_EFFECTS_READ\x10\x01\x12\x1a\n" +
+	"\x16WORKFLOW_EFFECTS_WRITE\x10\x02\x12 \n" +
+	"\x1cWORKFLOW_EFFECTS_DESTRUCTIVE\x10\x03*s\n" +
+	"\x10WorkflowPortKind\x12\"\n" +
+	"\x1eWORKFLOW_PORT_KIND_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aWORKFLOW_PORT_KIND_CONTROL\x10\x01\x12\x1b\n" +
+	"\x17WORKFLOW_PORT_KIND_DATA\x10\x022\xeb\x01\n" +
 	"\x16WorkflowCatalogService\x12`\n" +
 	"\x03Get\x12+.metarr.v1.WorkflowCatalogServiceGetRequest\x1a,.metarr.v1.WorkflowCatalogServiceGetResponse\x12o\n" +
 	"\bValidate\x120.metarr.v1.WorkflowCatalogServiceValidateRequest\x1a1.metarr.v1.WorkflowCatalogServiceValidateResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
@@ -335,25 +1298,52 @@ func file_metarr_v1_workflow_catalog_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_workflow_catalog_proto_rawDescData
 }
 
-var file_metarr_v1_workflow_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_metarr_v1_workflow_catalog_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_metarr_v1_workflow_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_metarr_v1_workflow_catalog_proto_goTypes = []any{
-	(*WorkflowCatalogServiceGetRequest)(nil),       // 0: metarr.v1.WorkflowCatalogServiceGetRequest
-	(*WorkflowCatalogServiceGetResponse)(nil),      // 1: metarr.v1.WorkflowCatalogServiceGetResponse
-	(*WorkflowCatalogServiceValidateRequest)(nil),  // 2: metarr.v1.WorkflowCatalogServiceValidateRequest
-	(*Diagnostic)(nil),                             // 3: metarr.v1.Diagnostic
-	(*WorkflowCatalogServiceValidateResponse)(nil), // 4: metarr.v1.WorkflowCatalogServiceValidateResponse
+	(WorkflowNodeKind)(0),                          // 0: metarr.v1.WorkflowNodeKind
+	(WorkflowEffects)(0),                           // 1: metarr.v1.WorkflowEffects
+	(WorkflowPortKind)(0),                          // 2: metarr.v1.WorkflowPortKind
+	(*WorkflowControlPorts)(nil),                   // 3: metarr.v1.WorkflowControlPorts
+	(*WorkflowSocket)(nil),                         // 4: metarr.v1.WorkflowSocket
+	(*WorkflowSetting)(nil),                        // 5: metarr.v1.WorkflowSetting
+	(*WorkflowRetrySpec)(nil),                      // 6: metarr.v1.WorkflowRetrySpec
+	(*WorkflowExecSpec)(nil),                       // 7: metarr.v1.WorkflowExecSpec
+	(*WorkflowNodeType)(nil),                       // 8: metarr.v1.WorkflowNodeType
+	(*WorkflowTransform)(nil),                      // 9: metarr.v1.WorkflowTransform
+	(*WorkflowCatalog)(nil),                        // 10: metarr.v1.WorkflowCatalog
+	(*WorkflowCatalogServiceGetRequest)(nil),       // 11: metarr.v1.WorkflowCatalogServiceGetRequest
+	(*WorkflowCatalogServiceGetResponse)(nil),      // 12: metarr.v1.WorkflowCatalogServiceGetResponse
+	(*WorkflowCatalogServiceValidateRequest)(nil),  // 13: metarr.v1.WorkflowCatalogServiceValidateRequest
+	(*Diagnostic)(nil),                             // 14: metarr.v1.Diagnostic
+	(*WorkflowCatalogServiceValidateResponse)(nil), // 15: metarr.v1.WorkflowCatalogServiceValidateResponse
+	(*structpb.Value)(nil),                         // 16: google.protobuf.Value
+	(*structpb.Struct)(nil),                        // 17: google.protobuf.Struct
 }
 var file_metarr_v1_workflow_catalog_proto_depIdxs = []int32{
-	3, // 0: metarr.v1.WorkflowCatalogServiceValidateResponse.diagnostics:type_name -> metarr.v1.Diagnostic
-	0, // 1: metarr.v1.WorkflowCatalogService.Get:input_type -> metarr.v1.WorkflowCatalogServiceGetRequest
-	2, // 2: metarr.v1.WorkflowCatalogService.Validate:input_type -> metarr.v1.WorkflowCatalogServiceValidateRequest
-	1, // 3: metarr.v1.WorkflowCatalogService.Get:output_type -> metarr.v1.WorkflowCatalogServiceGetResponse
-	4, // 4: metarr.v1.WorkflowCatalogService.Validate:output_type -> metarr.v1.WorkflowCatalogServiceValidateResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	16, // 0: metarr.v1.WorkflowSetting.default:type_name -> google.protobuf.Value
+	17, // 1: metarr.v1.WorkflowSetting.ui:type_name -> google.protobuf.Struct
+	1,  // 2: metarr.v1.WorkflowExecSpec.effects:type_name -> metarr.v1.WorkflowEffects
+	6,  // 3: metarr.v1.WorkflowExecSpec.retry:type_name -> metarr.v1.WorkflowRetrySpec
+	0,  // 4: metarr.v1.WorkflowNodeType.kind:type_name -> metarr.v1.WorkflowNodeKind
+	3,  // 5: metarr.v1.WorkflowNodeType.control:type_name -> metarr.v1.WorkflowControlPorts
+	4,  // 6: metarr.v1.WorkflowNodeType.data_in:type_name -> metarr.v1.WorkflowSocket
+	4,  // 7: metarr.v1.WorkflowNodeType.data_out:type_name -> metarr.v1.WorkflowSocket
+	5,  // 8: metarr.v1.WorkflowNodeType.settings:type_name -> metarr.v1.WorkflowSetting
+	7,  // 9: metarr.v1.WorkflowNodeType.exec:type_name -> metarr.v1.WorkflowExecSpec
+	8,  // 10: metarr.v1.WorkflowCatalog.node_types:type_name -> metarr.v1.WorkflowNodeType
+	9,  // 11: metarr.v1.WorkflowCatalog.transforms:type_name -> metarr.v1.WorkflowTransform
+	10, // 12: metarr.v1.WorkflowCatalogServiceGetResponse.catalog:type_name -> metarr.v1.WorkflowCatalog
+	14, // 13: metarr.v1.WorkflowCatalogServiceValidateResponse.diagnostics:type_name -> metarr.v1.Diagnostic
+	11, // 14: metarr.v1.WorkflowCatalogService.Get:input_type -> metarr.v1.WorkflowCatalogServiceGetRequest
+	13, // 15: metarr.v1.WorkflowCatalogService.Validate:input_type -> metarr.v1.WorkflowCatalogServiceValidateRequest
+	12, // 16: metarr.v1.WorkflowCatalogService.Get:output_type -> metarr.v1.WorkflowCatalogServiceGetResponse
+	15, // 17: metarr.v1.WorkflowCatalogService.Validate:output_type -> metarr.v1.WorkflowCatalogServiceValidateResponse
+	16, // [16:18] is the sub-list for method output_type
+	14, // [14:16] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_workflow_catalog_proto_init() }
@@ -366,13 +1356,14 @@ func file_metarr_v1_workflow_catalog_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_workflow_catalog_proto_rawDesc), len(file_metarr_v1_workflow_catalog_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   5,
+			NumEnums:      3,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_metarr_v1_workflow_catalog_proto_goTypes,
 		DependencyIndexes: file_metarr_v1_workflow_catalog_proto_depIdxs,
+		EnumInfos:         file_metarr_v1_workflow_catalog_proto_enumTypes,
 		MessageInfos:      file_metarr_v1_workflow_catalog_proto_msgTypes,
 	}.Build()
 	File_metarr_v1_workflow_catalog_proto = out.File

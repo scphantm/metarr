@@ -2,15 +2,392 @@
 // @generated from file metarr/v1/workflow_catalog.proto (package metarr.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { Message } from "@bufbuild/protobuf";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Value } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
+import type { JsonObject, Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metarr/v1/workflow_catalog.proto.
  */
 export const file_metarr_v1_workflow_catalog: GenFile = /*@__PURE__*/
-  fileDesc("CiBtZXRhcnIvdjEvd29ya2Zsb3dfY2F0YWxvZy5wcm90bxIJbWV0YXJyLnYxIiIKIFdvcmtmbG93Q2F0YWxvZ1NlcnZpY2VHZXRSZXF1ZXN0IjkKIVdvcmtmbG93Q2F0YWxvZ1NlcnZpY2VHZXRSZXNwb25zZRIUCgxjYXRhbG9nX2pzb24YASABKAwiOwolV29ya2Zsb3dDYXRhbG9nU2VydmljZVZhbGlkYXRlUmVxdWVzdBISCgpncmFwaF9qc29uGAEgASgMIncKCkRpYWdub3N0aWMSEAoIc2V2ZXJpdHkYASABKAkSDAoEY29kZRgCIAEoCRIPCgdtZXNzYWdlGAMgASgJEhAKCG5vZGVfaWRzGAQgAygJEhAKCGVkZ2VfaWRzGAUgAygJEhQKDHdpdG5lc3NfcGF0aBgGIAMoCSJmCiZXb3JrZmxvd0NhdGFsb2dTZXJ2aWNlVmFsaWRhdGVSZXNwb25zZRIqCgtkaWFnbm9zdGljcxgBIAMoCzIVLm1ldGFyci52MS5EaWFnbm9zdGljEhAKCHJ1bm5hYmxlGAIgASgIMusBChZXb3JrZmxvd0NhdGFsb2dTZXJ2aWNlEmAKA0dldBIrLm1ldGFyci52MS5Xb3JrZmxvd0NhdGFsb2dTZXJ2aWNlR2V0UmVxdWVzdBosLm1ldGFyci52MS5Xb3JrZmxvd0NhdGFsb2dTZXJ2aWNlR2V0UmVzcG9uc2USbwoIVmFsaWRhdGUSMC5tZXRhcnIudjEuV29ya2Zsb3dDYXRhbG9nU2VydmljZVZhbGlkYXRlUmVxdWVzdBoxLm1ldGFyci52MS5Xb3JrZmxvd0NhdGFsb2dTZXJ2aWNlVmFsaWRhdGVSZXNwb25zZUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM");
+  fileDesc("CiBtZXRhcnIvdjEvd29ya2Zsb3dfY2F0YWxvZy5wcm90bxIJbWV0YXJyLnYxIj4KFFdvcmtmbG93Q29udHJvbFBvcnRzEgoKAmluGAEgAygJEgsKA291dBgCIAMoCRINCgVlcnJvchgDIAEoCCJiCg5Xb3JrZmxvd1NvY2tldBIMCgRuYW1lGAEgASgJEg0KBWxhYmVsGAIgASgJEgwKBHR5cGUYAyABKAkSEAoIcmVxdWlyZWQYBCABKAgSEwoLZGVzY3JpcHRpb24YBSABKAkinwEKD1dvcmtmbG93U2V0dGluZxIMCgRuYW1lGAEgASgJEg0KBWxhYmVsGAIgASgJEgwKBHR5cGUYAyABKAkSJwoHZGVmYXVsdBgEIAEoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZRIjCgJ1aRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSEwoLZGVzY3JpcHRpb24YBiABKAkiNgoRV29ya2Zsb3dSZXRyeVNwZWMSEAoIYXR0ZW1wdHMYASABKAUSDwoHYmFja29mZhgCIAEoCSK7AQoQV29ya2Zsb3dFeGVjU3BlYxIPCgdydW5zX29uGAEgASgJEhYKDmFnZW50X3NlbGVjdG9yGAIgASgJEg8KB3RpbWVvdXQYAyABKAkSEwoLY2FuY2VsbGFibGUYBCABKAgSKwoHZWZmZWN0cxgFIAEoDjIaLm1ldGFyci52MS5Xb3JrZmxvd0VmZmVjdHMSKwoFcmV0cnkYBiABKAsyHC5tZXRhcnIudjEuV29ya2Zsb3dSZXRyeVNwZWMihQMKEFdvcmtmbG93Tm9kZVR5cGUSCgoCaWQYASABKAkSDAoEdHlwZRgCIAEoCRIMCgRuYW1lGAMgASgJEhAKCGNhdGVnb3J5GAQgASgJEhMKC3N1YmNhdGVnb3J5GAUgASgJEikKBGtpbmQYBiABKA4yGy5tZXRhcnIudjEuV29ya2Zsb3dOb2RlS2luZBITCgtkZXNjcmlwdGlvbhgHIAEoCRIwCgdjb250cm9sGAggASgLMh8ubWV0YXJyLnYxLldvcmtmbG93Q29udHJvbFBvcnRzEioKB2RhdGFfaW4YCSADKAsyGS5tZXRhcnIudjEuV29ya2Zsb3dTb2NrZXQSKwoIZGF0YV9vdXQYCiADKAsyGS5tZXRhcnIudjEuV29ya2Zsb3dTb2NrZXQSLAoIc2V0dGluZ3MYCyADKAsyGi5tZXRhcnIudjEuV29ya2Zsb3dTZXR0aW5nEikKBGV4ZWMYDCABKAsyGy5tZXRhcnIudjEuV29ya2Zsb3dFeGVjU3BlYyJ6ChFXb3JrZmxvd1RyYW5zZm9ybRIMCgRuYW1lGAEgASgJEgwKBGZyb20YAiABKAkSCgoCdG8YAyABKAkSEQoJYW1iaWd1b3VzGAQgASgIEg8KB3N1bW1hcnkYBSABKAkSGQoRaW1wbGllc19pdGVyYXRpb24YBiABKAgijAEKD1dvcmtmbG93Q2F0YWxvZxIvCgpub2RlX3R5cGVzGAEgAygLMhsubWV0YXJyLnYxLldvcmtmbG93Tm9kZVR5cGUSMAoKdHJhbnNmb3JtcxgCIAMoCzIcLm1ldGFyci52MS5Xb3JrZmxvd1RyYW5zZm9ybRIWCg5zY2hlbWFfdmVyc2lvbhgDIAEoBSIiCiBXb3JrZmxvd0NhdGFsb2dTZXJ2aWNlR2V0UmVxdWVzdCJQCiFXb3JrZmxvd0NhdGFsb2dTZXJ2aWNlR2V0UmVzcG9uc2USKwoHY2F0YWxvZxgBIAEoCzIaLm1ldGFyci52MS5Xb3JrZmxvd0NhdGFsb2ciOwolV29ya2Zsb3dDYXRhbG9nU2VydmljZVZhbGlkYXRlUmVxdWVzdBISCgpncmFwaF9qc29uGAEgASgMIncKCkRpYWdub3N0aWMSEAoIc2V2ZXJpdHkYASABKAkSDAoEY29kZRgCIAEoCRIPCgdtZXNzYWdlGAMgASgJEhAKCG5vZGVfaWRzGAQgAygJEhAKCGVkZ2VfaWRzGAUgAygJEhQKDHdpdG5lc3NfcGF0aBgGIAMoCSJmCiZXb3JrZmxvd0NhdGFsb2dTZXJ2aWNlVmFsaWRhdGVSZXNwb25zZRIqCgtkaWFnbm9zdGljcxgBIAMoCzIVLm1ldGFyci52MS5EaWFnbm9zdGljEhAKCHJ1bm5hYmxlGAIgASgIKoUDChBXb3JrZmxvd05vZGVLaW5kEiIKHldPUktGTE9XX05PREVfS0lORF9VTlNQRUNJRklFRBAAEhwKGFdPUktGTE9XX05PREVfS0lORF9TVEFSVBABEhoKFldPUktGTE9XX05PREVfS0lORF9FTkQQAhIbChdXT1JLRkxPV19OT0RFX0tJTkRfRkFJTBADEh0KGVdPUktGTE9XX05PREVfS0lORF9TT1VSQ0UQBBIdChlXT1JLRkxPV19OT0RFX0tJTkRfQlJBTkNIEAUSHwobV09SS0ZMT1dfTk9ERV9LSU5EX0ZPUl9FQUNIEAYSHgoaV09SS0ZMT1dfTk9ERV9LSU5EX0NPTExFQ1QQBxIfChtXT1JLRkxPV19OT0RFX0tJTkRfUEFSQUxMRUwQCBIbChdXT1JLRkxPV19OT0RFX0tJTkRfSk9JThAJEhwKGFdPUktGTE9XX05PREVfS0lORF9CUkVBSxAKEhsKF1dPUktGTE9XX05PREVfS0lORF9OT1RFEAsqjAEKD1dvcmtmbG93RWZmZWN0cxIgChxXT1JLRkxPV19FRkZFQ1RTX1VOU1BFQ0lGSUVEEAASGQoVV09SS0ZMT1dfRUZGRUNUU19SRUFEEAESGgoWV09SS0ZMT1dfRUZGRUNUU19XUklURRACEiAKHFdPUktGTE9XX0VGRkVDVFNfREVTVFJVQ1RJVkUQAypzChBXb3JrZmxvd1BvcnRLaW5kEiIKHldPUktGTE9XX1BPUlRfS0lORF9VTlNQRUNJRklFRBAAEh4KGldPUktGTE9XX1BPUlRfS0lORF9DT05UUk9MEAESGwoXV09SS0ZMT1dfUE9SVF9LSU5EX0RBVEEQAjLrAQoWV29ya2Zsb3dDYXRhbG9nU2VydmljZRJgCgNHZXQSKy5tZXRhcnIudjEuV29ya2Zsb3dDYXRhbG9nU2VydmljZUdldFJlcXVlc3QaLC5tZXRhcnIudjEuV29ya2Zsb3dDYXRhbG9nU2VydmljZUdldFJlc3BvbnNlEm8KCFZhbGlkYXRlEjAubWV0YXJyLnYxLldvcmtmbG93Q2F0YWxvZ1NlcnZpY2VWYWxpZGF0ZVJlcXVlc3QaMS5tZXRhcnIudjEuV29ya2Zsb3dDYXRhbG9nU2VydmljZVZhbGlkYXRlUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_google_protobuf_struct]);
+
+/**
+ * WorkflowControlPorts declares a node type's execution wiring. An empty `in`
+ * is what makes a node a starting point, and an empty `out` what makes it an
+ * ending point — the catalog says so directly rather than the UI inferring it
+ * from a category name.
+ *
+ * @generated from message metarr.v1.WorkflowControlPorts
+ */
+export type WorkflowControlPorts = Message<"metarr.v1.WorkflowControlPorts"> & {
+  /**
+   * @generated from field: repeated string in = 1;
+   */
+  in: string[];
+
+  /**
+   * @generated from field: repeated string out = 2;
+   */
+  out: string[];
+
+  /**
+   * error adds the red error out-port. It is an ordinary control branch; the
+   * only thing special about it is how it is drawn and that leaving it
+   * unwired aborts the run.
+   *
+   * @generated from field: bool error = 3;
+   */
+  error: boolean;
+};
+
+/**
+ * Describes the message metarr.v1.WorkflowControlPorts.
+ * Use `create(WorkflowControlPortsSchema)` to create a new message.
+ */
+export const WorkflowControlPortsSchema: GenMessage<WorkflowControlPorts> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_workflow_catalog, 0);
+
+/**
+ * WorkflowSocket is a typed data port.
+ *
+ * @generated from message metarr.v1.WorkflowSocket
+ */
+export type WorkflowSocket = Message<"metarr.v1.WorkflowSocket"> & {
+  /**
+   * name is a permanent identifier that stored edges reference. Renaming one
+   * silently breaks every saved workflow — change label instead.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * type is a value type in the workflow type system: a dotted-prefix
+   * hierarchy with a generic list<T> constructor. It stays a free string, so
+   * a new type needs no proto change beyond a catalog entry naming it.
+   *
+   * @generated from field: string type = 3;
+   */
+  type: string;
+
+  /**
+   * @generated from field: bool required = 4;
+   */
+  required: boolean;
+
+  /**
+   * @generated from field: string description = 5;
+   */
+  description: string;
+};
+
+/**
+ * Describes the message metarr.v1.WorkflowSocket.
+ * Use `create(WorkflowSocketSchema)` to create a new message.
+ */
+export const WorkflowSocketSchema: GenMessage<WorkflowSocket> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_workflow_catalog, 1);
+
+/**
+ * WorkflowSetting is a literal the user types into the node's editor. It is
+ * never wired, unless promoted on a specific instance.
+ *
+ * @generated from message metarr.v1.WorkflowSetting
+ */
+export type WorkflowSetting = Message<"metarr.v1.WorkflowSetting"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * @generated from field: string type = 3;
+   */
+  type: string;
+
+  /**
+   * default is the setting's initial value — any JSON scalar or structure.
+   *
+   * @generated from field: google.protobuf.Value default = 4;
+   */
+  default?: Value | undefined;
+
+  /**
+   * ui carries editor hints (widget, options) with no fixed schema.
+   *
+   * @generated from field: google.protobuf.Struct ui = 5;
+   */
+  ui?: JsonObject | undefined;
+
+  /**
+   * @generated from field: string description = 6;
+   */
+  description: string;
+};
+
+/**
+ * Describes the message metarr.v1.WorkflowSetting.
+ * Use `create(WorkflowSettingSchema)` to create a new message.
+ */
+export const WorkflowSettingSchema: GenMessage<WorkflowSetting> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_workflow_catalog, 2);
+
+/**
+ * WorkflowRetrySpec governs retries of infrastructure failures — an agent
+ * going offline, Redis being unavailable, a dispatch timing out. Node errors
+ * are not retried; they go to the error port.
+ *
+ * @generated from message metarr.v1.WorkflowRetrySpec
+ */
+export type WorkflowRetrySpec = Message<"metarr.v1.WorkflowRetrySpec"> & {
+  /**
+   * @generated from field: int32 attempts = 1;
+   */
+  attempts: number;
+
+  /**
+   * @generated from field: string backoff = 2;
+   */
+  backoff: string;
+};
+
+/**
+ * Describes the message metarr.v1.WorkflowRetrySpec.
+ * Use `create(WorkflowRetrySpecSchema)` to create a new message.
+ */
+export const WorkflowRetrySpecSchema: GenMessage<WorkflowRetrySpec> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_workflow_catalog, 3);
+
+/**
+ * WorkflowExecSpec says where and how a node runs.
+ *
+ * @generated from message metarr.v1.WorkflowExecSpec
+ */
+export type WorkflowExecSpec = Message<"metarr.v1.WorkflowExecSpec"> & {
+  /**
+   * runs_on defaults to the server; a node names "agent" when its work can
+   * only happen where the files are. It stays a free string, validated by
+   * the catalog loader.
+   *
+   * @generated from field: string runs_on = 1;
+   */
+  runsOn: string;
+
+  /**
+   * @generated from field: string agent_selector = 2;
+   */
+  agentSelector: string;
+
+  /**
+   * @generated from field: string timeout = 3;
+   */
+  timeout: string;
+
+  /**
+   * @generated from field: bool cancellable = 4;
+   */
+  cancellable: boolean;
+
+  /**
+   * effects is mandatory. It is what dry-run keys off.
+   *
+   * @generated from field: metarr.v1.WorkflowEffects effects = 5;
+   */
+  effects: WorkflowEffects;
+
+  /**
+   * @generated from field: metarr.v1.WorkflowRetrySpec retry = 6;
+   */
+  retry?: WorkflowRetrySpec | undefined;
+};
+
+/**
+ * Describes the message metarr.v1.WorkflowExecSpec.
+ * Use `create(WorkflowExecSpecSchema)` to create a new message.
+ */
+export const WorkflowExecSpecSchema: GenMessage<WorkflowExecSpec> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_workflow_catalog, 4);
+
+/**
+ * WorkflowNodeType is one catalog entry: the definition of a kind of node, as
+ * distinct from an instance of one placed on a canvas. internal/shared/workflow
+ * aliases this message (NodeType = metarrv1.WorkflowNodeType); it is the single
+ * definition of the model, read by the editor palette, server-side validation
+ * and the engine. See docs/adr/0005.
+ *
+ * @generated from message metarr.v1.WorkflowNodeType
+ */
+export type WorkflowNodeType = Message<"metarr.v1.WorkflowNodeType"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string type = 2;
+   */
+  type: string;
+
+  /**
+   * @generated from field: string name = 3;
+   */
+  name: string;
+
+  /**
+   * category and subcategory are the palette's two accordion levels, both
+   * presentation-only: never dispatch behaviour on either, only on type.
+   *
+   * @generated from field: string category = 4;
+   */
+  category: string;
+
+  /**
+   * @generated from field: string subcategory = 5;
+   */
+  subcategory: string;
+
+  /**
+   * @generated from field: metarr.v1.WorkflowNodeKind kind = 6;
+   */
+  kind: WorkflowNodeKind;
+
+  /**
+   * @generated from field: string description = 7;
+   */
+  description: string;
+
+  /**
+   * @generated from field: metarr.v1.WorkflowControlPorts control = 8;
+   */
+  control?: WorkflowControlPorts | undefined;
+
+  /**
+   * @generated from field: repeated metarr.v1.WorkflowSocket data_in = 9;
+   */
+  dataIn: WorkflowSocket[];
+
+  /**
+   * @generated from field: repeated metarr.v1.WorkflowSocket data_out = 10;
+   */
+  dataOut: WorkflowSocket[];
+
+  /**
+   * @generated from field: repeated metarr.v1.WorkflowSetting settings = 11;
+   */
+  settings: WorkflowSetting[];
+
+  /**
+   * @generated from field: metarr.v1.WorkflowExecSpec exec = 12;
+   */
+  exec?: WorkflowExecSpec | undefined;
+};
+
+/**
+ * Describes the message metarr.v1.WorkflowNodeType.
+ * Use `create(WorkflowNodeTypeSchema)` to create a new message.
+ */
+export const WorkflowNodeTypeSchema: GenMessage<WorkflowNodeType> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_workflow_catalog, 5);
+
+/**
+ * WorkflowTransform is a named, explicit conversion between two types,
+ * recorded on the data edge that uses it. internal/shared/workflow aliases
+ * this message (Transform = metarrv1.WorkflowTransform).
+ *
+ * @generated from message metarr.v1.WorkflowTransform
+ */
+export type WorkflowTransform = Message<"metarr.v1.WorkflowTransform"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string from = 2;
+   */
+  from: string;
+
+  /**
+   * @generated from field: string to = 3;
+   */
+  to: string;
+
+  /**
+   * ambiguous marks a transform that must never be applied automatically
+   * even when it is the only candidate, because more than one answer is
+   * defensible and guessing wrong is silent.
+   *
+   * @generated from field: bool ambiguous = 4;
+   */
+  ambiguous: boolean;
+
+  /**
+   * @generated from field: string summary = 5;
+   */
+  summary: string;
+
+  /**
+   * implies_iteration marks a transform whose value production is
+   * one-to-many at the data level (design.md §4.3's ETL transforms).
+   *
+   * @generated from field: bool implies_iteration = 6;
+   */
+  impliesIteration: boolean;
+};
+
+/**
+ * Describes the message metarr.v1.WorkflowTransform.
+ * Use `create(WorkflowTransformSchema)` to create a new message.
+ */
+export const WorkflowTransformSchema: GenMessage<WorkflowTransform> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_workflow_catalog, 6);
+
+/**
+ * WorkflowCatalog is the loaded node type catalog plus the transform
+ * registry, as served to the editor. catalog.json on disk is one of these
+ * with node_types only; the service fills in transforms and schema_version.
+ *
+ * @generated from message metarr.v1.WorkflowCatalog
+ */
+export type WorkflowCatalog = Message<"metarr.v1.WorkflowCatalog"> & {
+  /**
+   * @generated from field: repeated metarr.v1.WorkflowNodeType node_types = 1;
+   */
+  nodeTypes: WorkflowNodeType[];
+
+  /**
+   * @generated from field: repeated metarr.v1.WorkflowTransform transforms = 2;
+   */
+  transforms: WorkflowTransform[];
+
+  /**
+   * schema_version is the current stored graph format, served alongside the
+   * catalog so the editor knows which graph shape it is authoring.
+   *
+   * @generated from field: int32 schema_version = 3;
+   */
+  schemaVersion: number;
+};
+
+/**
+ * Describes the message metarr.v1.WorkflowCatalog.
+ * Use `create(WorkflowCatalogSchema)` to create a new message.
+ */
+export const WorkflowCatalogSchema: GenMessage<WorkflowCatalog> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_workflow_catalog, 7);
 
 /**
  * @generated from message metarr.v1.WorkflowCatalogServiceGetRequest
@@ -23,25 +400,21 @@ export type WorkflowCatalogServiceGetRequest = Message<"metarr.v1.WorkflowCatalo
  * Use `create(WorkflowCatalogServiceGetRequestSchema)` to create a new message.
  */
 export const WorkflowCatalogServiceGetRequestSchema: GenMessage<WorkflowCatalogServiceGetRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_workflow_catalog, 0);
+  messageDesc(file_metarr_v1_workflow_catalog, 8);
 
 /**
- * WorkflowCatalogServiceGetResponse carries the same JSON
- * internal/server/handlers/workflow_catalog.go's CatalogResponse already
- * produced — node types (with their sockets, settings, exec specs) and the
- * transform registry. Kept opaque rather than modeled field-for-field: it's
- * read-only, changes only on redeploy, deeply nested, and the frontend
- * already treats it as loosely-typed JSON (catalogTypes.ts is hand-written
- * against the JSON shape, not generated) — same reasoning as
- * local_directories.proto's opaque records, decided together.
+ * WorkflowCatalogServiceGetResponse carries the typed catalog: node types
+ * (with their control ports, sockets, settings and exec specs), the transform
+ * registry, and the graph schema version. It replaced an opaque catalog_json
+ * blob when the catalog became a generated message — see docs/adr/0005.
  *
  * @generated from message metarr.v1.WorkflowCatalogServiceGetResponse
  */
 export type WorkflowCatalogServiceGetResponse = Message<"metarr.v1.WorkflowCatalogServiceGetResponse"> & {
   /**
-   * @generated from field: bytes catalog_json = 1;
+   * @generated from field: metarr.v1.WorkflowCatalog catalog = 1;
    */
-  catalogJson: Uint8Array;
+  catalog?: WorkflowCatalog | undefined;
 };
 
 /**
@@ -49,14 +422,13 @@ export type WorkflowCatalogServiceGetResponse = Message<"metarr.v1.WorkflowCatal
  * Use `create(WorkflowCatalogServiceGetResponseSchema)` to create a new message.
  */
 export const WorkflowCatalogServiceGetResponseSchema: GenMessage<WorkflowCatalogServiceGetResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_workflow_catalog, 1);
+  messageDesc(file_metarr_v1_workflow_catalog, 9);
 
 /**
- * WorkflowCatalogServiceValidateRequest carries a workflow.Graph as the same
- * opaque bytes workflows.proto's Workflow message will carry (Step 7) —
- * Node.Extra must survive a round-trip losslessly, which a modeled proto
- * message can't guarantee, so the graph is never decoded into a typed
- * message on the wire at all.
+ * WorkflowCatalogServiceValidateRequest carries a workflow.Graph as opaque
+ * bytes: Node.Extra must survive a round-trip losslessly, which a modeled
+ * proto message cannot yet guarantee, so the graph is not decoded into a
+ * typed message on the wire. The workflow graph slice revisits this.
  *
  * @generated from message metarr.v1.WorkflowCatalogServiceValidateRequest
  */
@@ -72,12 +444,12 @@ export type WorkflowCatalogServiceValidateRequest = Message<"metarr.v1.WorkflowC
  * Use `create(WorkflowCatalogServiceValidateRequestSchema)` to create a new message.
  */
 export const WorkflowCatalogServiceValidateRequestSchema: GenMessage<WorkflowCatalogServiceValidateRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_workflow_catalog, 2);
+  messageDesc(file_metarr_v1_workflow_catalog, 10);
 
 /**
  * Diagnostic mirrors internal/server/workflow/validate.Diagnostic — small,
- * structured, and painted directly onto the canvas, so unlike the catalog
- * and the graph it gets real fields rather than opaque bytes.
+ * structured, and painted directly onto the canvas. The validation
+ * diagnostics slice replaces this with a generated model end to end.
  *
  * @generated from message metarr.v1.Diagnostic
  */
@@ -118,7 +490,7 @@ export type Diagnostic = Message<"metarr.v1.Diagnostic"> & {
  * Use `create(DiagnosticSchema)` to create a new message.
  */
 export const DiagnosticSchema: GenMessage<Diagnostic> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_workflow_catalog, 3);
+  messageDesc(file_metarr_v1_workflow_catalog, 11);
 
 /**
  * @generated from message metarr.v1.WorkflowCatalogServiceValidateResponse
@@ -140,7 +512,190 @@ export type WorkflowCatalogServiceValidateResponse = Message<"metarr.v1.Workflow
  * Use `create(WorkflowCatalogServiceValidateResponseSchema)` to create a new message.
  */
 export const WorkflowCatalogServiceValidateResponseSchema: GenMessage<WorkflowCatalogServiceValidateResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_workflow_catalog, 4);
+  messageDesc(file_metarr_v1_workflow_catalog, 12);
+
+/**
+ * WorkflowNodeKind tells the validator and engine how a node participates in
+ * control flow. The engine owns this vocabulary and it is closed, so it is a
+ * proto enum rather than a free string. A node's `type`, by contrast, stays a
+ * free string: the catalog owns that vocabulary, so a new node type is a
+ * catalog data change and never a proto change or a release.
+ *
+ * @generated from enum metarr.v1.WorkflowNodeKind
+ */
+export enum WorkflowNodeKind {
+  /**
+   * An ordinary step. The zero value, so a catalog entry that names no kind
+   * is a plain task; catalog.json omits `kind` for these.
+   *
+   * @generated from enum value: WORKFLOW_NODE_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * The single entry point of a workflow.
+   *
+   * @generated from enum value: WORKFLOW_NODE_KIND_START = 1;
+   */
+  START = 1,
+
+  /**
+   * Terminates a run. Forbidden inside parallel branches and loop bodies.
+   *
+   * @generated from enum value: WORKFLOW_NODE_KIND_END = 2;
+   */
+  END = 2,
+
+  /**
+   * Terminates a run as failed.
+   *
+   * @generated from enum value: WORKFLOW_NODE_KIND_FAIL = 3;
+   */
+  FAIL = 3,
+
+  /**
+   * A pure data source — a literal, a selector, a constant. It has no control
+   * ports at all and is exempt from MustHaveRun.
+   *
+   * @generated from enum value: WORKFLOW_NODE_KIND_SOURCE = 4;
+   */
+  SOURCE = 4,
+
+  /**
+   * Chooses exactly one of several control outs.
+   *
+   * @generated from enum value: WORKFLOW_NODE_KIND_BRANCH = 5;
+   */
+  BRANCH = 5,
+
+  /**
+   * Iterates, firing body per item then done once.
+   *
+   * @generated from enum value: WORKFLOW_NODE_KIND_FOR_EACH = 6;
+   */
+  FOR_EACH = 6,
+
+  /**
+   * Accumulates a value inside a loop body. Its output is attributed to the
+   * enclosing loop's done transition.
+   *
+   * @generated from enum value: WORKFLOW_NODE_KIND_COLLECT = 7;
+   */
+  COLLECT = 7,
+
+  /**
+   * Fans out into concurrent branches.
+   *
+   * @generated from enum value: WORKFLOW_NODE_KIND_PARALLEL = 8;
+   */
+  PARALLEL = 8,
+
+  /**
+   * The barrier paired with a parallel.
+   *
+   * @generated from enum value: WORKFLOW_NODE_KIND_JOIN = 9;
+   */
+  JOIN = 9,
+
+  /**
+   * Terminates the enclosing loop.
+   *
+   * @generated from enum value: WORKFLOW_NODE_KIND_BREAK = 10;
+   */
+  BREAK = 10,
+
+  /**
+   * An annotation. It has no ports, is stripped before compilation, and is
+   * excluded from every validation pass.
+   *
+   * @generated from enum value: WORKFLOW_NODE_KIND_NOTE = 11;
+   */
+  NOTE = 11,
+}
+
+/**
+ * Describes the enum metarr.v1.WorkflowNodeKind.
+ */
+export const WorkflowNodeKindSchema: GenEnum<WorkflowNodeKind> = /*@__PURE__*/
+  enumDesc(file_metarr_v1_workflow_catalog, 0);
+
+/**
+ * WorkflowEffects classifies what a node type does to the filesystem. Every
+ * catalog entry must declare it — it is what dry-run keys off, and it cannot
+ * be retrofitted without re-auditing every handler ever written — so
+ * WORKFLOW_EFFECTS_UNSPECIFIED is a catalog load error, never a default.
+ *
+ * @generated from enum metarr.v1.WorkflowEffects
+ */
+export enum WorkflowEffects {
+  /**
+   * @generated from enum value: WORKFLOW_EFFECTS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Inspects only, and is unaffected by dry-run.
+   *
+   * @generated from enum value: WORKFLOW_EFFECTS_READ = 1;
+   */
+  READ = 1,
+
+  /**
+   * Creates or modifies files.
+   *
+   * @generated from enum value: WORKFLOW_EFFECTS_WRITE = 2;
+   */
+  WRITE = 2,
+
+  /**
+   * Deletes or overwrites existing library content. It is badged in the
+   * editor, and an agent refuses to invoke it at all while dry-run is set.
+   *
+   * @generated from enum value: WORKFLOW_EFFECTS_DESTRUCTIVE = 3;
+   */
+  DESTRUCTIVE = 3,
+}
+
+/**
+ * Describes the enum metarr.v1.WorkflowEffects.
+ */
+export const WorkflowEffectsSchema: GenEnum<WorkflowEffects> = /*@__PURE__*/
+  enumDesc(file_metarr_v1_workflow_catalog, 1);
+
+/**
+ * WorkflowPortKind is the closed two-value vocabulary that separates a node's
+ * control wiring from its data wiring. The engine owns it: handle ids in the
+ * editor encode it (`c:` / `d:`), control and data edges are validated by
+ * entirely different rules, and the two are never styled alike.
+ *
+ * @generated from enum metarr.v1.WorkflowPortKind
+ */
+export enum WorkflowPortKind {
+  /**
+   * @generated from enum value: WORKFLOW_PORT_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A control port: says what runs next.
+   *
+   * @generated from enum value: WORKFLOW_PORT_KIND_CONTROL = 1;
+   */
+  CONTROL = 1,
+
+  /**
+   * A data port (socket): wires a typed value into a parameter.
+   *
+   * @generated from enum value: WORKFLOW_PORT_KIND_DATA = 2;
+   */
+  DATA = 2,
+}
+
+/**
+ * Describes the enum metarr.v1.WorkflowPortKind.
+ */
+export const WorkflowPortKindSchema: GenEnum<WorkflowPortKind> = /*@__PURE__*/
+  enumDesc(file_metarr_v1_workflow_catalog, 2);
 
 /**
  * @generated from service metarr.v1.WorkflowCatalogService

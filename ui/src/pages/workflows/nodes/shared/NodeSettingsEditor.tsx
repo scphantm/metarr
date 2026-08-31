@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Checkbox, Input, InputNumber, Modal, Select, Typography } from 'antd'
 
-import type { Setting } from '../../catalogTypes'
+import type { WorkflowSetting as Setting } from '../../../../gen/metarr/v1/workflow_catalog_pb'
+import { settingDefault } from '../../catalogValue'
 import './NodeSettingsEditor.css'
 
 /*
@@ -101,7 +102,7 @@ export function NodeSettingsEditor({
 
   function valueFor(setting: Setting) {
     const current = draft[setting.name]
-    return current === undefined ? setting.default : current
+    return current === undefined ? settingDefault(setting.default) : current
   }
 
   return (
@@ -145,7 +146,7 @@ export function NodeSettingsEditor({
           return (
             <div key={setting.name} className="node-settings-field">
               <label className="node-settings-field-label" htmlFor={fieldId}>
-                {setting.label ?? setting.name}
+                {setting.label || setting.name}
               </label>
 
               {setting.type === 'bool' ? (

@@ -1,6 +1,7 @@
 import { Modal, Typography } from 'antd'
 
-import type { Transform, Type } from '../catalogTypes'
+import type { WorkflowTransform as Transform } from '../../../gen/metarr/v1/workflow_catalog_pb'
+import type { Type } from '../connectionRules'
 import './TransformPicker.css'
 
 /*

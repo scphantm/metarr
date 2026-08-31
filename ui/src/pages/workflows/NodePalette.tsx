@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Collapse, Input, Typography } from 'antd'
 
+import type { WorkflowNodeType as NodeType } from '../../gen/metarr/v1/workflow_catalog_pb'
 import { useWorkflowCatalog } from '../../api/queries'
 import { useDnD } from './DnDContext'
-import type { NodeType } from './catalogTypes'
 import './NodePalette.css'
 
 // Two accordion levels: category (outer) then subcategory (inner). Neither
@@ -34,7 +34,7 @@ export function NodePalette() {
   const [filter, setFilter] = useState('')
 
   const filtered = useMemo(() => {
-    const entries = catalog?.node_types ?? []
+    const entries = catalog?.nodeTypes ?? []
     const query = filter.trim().toLowerCase()
     if (!query) return entries
     return entries.filter(

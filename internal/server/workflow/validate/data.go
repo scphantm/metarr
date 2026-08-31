@@ -27,7 +27,7 @@ func (a *analysis) checkDataEdges() {
 }
 
 // checkDataEdgeAvailability is the MustHaveRun check.
-func (a *analysis) checkDataEdgeAvailability(edge workflow.Edge, sourceType workflow.NodeType) {
+func (a *analysis) checkDataEdgeAvailability(edge workflow.Edge, sourceType *workflow.NodeType) {
 	// A pure data source is not an execution step — a literal or a selector
 	// always has its value — so it is exempt. Without this carve-out the
 	// whole relation falls apart on constants.
@@ -137,29 +137,30 @@ func (a *analysis) checkDataEdgeScope(edge workflow.Edge) {
 
 // checkDataEdgeTypes verifies the value can reach the socket, applying the
 // edge's recorded transform if it has one.
-func (a *analysis) checkDataEdgeTypes(edge workflow.Edge, targetType workflow.NodeType) {
-	targetSocket, found := targetType.DataInSocket(edge.To.Port)
+func (a *analysis) checkDataEdgeTypes(edge workflow.Edge, targetType *workflow.NodeType) {
+	targetSocket, found := workflow.DataInSocket(targetType, edge.To.Port)
 	if !found {
 		return // already reported by checkPortsExist
 	}
+	targetSocketType := workflow.Type(targetSocket.Type)
 
 	producedType := a.resolveOutputType(edge.From.Node, edge.From.Port, nil)
 
 	if edge.Transform != "" {
-		transform, known := workflow.ResolveTransform(edge.Transform, producedType, targetSocket.Type)
+		transform, known := workflow.ResolveTransform(edge.Transform, producedType, targetSocketType)
 		if !known {
 			a.report(SeverityError, "data.unknownTransform",
 				fmt.Sprintf("This connection uses a conversion called %q, which this build does not know about.", edge.Transform),
 				nil, []string{edge.ID})
 			return
 		}
-		if !workflow.IsSubtypeOf(producedType, transform.From) {
+		if !workflow.IsSubtypeOf(producedType, workflow.Type(transform.From)) {
 			a.report(SeverityError, "data.transformInputMismatch",
 				fmt.Sprintf("The %s conversion expects %s but receives %s.", transform.Name, transform.From, producedType),
 				nil, []string{edge.ID})
 			return
 		}
-		if !workflow.IsSubtypeOf(transform.To, targetSocket.Type) {
+		if !workflow.IsSubtypeOf(workflow.Type(transform.To), targetSocketType) {
 			a.report(SeverityError, "data.transformOutputMismatch",
 				fmt.Sprintf("The %s conversion produces %s, which %q does not accept.", transform.Name, transform.To, targetSocket.Name),
 				nil, []string{edge.ID})
@@ -167,7 +168,7 @@ func (a *analysis) checkDataEdgeTypes(edge workflow.Edge, targetType workflow.No
 		return
 	}
 
-	connection := workflow.CanConnect(producedType, targetSocket.Type)
+	connection := workflow.CanConnect(producedType, targetSocketType)
 	if connection.Direct {
 		return
 	}
@@ -184,7 +185,7 @@ func (a *analysis) checkDataEdgeTypes(edge workflow.Edge, targetType workflow.No
 	}
 
 	a.report(SeverityError, "data.incompatible",
-		workflow.ExplainIncompatible(producedType, targetSocket.Type),
+		workflow.ExplainIncompatible(producedType, targetSocketType),
 		nil, []string{edge.ID})
 }
 
@@ -231,8 +232,8 @@ func (a *analysis) resolveOutputType(nodeID, port string, visiting map[string]bo
 		}
 	}
 
-	if socket, found := nodeType.DataOutSocket(port); found {
-		return socket.Type
+	if socket, found := workflow.DataOutSocket(nodeType, port); found {
+		return workflow.Type(socket.Type)
 	}
 	return workflow.TypeAny
 }
@@ -248,12 +249,12 @@ func (a *analysis) wiredInputType(nodeID, port string, visiting map[string]bool)
 		if edge.Transform != "" {
 			targetType := workflow.TypeAny
 			if nodeType, resolved := a.types[nodeID]; resolved {
-				if socket, found := nodeType.DataInSocket(port); found {
-					targetType = socket.Type
+				if socket, found := workflow.DataInSocket(nodeType, port); found {
+					targetType = workflow.Type(socket.Type)
 				}
 			}
 			if transform, known := workflow.ResolveTransform(edge.Transform, producedType, targetType); known {
-				return transform.To, true
+				return workflow.Type(transform.To), true
 			}
 		}
 		return producedType, true

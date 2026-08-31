@@ -5,31 +5,36 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
+
+	metarrv1 "Metarr/internal/genproto/metarr/v1"
 )
 
 // Effects classifies what a node type does to the filesystem. Every catalog
 // entry must declare it — it is what dry-run keys off, and it cannot be
-// retrofitted without re-auditing every handler ever written.
-type Effects string
+// retrofitted without re-auditing every handler ever written. The engine owns
+// the vocabulary and it is closed, so it is a generated enum; see
+// docs/adr/0005.
+type Effects = metarrv1.WorkflowEffects
 
 const (
 	// EffectsRead inspects only, and is unaffected by dry-run.
-	EffectsRead Effects = "read"
+	EffectsRead Effects = metarrv1.WorkflowEffects_WORKFLOW_EFFECTS_READ
 	// EffectsWrite creates or modifies files.
-	EffectsWrite Effects = "write"
+	EffectsWrite Effects = metarrv1.WorkflowEffects_WORKFLOW_EFFECTS_WRITE
 	// EffectsDestructive deletes or overwrites existing library content. It
 	// is badged in the editor, and an agent refuses to invoke it at all
 	// while dry-run is set.
-	EffectsDestructive Effects = "destructive"
+	EffectsDestructive Effects = metarrv1.WorkflowEffects_WORKFLOW_EFFECTS_DESTRUCTIVE
 )
 
-// Valid reports whether e is one of the three known classifications.
-func (e Effects) Valid() bool {
+// EffectsValid reports whether e is one of the three known classifications.
+func EffectsValid(e Effects) bool {
 	return e == EffectsRead || e == EffectsWrite || e == EffectsDestructive
 }
 
-// Mutates reports whether nodes of this class can change what is on disk.
-func (e Effects) Mutates() bool {
+// EffectsMutates reports whether nodes of this class can change what is on
+// disk.
+func EffectsMutates(e Effects) bool {
 	return e == EffectsWrite || e == EffectsDestructive
 }
 

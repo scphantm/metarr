@@ -18,7 +18,11 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
+    // Not erasable-syntax-only: protoc-gen-es emits a real `enum` for each
+    // proto enum (WorkflowNodeKind, WorkflowEffects, ...), and those generated
+    // files are part of the build. Nothing here type-strips TS at runtime
+    // (vite/esbuild and vitest both compile enums), so this only relaxes a
+    // style guard the generated code cannot satisfy.
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },

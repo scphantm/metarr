@@ -1,5 +1,4 @@
-import type { Type } from '../pages/workflows/catalogTypes'
-import { elementType, isListType } from '../pages/workflows/connectionRules'
+import { elementType, isListType, type Type } from '../pages/workflows/connectionRules'
 
 /*
  * Maps a workflow socket Type to a CSS class from lib/icons/typeIcons.css
