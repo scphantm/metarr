@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"Metarr/internal/shared/appconfig"
+	"Metarr/internal/shared/metadata"
 	"Metarr/internal/shared/scanmodel"
 )
 
@@ -293,9 +294,9 @@ type NFOReadRequest struct {
 // the file could not be read; NotFound separates "no such file", which is a
 // 404 to the waiting HTTP caller, from a genuine failure.
 type NFOReadReply struct {
-	Metadata any    `json:"metadata,omitempty"`
-	Error    string `json:"error,omitempty"`
-	NotFound bool   `json:"not_found,omitempty"`
+	Metadata *metadata.Metadata `json:"metadata,omitempty"`
+	Error    string             `json:"error,omitempty"`
+	NotFound bool               `json:"not_found,omitempty"`
 }
 
 // ValidateSlug reports whether slug is usable as an agent name. It has to be

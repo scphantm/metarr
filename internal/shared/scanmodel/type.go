@@ -1,32 +1,25 @@
-// Package mediascan walks a media item directory and classifies everything in
-// it according to the Jellyfin and Plex naming conventions, producing records
-// ready to store in MongoDB.
-//
-// The unit of work is one item directory — a single movie, series, or music
-// video folder — which is what a caller scanning a library iterates over. A
-// scan yields one directory record plus one record per media file, where a
-// "media file" is the playable content itself: a movie file, an episode file, or
-// a music video file. Trailers, themes, artwork, subtitles and NFO sidecars are
-// not media files; they are indexed on the record they belong to.
-//
-// Nothing in this package touches a database or a network. It reads file names
-// and the filesystem's own stat record, parses the contents of .nfo sidecars via
-// internal/nfo, and reads the header — not the pixels — of artwork sidecars for
-// their codec and dimensions. That makes the whole thing testable against
-// synthetic directory trees, which is where the naming rules are actually
-// pinned down.
+// This file holds the closed vocabularies that tag a scan record: the kind of
+// media a directory holds (DirectoryType) and the two document kinds stored in
+// the local_directory collection (RecordType). They are free strings on the
+// generated messages; the Parse* helpers here are the single source of truth
+// for the values they may take, so an unusable one cannot be stored.
 package scanmodel
 
 import "fmt"
 
 // DirectoryType is the kind of media a directory holds, declared by
-// configuration rather than guessed.
+// configuration rather than guessed. It is a free string on the generated
+// record messages; ParseDirectoryType is the single source of truth for the
+// values it may take.
 type DirectoryType string
 
+// The values DirectoryType takes. Untyped so they compare directly against the
+// plain string field on the generated messages, the same way the metadata
+// package's Kind/Scope constants do.
 const (
-	TypeMovie      DirectoryType = "movie"
-	TypeTV         DirectoryType = "tv"
-	TypeMusicVideo DirectoryType = "music_video"
+	TypeMovie      = "movie"
+	TypeTV         = "tv"
+	TypeMusicVideo = "music_video"
 )
 
 // validDirectoryTypes is ordered so error messages list the vocabulary
@@ -82,10 +75,10 @@ func joinQuoted(values []string) string {
 }
 
 // RecordType discriminates the two kinds of document stored in the
-// local_directory collection.
-type RecordType string
-
+// local_directory collection. It is a free string on the generated record
+// messages; these are the values it takes, untyped so they compare directly
+// against that field and against a BSON query value.
 const (
-	RecordTypeTVSeries  RecordType = "tvseries"
-	RecordTypeMediaFile RecordType = "media_file"
+	RecordTypeTVSeries  = "tvseries"
+	RecordTypeMediaFile = "media_file"
 )

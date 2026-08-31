@@ -65,7 +65,7 @@ func bmpFixture(t *testing.T) string {
 
 // assertFixtureDimensions checks a sidecar's image block against the codec it
 // was encoded with and the size every fixture is built at.
-func assertFixtureDimensions(t *testing.T, sidecar scanmodel.SidecarFile, wantCodec string) {
+func assertFixtureDimensions(t *testing.T, sidecar *scanmodel.SidecarFile, wantCodec string) {
 	t.Helper()
 
 	if sidecar.Image == nil {
@@ -168,7 +168,7 @@ func TestImageInfoRecordsUnreadableImage(t *testing.T) {
 		t.Error("Image.Error is empty, want the decode failure")
 	}
 	if sidecar.Image.Codec != "" || sidecar.Image.Width != 0 || sidecar.Image.Height != 0 {
-		t.Errorf("Image = %+v, want only Error set", *sidecar.Image)
+		t.Errorf("Image = %+v, want only Error set", sidecar.Image)
 	}
 
 	if !warningsMention(result.Directory.Warnings, "poster.jpg") {
@@ -186,12 +186,12 @@ func TestImageInfoOnlyForImages(t *testing.T) {
 	})
 
 	if sidecar := directorySidecarByName(t, result, "movie.nfo"); sidecar.Image != nil {
-		t.Errorf("movie.nfo Image = %+v, want nil", *sidecar.Image)
+		t.Errorf("movie.nfo Image = %+v, want nil", sidecar.Image)
 	}
 
 	mediaFile := mediaFileByName(t, result, "The Movie (2019).mkv")
 	if sidecar := mediaSidecarByName(t, mediaFile, "The Movie (2019).srt"); sidecar.Image != nil {
-		t.Errorf("subtitle Image = %+v, want nil", *sidecar.Image)
+		t.Errorf("subtitle Image = %+v, want nil", sidecar.Image)
 	}
 
 	if sidecar := directorySidecarByName(t, result, "poster.jpg"); sidecar.Image == nil {

@@ -90,10 +90,10 @@ func (x *LocalDirectoryServiceListDirectoriesRequest) GetSkip() int32 {
 }
 
 type LocalDirectoryServiceListDirectoriesResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	DirectoriesJson []byte                 `protobuf:"bytes,1,opt,name=directories_json,json=directoriesJson,proto3" json:"directories_json,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Directories   []*TVSeries            `protobuf:"bytes,1,rep,name=directories,proto3" json:"directories,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LocalDirectoryServiceListDirectoriesResponse) Reset() {
@@ -126,9 +126,9 @@ func (*LocalDirectoryServiceListDirectoriesResponse) Descriptor() ([]byte, []int
 	return file_metarr_v1_local_directories_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *LocalDirectoryServiceListDirectoriesResponse) GetDirectoriesJson() []byte {
+func (x *LocalDirectoryServiceListDirectoriesResponse) GetDirectories() []*TVSeries {
 	if x != nil {
-		return x.DirectoriesJson
+		return x.Directories
 	}
 	return nil
 }
@@ -179,7 +179,7 @@ func (x *LocalDirectoryServiceGetDirectoryRequest) GetId() string {
 
 type LocalDirectoryServiceGetDirectoryResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	DirectoryJson []byte                 `protobuf:"bytes,1,opt,name=directory_json,json=directoryJson,proto3" json:"directory_json,omitempty"`
+	Directory     *TVSeries              `protobuf:"bytes,1,opt,name=directory,proto3" json:"directory,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -214,9 +214,9 @@ func (*LocalDirectoryServiceGetDirectoryResponse) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_local_directories_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *LocalDirectoryServiceGetDirectoryResponse) GetDirectoryJson() []byte {
+func (x *LocalDirectoryServiceGetDirectoryResponse) GetDirectory() *TVSeries {
 	if x != nil {
-		return x.DirectoryJson
+		return x.Directory
 	}
 	return nil
 }
@@ -266,10 +266,10 @@ func (x *LocalDirectoryServiceListMediaFilesRequest) GetDirectoryId() string {
 }
 
 type LocalDirectoryServiceListMediaFilesResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	MediaFilesJson []byte                 `protobuf:"bytes,1,opt,name=media_files_json,json=mediaFilesJson,proto3" json:"media_files_json,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MediaFiles    []*MediaFile           `protobuf:"bytes,1,rep,name=media_files,json=mediaFiles,proto3" json:"media_files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LocalDirectoryServiceListMediaFilesResponse) Reset() {
@@ -302,9 +302,9 @@ func (*LocalDirectoryServiceListMediaFilesResponse) Descriptor() ([]byte, []int)
 	return file_metarr_v1_local_directories_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *LocalDirectoryServiceListMediaFilesResponse) GetMediaFilesJson() []byte {
+func (x *LocalDirectoryServiceListMediaFilesResponse) GetMediaFiles() []*MediaFile {
 	if x != nil {
-		return x.MediaFilesJson
+		return x.MediaFiles
 	}
 	return nil
 }
@@ -355,7 +355,7 @@ func (x *LocalDirectoryServiceGetMediaFileRequest) GetId() string {
 
 type LocalDirectoryServiceGetMediaFileResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	MediaFileJson []byte                 `protobuf:"bytes,1,opt,name=media_file_json,json=mediaFileJson,proto3" json:"media_file_json,omitempty"`
+	MediaFile     *MediaFile             `protobuf:"bytes,1,opt,name=media_file,json=mediaFile,proto3" json:"media_file,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -390,9 +390,9 @@ func (*LocalDirectoryServiceGetMediaFileResponse) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_local_directories_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *LocalDirectoryServiceGetMediaFileResponse) GetMediaFileJson() []byte {
+func (x *LocalDirectoryServiceGetMediaFileResponse) GetMediaFile() *MediaFile {
 	if x != nil {
-		return x.MediaFileJson
+		return x.MediaFile
 	}
 	return nil
 }
@@ -451,7 +451,7 @@ func (x *LocalDirectoryServiceGetDirectoryNFORequest) GetPath() string {
 
 type LocalDirectoryServiceGetDirectoryNFOResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	MetadataJson  []byte                 `protobuf:"bytes,1,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
+	Metadata      *Metadata              `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -486,9 +486,9 @@ func (*LocalDirectoryServiceGetDirectoryNFOResponse) Descriptor() ([]byte, []int
 	return file_metarr_v1_local_directories_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *LocalDirectoryServiceGetDirectoryNFOResponse) GetMetadataJson() []byte {
+func (x *LocalDirectoryServiceGetDirectoryNFOResponse) GetMetadata() *Metadata {
 	if x != nil {
-		return x.MetadataJson
+		return x.Metadata
 	}
 	return nil
 }
@@ -497,31 +497,33 @@ var File_metarr_v1_local_directories_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_local_directories_proto_rawDesc = "" +
 	"\n" +
-	"!metarr/v1/local_directories.proto\x12\tmetarr.v1\"\x88\x01\n" +
+	"!metarr/v1/local_directories.proto\x12\tmetarr.v1\x1a\x18metarr/v1/metadata.proto\x1a\x14metarr/v1/scan.proto\"\x88\x01\n" +
 	"+LocalDirectoryServiceListDirectoriesRequest\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x1b\n" +
 	"\tscan_root\x18\x02 \x01(\tR\bscanRoot\x12\x14\n" +
 	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12\x12\n" +
-	"\x04skip\x18\x04 \x01(\x05R\x04skip\"Y\n" +
-	",LocalDirectoryServiceListDirectoriesResponse\x12)\n" +
-	"\x10directories_json\x18\x01 \x01(\fR\x0fdirectoriesJson\":\n" +
+	"\x04skip\x18\x04 \x01(\x05R\x04skip\"e\n" +
+	",LocalDirectoryServiceListDirectoriesResponse\x125\n" +
+	"\vdirectories\x18\x01 \x03(\v2\x13.metarr.v1.TVSeriesR\vdirectories\":\n" +
 	"(LocalDirectoryServiceGetDirectoryRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"R\n" +
-	")LocalDirectoryServiceGetDirectoryResponse\x12%\n" +
-	"\x0edirectory_json\x18\x01 \x01(\fR\rdirectoryJson\"O\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"^\n" +
+	")LocalDirectoryServiceGetDirectoryResponse\x121\n" +
+	"\tdirectory\x18\x01 \x01(\v2\x13.metarr.v1.TVSeriesR\tdirectory\"O\n" +
 	"*LocalDirectoryServiceListMediaFilesRequest\x12!\n" +
-	"\fdirectory_id\x18\x01 \x01(\tR\vdirectoryId\"W\n" +
-	"+LocalDirectoryServiceListMediaFilesResponse\x12(\n" +
-	"\x10media_files_json\x18\x01 \x01(\fR\x0emediaFilesJson\":\n" +
+	"\fdirectory_id\x18\x01 \x01(\tR\vdirectoryId\"d\n" +
+	"+LocalDirectoryServiceListMediaFilesResponse\x125\n" +
+	"\vmedia_files\x18\x01 \x03(\v2\x14.metarr.v1.MediaFileR\n" +
+	"mediaFiles\":\n" +
 	"(LocalDirectoryServiceGetMediaFileRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"S\n" +
-	")LocalDirectoryServiceGetMediaFileResponse\x12&\n" +
-	"\x0fmedia_file_json\x18\x01 \x01(\fR\rmediaFileJson\"d\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"`\n" +
+	")LocalDirectoryServiceGetMediaFileResponse\x123\n" +
+	"\n" +
+	"media_file\x18\x01 \x01(\v2\x14.metarr.v1.MediaFileR\tmediaFile\"d\n" +
 	"+LocalDirectoryServiceGetDirectoryNFORequest\x12!\n" +
 	"\fdirectory_id\x18\x01 \x01(\tR\vdirectoryId\x12\x12\n" +
-	"\x04path\x18\x02 \x01(\tR\x04path\"S\n" +
-	",LocalDirectoryServiceGetDirectoryNFOResponse\x12#\n" +
-	"\rmetadata_json\x18\x01 \x01(\fR\fmetadataJson2\x98\x05\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\"_\n" +
+	",LocalDirectoryServiceGetDirectoryNFOResponse\x12/\n" +
+	"\bmetadata\x18\x01 \x01(\v2\x13.metarr.v1.MetadataR\bmetadata2\x98\x05\n" +
 	"\x15LocalDirectoryService\x12\x82\x01\n" +
 	"\x0fListDirectories\x126.metarr.v1.LocalDirectoryServiceListDirectoriesRequest\x1a7.metarr.v1.LocalDirectoryServiceListDirectoriesResponse\x12y\n" +
 	"\fGetDirectory\x123.metarr.v1.LocalDirectoryServiceGetDirectoryRequest\x1a4.metarr.v1.LocalDirectoryServiceGetDirectoryResponse\x12\x7f\n" +
@@ -553,23 +555,31 @@ var file_metarr_v1_local_directories_proto_goTypes = []any{
 	(*LocalDirectoryServiceGetMediaFileResponse)(nil),    // 7: metarr.v1.LocalDirectoryServiceGetMediaFileResponse
 	(*LocalDirectoryServiceGetDirectoryNFORequest)(nil),  // 8: metarr.v1.LocalDirectoryServiceGetDirectoryNFORequest
 	(*LocalDirectoryServiceGetDirectoryNFOResponse)(nil), // 9: metarr.v1.LocalDirectoryServiceGetDirectoryNFOResponse
+	(*TVSeries)(nil),  // 10: metarr.v1.TVSeries
+	(*MediaFile)(nil), // 11: metarr.v1.MediaFile
+	(*Metadata)(nil),  // 12: metarr.v1.Metadata
 }
 var file_metarr_v1_local_directories_proto_depIdxs = []int32{
-	0, // 0: metarr.v1.LocalDirectoryService.ListDirectories:input_type -> metarr.v1.LocalDirectoryServiceListDirectoriesRequest
-	2, // 1: metarr.v1.LocalDirectoryService.GetDirectory:input_type -> metarr.v1.LocalDirectoryServiceGetDirectoryRequest
-	4, // 2: metarr.v1.LocalDirectoryService.ListMediaFiles:input_type -> metarr.v1.LocalDirectoryServiceListMediaFilesRequest
-	6, // 3: metarr.v1.LocalDirectoryService.GetMediaFile:input_type -> metarr.v1.LocalDirectoryServiceGetMediaFileRequest
-	8, // 4: metarr.v1.LocalDirectoryService.GetDirectoryNFO:input_type -> metarr.v1.LocalDirectoryServiceGetDirectoryNFORequest
-	1, // 5: metarr.v1.LocalDirectoryService.ListDirectories:output_type -> metarr.v1.LocalDirectoryServiceListDirectoriesResponse
-	3, // 6: metarr.v1.LocalDirectoryService.GetDirectory:output_type -> metarr.v1.LocalDirectoryServiceGetDirectoryResponse
-	5, // 7: metarr.v1.LocalDirectoryService.ListMediaFiles:output_type -> metarr.v1.LocalDirectoryServiceListMediaFilesResponse
-	7, // 8: metarr.v1.LocalDirectoryService.GetMediaFile:output_type -> metarr.v1.LocalDirectoryServiceGetMediaFileResponse
-	9, // 9: metarr.v1.LocalDirectoryService.GetDirectoryNFO:output_type -> metarr.v1.LocalDirectoryServiceGetDirectoryNFOResponse
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	10, // 0: metarr.v1.LocalDirectoryServiceListDirectoriesResponse.directories:type_name -> metarr.v1.TVSeries
+	10, // 1: metarr.v1.LocalDirectoryServiceGetDirectoryResponse.directory:type_name -> metarr.v1.TVSeries
+	11, // 2: metarr.v1.LocalDirectoryServiceListMediaFilesResponse.media_files:type_name -> metarr.v1.MediaFile
+	11, // 3: metarr.v1.LocalDirectoryServiceGetMediaFileResponse.media_file:type_name -> metarr.v1.MediaFile
+	12, // 4: metarr.v1.LocalDirectoryServiceGetDirectoryNFOResponse.metadata:type_name -> metarr.v1.Metadata
+	0,  // 5: metarr.v1.LocalDirectoryService.ListDirectories:input_type -> metarr.v1.LocalDirectoryServiceListDirectoriesRequest
+	2,  // 6: metarr.v1.LocalDirectoryService.GetDirectory:input_type -> metarr.v1.LocalDirectoryServiceGetDirectoryRequest
+	4,  // 7: metarr.v1.LocalDirectoryService.ListMediaFiles:input_type -> metarr.v1.LocalDirectoryServiceListMediaFilesRequest
+	6,  // 8: metarr.v1.LocalDirectoryService.GetMediaFile:input_type -> metarr.v1.LocalDirectoryServiceGetMediaFileRequest
+	8,  // 9: metarr.v1.LocalDirectoryService.GetDirectoryNFO:input_type -> metarr.v1.LocalDirectoryServiceGetDirectoryNFORequest
+	1,  // 10: metarr.v1.LocalDirectoryService.ListDirectories:output_type -> metarr.v1.LocalDirectoryServiceListDirectoriesResponse
+	3,  // 11: metarr.v1.LocalDirectoryService.GetDirectory:output_type -> metarr.v1.LocalDirectoryServiceGetDirectoryResponse
+	5,  // 12: metarr.v1.LocalDirectoryService.ListMediaFiles:output_type -> metarr.v1.LocalDirectoryServiceListMediaFilesResponse
+	7,  // 13: metarr.v1.LocalDirectoryService.GetMediaFile:output_type -> metarr.v1.LocalDirectoryServiceGetMediaFileResponse
+	9,  // 14: metarr.v1.LocalDirectoryService.GetDirectoryNFO:output_type -> metarr.v1.LocalDirectoryServiceGetDirectoryNFOResponse
+	10, // [10:15] is the sub-list for method output_type
+	5,  // [5:10] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_local_directories_proto_init() }
@@ -577,6 +587,8 @@ func file_metarr_v1_local_directories_proto_init() {
 	if File_metarr_v1_local_directories_proto != nil {
 		return
 	}
+	file_metarr_v1_metadata_proto_init()
+	file_metarr_v1_scan_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

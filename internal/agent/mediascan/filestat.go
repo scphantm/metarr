@@ -10,6 +10,8 @@ import (
 	"os/user"
 	"strconv"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"Metarr/internal/shared/scanmodel"
 )
 
@@ -20,7 +22,7 @@ func portableFileStat(info fs.FileInfo) *scanmodel.FileStat {
 		Mode:       info.Mode().String(),
 		ModeBits:   uint32(info.Mode().Perm()),
 		SizeBytes:  info.Size(),
-		ModifiedAt: info.ModTime().UTC(),
+		ModifiedAt: timestamppb.New(info.ModTime().UTC()),
 		IsSymlink:  info.Mode()&fs.ModeSymlink != 0,
 	}
 }
@@ -48,24 +50,24 @@ func (cache *ownerNameCache) resolve(fileStat *scanmodel.FileStat) {
 		cache.groupNames = map[uint32]string{}
 	}
 
-	name, known := cache.userNames[fileStat.UID]
+	name, known := cache.userNames[fileStat.Uid]
 	if !known {
 		// A miss is cached as the empty string too: an id belonging to no local
 		// account is common on a mounted library, and re-asking once per file
 		// would be the expensive way to get the same answer.
-		if account, err := user.LookupId(strconv.FormatUint(uint64(fileStat.UID), 10)); err == nil {
+		if account, err := user.LookupId(strconv.FormatUint(uint64(fileStat.Uid), 10)); err == nil {
 			name = account.Username
 		}
-		cache.userNames[fileStat.UID] = name
+		cache.userNames[fileStat.Uid] = name
 	}
 	fileStat.OwnerName = name
 
-	name, known = cache.groupNames[fileStat.GID]
+	name, known = cache.groupNames[fileStat.Gid]
 	if !known {
-		if group, err := user.LookupGroupId(strconv.FormatUint(uint64(fileStat.GID), 10)); err == nil {
+		if group, err := user.LookupGroupId(strconv.FormatUint(uint64(fileStat.Gid), 10)); err == nil {
 			name = group.Name
 		}
-		cache.groupNames[fileStat.GID] = name
+		cache.groupNames[fileStat.Gid] = name
 	}
 	fileStat.GroupName = name
 }

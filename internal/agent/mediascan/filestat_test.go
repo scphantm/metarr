@@ -73,14 +73,14 @@ func TestSidecarStatRecordsPermissionsAndOwnership(t *testing.T) {
 	if stat.SizeBytes != int64(len(posterContent)) {
 		t.Errorf("Stat.SizeBytes = %d, want %d", stat.SizeBytes, len(posterContent))
 	}
-	if !stat.ModifiedAt.Equal(sidecar.ModifiedAt) {
-		t.Errorf("Stat.ModifiedAt = %v, want the record's ModifiedAt %v", stat.ModifiedAt, sidecar.ModifiedAt)
+	if !stat.ModifiedAt.AsTime().Equal(sidecar.ModifiedAt.AsTime()) {
+		t.Errorf("Stat.ModifiedAt = %v, want the record's ModifiedAt %v", stat.ModifiedAt.AsTime(), sidecar.ModifiedAt.AsTime())
 	}
-	if stat.UID != uint32(os.Getuid()) {
-		t.Errorf("Stat.UID = %d, want the running user %d", stat.UID, os.Getuid())
+	if stat.Uid != uint32(os.Getuid()) {
+		t.Errorf("Stat.Uid = %d, want the running user %d", stat.Uid, os.Getuid())
 	}
-	if stat.GID != uint32(os.Getgid()) {
-		t.Errorf("Stat.GID = %d, want the running group %d", stat.GID, os.Getgid())
+	if stat.Gid != uint32(os.Getgid()) {
+		t.Errorf("Stat.Gid = %d, want the running group %d", stat.Gid, os.Getgid())
 	}
 	if stat.Inode == 0 {
 		t.Error("Stat.Inode = 0, want the file's inode number")
@@ -88,10 +88,10 @@ func TestSidecarStatRecordsPermissionsAndOwnership(t *testing.T) {
 	if stat.LinkCount != 1 {
 		t.Errorf("Stat.LinkCount = %d, want 1 for a freshly written file", stat.LinkCount)
 	}
-	if stat.AccessedAt.IsZero() {
+	if stat.AccessedAt == nil || stat.AccessedAt.AsTime().IsZero() {
 		t.Error("Stat.AccessedAt is zero, want the file's access time")
 	}
-	if stat.ChangedAt.IsZero() {
+	if stat.ChangedAt == nil || stat.ChangedAt.AsTime().IsZero() {
 		t.Error("Stat.ChangedAt is zero, want the file's status change time")
 	}
 	if stat.IsSymlink {

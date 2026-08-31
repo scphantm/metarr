@@ -127,8 +127,7 @@ func (t PathTranslator) Result(result *scanmodel.ScanResult) error {
 		}
 	}
 
-	for i := range result.MediaFiles {
-		mediaFile := &result.MediaFiles[i]
+	for _, mediaFile := range result.MediaFiles {
 		if err := t.rewrite(&mediaFile.Path); err != nil {
 			return err
 		}
