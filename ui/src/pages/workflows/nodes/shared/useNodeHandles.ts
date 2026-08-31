@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 
-import { controlHandleId, dataHandleId } from '../../connectionRules'
-import type { NodeType, Type } from '../../catalogTypes'
+import { controlHandleId, dataHandleId, type Type } from '../../connectionRules'
+import type { WorkflowNodeType as NodeType } from '../../../../gen/metarr/v1/workflow_catalog_pb'
 
 /*
  * Arranges one catalog NodeType's ports into the top/bottom/error layout
@@ -39,7 +39,7 @@ function controlTitle(direction: 'in' | 'out', port: string): string {
 }
 
 function dataTitle(direction: 'in' | 'out', socket: { label?: string; name: string; type: Type; required?: boolean; description?: string }): string {
-  const label = socket.label ?? socket.name
+  const label = socket.label || socket.name
   const parts = [`Data ${direction} — ${label}: ${socket.type}${socket.required ? ' (required)' : ''}`]
   if (socket.description) parts.push(socket.description)
   return parts.join(' — ')
@@ -50,15 +50,15 @@ export function useNodeHandles(nodeType: NodeType | undefined): ArrangedHandles 
     if (!nodeType) return emptyHandles
 
     const top: ArrangedHandle[] = [
-      ...nodeType.control.in.map((port) => ({
+      ...(nodeType.control?.in ?? []).map((port) => ({
         id: controlHandleId(port),
         label: port,
         kind: 'control' as const,
         title: controlTitle('in', port),
       })),
-      ...(nodeType.dataIn ?? []).map((socket) => ({
+      ...nodeType.dataIn.map((socket) => ({
         id: dataHandleId(socket.name),
-        label: socket.label ?? socket.name,
+        label: socket.label || socket.name,
         kind: 'data' as const,
         type: socket.type,
         title: dataTitle('in', socket),
@@ -66,22 +66,22 @@ export function useNodeHandles(nodeType: NodeType | undefined): ArrangedHandles 
     ]
 
     const bottom: ArrangedHandle[] = [
-      ...nodeType.control.out.map((port) => ({
+      ...(nodeType.control?.out ?? []).map((port) => ({
         id: controlHandleId(port),
         label: port,
         kind: 'control' as const,
         title: controlTitle('out', port),
       })),
-      ...(nodeType.dataOut ?? []).map((socket) => ({
+      ...nodeType.dataOut.map((socket) => ({
         id: dataHandleId(socket.name),
-        label: socket.label ?? socket.name,
+        label: socket.label || socket.name,
         kind: 'data' as const,
         type: socket.type,
         title: dataTitle('out', socket),
       })),
     ]
 
-    return { top, bottom, hasError: Boolean(nodeType.control.error) }
+    return { top, bottom, hasError: Boolean(nodeType.control?.error) }
   }, [nodeType])
 }
 

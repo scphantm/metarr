@@ -203,7 +203,7 @@ func (a *analysis) computeMustHaveRun() {
 			}
 
 			var updated map[string]bool
-			if nodeType := a.types[nodeID]; nodeType.Kind == workflow.KindJoin {
+			if nodeType, resolved := a.types[nodeID]; resolved && nodeType.Kind == workflow.KindJoin {
 				updated = a.joinMeet(edges)
 			} else {
 				updated = a.ordinaryMeet(edges)
@@ -429,7 +429,7 @@ func (a *analysis) checkParallelJoins() {
 
 // declaredBranches reads the parallel's branches setting, falling back to the
 // catalog default.
-func declaredBranches(node workflow.Node, nodeType workflow.NodeType) int {
+func declaredBranches(node workflow.Node, nodeType *workflow.NodeType) int {
 	if raw, set := node.Settings["branches"]; set {
 		if count, ok := asInt(raw); ok {
 			return count
@@ -437,7 +437,7 @@ func declaredBranches(node workflow.Node, nodeType workflow.NodeType) int {
 	}
 	for _, setting := range nodeType.Settings {
 		if setting.Name == "branches" {
-			if count, ok := asInt(setting.Default); ok {
+			if count, ok := asInt(setting.Default.AsInterface()); ok {
 				return count
 			}
 		}

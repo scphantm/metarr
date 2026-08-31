@@ -26,7 +26,11 @@ import { fromRFGraph, toRFNode } from './graphAdapter'
 import { nodeTypes as catalogNodeTypes, registeredTypes, unknownNodeType } from './nodes/registry'
 import type { Accent } from './nodes/shared/nodeVisual'
 import { useWorkflowValidation } from './useWorkflowValidation'
-import type { NodeType, Transform } from './catalogTypes'
+import { settingDefault } from './catalogValue'
+import type {
+  WorkflowNodeType as NodeType,
+  WorkflowTransform as Transform,
+} from '../../gen/metarr/v1/workflow_catalog_pb'
 import './WorkflowCanvas.css'
 
 const nodeTypes = { ...catalogNodeTypes, ...unknownNodeType }
@@ -106,12 +110,12 @@ export function WorkflowCanvas({
   // order — but arbitrary when several entries share a type).
   const catalogById = useMemo(() => {
     const map = new Map<string, NodeType>()
-    for (const entry of catalog?.node_types ?? []) map.set(entry.id, entry)
+    for (const entry of catalog?.nodeTypes ?? []) map.set(entry.id, entry)
     return map
   }, [catalog])
   const catalogFirstByType = useMemo(() => {
     const map = new Map<string, NodeType>()
-    for (const entry of catalog?.node_types ?? []) if (!map.has(entry.type)) map.set(entry.type, entry)
+    for (const entry of catalog?.nodeTypes ?? []) if (!map.has(entry.type)) map.set(entry.type, entry)
     return map
   }, [catalog])
   const resolveCatalogEntry = useCallback(
@@ -206,8 +210,9 @@ export function WorkflowCanvas({
 
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY })
       const defaultSettings: Record<string, unknown> = {}
-      for (const setting of nodeType.settings ?? []) {
-        if (setting.default !== undefined) defaultSettings[setting.name] = setting.default
+      for (const setting of nodeType.settings) {
+        const fallback = settingDefault(setting.default)
+        if (fallback !== undefined) defaultSettings[setting.name] = fallback
       }
 
       const newNode = toRFNode(

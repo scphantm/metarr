@@ -9,10 +9,13 @@ package catalog
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"os"
 
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+
+	metarrv1 "Metarr/internal/genproto/metarr/v1"
 	"Metarr/internal/shared/workflow"
 )
 
@@ -35,7 +38,10 @@ func (l *Loader) Path() string { return l.path }
 
 // Load parses and validates the catalog.
 //
-// Every entry is validated, and a single bad one fails the whole load: a typo
+// catalog.json is a WorkflowCatalog message (node_types only), decoded with
+// protojson so the on-disk file is the same shape the wire and the rest of
+// the system read — there is no hand-written mirror of it anywhere. Every
+// entry is validated, and a single bad one fails the whole load: a typo
 // should surface at startup rather than when somebody happens to drag that
 // node onto a canvas.
 func (l *Loader) Load() (*workflow.Catalog, error) {
@@ -44,17 +50,17 @@ func (l *Loader) Load() (*workflow.Catalog, error) {
 		return nil, fmt.Errorf("catalog: reading %s: %w", l.path, err)
 	}
 
-	var entries []workflow.NodeType
-	if err := json.Unmarshal(data, &entries); err != nil {
+	var file metarrv1.WorkflowCatalog
+	if err := protojson.Unmarshal(data, &file); err != nil {
 		return nil, fmt.Errorf("catalog: parsing %s: %w", l.path, err)
 	}
 
-	loaded, err := workflow.NewCatalog(entries)
+	loaded, err := workflow.NewCatalog(file.NodeTypes)
 	if err != nil {
 		return nil, fmt.Errorf("catalog: %s: %w", l.path, err)
 	}
 
-	if err := l.checkImmutability(entries); err != nil {
+	if err := l.checkImmutability(file.NodeTypes); err != nil {
 		return nil, err
 	}
 	return loaded, nil
@@ -68,23 +74,24 @@ func (l *Loader) Load() (*workflow.Catalog, error) {
 // snapshot of the entries it uses. Silently changing what a given catalog id
 // means would make two runs of the same workflow behave differently with
 // nothing to show why. A behaviour change requires a new id.
-func (l *Loader) checkImmutability(entries []workflow.NodeType) error {
+func (l *Loader) checkImmutability(entries []*workflow.NodeType) error {
+	marshal := proto.MarshalOptions{Deterministic: true}
 	for _, entry := range entries {
-		encoded, err := json.Marshal(entry)
+		encoded, err := marshal.Marshal(entry)
 		if err != nil {
-			return fmt.Errorf("catalog: hashing %s (%s): %w", entry.Type, entry.ID, err)
+			return fmt.Errorf("catalog: hashing %s (%s): %w", entry.Type, entry.Id, err)
 		}
 		sum := sha256.Sum256(encoded)
 		hash := hex.EncodeToString(sum[:])
 
-		previous, seen := l.hashes[entry.ID]
+		previous, seen := l.hashes[entry.Id]
 		if seen && previous != hash {
 			return fmt.Errorf(
 				"catalog: %s (%s) changed — a catalog entry must not change silently once "+
 					"published, because runs in flight have frozen the previous definition; "+
-					"give it a new id instead", entry.Type, entry.ID)
+					"give it a new id instead", entry.Type, entry.Id)
 		}
-		l.hashes[entry.ID] = hash
+		l.hashes[entry.Id] = hash
 	}
 	return nil
 }

@@ -2,7 +2,9 @@ import { useEffect, useMemo } from 'react'
 import { useNodeConnections, useUpdateNodeInternals } from '@xyflow/react'
 
 import { parseHandleId } from '../../connectionRules'
-import type { CatalogNodeData, NodeType } from '../../catalogTypes'
+import type { WorkflowNodeType as NodeType } from '../../../../gen/metarr/v1/workflow_catalog_pb'
+import type { CatalogNodeData } from '../../catalogTypes'
+import { settingDefault } from '../../catalogValue'
 import type { ArrangedHandle } from './useNodeHandles'
 
 /*
@@ -34,8 +36,9 @@ export function limitBranchPorts(handles: ArrangedHandle[], visibleCount: number
 function declaredBranches(data: CatalogNodeData, nodeType: NodeType | undefined): number {
   const fromSettings = data.settings.branches
   if (typeof fromSettings === 'number' && Number.isFinite(fromSettings)) return fromSettings
-  const setting = nodeType?.settings?.find((entry) => entry.name === 'branches')
-  return typeof setting?.default === 'number' ? setting.default : 1
+  const setting = nodeType?.settings.find((entry) => entry.name === 'branches')
+  const fallback = settingDefault(setting?.default)
+  return typeof fallback === 'number' ? fallback : 1
 }
 
 function maxBranchIndex(ports: string[]): number {

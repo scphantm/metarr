@@ -4,102 +4,113 @@ import (
 	"strings"
 	"testing"
 
+	"google.golang.org/protobuf/types/known/structpb"
+
 	"Metarr/internal/server/workflow/validate"
 	"Metarr/internal/shared/workflow"
 )
+
+// sock is a terse constructor for a catalog data socket — the generated
+// WorkflowSocket carries type as a plain string, so this converts once here
+// rather than at every literal.
+func sock(name string, typ workflow.Type, required bool) *workflow.Socket {
+	return &workflow.Socket{Name: name, Type: string(typ), Required: required}
+}
 
 // testCatalog builds a minimal catalog covering every node kind the
 // analysis special-cases, so the graph fixtures below stay readable.
 func testCatalog(t *testing.T) *workflow.Catalog {
 	t.Helper()
 
-	readOnServer := workflow.ExecSpec{RunsOn: workflow.RunsOnServer, Effects: workflow.EffectsRead}
+	readOnServer := func() *workflow.ExecSpec {
+		return &workflow.ExecSpec{RunsOn: workflow.RunsOnServer, Effects: workflow.EffectsRead}
+	}
 	branchPorts := []string{"branch1", "branch2", "branch3", "branch4"}
 
-	catalog, err := workflow.NewCatalog([]workflow.NodeType{
+	catalog, err := workflow.NewCatalog([]*workflow.NodeType{
 		{
-			ID: "t/start", Type: "t/start", Name: "Start", Kind: workflow.KindStart,
-			Control: workflow.ControlPorts{Out: []string{"next"}},
-			Exec:    readOnServer,
+			Id: "t/start", Type: "t/start", Name: "Start", Kind: workflow.KindStart,
+			Control: &workflow.ControlPorts{Out: []string{"next"}},
+			Exec:    readOnServer(),
 		},
 		{
-			ID: "t/task", Type: "t/task", Name: "Task",
-			Control: workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}, Error: true},
-			DataIn:  []workflow.Socket{{Name: "value", Type: workflow.TypeAny}},
-			DataOut: []workflow.Socket{{Name: "result", Type: workflow.TypePathFile}},
-			Exec:    readOnServer,
+			Id: "t/task", Type: "t/task", Name: "Task",
+			Control: &workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}, Error: true},
+			DataIn:  []*workflow.Socket{sock("value", workflow.TypeAny, false)},
+			DataOut: []*workflow.Socket{sock("result", workflow.TypePathFile, false)},
+			Exec:    readOnServer(),
 		},
 		{
-			ID: "t/dirTask", Type: "t/dirTask", Name: "Directory Task",
-			Control: workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}},
-			DataIn:  []workflow.Socket{{Name: "folder", Type: workflow.TypePathDir}},
-			Exec:    readOnServer,
+			Id: "t/dirTask", Type: "t/dirTask", Name: "Directory Task",
+			Control: &workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}},
+			DataIn:  []*workflow.Socket{sock("folder", workflow.TypePathDir, false)},
+			Exec:    readOnServer(),
 		},
 		{
-			ID: "t/branch", Type: "t/branch", Name: "Branch", Kind: workflow.KindBranch,
-			Control: workflow.ControlPorts{In: []string{"in"}, Out: []string{"yes", "no"}},
-			Exec:    readOnServer,
+			Id: "t/branch", Type: "t/branch", Name: "Branch", Kind: workflow.KindBranch,
+			Control: &workflow.ControlPorts{In: []string{"in"}, Out: []string{"yes", "no"}},
+			Exec:    readOnServer(),
 		},
 		{
-			ID: "t/forEach", Type: "t/forEach", Name: "For Each", Kind: workflow.KindForEach,
-			Control: workflow.ControlPorts{In: []string{"in"}, Out: []string{"body", "done"}},
-			DataIn:  []workflow.Socket{{Name: "collection", Type: workflow.ListOf(workflow.TypeAny), Required: true}},
-			DataOut: []workflow.Socket{
-				{Name: "item", Type: workflow.TypeAny},
-				{Name: "index", Type: workflow.TypeAny},
+			Id: "t/forEach", Type: "t/forEach", Name: "For Each", Kind: workflow.KindForEach,
+			Control: &workflow.ControlPorts{In: []string{"in"}, Out: []string{"body", "done"}},
+			DataIn:  []*workflow.Socket{sock("collection", workflow.ListOf(workflow.TypeAny), true)},
+			DataOut: []*workflow.Socket{
+				sock("item", workflow.TypeAny, false),
+				sock("index", workflow.TypeAny, false),
 			},
-			Exec: readOnServer,
+			Exec: readOnServer(),
 		},
 		{
-			ID: "t/collect", Type: "t/collect", Name: "Collect", Kind: workflow.KindCollect,
-			Control: workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}},
-			DataIn:  []workflow.Socket{{Name: "value", Type: workflow.TypeAny, Required: true}},
-			DataOut: []workflow.Socket{{Name: "collected", Type: workflow.ListOf(workflow.TypeAny)}},
-			Exec:    readOnServer,
+			Id: "t/collect", Type: "t/collect", Name: "Collect", Kind: workflow.KindCollect,
+			Control: &workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}},
+			DataIn:  []*workflow.Socket{sock("value", workflow.TypeAny, true)},
+			DataOut: []*workflow.Socket{sock("collected", workflow.ListOf(workflow.TypeAny), false)},
+			Exec:    readOnServer(),
 		},
 		{
-			ID: "t/parallel", Type: "t/parallel", Name: "Parallel", Kind: workflow.KindParallel,
-			Control:  workflow.ControlPorts{In: []string{"in"}, Out: branchPorts},
-			Settings: []workflow.Setting{{Name: "branches", Type: workflow.TypeAny, Default: 2}},
-			Exec:     readOnServer,
+			Id: "t/parallel", Type: "t/parallel", Name: "Parallel", Kind: workflow.KindParallel,
+			Control:  &workflow.ControlPorts{In: []string{"in"}, Out: branchPorts},
+			Settings: []*workflow.Setting{{Name: "branches", Type: string(workflow.TypeAny), Default: structpb.NewNumberValue(2)}},
+			Exec:     readOnServer(),
 		},
 		{
-			ID: "t/join", Type: "t/join", Name: "Join", Kind: workflow.KindJoin,
-			Control: workflow.ControlPorts{In: branchPorts, Out: []string{"next"}},
-			Exec:    readOnServer,
+			Id: "t/join", Type: "t/join", Name: "Join", Kind: workflow.KindJoin,
+			Control: &workflow.ControlPorts{In: branchPorts, Out: []string{"next"}},
+			Exec:    readOnServer(),
 		},
 		{
-			ID: "t/end", Type: "t/end", Name: "End", Kind: workflow.KindEnd,
-			Control: workflow.ControlPorts{In: []string{"in"}},
-			Exec:    readOnServer,
+			Id: "t/end", Type: "t/end", Name: "End", Kind: workflow.KindEnd,
+			Control: &workflow.ControlPorts{In: []string{"in"}},
+			Exec:    readOnServer(),
 		},
 		{
-			ID: "t/source", Type: "t/source", Name: "Literal Path", Kind: workflow.KindSource,
-			Control: workflow.ControlPorts{},
-			DataOut: []workflow.Socket{{Name: "path", Type: workflow.TypePathFile}},
-			Exec:    readOnServer,
+			Id: "t/source", Type: "t/source", Name: "Literal Path", Kind: workflow.KindSource,
+			Control: &workflow.ControlPorts{},
+			DataOut: []*workflow.Socket{sock("path", workflow.TypePathFile, false)},
+			Exec:    readOnServer(),
 		},
 		{
-			ID: "t/listSource", Type: "t/listSource", Name: "File List", Kind: workflow.KindSource,
-			Control: workflow.ControlPorts{},
-			DataOut: []workflow.Socket{{Name: "files", Type: workflow.ListOf(workflow.TypePathFile)}},
-			Exec:    readOnServer,
+			Id: "t/listSource", Type: "t/listSource", Name: "File List", Kind: workflow.KindSource,
+			Control: &workflow.ControlPorts{},
+			DataOut: []*workflow.Socket{sock("files", workflow.ListOf(workflow.TypePathFile), false)},
+			Exec:    readOnServer(),
 		},
 		// Two entries sharing a Type but distinct IDs and DataOut shapes —
 		// variations of one plugin, the same pattern as catalog.json's two
 		// core/start entries. Used by TestNodeResolvesByIDNotByType to prove
 		// resolution is genuinely id-based rather than first-match-by-type.
 		{
-			ID: "t/variantA", Type: "t/variant", Name: "Variant A",
-			Control: workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}},
-			DataOut: []workflow.Socket{{Name: "outA", Type: workflow.TypePathFile}},
-			Exec:    readOnServer,
+			Id: "t/variantA", Type: "t/variant", Name: "Variant A",
+			Control: &workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}},
+			DataOut: []*workflow.Socket{sock("outA", workflow.TypePathFile, false)},
+			Exec:    readOnServer(),
 		},
 		{
-			ID: "t/variantB", Type: "t/variant", Name: "Variant B",
-			Control: workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}},
-			DataOut: []workflow.Socket{{Name: "outB", Type: workflow.TypePathFile}},
-			Exec:    readOnServer,
+			Id: "t/variantB", Type: "t/variant", Name: "Variant B",
+			Control: &workflow.ControlPorts{In: []string{"in"}, Out: []string{"next"}},
+			DataOut: []*workflow.Socket{sock("outB", workflow.TypePathFile, false)},
+			Exec:    readOnServer(),
 		},
 	})
 	if err != nil {
