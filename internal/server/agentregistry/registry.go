@@ -11,6 +11,7 @@ import (
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
 	"Metarr/internal/shared/agentproto"
 	"Metarr/internal/shared/appconfig"
+	"Metarr/internal/shared/eventbus"
 )
 
 // Registry is the server's view of the agent fleet: who is currently alive,
@@ -188,7 +189,7 @@ func (r *Registry) publish(ctx context.Context, config *appconfig.Config, slug s
 
 	// Best effort: an agent that misses this re-reads on its own timer, so a
 	// failed notification is a delay rather than a stale configuration.
-	if err := r.client.Publish(ctx, agentproto.ConfigChangedChannel(slug), "changed").Err(); err != nil {
+	if err := r.client.Publish(ctx, eventbus.AgentConfigChangedChannel(slug), "changed").Err(); err != nil {
 		r.logger.Debug("could not notify agent of a configuration change", "agent", slug, "error", err)
 	}
 	return nil

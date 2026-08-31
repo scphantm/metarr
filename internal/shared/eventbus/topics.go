@@ -1,7 +1,25 @@
 package eventbus
 
-// Topic and event-name constants shared between the HTTP handlers that
-// publish events and the listeners that consume them.
+import "strings"
+
+// This file is the single registry of every event-bus name: Redis Stream
+// names, consumer-group names, Pub/Sub channel names, the per-agent names
+// addressed by slug, and the event-name discriminators carried in the
+// envelope. agentproto and every listener, handler, and service import from
+// here, so a name is declared once and the two sides of a stream can never
+// drift out of step.
+
+// ConsumerName is the Redis Streams consumer identity every server-side
+// stream consumer reads with. It is one constant rather than a per-listener
+// string because Metarr runs exactly one metarr-server instance: the
+// single-writer lock (docs/adr/0002) and the rebuilt event bus
+// (docs/adr/0006) both assume a single server-side consumer, and a second
+// identity here would split a consumer group's pending entries between two
+// readers that each believe they own the whole backlog. Agent-side
+// consumers use their slug instead.
+const ConsumerName = "metarr-server"
+
+// Fixed Pub/Sub channels.
 const (
 	// HeartbeatRequestChannel is the Pub/Sub channel the heartbeat handler
 	// publishes to, and the heartbeat listener subscribes to.
@@ -16,26 +34,86 @@ const (
 	// Fluent Bit's http input (Fluent Bit has no Redis input). The server also
 	// consumes this channel to feed the live-tail pane in the UI.
 	LogChannel = "logs.app"
+)
 
+// Fixed Redis Streams and the consumer groups that read them.
+const (
 	// SystemConfigUpdateStream is the Redis Stream the system_config_update
 	// event is fired on when the application config is changed via the API.
 	SystemConfigUpdateStream = "events.system_config_update"
 	// SystemConfigUpdateGroup is the consumer group used to read
 	// SystemConfigUpdateStream.
 	SystemConfigUpdateGroup = "system_config_update_group"
-	// SystemConfigUpdateEventName is the event name carried in the Event
-	// envelope for a system_config_update event.
-	SystemConfigUpdateEventName = "system_config_update"
 
-	// AgentScanResultStream is the Redis Stream the agents report their scan
-	// results on. Scanning itself is addressed to one agent over its own
-	// command stream — see agentproto — because a filesystem only exists on the
-	// machine that has it mounted; results come back on this shared one.
+	// AgentScanResultStream is the shared Redis Stream the agents report their
+	// scan results on. Scanning itself is addressed to one agent over its own
+	// command stream (AgentCommandStream) because a filesystem only exists on
+	// the machine that has it mounted; results come back on this shared one,
+	// every message naming the agent that produced it.
 	AgentScanResultStream = "events.agent_scan_results"
 	// AgentScanResultGroup is the consumer group the server reads
 	// AgentScanResultStream with.
 	AgentScanResultGroup = "agent_scan_results_group"
 )
+
+// Event-name discriminators carried in the Event envelope's Name field.
+const (
+	// SystemConfigUpdateEventName is carried by a system_config_update event.
+	SystemConfigUpdateEventName = "system_config_update"
+
+	// AgentScanCommandEventName asks an agent to walk one mapped directory.
+	AgentScanCommandEventName = "agent.scan"
+	// AgentScanResultEventName carries one scanned item directory back.
+	AgentScanResultEventName = "agent.scan_result"
+	// AgentScanCompleteEventName ends a scan run that reached the end.
+	AgentScanCompleteEventName = "agent.scan_complete"
+	// AgentScanFailedEventName reports a scan that could not run.
+	AgentScanFailedEventName = "agent.scan_failed"
+	// AgentNFOReadEventName asks an agent to read one NFO file from disk now.
+	AgentNFOReadEventName = "agent.nfo_read"
+)
+
+// AgentCommandStream is the durable stream one agent reads its work from. It
+// is per-agent because filesystems are machine-local: a scan of /mnt/tank
+// only means anything on the machine that has it mounted, so the work has to
+// be addressed rather than offered to whichever agent is free.
+func AgentCommandStream(slug string) string { return "events.agent." + slug + ".commands" }
+
+// AgentCommandGroup is the consumer group for an agent's command stream. One
+// agent process is expected per slug, enforced by agentproto.LockKey.
+func AgentCommandGroup(slug string) string { return "agent_" + slug + "_group" }
+
+// AgentCommandStreamPattern matches every agent command stream, so the Redis
+// statistics dashboard can discover them without knowing the slugs.
+const AgentCommandStreamPattern = "events.agent.*.commands"
+
+// SlugFromAgentCommandStream recovers the slug from a stream name produced by
+// AgentCommandStream, or "" if stream is not an agent command stream. The
+// stats collector uses it to label a stream it discovered by glob with the
+// consumer group that reads it, without re-deriving the name shape by hand.
+func SlugFromAgentCommandStream(stream string) string {
+	prefix, suffix, ok := strings.Cut(AgentCommandStreamPattern, "*")
+	if !ok || len(stream) <= len(prefix)+len(suffix) ||
+		!strings.HasPrefix(stream, prefix) || !strings.HasSuffix(stream, suffix) {
+		return ""
+	}
+	slug := stream[len(prefix) : len(stream)-len(suffix)]
+	if strings.Contains(slug, ".") {
+		return ""
+	}
+	return slug
+}
+
+// AgentConfigChangedChannel tells one agent its configuration has been
+// rewritten and it should re-read its config key. Best effort: the agent
+// also re-reads on a timer, so a notification lost while it was reconnecting
+// costs a delay rather than a stale configuration forever.
+func AgentConfigChangedChannel(slug string) string { return "agent.config.changed." + slug }
+
+// AgentRequestChannel is the agent's Pub/Sub request channel, for calls
+// where an HTTP caller is waiting on the answer and a durable stream would
+// be the wrong shape. Replies go to the correlation-scoped ReplyChannel.
+func AgentRequestChannel(slug string) string { return "agent." + slug + ".request" }
 
 // StreamTopic describes one Redis Stream and the consumer group that reads
 // it, pairing the constants above so callers that need to walk every stream
@@ -46,7 +124,7 @@ type StreamTopic struct {
 	EventName string
 }
 
-// KnownStreams returns every Redis Stream the application publishes to.
+// KnownStreams returns every fixed Redis Stream the application publishes to.
 func KnownStreams() []StreamTopic {
 	return []StreamTopic{
 		{
@@ -57,7 +135,7 @@ func KnownStreams() []StreamTopic {
 		{
 			Stream:    AgentScanResultStream,
 			Group:     AgentScanResultGroup,
-			EventName: "agent.scan_result",
+			EventName: AgentScanResultEventName,
 		},
 	}
 }
@@ -66,7 +144,7 @@ func KnownStreams() []StreamTopic {
 // not known ahead of time. Each agent reads its work from a stream named after
 // its slug, so the statistics collector discovers them rather than listing them.
 func KnownStreamPatterns() []string {
-	return []string{"events.agent.*.commands"}
+	return []string{AgentCommandStreamPattern}
 }
 
 // KnownPubSubChannels returns the fixed Pub/Sub channels. The per-request
