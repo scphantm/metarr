@@ -15,61 +15,44 @@ import (
 	"Metarr/internal/shared/eventbus"
 )
 
-// Responder answers the synchronous calls an HTTP request is waiting on.
+// NFOReader answers the one synchronous call an HTTP request is waiting on:
+// reading a single NFO file off this agent's disk. It reads the file and
+// applies the path-traversal guards; the PubSubRouter it registers on owns
+// the subscription loop and stamps source, correlation ID, and reply name on
+// the answer.
 //
-// These use Pub/Sub rather than a stream because the caller is a browser: an
-// answer that arrives after the request timed out is worthless, so durability
-// would buy nothing and delivering to a disconnected agent should simply fail.
-type Responder struct {
-	bus    *eventbus.PubSubBus
+// Pub/Sub rather than a stream because the caller is a browser: an answer
+// that arrives after the request timed out is worthless, so durability would
+// buy nothing and delivering to a disconnected agent should simply fail.
+type NFOReader struct {
 	config *ConfigStore
 	logger *slog.Logger
 	slug   string
 }
 
-// NewResponder returns a Responder for one agent.
-func NewResponder(bus *eventbus.PubSubBus, config *ConfigStore, logger *slog.Logger, slug string) *Responder {
-	return &Responder{bus: bus, config: config, logger: logger, slug: slug}
+// NewNFOReader returns an NFOReader for one agent.
+func NewNFOReader(config *ConfigStore, logger *slog.Logger, slug string) *NFOReader {
+	return &NFOReader{config: config, logger: logger, slug: slug}
 }
 
-// Run answers requests until ctx is cancelled.
-func (r *Responder) Run(ctx context.Context) {
-	subscription := r.bus.Subscribe(ctx, eventbus.AgentRequestChannel(r.slug))
-	defer func() { _ = subscription.Close() }()
-
-	for message := range subscription.Channel() {
-		var request eventbus.Event
-		if err := eventbus.UnmarshalEvent([]byte(message.Payload), &request); err != nil {
-			r.logger.Error("could not decode agent request", "error", err)
-			continue
-		}
-
-		switch request.Name {
-		case eventbus.AgentNFOReadEventName:
-			r.replyNFORead(ctx, &request)
-		default:
-			r.logger.Warn("ignoring unknown request", "event", request.Name)
-		}
-	}
+// Register wires the NFO-read responder onto router. The router decodes the
+// request envelope, calls the handler, and on a non-nil payload builds the
+// reply — stamping this agent's source, the request's correlation ID, and
+// eventbus.AgentNFOReadReplyEventName — then publishes it on the
+// correlation-scoped reply channel.
+func (r *NFOReader) Register(router *eventbus.PubSubRouter) {
+	router.Respond(eventbus.AgentRequestChannel(r.slug), eventbus.AgentNFOReadReplyEventName,
+		func(_ context.Context, request *eventbus.Event) ([]byte, error) {
+			payload, err := json.Marshal(r.readNFO(request))
+			if err != nil {
+				r.logger.Error("could not encode NFO reply", "error", err)
+				return nil, err
+			}
+			return payload, nil
+		})
 }
 
-func (r *Responder) replyNFORead(ctx context.Context, request *eventbus.Event) {
-	reply := r.readNFO(request)
-
-	payload, err := json.Marshal(reply)
-	if err != nil {
-		r.logger.Error("could not encode NFO reply", "error", err)
-		return
-	}
-
-	err = r.bus.Reply(ctx, request.CorrelationId,
-		eventbus.NewEvent(eventbus.AgentSource(r.slug), eventbus.AgentNFOReadEventName, request.CorrelationId, payload))
-	if err != nil {
-		r.logger.Error("could not send NFO reply", "error", err)
-	}
-}
-
-func (r *Responder) readNFO(request *eventbus.Event) agentproto.NFOReadReply {
+func (r *NFOReader) readNFO(request *eventbus.Event) agentproto.NFOReadReply {
 	var body agentproto.NFOReadRequest
 	if err := json.Unmarshal(request.Payload, &body); err != nil {
 		return agentproto.NFOReadReply{Error: "malformed request"}

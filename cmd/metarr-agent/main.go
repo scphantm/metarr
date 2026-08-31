@@ -104,7 +104,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	pubsubBus := eventbus.NewPubSubBus(redisClient)
+	// The Pub/Sub counterpart of the stream Router: the NFO-read responder
+	// registers on it and one Run(ctx) drives it (docs/adr/0006). #58 folds
+	// this and the stream router into one uniform entrypoint shape and moves
+	// the config-changed watch's subscription half onto it too.
+	pubsubRouter := eventbus.NewPubSubRouter(redisClient, eventbus.AgentSource(cfg.Slug), logger)
 
 	configStore := runtime.NewConfigStore(redisClient, logger, cfg.Slug, logShipper)
 	if err := configStore.Refresh(connectCtx); err != nil {
@@ -130,7 +134,8 @@ func run() error {
 	if err := scanner.Register(eventRouter); err != nil {
 		return err
 	}
-	responder := runtime.NewResponder(pubsubBus, configStore, logger, cfg.Slug)
+	nfoReader := runtime.NewNFOReader(configStore, logger, cfg.Slug)
+	nfoReader.Register(pubsubRouter)
 
 	// Every loop is tracked, so shutdown waits for a scan in flight rather than
 	// killing it half way through and leaving the server holding a partial
@@ -147,7 +152,11 @@ func run() error {
 
 	start("presence", func() { presence.Run(ctx) })
 	start("config", func() { configStore.Watch(ctx) })
-	start("responder", func() { responder.Run(ctx) })
+	start("pubsubrouter", func() {
+		if err := pubsubRouter.Run(ctx); err != nil && ctx.Err() == nil {
+			logger.Error("pub/sub router stopped unexpectedly", "error", err)
+		}
+	})
 	start("router", func() {
 		if err := eventRouter.Run(ctx); err != nil && ctx.Err() == nil {
 			logger.Error("event router stopped unexpectedly", "error", err)
