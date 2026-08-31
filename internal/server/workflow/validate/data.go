@@ -57,13 +57,13 @@ func (a *analysis) checkDataEdgeAvailability(edge workflow.Edge, sourceType *wor
 		return
 	}
 
-	diagnostic := Diagnostic{
+	diagnostic := &Diagnostic{
 		Severity: SeverityError,
 		Code:     "data.notGuaranteed",
 		Message: fmt.Sprintf("%s does not run on every path to %s, so the value may not exist when it is needed.",
 			sourceLabel, targetLabel),
-		NodeIDs:     []string{edge.From.Node, edge.To.Node},
-		EdgeIDs:     []string{edge.ID},
+		NodeIds:     []string{edge.From.Node, edge.To.Node},
+		EdgeIds:     []string{edge.ID},
 		WitnessPath: a.witnessPath(edge.To.Node, edge.From.Node),
 	}
 	a.diagnostics = append(a.diagnostics, diagnostic)

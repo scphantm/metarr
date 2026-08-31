@@ -69,6 +69,18 @@ enum WorkflowPortKind {
   WORKFLOW_PORT_KIND_DATA = 2;
 }
 
+// WorkflowDiagnosticSeverity distinguishes what blocks a run from what merely
+// deserves attention. Static validation owns this vocabulary and it is closed,
+// so it is a proto enum rather than a free string. Invalid graphs block
+// running, not saving — people save half-built flows all the time.
+enum WorkflowDiagnosticSeverity {
+  WORKFLOW_DIAGNOSTIC_SEVERITY_UNSPECIFIED = 0;
+  // Blocks a run: a graph with any error-severity diagnostic is not runnable.
+  WORKFLOW_DIAGNOSTIC_SEVERITY_ERROR = 1;
+  // Deserves attention but does not block a run.
+  WORKFLOW_DIAGNOSTIC_SEVERITY_WARNING = 2;
+}
+
 // WorkflowControlPorts declares a node type's execution wiring. An empty `in`
 // is what makes a node a starting point, and an empty `out` what makes it an
 // ending point — the catalog says so directly rather than the UI inferring it
@@ -199,20 +211,27 @@ message WorkflowCatalogServiceValidateRequest {
   bytes graph_json = 1;
 }
 
-// Diagnostic mirrors internal/server/workflow/validate.Diagnostic — small,
-// structured, and painted directly onto the canvas. The validation
-// diagnostics slice replaces this with a generated model end to end.
-message Diagnostic {
-  string severity = 1;
+// WorkflowDiagnostic is one finding from static validation — small,
+// structured, and painted directly onto the canvas.
+// internal/server/workflow/validate aliases this message
+// (Diagnostic = metarrv1.WorkflowDiagnostic); it is the single definition of
+// the model, produced by the server and rendered by the editor. See
+// docs/adr/0005.
+message WorkflowDiagnostic {
+  WorkflowDiagnosticSeverity severity = 1;
   string code = 2;
   string message = 3;
   repeated string node_ids = 4;
   repeated string edge_ids = 5;
+  // witness_path is a concrete control path demonstrating the problem — for a
+  // MustHaveRun failure, a route from the start to the target that skips the
+  // source. A bare "dominance violation" is useless to a user; a highlighted
+  // path is not.
   repeated string witness_path = 6;
 }
 
 message WorkflowCatalogServiceValidateResponse {
-  repeated Diagnostic diagnostics = 1;
+  repeated WorkflowDiagnostic diagnostics = 1;
   bool runnable = 2;
 }
 

@@ -12,7 +12,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/workflow_catalog.proto.
  */
 export const file_metarr_v1_workflow_catalog: GenFile = /*@__PURE__*/
-  fileDesc("CiBtZXRhcnIvdjEvd29ya2Zsb3dfY2F0YWxvZy5wcm90bxIJbWV0YXJyLnYxIj4KFFdvcmtmbG93Q29udHJvbFBvcnRzEgoKAmluGAEgAygJEgsKA291dBgCIAMoCRINCgVlcnJvchgDIAEoCCJiCg5Xb3JrZmxvd1NvY2tldBIMCgRuYW1lGAEgASgJEg0KBWxhYmVsGAIgASgJEgwKBHR5cGUYAyABKAkSEAoIcmVxdWlyZWQYBCABKAgSEwoLZGVzY3JpcHRpb24YBSABKAkinwEKD1dvcmtmbG93U2V0dGluZxIMCgRuYW1lGAEgASgJEg0KBWxhYmVsGAIgASgJEgwKBHR5cGUYAyABKAkSJwoHZGVmYXVsdBgEIAEoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZRIjCgJ1aRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSEwoLZGVzY3JpcHRpb24YBiABKAkiNgoRV29ya2Zsb3dSZXRyeVNwZWMSEAoIYXR0ZW1wdHMYASABKAUSDwoHYmFja29mZhgCIAEoCSK7AQoQV29ya2Zsb3dFeGVjU3BlYxIPCgdydW5zX29uGAEgASgJEhYKDmFnZW50X3NlbGVjdG9yGAIgASgJEg8KB3RpbWVvdXQYAyABKAkSEwoLY2FuY2VsbGFibGUYBCABKAgSKwoHZWZmZWN0cxgFIAEoDjIaLm1ldGFyci52MS5Xb3JrZmxvd0VmZmVjdHMSKwoFcmV0cnkYBiABKAsyHC5tZXRhcnIudjEuV29ya2Zsb3dSZXRyeVNwZWMihQMKEFdvcmtmbG93Tm9kZVR5cGUSCgoCaWQYASABKAkSDAoEdHlwZRgCIAEoCRIMCgRuYW1lGAMgASgJEhAKCGNhdGVnb3J5GAQgASgJEhMKC3N1YmNhdGVnb3J5GAUgASgJEikKBGtpbmQYBiABKA4yGy5tZXRhcnIudjEuV29ya2Zsb3dOb2RlS2luZBITCgtkZXNjcmlwdGlvbhgHIAEoCRIwCgdjb250cm9sGAggASgLMh8ubWV0YXJyLnYxLldvcmtmbG93Q29udHJvbFBvcnRzEioKB2RhdGFfaW4YCSADKAsyGS5tZXRhcnIudjEuV29ya2Zsb3dTb2NrZXQSKwoIZGF0YV9vdXQYCiADKAsyGS5tZXRhcnIudjEuV29ya2Zsb3dTb2NrZXQSLAoIc2V0dGluZ3MYCyADKAsyGi5tZXRhcnIudjEuV29ya2Zsb3dTZXR0aW5nEikKBGV4ZWMYDCABKAsyGy5tZXRhcnIudjEuV29ya2Zsb3dFeGVjU3BlYyJ6ChFXb3JrZmxvd1RyYW5zZm9ybRIMCgRuYW1lGAEgASgJEgwKBGZyb20YAiABKAkSCgoCdG8YAyABKAkSEQoJYW1iaWd1b3VzGAQgASgIEg8KB3N1bW1hcnkYBSABKAkSGQoRaW1wbGllc19pdGVyYXRpb24YBiABKAgijAEKD1dvcmtmbG93Q2F0YWxvZxIvCgpub2RlX3R5cGVzGAEgAygLMhsubWV0YXJyLnYxLldvcmtmbG93Tm9kZVR5cGUSMAoKdHJhbnNmb3JtcxgCIAMoCzIcLm1ldGFyci52MS5Xb3JrZmxvd1RyYW5zZm9ybRIWCg5zY2hlbWFfdmVyc2lvbhgDIAEoBSIiCiBXb3JrZmxvd0NhdGFsb2dTZXJ2aWNlR2V0UmVxdWVzdCJQCiFXb3JrZmxvd0NhdGFsb2dTZXJ2aWNlR2V0UmVzcG9uc2USKwoHY2F0YWxvZxgBIAEoCzIaLm1ldGFyci52MS5Xb3JrZmxvd0NhdGFsb2ciOwolV29ya2Zsb3dDYXRhbG9nU2VydmljZVZhbGlkYXRlUmVxdWVzdBISCgpncmFwaF9qc29uGAEgASgMIncKCkRpYWdub3N0aWMSEAoIc2V2ZXJpdHkYASABKAkSDAoEY29kZRgCIAEoCRIPCgdtZXNzYWdlGAMgASgJEhAKCG5vZGVfaWRzGAQgAygJEhAKCGVkZ2VfaWRzGAUgAygJEhQKDHdpdG5lc3NfcGF0aBgGIAMoCSJmCiZXb3JrZmxvd0NhdGFsb2dTZXJ2aWNlVmFsaWRhdGVSZXNwb25zZRIqCgtkaWFnbm9zdGljcxgBIAMoCzIVLm1ldGFyci52MS5EaWFnbm9zdGljEhAKCHJ1bm5hYmxlGAIgASgIKoUDChBXb3JrZmxvd05vZGVLaW5kEiIKHldPUktGTE9XX05PREVfS0lORF9VTlNQRUNJRklFRBAAEhwKGFdPUktGTE9XX05PREVfS0lORF9TVEFSVBABEhoKFldPUktGTE9XX05PREVfS0lORF9FTkQQAhIbChdXT1JLRkxPV19OT0RFX0tJTkRfRkFJTBADEh0KGVdPUktGTE9XX05PREVfS0lORF9TT1VSQ0UQBBIdChlXT1JLRkxPV19OT0RFX0tJTkRfQlJBTkNIEAUSHwobV09SS0ZMT1dfTk9ERV9LSU5EX0ZPUl9FQUNIEAYSHgoaV09SS0ZMT1dfTk9ERV9LSU5EX0NPTExFQ1QQBxIfChtXT1JLRkxPV19OT0RFX0tJTkRfUEFSQUxMRUwQCBIbChdXT1JLRkxPV19OT0RFX0tJTkRfSk9JThAJEhwKGFdPUktGTE9XX05PREVfS0lORF9CUkVBSxAKEhsKF1dPUktGTE9XX05PREVfS0lORF9OT1RFEAsqjAEKD1dvcmtmbG93RWZmZWN0cxIgChxXT1JLRkxPV19FRkZFQ1RTX1VOU1BFQ0lGSUVEEAASGQoVV09SS0ZMT1dfRUZGRUNUU19SRUFEEAESGgoWV09SS0ZMT1dfRUZGRUNUU19XUklURRACEiAKHFdPUktGTE9XX0VGRkVDVFNfREVTVFJVQ1RJVkUQAypzChBXb3JrZmxvd1BvcnRLaW5kEiIKHldPUktGTE9XX1BPUlRfS0lORF9VTlNQRUNJRklFRBAAEh4KGldPUktGTE9XX1BPUlRfS0lORF9DT05UUk9MEAESGwoXV09SS0ZMT1dfUE9SVF9LSU5EX0RBVEEQAjLrAQoWV29ya2Zsb3dDYXRhbG9nU2VydmljZRJgCgNHZXQSKy5tZXRhcnIudjEuV29ya2Zsb3dDYXRhbG9nU2VydmljZUdldFJlcXVlc3QaLC5tZXRhcnIudjEuV29ya2Zsb3dDYXRhbG9nU2VydmljZUdldFJlc3BvbnNlEm8KCFZhbGlkYXRlEjAubWV0YXJyLnYxLldvcmtmbG93Q2F0YWxvZ1NlcnZpY2VWYWxpZGF0ZVJlcXVlc3QaMS5tZXRhcnIudjEuV29ya2Zsb3dDYXRhbG9nU2VydmljZVZhbGlkYXRlUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_google_protobuf_struct]);
+  fileDesc("CiBtZXRhcnIvdjEvd29ya2Zsb3dfY2F0YWxvZy5wcm90bxIJbWV0YXJyLnYxIj4KFFdvcmtmbG93Q29udHJvbFBvcnRzEgoKAmluGAEgAygJEgsKA291dBgCIAMoCRINCgVlcnJvchgDIAEoCCJiCg5Xb3JrZmxvd1NvY2tldBIMCgRuYW1lGAEgASgJEg0KBWxhYmVsGAIgASgJEgwKBHR5cGUYAyABKAkSEAoIcmVxdWlyZWQYBCABKAgSEwoLZGVzY3JpcHRpb24YBSABKAkinwEKD1dvcmtmbG93U2V0dGluZxIMCgRuYW1lGAEgASgJEg0KBWxhYmVsGAIgASgJEgwKBHR5cGUYAyABKAkSJwoHZGVmYXVsdBgEIAEoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZRIjCgJ1aRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSEwoLZGVzY3JpcHRpb24YBiABKAkiNgoRV29ya2Zsb3dSZXRyeVNwZWMSEAoIYXR0ZW1wdHMYASABKAUSDwoHYmFja29mZhgCIAEoCSK7AQoQV29ya2Zsb3dFeGVjU3BlYxIPCgdydW5zX29uGAEgASgJEhYKDmFnZW50X3NlbGVjdG9yGAIgASgJEg8KB3RpbWVvdXQYAyABKAkSEwoLY2FuY2VsbGFibGUYBCABKAgSKwoHZWZmZWN0cxgFIAEoDjIaLm1ldGFyci52MS5Xb3JrZmxvd0VmZmVjdHMSKwoFcmV0cnkYBiABKAsyHC5tZXRhcnIudjEuV29ya2Zsb3dSZXRyeVNwZWMihQMKEFdvcmtmbG93Tm9kZVR5cGUSCgoCaWQYASABKAkSDAoEdHlwZRgCIAEoCRIMCgRuYW1lGAMgASgJEhAKCGNhdGVnb3J5GAQgASgJEhMKC3N1YmNhdGVnb3J5GAUgASgJEikKBGtpbmQYBiABKA4yGy5tZXRhcnIudjEuV29ya2Zsb3dOb2RlS2luZBITCgtkZXNjcmlwdGlvbhgHIAEoCRIwCgdjb250cm9sGAggASgLMh8ubWV0YXJyLnYxLldvcmtmbG93Q29udHJvbFBvcnRzEioKB2RhdGFfaW4YCSADKAsyGS5tZXRhcnIudjEuV29ya2Zsb3dTb2NrZXQSKwoIZGF0YV9vdXQYCiADKAsyGS5tZXRhcnIudjEuV29ya2Zsb3dTb2NrZXQSLAoIc2V0dGluZ3MYCyADKAsyGi5tZXRhcnIudjEuV29ya2Zsb3dTZXR0aW5nEikKBGV4ZWMYDCABKAsyGy5tZXRhcnIudjEuV29ya2Zsb3dFeGVjU3BlYyJ6ChFXb3JrZmxvd1RyYW5zZm9ybRIMCgRuYW1lGAEgASgJEgwKBGZyb20YAiABKAkSCgoCdG8YAyABKAkSEQoJYW1iaWd1b3VzGAQgASgIEg8KB3N1bW1hcnkYBSABKAkSGQoRaW1wbGllc19pdGVyYXRpb24YBiABKAgijAEKD1dvcmtmbG93Q2F0YWxvZxIvCgpub2RlX3R5cGVzGAEgAygLMhsubWV0YXJyLnYxLldvcmtmbG93Tm9kZVR5cGUSMAoKdHJhbnNmb3JtcxgCIAMoCzIcLm1ldGFyci52MS5Xb3JrZmxvd1RyYW5zZm9ybRIWCg5zY2hlbWFfdmVyc2lvbhgDIAEoBSIiCiBXb3JrZmxvd0NhdGFsb2dTZXJ2aWNlR2V0UmVxdWVzdCJQCiFXb3JrZmxvd0NhdGFsb2dTZXJ2aWNlR2V0UmVzcG9uc2USKwoHY2F0YWxvZxgBIAEoCzIaLm1ldGFyci52MS5Xb3JrZmxvd0NhdGFsb2ciOwolV29ya2Zsb3dDYXRhbG9nU2VydmljZVZhbGlkYXRlUmVxdWVzdBISCgpncmFwaF9qc29uGAEgASgMIqYBChJXb3JrZmxvd0RpYWdub3N0aWMSNwoIc2V2ZXJpdHkYASABKA4yJS5tZXRhcnIudjEuV29ya2Zsb3dEaWFnbm9zdGljU2V2ZXJpdHkSDAoEY29kZRgCIAEoCRIPCgdtZXNzYWdlGAMgASgJEhAKCG5vZGVfaWRzGAQgAygJEhAKCGVkZ2VfaWRzGAUgAygJEhQKDHdpdG5lc3NfcGF0aBgGIAMoCSJuCiZXb3JrZmxvd0NhdGFsb2dTZXJ2aWNlVmFsaWRhdGVSZXNwb25zZRIyCgtkaWFnbm9zdGljcxgBIAMoCzIdLm1ldGFyci52MS5Xb3JrZmxvd0RpYWdub3N0aWMSEAoIcnVubmFibGUYAiABKAgqhQMKEFdvcmtmbG93Tm9kZUtpbmQSIgoeV09SS0ZMT1dfTk9ERV9LSU5EX1VOU1BFQ0lGSUVEEAASHAoYV09SS0ZMT1dfTk9ERV9LSU5EX1NUQVJUEAESGgoWV09SS0ZMT1dfTk9ERV9LSU5EX0VORBACEhsKF1dPUktGTE9XX05PREVfS0lORF9GQUlMEAMSHQoZV09SS0ZMT1dfTk9ERV9LSU5EX1NPVVJDRRAEEh0KGVdPUktGTE9XX05PREVfS0lORF9CUkFOQ0gQBRIfChtXT1JLRkxPV19OT0RFX0tJTkRfRk9SX0VBQ0gQBhIeChpXT1JLRkxPV19OT0RFX0tJTkRfQ09MTEVDVBAHEh8KG1dPUktGTE9XX05PREVfS0lORF9QQVJBTExFTBAIEhsKF1dPUktGTE9XX05PREVfS0lORF9KT0lOEAkSHAoYV09SS0ZMT1dfTk9ERV9LSU5EX0JSRUFLEAoSGwoXV09SS0ZMT1dfTk9ERV9LSU5EX05PVEUQCyqMAQoPV29ya2Zsb3dFZmZlY3RzEiAKHFdPUktGTE9XX0VGRkVDVFNfVU5TUEVDSUZJRUQQABIZChVXT1JLRkxPV19FRkZFQ1RTX1JFQUQQARIaChZXT1JLRkxPV19FRkZFQ1RTX1dSSVRFEAISIAocV09SS0ZMT1dfRUZGRUNUU19ERVNUUlVDVElWRRADKnMKEFdvcmtmbG93UG9ydEtpbmQSIgoeV09SS0ZMT1dfUE9SVF9LSU5EX1VOU1BFQ0lGSUVEEAASHgoaV09SS0ZMT1dfUE9SVF9LSU5EX0NPTlRST0wQARIbChdXT1JLRkxPV19QT1JUX0tJTkRfREFUQRACKpwBChpXb3JrZmxvd0RpYWdub3N0aWNTZXZlcml0eRIsCihXT1JLRkxPV19ESUFHTk9TVElDX1NFVkVSSVRZX1VOU1BFQ0lGSUVEEAASJgoiV09SS0ZMT1dfRElBR05PU1RJQ19TRVZFUklUWV9FUlJPUhABEigKJFdPUktGTE9XX0RJQUdOT1NUSUNfU0VWRVJJVFlfV0FSTklORxACMusBChZXb3JrZmxvd0NhdGFsb2dTZXJ2aWNlEmAKA0dldBIrLm1ldGFyci52MS5Xb3JrZmxvd0NhdGFsb2dTZXJ2aWNlR2V0UmVxdWVzdBosLm1ldGFyci52MS5Xb3JrZmxvd0NhdGFsb2dTZXJ2aWNlR2V0UmVzcG9uc2USbwoIVmFsaWRhdGUSMC5tZXRhcnIudjEuV29ya2Zsb3dDYXRhbG9nU2VydmljZVZhbGlkYXRlUmVxdWVzdBoxLm1ldGFyci52MS5Xb3JrZmxvd0NhdGFsb2dTZXJ2aWNlVmFsaWRhdGVSZXNwb25zZUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_google_protobuf_struct]);
 
 /**
  * WorkflowControlPorts declares a node type's execution wiring. An empty `in`
@@ -447,17 +447,20 @@ export const WorkflowCatalogServiceValidateRequestSchema: GenMessage<WorkflowCat
   messageDesc(file_metarr_v1_workflow_catalog, 10);
 
 /**
- * Diagnostic mirrors internal/server/workflow/validate.Diagnostic — small,
- * structured, and painted directly onto the canvas. The validation
- * diagnostics slice replaces this with a generated model end to end.
+ * WorkflowDiagnostic is one finding from static validation — small,
+ * structured, and painted directly onto the canvas.
+ * internal/server/workflow/validate aliases this message
+ * (Diagnostic = metarrv1.WorkflowDiagnostic); it is the single definition of
+ * the model, produced by the server and rendered by the editor. See
+ * docs/adr/0005.
  *
- * @generated from message metarr.v1.Diagnostic
+ * @generated from message metarr.v1.WorkflowDiagnostic
  */
-export type Diagnostic = Message<"metarr.v1.Diagnostic"> & {
+export type WorkflowDiagnostic = Message<"metarr.v1.WorkflowDiagnostic"> & {
   /**
-   * @generated from field: string severity = 1;
+   * @generated from field: metarr.v1.WorkflowDiagnosticSeverity severity = 1;
    */
-  severity: string;
+  severity: WorkflowDiagnosticSeverity;
 
   /**
    * @generated from field: string code = 2;
@@ -480,16 +483,21 @@ export type Diagnostic = Message<"metarr.v1.Diagnostic"> & {
   edgeIds: string[];
 
   /**
+   * witness_path is a concrete control path demonstrating the problem — for a
+   * MustHaveRun failure, a route from the start to the target that skips the
+   * source. A bare "dominance violation" is useless to a user; a highlighted
+   * path is not.
+   *
    * @generated from field: repeated string witness_path = 6;
    */
   witnessPath: string[];
 };
 
 /**
- * Describes the message metarr.v1.Diagnostic.
- * Use `create(DiagnosticSchema)` to create a new message.
+ * Describes the message metarr.v1.WorkflowDiagnostic.
+ * Use `create(WorkflowDiagnosticSchema)` to create a new message.
  */
-export const DiagnosticSchema: GenMessage<Diagnostic> = /*@__PURE__*/
+export const WorkflowDiagnosticSchema: GenMessage<WorkflowDiagnostic> = /*@__PURE__*/
   messageDesc(file_metarr_v1_workflow_catalog, 11);
 
 /**
@@ -497,9 +505,9 @@ export const DiagnosticSchema: GenMessage<Diagnostic> = /*@__PURE__*/
  */
 export type WorkflowCatalogServiceValidateResponse = Message<"metarr.v1.WorkflowCatalogServiceValidateResponse"> & {
   /**
-   * @generated from field: repeated metarr.v1.Diagnostic diagnostics = 1;
+   * @generated from field: repeated metarr.v1.WorkflowDiagnostic diagnostics = 1;
    */
-  diagnostics: Diagnostic[];
+  diagnostics: WorkflowDiagnostic[];
 
   /**
    * @generated from field: bool runnable = 2;
@@ -696,6 +704,41 @@ export enum WorkflowPortKind {
  */
 export const WorkflowPortKindSchema: GenEnum<WorkflowPortKind> = /*@__PURE__*/
   enumDesc(file_metarr_v1_workflow_catalog, 2);
+
+/**
+ * WorkflowDiagnosticSeverity distinguishes what blocks a run from what merely
+ * deserves attention. Static validation owns this vocabulary and it is closed,
+ * so it is a proto enum rather than a free string. Invalid graphs block
+ * running, not saving — people save half-built flows all the time.
+ *
+ * @generated from enum metarr.v1.WorkflowDiagnosticSeverity
+ */
+export enum WorkflowDiagnosticSeverity {
+  /**
+   * @generated from enum value: WORKFLOW_DIAGNOSTIC_SEVERITY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Blocks a run: a graph with any error-severity diagnostic is not runnable.
+   *
+   * @generated from enum value: WORKFLOW_DIAGNOSTIC_SEVERITY_ERROR = 1;
+   */
+  ERROR = 1,
+
+  /**
+   * Deserves attention but does not block a run.
+   *
+   * @generated from enum value: WORKFLOW_DIAGNOSTIC_SEVERITY_WARNING = 2;
+   */
+  WARNING = 2,
+}
+
+/**
+ * Describes the enum metarr.v1.WorkflowDiagnosticSeverity.
+ */
+export const WorkflowDiagnosticSeveritySchema: GenEnum<WorkflowDiagnosticSeverity> = /*@__PURE__*/
+  enumDesc(file_metarr_v1_workflow_catalog, 3);
 
 /**
  * @generated from service metarr.v1.WorkflowCatalogService
