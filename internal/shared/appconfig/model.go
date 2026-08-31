@@ -41,6 +41,7 @@ type (
 	AgentConfig            = metarrv1.AgentConfig
 	AgentDirectoryMapping  = metarrv1.AgentDirectoryMapping
 	LoggingConfig          = metarrv1.LoggingConfig
+	EventBusConfig         = metarrv1.EventBusConfig
 )
 
 // LogLevelInfo and LogLevelDebug are the two levels the System > Logging
@@ -111,6 +112,9 @@ func Normalize(config *Config) *Config {
 	}
 	if config.Logging == nil {
 		config.Logging = &LoggingConfig{}
+	}
+	if config.EventBus == nil {
+		config.EventBus = &EventBusConfig{}
 	}
 	// A Sonarr instance with no storage section would fail the first time
 	// the cache consulted its mode, and instances decode from the same
@@ -241,7 +245,9 @@ func Default() *Config {
 		},
 		Agents: []*AgentConfig{},
 		// Cloned: loadBuiltinDefaults caches its parse, and a caller that
-		// mutates cfg.Logging must not reach through into that shared copy.
-		Logging: proto.Clone(defaults.Logging).(*LoggingConfig),
+		// mutates cfg.Logging or cfg.EventBus must not reach through into
+		// that shared copy.
+		Logging:  proto.Clone(defaults.Logging).(*LoggingConfig),
+		EventBus: proto.Clone(defaults.EventBus).(*EventBusConfig),
 	}
 }

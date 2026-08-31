@@ -147,6 +147,9 @@ func TestRun_AgreesWithDefaultOnTheStaticSections(t *testing.T) {
 	if !proto.Equal(final.Logging, want.Logging) {
 		t.Errorf("Logging = %+v, want %+v (appconfig.Default disagrees with Run)", final.Logging, want.Logging)
 	}
+	if !proto.Equal(final.EventBus, want.EventBus) {
+		t.Errorf("EventBus = %+v, want %+v (appconfig.Default disagrees with Run)", final.EventBus, want.EventBus)
+	}
 	if len(final.DirectoryScanner.SidecarTypes) != len(want.DirectoryScanner.SidecarTypes) {
 		t.Errorf("SidecarTypes count = %d, want %d (appconfig.Default disagrees with Run)",
 			len(final.DirectoryScanner.SidecarTypes), len(want.DirectoryScanner.SidecarTypes))

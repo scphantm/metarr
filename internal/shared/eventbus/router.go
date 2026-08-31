@@ -10,6 +10,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/redis/go-redis/v9"
+
+	metarrv1 "Metarr/internal/genproto/metarr/v1"
 )
 
 // Retry policy defaults.
@@ -45,13 +47,26 @@ type RetryPolicy struct {
 	BackoffMax time.Duration
 }
 
-// DefaultRetryPolicy returns the hardcoded policy used until the event_bus
-// config section supplies one.
+// DefaultRetryPolicy returns the built-in policy. It is the reference the
+// event_bus section's built-in defaults (builtin_defaults.json) must agree
+// with, and what a process with no live config to read — the agent — runs
+// with.
 func DefaultRetryPolicy() RetryPolicy {
 	return RetryPolicy{
 		MaxAttempts: DefaultRetryAttempts,
 		BackoffBase: DefaultRetryBackoffBase,
 		BackoffMax:  DefaultRetryBackoffMax,
+	}
+}
+
+// RetryPolicyFromConfig builds a RetryPolicy from the live event_bus config
+// section. The server reads its Router policy this way instead of from the
+// constants above (docs/adr/0006).
+func RetryPolicyFromConfig(c *metarrv1.EventBusConfig) RetryPolicy {
+	return RetryPolicy{
+		MaxAttempts: int(c.GetRetryAttempts()),
+		BackoffBase: time.Duration(c.GetRetryBackoffBaseMs()) * time.Millisecond,
+		BackoffMax:  time.Duration(c.GetRetryBackoffMaxMs()) * time.Millisecond,
 	}
 }
 

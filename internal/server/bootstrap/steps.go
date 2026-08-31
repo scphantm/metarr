@@ -92,6 +92,17 @@ func loggingDefaultsStep(cfg *appconfig.Config) (bool, error) {
 	return true, nil
 }
 
+// eventBusDefaultsStep seeds the event_bus config for a database predating
+// it, which would otherwise leave every knob at its zero value — a zero
+// retry cap and a zero-entry MAXLEN, which would drop every message.
+func eventBusDefaultsStep(cfg *appconfig.Config) (bool, error) {
+	if cfg.EventBus != nil && cfg.EventBus.RetentionHours != 0 {
+		return false, nil
+	}
+	cfg.EventBus = appconfig.Default().EventBus
+	return true, nil
+}
+
 // sidecarTypesMergeMissingStep appends any built-in sidecar type added to
 // the defaults after this database was first seeded, since the seed step
 // only fires on an empty table. added receives how many were appended, for

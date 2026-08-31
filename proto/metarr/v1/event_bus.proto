@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+import "metarr/v1/common.proto";
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// EventBusConfig tunes the Redis event bus without a rebuild (docs/adr/0006):
+// stream size caps, the retention window, and the Router's retry-then-
+// dead-letter policy. Server-side reads come from live config; the built-in
+// defaults in builtin_defaults.json are the values a fresh install runs
+// with and match eventbus.DefaultRetryPolicy / DefaultRetentionPolicy.
+message EventBusConfig {
+  // max_len_high is the approximate MAXLEN for the high-volume result
+  // streams (events.agent_scan_results, events.agent_node_results).
+  int32 max_len_high = 1;
+  // max_len_default is the approximate MAXLEN for every other stream,
+  // including events.dead_letter.
+  int32 max_len_default = 2;
+  // retention_hours is how far back the periodic XTRIM sweep keeps entries.
+  // The external-subscriber contract is at least 48 hours, or MAXLEN
+  // entries, whichever is larger; setting this below 48 narrows that
+  // guarantee.
+  int32 retention_hours = 3;
+  // retry_attempts is the number of retries after the first attempt before
+  // a handler's message is parked on events.dead_letter.
+  int32 retry_attempts = 4;
+  // retry_backoff_base_ms is the wait before the first retry.
+  int32 retry_backoff_base_ms = 5;
+  // retry_backoff_max_ms caps the exponential backoff between retries.
+  int32 retry_backoff_max_ms = 6;
+}
+
+message EventBusServiceGetConfigRequest {}
+
+message EventBusServiceGetConfigResponse {
+  EventBusConfig config = 1;
+}
+
+// EventBusServiceUpdateConfigRequest carries the whole section: it is one
+// small fixed-shape block of scalars, not a collection, so a single
+// upserting write is the CRUD shape (see CLAUDE.md). The write still goes
+// through the config store as a scoped mutation — cfg.EventBus = config —
+// never a whole-document write.
+message EventBusServiceUpdateConfigRequest {
+  EventBusConfig config = 1;
+}
+
+// EventBusService views and edits the event_bus config section. Both reads
+// and writes go through the same config store path as every other setting.
+service EventBusService {
+  rpc GetConfig(EventBusServiceGetConfigRequest) returns (EventBusServiceGetConfigResponse);
+  rpc UpdateConfig(EventBusServiceUpdateConfigRequest) returns (metarr.v1.AcceptedResponse);
+}

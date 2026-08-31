@@ -10,6 +10,7 @@ import {
   agentClient,
   configClient,
   directoryScannerClient,
+  eventBusClient,
   loggingClient,
   sonarrInterfaceClient,
   statsClient,
@@ -28,6 +29,7 @@ import {
 import { AgentConfigSchema } from '../gen/metarr/v1/agents_pb'
 import { ScanDirectorySchema, SidecarTypeDefinitionSchema } from '../gen/metarr/v1/directory_scanner_pb'
 import { LoggingConfigSchema } from '../gen/metarr/v1/logging_pb'
+import { EventBusConfigSchema } from '../gen/metarr/v1/event_bus_pb'
 import { WorkflowServiceUpsertRequestSchema } from '../gen/metarr/v1/workflows_pb'
 
 export const queryKeys = {
@@ -41,6 +43,7 @@ export const queryKeys = {
   redisStats: ['stats', 'redis'] as const,
   agents: ['stats', 'agents'] as const,
   logging: ['config', 'logging'] as const,
+  eventBus: ['config', 'event-bus'] as const,
   logTail: ['stats', 'log-tail'] as const,
   // Outside the config tree: workflows are a server-only, single-
   // collection concern with no config-mutation event behind them at all.
@@ -171,6 +174,13 @@ export function useLoggingConfig() {
   })
 }
 
+export function useEventBusConfig() {
+  return useQuery({
+    queryKey: queryKeys.eventBus,
+    queryFn: async () => (await eventBusClient.getConfig({})).config,
+  })
+}
+
 // LoggingService.GetTail/StreamTail carry typed LogRecord messages; the
 // stream frame and the first-paint read land in the same cache entry.
 const logTailStream = registerStream(
@@ -258,6 +268,16 @@ export function useUpdateLoggingConfig() {
   return useConfigMutation<MessageInitShape<typeof LoggingConfigSchema>, ConnectAcceptedResponse>(
     (config) => loggingClient.updateConfig({ config }),
     [queryKeys.logging, queryKeys.config],
+  )
+}
+
+// One upserting write for the whole section — it is a fixed block of
+// scalars, not a collection. The server still applies it as a scoped
+// mutation on cfg.EventBus.
+export function useUpdateEventBusConfig() {
+  return useConfigMutation<MessageInitShape<typeof EventBusConfigSchema>, ConnectAcceptedResponse>(
+    (config) => eventBusClient.updateConfig({ config }),
+    [queryKeys.eventBus, queryKeys.config],
   )
 }
 

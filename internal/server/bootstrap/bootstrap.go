@@ -116,6 +116,7 @@ func staticConfigSteps(apiKeysTemplate []byte, apiKeysSeeded *bool, sidecarTypes
 		{"directory_scanner_defaults", directoryScannerDefaultsStep},
 		{"sidecar_types_seed", sidecarTypesSeedStep},
 		{"logging_defaults", loggingDefaultsStep},
+		{"event_bus_defaults", eventBusDefaultsStep},
 		{"sidecar_types_merge_missing", sidecarTypesMergeMissingStep(sidecarTypesAdded)},
 		{"api_key_ids_backfill", apiKeyIDsBackfillStep(apiKeyIDsBackfilled)},
 	}

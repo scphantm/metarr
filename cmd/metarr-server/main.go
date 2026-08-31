@@ -102,12 +102,11 @@ func run() error {
 	logShipper.Attach(redisClient)
 
 	pubsubBus := eventbus.NewPubSubBus(redisClient)
-	// Retention: every publish sets an approximate MAXLEN by stream tier, and
-	// a background sweep (started below) trims each stream by age. Hardcoded
-	// defaults for now; the event_bus config section feeds a live policy in
-	// later (docs/adr/0006).
-	retentionPolicy := eventbus.DefaultRetentionPolicy()
-	streamBus, err := eventbus.NewStreamBus(redisClient, retentionPolicy, eventbus.NewSlogAdapter(logger))
+	// A first StreamBus with built-in caps, enough for bootstrap to fire
+	// through. Once bootstrap has seeded the config and the live singleton is
+	// warm, both the StreamBus and the config store are rebuilt against the
+	// live event_bus policy just below.
+	streamBus, err := eventbus.NewStreamBus(redisClient, eventbus.DefaultRetentionPolicy(), eventbus.NewSlogAdapter(logger))
 	if err != nil {
 		return err
 	}
@@ -195,6 +194,21 @@ func run() error {
 	startupCfg := bootstrapReport.FinalConfig
 	appconfig.Set(startupCfg)
 
+	// The event bus tuning is now known. Rebuild the StreamBus and the config
+	// store against the live event_bus policy so publish-time MAXLEN caps
+	// track configuration, not just the build-time default (docs/adr/0006).
+	// The Router and the retention sweep below read the same policy.
+	retentionPolicy := eventbus.RetentionPolicyFromConfig(startupCfg.EventBus)
+	retryPolicy := eventbus.RetryPolicyFromConfig(startupCfg.EventBus)
+	if err := streamBus.Close(); err != nil {
+		logger.Warn("closing the bootstrap stream publisher", "error", err)
+	}
+	streamBus, err = eventbus.NewStreamBus(redisClient, retentionPolicy, eventbus.NewSlogAdapter(logger))
+	if err != nil {
+		return err
+	}
+	appConfigStore = appconfigstore.New(appConfigRepo, appConfigRepo, streamBus)
+
 	// Compile the stored sidecar table into the registry the scanner reads.
 	// A bad pattern here is a stored-configuration problem, not a reason to
 	// refuse to boot: log it and carry on with the built-in defaults the
@@ -225,7 +239,7 @@ func run() error {
 	// acked, instead of redelivering forever (docs/adr/0006). Scanning itself
 	// now happens on the agents; the scan-result listener is the half that
 	// persists what they report.
-	eventRouter, err := eventbus.NewRedisRouter(redisClient, eventbus.DefaultRetryPolicy(), retentionPolicy, eventbus.NewSlogAdapter(logger))
+	eventRouter, err := eventbus.NewRedisRouter(redisClient, retryPolicy, retentionPolicy, eventbus.NewSlogAdapter(logger))
 	if err != nil {
 		return err
 	}
@@ -319,6 +333,12 @@ func run() error {
 			&services.LoggingServer{Handlers: apiHandlers},
 			sessions,
 			services.LoggingAuthPolicies,
+		),
+		newConnectService[metarrv1connect.EventBusServiceHandler](
+			metarrv1connect.NewEventBusServiceHandler,
+			&services.EventBusServer{Handlers: apiHandlers},
+			sessions,
+			services.EventBusAuthPolicies,
 		),
 		newConnectService[metarrv1connect.TaskServiceHandler](
 			metarrv1connect.NewTaskServiceHandler,
