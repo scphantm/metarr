@@ -124,16 +124,34 @@ func (s *ConfigStore) applyLogLevel(projection *agentproto.AgentConfigProjection
 	s.shipper.SetLevel(level)
 }
 
-// Watch keeps the projection current until ctx is cancelled, reacting to the
-// server's change notifications and re-reading periodically regardless.
-func (s *ConfigStore) Watch(ctx context.Context) {
+// Register wires the server's change notification onto router: when the server
+// publishes to this agent's AgentConfigChangedChannel, the handler re-reads the
+// projection from Redis and installs it. The router owns the subscription loop
+// and its shutdown, matching the NFO responder and the server's log listeners.
+//
+// The belt-and-braces periodic re-read is deliberately not entangled with this
+// wake-up — it runs on its own goroutine in RefreshPeriodically so a missed
+// notification is still bounded even if this subscription is briefly down.
+func (s *ConfigStore) Register(router *eventbus.PubSubRouter) {
+	channel := eventbus.AgentConfigChangedChannel(s.slug)
+	router.Handle(channel, func(ctx context.Context, _ []byte) {
+		if err := s.Refresh(ctx); err != nil && ctx.Err() == nil {
+			s.logger.Warn("failed to re-read configuration after a change", "error", err)
+		}
+	})
+	s.logger.Info("config-changed watch registered", "channel", channel)
+}
+
+// RefreshPeriodically re-reads the projection on a slow timer until ctx is
+// cancelled. It is the safety net behind the change notification wired by
+// Register: Pub/Sub delivers only to whoever is connected at that instant, so a
+// notification sent while this agent was reconnecting is gone, and a periodic
+// re-read bounds how long that can leave the agent on stale configuration. It
+// reads once on entry so a freshly started agent does not wait a full interval.
+func (s *ConfigStore) RefreshPeriodically(ctx context.Context) {
 	if err := s.Refresh(ctx); err != nil && ctx.Err() == nil {
 		s.logger.Warn("failed to read configuration", "error", err)
 	}
-
-	subscription := s.client.Subscribe(ctx, eventbus.AgentConfigChangedChannel(s.slug))
-	defer func() { _ = subscription.Close() }()
-	notifications := subscription.Channel()
 
 	ticker := time.NewTicker(configPollInterval)
 	defer ticker.Stop()
@@ -142,14 +160,6 @@ func (s *ConfigStore) Watch(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-
-		case _, ok := <-notifications:
-			if !ok {
-				return
-			}
-			if err := s.Refresh(ctx); err != nil && ctx.Err() == nil {
-				s.logger.Warn("failed to re-read configuration after a change", "error", err)
-			}
 
 		case <-ticker.C:
 			if err := s.Refresh(ctx); err != nil && ctx.Err() == nil {
