@@ -35,7 +35,7 @@ func NewResponder(bus *eventbus.PubSubBus, config *ConfigStore, logger *slog.Log
 
 // Run answers requests until ctx is cancelled.
 func (r *Responder) Run(ctx context.Context) {
-	subscription := r.bus.Subscribe(ctx, agentproto.RequestChannel(r.slug))
+	subscription := r.bus.Subscribe(ctx, eventbus.AgentRequestChannel(r.slug))
 	defer func() { _ = subscription.Close() }()
 
 	for message := range subscription.Channel() {
@@ -46,7 +46,7 @@ func (r *Responder) Run(ctx context.Context) {
 		}
 
 		switch request.Name {
-		case agentproto.NFOReadEventName:
+		case eventbus.AgentNFOReadEventName:
 			r.replyNFORead(ctx, request)
 		default:
 			r.logger.Warn("ignoring unknown request", "event", request.Name)
@@ -65,7 +65,7 @@ func (r *Responder) replyNFORead(ctx context.Context, request eventbus.Event) {
 
 	err = r.bus.Reply(ctx, request.CorrelationID, eventbus.Event{
 		CorrelationID: request.CorrelationID,
-		Name:          agentproto.NFOReadEventName,
+		Name:          eventbus.AgentNFOReadEventName,
 		Payload:       payload,
 		Timestamp:     time.Now().UTC(),
 	})

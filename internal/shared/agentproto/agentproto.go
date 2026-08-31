@@ -65,48 +65,12 @@ func SlugFromPresenceKey(key string) string {
 	return key[len(prefix):]
 }
 
-// CommandStream is the durable stream one agent reads its work from. It is
-// per-agent because filesystems are machine-local: a scan of /mnt/tank only
-// means anything on the machine that has it mounted, so the work has to be
-// addressed rather than offered to whichever agent is free.
-func CommandStream(slug string) string { return "events.agent." + slug + ".commands" }
-
-// CommandGroup is the consumer group for an agent's command stream. One agent
-// process is expected per slug, enforced by LockKey.
-func CommandGroup(slug string) string { return "agent_" + slug + "_group" }
-
-// CommandStreamPattern matches every agent command stream, so the Redis
-// statistics dashboard can discover them without knowing the slugs.
-const CommandStreamPattern = "events.agent.*.commands"
-
-// Scan results flow back on one shared stream. They are addressed to the
-// server rather than to a particular reader, and every message names the agent
-// that produced it.
-const (
-	ScanResultStream = "events.agent_scan_results"
-	ScanResultGroup  = "agent_scan_results_group"
-)
-
-// Event names carried in the eventbus.Event envelope.
-const (
-	ScanCommandEventName  = "agent.scan"
-	ScanResultEventName   = "agent.scan_result"
-	ScanCompleteEventName = "agent.scan_complete"
-	ScanFailedEventName   = "agent.scan_failed"
-	NFOReadEventName      = "agent.nfo_read"
-)
-
-// ConfigChangedChannel tells one agent its configuration has been rewritten
-// and it should re-read ConfigKey. Best effort: the agent also re-reads on a
-// timer, so a notification lost while it was reconnecting costs a delay rather
-// than a stale configuration forever.
-func ConfigChangedChannel(slug string) string { return "agent.config.changed." + slug }
-
-// RequestChannel is the agent's Pub/Sub request channel, for calls where an
-// HTTP caller is waiting on the answer and a durable stream would be the wrong
-// shape. Replies go to the correlation-scoped channel, exactly as the
-// heartbeat does.
-func RequestChannel(slug string) string { return "agent." + slug + ".request" }
+// Every event-bus name an agent uses — its command stream and group, its
+// config-changed and request channels, the shared scan-result stream, and
+// the event-name discriminators — is declared in internal/shared/eventbus,
+// so a stream name exists once rather than as matching literals on two sides
+// of a network. This package keeps only the Redis key helpers, the slug
+// rules, and the payload shapes below.
 
 // The contract models below are aliases to their generated metarr.v1
 // messages — proto is the single definition for a model that crosses the

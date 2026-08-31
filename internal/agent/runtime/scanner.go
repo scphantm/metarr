@@ -42,8 +42,8 @@ func NewScanner(bus *eventbus.StreamBus, config *ConfigStore, logger *slog.Logge
 func (s *Scanner) Run(ctx context.Context) error {
 	return s.bus.Consume(
 		ctx,
-		agentproto.CommandStream(s.slug),
-		agentproto.CommandGroup(s.slug),
+		eventbus.AgentCommandStream(s.slug),
+		eventbus.AgentCommandGroup(s.slug),
 		s.slug,
 		func(ctx context.Context, event eventbus.Event) error {
 			s.handle(ctx, event)
@@ -57,7 +57,7 @@ func (s *Scanner) Run(ctx context.Context) error {
 }
 
 func (s *Scanner) handle(ctx context.Context, event eventbus.Event) {
-	if event.Name != agentproto.ScanCommandEventName {
+	if event.Name != eventbus.AgentScanCommandEventName {
 		s.logger.Warn("ignoring unknown command", "event", event.Name)
 		return
 	}
@@ -76,7 +76,7 @@ func (s *Scanner) handle(ctx context.Context, event eventbus.Event) {
 
 	if err := s.scan(ctx, command, log); err != nil {
 		log.Error("scan failed", "error", err)
-		if reportErr := s.report(ctx, event.CorrelationID, agentproto.ScanFailedEventName, agentproto.ScanFailedMessage{
+		if reportErr := s.report(ctx, event.CorrelationID, eventbus.AgentScanFailedEventName, agentproto.ScanFailedMessage{
 			ScanID:      command.ScanID,
 			AgentSlug:   s.slug,
 			ScannerSlug: command.ScannerSlug,
@@ -133,7 +133,7 @@ func (s *Scanner) scan(ctx context.Context, command agentproto.ScanCommand, log 
 
 	log.Info("scan finished", "items_sent", sent)
 
-	return s.report(ctx, command.ScanID, agentproto.ScanCompleteEventName, agentproto.ScanCompleteMessage{
+	return s.report(ctx, command.ScanID, eventbus.AgentScanCompleteEventName, agentproto.ScanCompleteMessage{
 		ScanID:       command.ScanID,
 		AgentSlug:    s.slug,
 		ScannerSlug:  command.ScannerSlug,
@@ -225,7 +225,7 @@ func (s *Scanner) sendResult(ctx context.Context, request scanStreamRequest, res
 		return err
 	}
 	if len(encoded) <= maxResultBytes {
-		return s.fire(ctx, request.command.ScanID, agentproto.ScanResultEventName, encoded)
+		return s.fire(ctx, request.command.ScanID, eventbus.AgentScanResultEventName, encoded)
 	}
 
 	return s.sendResultInParts(ctx, request, result, base, len(encoded))
@@ -248,7 +248,7 @@ func (s *Scanner) sendResultInParts(
 		if err != nil {
 			return err
 		}
-		return s.fire(ctx, request.command.ScanID, agentproto.ScanResultEventName, encoded)
+		return s.fire(ctx, request.command.ScanID, eventbus.AgentScanResultEventName, encoded)
 	}
 
 	// Size the chunks from what the whole item actually encoded to, rather than
@@ -286,7 +286,7 @@ func (s *Scanner) sendResultInParts(
 		if err != nil {
 			return err
 		}
-		if err := s.fire(ctx, request.command.ScanID, agentproto.ScanResultEventName, encoded); err != nil {
+		if err := s.fire(ctx, request.command.ScanID, eventbus.AgentScanResultEventName, encoded); err != nil {
 			return err
 		}
 	}
@@ -294,7 +294,7 @@ func (s *Scanner) sendResultInParts(
 }
 
 func (s *Scanner) fire(ctx context.Context, correlationID, name string, payload []byte) error {
-	return s.bus.Fire(ctx, agentproto.ScanResultStream, eventbus.Event{
+	return s.bus.Fire(ctx, eventbus.AgentScanResultStream, eventbus.Event{
 		CorrelationID: correlationID,
 		Name:          name,
 		Payload:       payload,

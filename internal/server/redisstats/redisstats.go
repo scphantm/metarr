@@ -132,7 +132,7 @@ func (c *Collector) discoverStreams(ctx context.Context, known []eventbus.Stream
 			discovered = append(discovered, eventbus.StreamTopic{
 				Stream:    stream,
 				Group:     groupForAgentStream(stream),
-				EventName: "agent.scan",
+				EventName: eventbus.AgentScanCommandEventName,
 			})
 		}
 		if err := iterator.Err(); err != nil {
@@ -145,14 +145,15 @@ func (c *Collector) discoverStreams(ctx context.Context, known []eventbus.Stream
 	return discovered
 }
 
-// groupForAgentStream turns "events.agent.<slug>.commands" into the consumer
-// group that agent reads it with.
+// groupForAgentStream turns an agent command stream name into the consumer
+// group that agent reads it with. Both name shapes are owned by eventbus, so
+// this only composes its helpers.
 func groupForAgentStream(stream string) string {
-	slug := strings.TrimSuffix(strings.TrimPrefix(stream, "events.agent."), ".commands")
-	if slug == "" || slug == stream {
+	slug := eventbus.SlugFromAgentCommandStream(stream)
+	if slug == "" {
 		return ""
 	}
-	return "agent_" + slug + "_group"
+	return eventbus.AgentCommandGroup(slug)
 }
 
 func (c *Collector) collectStream(ctx context.Context, topic eventbus.StreamTopic) *StreamStat {

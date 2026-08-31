@@ -27,13 +27,13 @@ func RunAgentScanResultListener(
 	repo *mongostore.LocalDirectoryRepo,
 	logger *slog.Logger,
 ) error {
-	logger.Info("agent scan result listener started", "stream", agentproto.ScanResultStream)
+	logger.Info("agent scan result listener started", "stream", eventbus.AgentScanResultStream)
 
 	return bus.Consume(
 		ctx,
-		agentproto.ScanResultStream,
-		agentproto.ScanResultGroup,
-		"worker-1",
+		eventbus.AgentScanResultStream,
+		eventbus.AgentScanResultGroup,
+		eventbus.ConsumerName,
 		func(ctx context.Context, event eventbus.Event) error {
 			return handleAgentScanEvent(ctx, repo, logger, event)
 		},
@@ -47,11 +47,11 @@ func handleAgentScanEvent(
 	event eventbus.Event,
 ) error {
 	switch event.Name {
-	case agentproto.ScanResultEventName:
+	case eventbus.AgentScanResultEventName:
 		return storeScanResult(ctx, repo, logger, event)
-	case agentproto.ScanCompleteEventName:
+	case eventbus.AgentScanCompleteEventName:
 		return completeScan(ctx, repo, logger, event)
-	case agentproto.ScanFailedEventName:
+	case eventbus.AgentScanFailedEventName:
 		reportScanFailure(logger, event)
 		return nil
 	default:
