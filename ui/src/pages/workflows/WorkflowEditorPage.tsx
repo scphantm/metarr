@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ReactFlowProvider, type ReactFlowInstance, type Viewport } from '@xyflow/react'
 import { Input, Spin, Typography } from 'antd'
 
-import type { Workflow } from '../../api/types'
+import type { Workflow } from '../../gen/metarr/v1/workflows_pb'
 import { queryKeys, useSaveWorkflow, useWorkflow, useWorkflowVersion, useWorkflowVersions } from '../../api/queries'
 import { Button } from '../../components/Card'
 import { DnDProvider } from './DnDContext'
@@ -28,18 +28,21 @@ const emptySnapshot: StashedDraft = { name: '', description: '', tags: [], nodes
 // is no migration path, per the project's still-in-development stance: it's
 // opened read-only with an explanation instead.
 function isCurrentSchema(workflow: Workflow): boolean {
-  return workflow.schema_version === SchemaVersion
+  return (workflow.graph?.schemaVersion ?? 0) === SchemaVersion
 }
 
 function snapshotFromWorkflow(workflow: Workflow): StashedDraft {
-  const { nodes, edges } = toRFGraph({ nodes: workflow.nodes, edges: workflow.edges }, registeredTypes)
+  const { nodes, edges } = toRFGraph(
+    { nodes: workflow.graph?.nodes ?? [], edges: workflow.graph?.edges ?? [] },
+    registeredTypes,
+  )
   return {
     name: workflow.name,
     description: workflow.description,
     tags: workflow.tags,
     nodes,
     edges,
-    viewport: (workflow.viewport as Viewport | undefined) ?? emptyViewport,
+    viewport: (workflow.graph?.viewport as Viewport | undefined) ?? emptyViewport,
   }
 }
 
@@ -119,9 +122,9 @@ export function WorkflowEditorPage() {
     // Seed the cache immediately rather than waiting on the mutation's
     // invalidation-triggered refetch, so `baseline` above reflects this save
     // on the very next render.
-    queryClient.setQueryData(queryKeys.workflow(saved.document_id), saved)
+    queryClient.setQueryData(queryKeys.workflow(saved.documentId), saved)
     if (!id) {
-      navigate(`/workflows/${saved.document_id}/edit`, { replace: true })
+      navigate(`/workflows/${saved.documentId}/edit`, { replace: true })
     }
   }
 
@@ -243,14 +246,11 @@ const EditorBody = forwardRef<
     try {
       const graph = fromRFGraph(instance.getNodes(), instance.getEdges(), instance.getViewport())
       const saved = await saveWorkflow.mutateAsync({
-        document_id: documentId,
+        documentId: documentId ?? '',
         name: name.trim(),
         description: description.trim(),
         tags,
-        schema_version: graph.schemaVersion,
-        nodes: graph.nodes,
-        edges: graph.edges,
-        viewport: graph.viewport ?? {},
+        graph,
       })
       onSaved(saved)
     } catch (cause) {
