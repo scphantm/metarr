@@ -96,7 +96,8 @@ func run() error {
 		"version", version.Raw,
 	)
 
-	streamBus, err := eventbus.NewStreamBus(redisClient, eventbus.NewSlogAdapter(logger))
+	retentionPolicy := eventbus.DefaultRetentionPolicy()
+	streamBus, err := eventbus.NewStreamBus(redisClient, retentionPolicy, eventbus.NewSlogAdapter(logger))
 	if err != nil {
 		return err
 	}
@@ -117,7 +118,7 @@ func run() error {
 	// dry-run and reports business failures as result events itself, so the
 	// scan handler only ever returns an error for a message it could not
 	// process at all.
-	eventRouter, err := eventbus.NewRedisRouter(redisClient, eventbus.DefaultRetryPolicy(), eventbus.NewSlogAdapter(logger))
+	eventRouter, err := eventbus.NewRedisRouter(redisClient, eventbus.DefaultRetryPolicy(), retentionPolicy, eventbus.NewSlogAdapter(logger))
 	if err != nil {
 		return err
 	}

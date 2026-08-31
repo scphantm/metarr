@@ -102,7 +102,12 @@ func run() error {
 	logShipper.Attach(redisClient)
 
 	pubsubBus := eventbus.NewPubSubBus(redisClient)
-	streamBus, err := eventbus.NewStreamBus(redisClient, eventbus.NewSlogAdapter(logger))
+	// Retention: every publish sets an approximate MAXLEN by stream tier, and
+	// a background sweep (started below) trims each stream by age. Hardcoded
+	// defaults for now; the event_bus config section feeds a live policy in
+	// later (docs/adr/0006).
+	retentionPolicy := eventbus.DefaultRetentionPolicy()
+	streamBus, err := eventbus.NewStreamBus(redisClient, retentionPolicy, eventbus.NewSlogAdapter(logger))
 	if err != nil {
 		return err
 	}
@@ -220,7 +225,7 @@ func run() error {
 	// acked, instead of redelivering forever (docs/adr/0006). Scanning itself
 	// now happens on the agents; the scan-result listener is the half that
 	// persists what they report.
-	eventRouter, err := eventbus.NewRedisRouter(redisClient, eventbus.DefaultRetryPolicy(), eventbus.NewSlogAdapter(logger))
+	eventRouter, err := eventbus.NewRedisRouter(redisClient, eventbus.DefaultRetryPolicy(), retentionPolicy, eventbus.NewSlogAdapter(logger))
 	if err != nil {
 		return err
 	}
@@ -235,6 +240,10 @@ func run() error {
 			logger.Error("event router stopped unexpectedly", "error", err)
 		}
 	}()
+
+	// The age half of retention: publish-time MAXLEN bounds a stream by count,
+	// this bounds a low-volume stream by age so nothing outlives the window.
+	go eventbus.NewRetentionSweeper(redisClient, retentionPolicy, logger).Run(ctx, eventbus.DefaultSweepInterval)
 
 	statsCollector := redisstats.New(redisClient)
 

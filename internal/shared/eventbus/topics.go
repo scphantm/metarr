@@ -62,6 +62,13 @@ const (
 	// re-adding it to its origin stream once the cause is fixed. It has no
 	// consumer group.
 	DeadLetterStream = "events.dead_letter"
+
+	// AgentNodeResultStream carries workflow node execution outcomes from the
+	// agent back to the server. The name is reserved here so retention and
+	// stats treat it as a high-volume result stream from the start; its
+	// consumer group and listener are created by the workflow-engine work
+	// (docs/adr/0006, spec scphantm/metarr#37).
+	AgentNodeResultStream = "events.agent_node_results"
 )
 
 // Event-name discriminators carried in the Event envelope's Name field.
