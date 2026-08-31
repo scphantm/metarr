@@ -26,9 +26,6 @@ func TestKeyBuildersAgreeWithTheirPatterns(t *testing.T) {
 	if got := SlugFromPresenceKey("metarr:agent:presence:"); got != "" {
 		t.Errorf("a key with no slug returned %q, want empty", got)
 	}
-	if want := "events.agent.nas-01.commands"; CommandStream("nas-01") != want {
-		t.Errorf("CommandStream = %q, want %q", CommandStream("nas-01"), want)
-	}
 }
 
 func TestValidateSlugAcceptsUsableNames(t *testing.T) {

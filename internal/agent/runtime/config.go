@@ -10,6 +10,7 @@ import (
 
 	"Metarr/internal/shared/agentproto"
 	"Metarr/internal/shared/appconfig"
+	"Metarr/internal/shared/eventbus"
 	"Metarr/internal/shared/logging"
 	"Metarr/internal/shared/scanmodel"
 )
@@ -130,7 +131,7 @@ func (s *ConfigStore) Watch(ctx context.Context) {
 		s.logger.Warn("failed to read configuration", "error", err)
 	}
 
-	subscription := s.client.Subscribe(ctx, agentproto.ConfigChangedChannel(s.slug))
+	subscription := s.client.Subscribe(ctx, eventbus.AgentConfigChangedChannel(s.slug))
 	defer func() { _ = subscription.Close() }()
 	notifications := subscription.Channel()
 

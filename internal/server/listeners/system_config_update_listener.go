@@ -36,7 +36,7 @@ func RunSystemConfigUpdateListener(
 
 	propagator := newConfigPropagator(repo, liveConfigSetterFunc(appconfig.Set), sidecarRegistryAdapter{}, agents, logShipper, logger)
 
-	return bus.Consume(ctx, eventbus.SystemConfigUpdateStream, eventbus.SystemConfigUpdateGroup, "worker-1", func(ctx context.Context, event eventbus.Event) error {
+	return bus.Consume(ctx, eventbus.SystemConfigUpdateStream, eventbus.SystemConfigUpdateGroup, eventbus.ConsumerName, func(ctx context.Context, event eventbus.Event) error {
 		var cfg appconfig.Config
 		if err := json.Unmarshal(event.Payload, &cfg); err != nil {
 			logger.Error("system_config_update listener: invalid payload", "correlation_id", event.CorrelationID, "error", err)

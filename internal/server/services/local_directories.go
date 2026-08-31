@@ -195,9 +195,9 @@ func (s *LocalDirectoryServer) GetDirectoryNFO(
 	timeoutCtx, cancel := context.WithTimeout(ctx, s.HeartbeatTimeout)
 	defer cancel()
 
-	reply, err := s.PubSub.Request(timeoutCtx, agentproto.RequestChannel(agent), eventbus.Event{
+	reply, err := s.PubSub.Request(timeoutCtx, eventbus.AgentRequestChannel(agent), eventbus.Event{
 		CorrelationID: correlationID,
-		Name:          agentproto.NFOReadEventName,
+		Name:          eventbus.AgentNFOReadEventName,
 		Payload:       payload,
 		Timestamp:     time.Now().UTC(),
 	})
