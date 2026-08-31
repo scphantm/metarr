@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        (unknown)
-// source: metarr/v1/eventbus.proto
+// source: metarr/v1/event_envelope.proto
 
 package metarrv1
 
@@ -56,7 +56,7 @@ type EventEnvelope struct {
 
 func (x *EventEnvelope) Reset() {
 	*x = EventEnvelope{}
-	mi := &file_metarr_v1_eventbus_proto_msgTypes[0]
+	mi := &file_metarr_v1_event_envelope_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -68,7 +68,7 @@ func (x *EventEnvelope) String() string {
 func (*EventEnvelope) ProtoMessage() {}
 
 func (x *EventEnvelope) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_eventbus_proto_msgTypes[0]
+	mi := &file_metarr_v1_event_envelope_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -81,7 +81,7 @@ func (x *EventEnvelope) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventEnvelope.ProtoReflect.Descriptor instead.
 func (*EventEnvelope) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_eventbus_proto_rawDescGZIP(), []int{0}
+	return file_metarr_v1_event_envelope_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *EventEnvelope) GetName() string {
@@ -119,11 +119,11 @@ func (x *EventEnvelope) GetPayload() []byte {
 	return nil
 }
 
-var File_metarr_v1_eventbus_proto protoreflect.FileDescriptor
+var File_metarr_v1_event_envelope_proto protoreflect.FileDescriptor
 
-const file_metarr_v1_eventbus_proto_rawDesc = "" +
+const file_metarr_v1_event_envelope_proto_rawDesc = "" +
 	"\n" +
-	"\x18metarr/v1/eventbus.proto\x12\tmetarr.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb6\x01\n" +
+	"\x1emetarr/v1/event_envelope.proto\x12\tmetarr.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb6\x01\n" +
 	"\rEventEnvelope\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\x12%\n" +
@@ -132,23 +132,23 @@ const file_metarr_v1_eventbus_proto_rawDesc = "" +
 	"\apayload\x18\x05 \x01(\fR\apayloadB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
 
 var (
-	file_metarr_v1_eventbus_proto_rawDescOnce sync.Once
-	file_metarr_v1_eventbus_proto_rawDescData []byte
+	file_metarr_v1_event_envelope_proto_rawDescOnce sync.Once
+	file_metarr_v1_event_envelope_proto_rawDescData []byte
 )
 
-func file_metarr_v1_eventbus_proto_rawDescGZIP() []byte {
-	file_metarr_v1_eventbus_proto_rawDescOnce.Do(func() {
-		file_metarr_v1_eventbus_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_metarr_v1_eventbus_proto_rawDesc), len(file_metarr_v1_eventbus_proto_rawDesc)))
+func file_metarr_v1_event_envelope_proto_rawDescGZIP() []byte {
+	file_metarr_v1_event_envelope_proto_rawDescOnce.Do(func() {
+		file_metarr_v1_event_envelope_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_metarr_v1_event_envelope_proto_rawDesc), len(file_metarr_v1_event_envelope_proto_rawDesc)))
 	})
-	return file_metarr_v1_eventbus_proto_rawDescData
+	return file_metarr_v1_event_envelope_proto_rawDescData
 }
 
-var file_metarr_v1_eventbus_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_metarr_v1_eventbus_proto_goTypes = []any{
+var file_metarr_v1_event_envelope_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_metarr_v1_event_envelope_proto_goTypes = []any{
 	(*EventEnvelope)(nil),         // 0: metarr.v1.EventEnvelope
 	(*timestamppb.Timestamp)(nil), // 1: google.protobuf.Timestamp
 }
-var file_metarr_v1_eventbus_proto_depIdxs = []int32{
+var file_metarr_v1_event_envelope_proto_depIdxs = []int32{
 	1, // 0: metarr.v1.EventEnvelope.timestamp:type_name -> google.protobuf.Timestamp
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
@@ -157,26 +157,26 @@ var file_metarr_v1_eventbus_proto_depIdxs = []int32{
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_metarr_v1_eventbus_proto_init() }
-func file_metarr_v1_eventbus_proto_init() {
-	if File_metarr_v1_eventbus_proto != nil {
+func init() { file_metarr_v1_event_envelope_proto_init() }
+func file_metarr_v1_event_envelope_proto_init() {
+	if File_metarr_v1_event_envelope_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_eventbus_proto_rawDesc), len(file_metarr_v1_eventbus_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_event_envelope_proto_rawDesc), len(file_metarr_v1_event_envelope_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_metarr_v1_eventbus_proto_goTypes,
-		DependencyIndexes: file_metarr_v1_eventbus_proto_depIdxs,
-		MessageInfos:      file_metarr_v1_eventbus_proto_msgTypes,
+		GoTypes:           file_metarr_v1_event_envelope_proto_goTypes,
+		DependencyIndexes: file_metarr_v1_event_envelope_proto_depIdxs,
+		MessageInfos:      file_metarr_v1_event_envelope_proto_msgTypes,
 	}.Build()
-	File_metarr_v1_eventbus_proto = out.File
-	file_metarr_v1_eventbus_proto_goTypes = nil
-	file_metarr_v1_eventbus_proto_depIdxs = nil
+	File_metarr_v1_event_envelope_proto = out.File
+	file_metarr_v1_event_envelope_proto_goTypes = nil
+	file_metarr_v1_event_envelope_proto_depIdxs = nil
 }
