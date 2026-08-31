@@ -126,9 +126,14 @@ func NewRouter(
 }
 
 // NewRedisRouter builds a Router backed by Redis Streams: the dead-letter
-// republish and every per-stream subscriber use client.
-func NewRedisRouter(client redis.UniversalClient, policy RetryPolicy, logger watermill.LoggerAdapter) (*Router, error) {
-	publisher, err := redisstream.NewPublisher(redisstream.PublisherConfig{Client: client}, logger)
+// republish and every per-stream subscriber use client. The dead-letter
+// stream is capped at retention.MaxLenDefault so parked messages cannot grow
+// without bound.
+func NewRedisRouter(client redis.UniversalClient, policy RetryPolicy, retention RetentionPolicy, logger watermill.LoggerAdapter) (*Router, error) {
+	publisher, err := redisstream.NewPublisher(redisstream.PublisherConfig{
+		Client:        client,
+		DefaultMaxlen: retention.MaxLenDefault,
+	}, logger)
 	if err != nil {
 		return nil, fmt.Errorf("eventbus: dead-letter publisher: %w", err)
 	}
