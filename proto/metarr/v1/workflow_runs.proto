@@ -1,0 +1,135 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// The workflow run audit log. Two record types, one per collection:
+// workflow_runs holds one WorkflowRun per run, workflow_node_executions holds
+// one WorkflowNodeExecution per (run_id, node_id, frame, attempt). Neither
+// uses the versioned store — a run is mutated hundreds of times, not saved as
+// immutable versions — and node executions are their own collection rather
+// than embedded subdocuments because a forEach over thousands of items would
+// blow the 16MB BSON limit.
+//
+// These are defined before the execution engine that writes them exists
+// (design build order step 5) and before any screen reads them, so the audit
+// log is a generated model like every other family and no hand-written mirror
+// is ever created for it. internal/server/workflow/run aliases these
+// messages. See docs/adr/0005 and the workflow engine design's "Run state"
+// section.
+
+// WorkflowRunTrigger records what started a run.
+message WorkflowRunTrigger {
+  // kind is the trigger vocabulary the engine owns — "manual",
+  // "scan_complete", and so on. Carried as a free string here, matching how
+  // the run document reads in the database.
+  string kind = 1;
+  // by names the user or system actor that started the run.
+  string by = 2;
+  // payload is the trigger-specific data, shaped by kind.
+  google.protobuf.Struct payload = 3;
+}
+
+// WorkflowRunError is a failure attributed to a node in a frame. It is the
+// run-ending error on WorkflowRun and the per-attempt error on
+// WorkflowNodeExecution; node_id and frame are redundant in the latter but
+// keep the shape identical.
+message WorkflowRunError {
+  string node_id = 1;
+  string frame = 2;
+  string code = 3;
+  string message = 4;
+}
+
+// WorkflowRunCounters is the run's live tally, shown on the run view and
+// updated as executions finish.
+message WorkflowRunCounters {
+  int32 executed = 1;
+  int32 failed = 2;
+  int32 skipped = 3;
+  int32 cancelled = 4;
+}
+
+// WorkflowRun is one document in workflow_runs: everything known about a
+// single run of a workflow, from the frozen inputs it started with to the
+// counters and error it ended with.
+message WorkflowRun {
+  string id = 1;
+  string workflow_document_id = 2;
+  int32 workflow_version = 3;
+
+  // graph and catalog_snapshot are frozen at run start and never re-parsed
+  // against current definitions — an operator editing catalog.json, or the
+  // author saving a new version, must not change an in-flight run's meaning.
+  // They are deliberately opaque structured snapshots rather than the live
+  // WorkflowGraph / WorkflowCatalog messages: the frozen graph is a compiled
+  // form, and the snapshot must survive a schema change to those models
+  // without a historical run failing to load.
+  google.protobuf.Struct graph = 4;
+  google.protobuf.Struct catalog_snapshot = 5;
+
+  WorkflowRunTrigger trigger = 6;
+  google.protobuf.Struct inputs = 7;
+
+  // mode ("development" | "production"), dry_run (defaults true,
+  // engine-enforced) and log_level ("info" | "debug", a per-run override of
+  // the process level) are closed vocabularies the engine owns, carried as
+  // free strings here to match how the run document reads in the database.
+  string mode = 8;
+  bool dry_run = 9;
+  string log_level = 10;
+  // work_dir is relative to each machine's metarr directory —
+  // "workflows/<run id>".
+  string work_dir = 11;
+
+  // status is queued | running | paused | cancelling | succeeded | failed |
+  // cancelled.
+  string status = 12;
+  google.protobuf.Timestamp started_at = 13;
+  google.protobuf.Timestamp finished_at = 14;
+  WorkflowRunError error = 15;
+  WorkflowRunCounters counters = 16;
+
+  // engine_instance_id and lease_expires_at are the crash-recovery lease: on
+  // startup the engine sweeps runs whose lease expired.
+  string engine_instance_id = 17;
+  google.protobuf.Timestamp lease_expires_at = 18;
+  google.protobuf.Timestamp cancel_requested_at = 19;
+  // breakpoints holds node ids paused on in development mode.
+  repeated string breakpoints = 20;
+  // expires_at drives the retention TTL; failed runs are pinned longer.
+  google.protobuf.Timestamp expires_at = 21;
+}
+
+// WorkflowNodeExecution is one document in workflow_node_executions: one
+// attempt at one node in one frame. The unique key is (run_id, node_id,
+// frame, attempt) — the deterministic frame path is what makes retries and
+// crash recovery possible, where a random per-iteration id would not.
+message WorkflowNodeExecution {
+  string id = 1;
+  string run_id = 2;
+  string node_id = 3;
+  // frame is the scope path: "/" | "/n7#3" | "/n7#3/n12#0".
+  string frame = 4;
+  int32 attempt = 5;
+  // status is pending | dispatched | running | succeeded | failed |
+  // cancelled | skipped.
+  string status = 6;
+  // agent_slug is empty when the node ran on the server.
+  string agent_slug = 7;
+  // dispatch_correlation_id joins this execution to its OpenObserve logs.
+  string dispatch_correlation_id = 8;
+  // inputs_resolved and outputs are post-transform: what the node actually
+  // received and produced.
+  google.protobuf.Struct inputs_resolved = 9;
+  google.protobuf.Struct outputs = 10;
+  WorkflowRunError error = 11;
+  google.protobuf.Timestamp started_at = 12;
+  google.protobuf.Timestamp finished_at = 13;
+  int64 duration_ms = 14;
+  google.protobuf.Timestamp expires_at = 15;
+}
