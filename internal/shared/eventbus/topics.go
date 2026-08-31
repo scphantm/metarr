@@ -85,6 +85,18 @@ const (
 	AgentScanFailedEventName = "agent.scan_failed"
 	// AgentNFOReadEventName asks an agent to read one NFO file from disk now.
 	AgentNFOReadEventName = "agent.nfo_read"
+
+	// HeartbeatReplyEventName is stamped on the heartbeat responder's answer.
+	// It is the existing wire string, named here alongside the request names.
+	// The reply travels on the correlation-scoped reply channel and nothing
+	// dispatches on its name, so it need not match a request name.
+	HeartbeatReplyEventName = "heartbeat.reply"
+	// AgentNFOReadReplyEventName is stamped on the NFO-read responder's
+	// answer. Deliberately a different string from AgentNFOReadEventName: the
+	// reply travels on the correlation-scoped reply channel and no caller
+	// dispatches on it, so the request and reply names are free to differ and
+	// a distinct name keeps request and reply telemetry apart.
+	AgentNFOReadReplyEventName = "agent.nfo_read_reply"
 )
 
 // AgentCommandStream is the durable stream one agent reads its work from. It
