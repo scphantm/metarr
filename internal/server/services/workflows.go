@@ -2,13 +2,13 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
 
 	"connectrpc.com/connect"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
@@ -205,46 +205,98 @@ func (s *WorkflowServer) Upsert(
 	return connect.NewResponse(&metarrv1.WorkflowServiceUpsertResponse{Workflow: proto}), nil
 }
 
-// graphPayload is graph_json's decoded shape — exactly the three fields
-// mongostore.Workflow stores as loose bson.M, bundled into the one opaque
-// field every RPC here carries instead of modeling them.
-type graphPayload struct {
-	Nodes    []bson.M `json:"nodes"`
-	Edges    []bson.M `json:"edges"`
-	Viewport bson.M   `json:"viewport"`
+// The workflow graph is a generated message (workflow.Graph aliases
+// metarr.v1.WorkflowGraph). It is persisted the same way the application
+// config document is — protojson with proto field names, expanded into a
+// BSON subdocument rather than an opaque blob — so the stored node/edge
+// field names stay snake_case and the collection is still readable directly
+// (docs/adr/0005). mongostore.Workflow keeps its three loose fields
+// (Nodes/Edges/Viewport) so this is the only place the graph message is
+// converted, and there is no per-node-type schema to keep in step.
+//
+// storedGraphUnmarshal is strict on purpose: an unrecognised node type and
+// unrecognised settings ride through in the message's structured `type`,
+// `settings` and `extra` fields, so a stored graph should never carry a key
+// the message cannot place. If one appears, failing loudly beats silently
+// dropping part of someone's workflow.
+var (
+	storedGraphMarshal   = protojson.MarshalOptions{UseProtoNames: true}
+	storedGraphUnmarshal = protojson.UnmarshalOptions{}
+)
+
+// storedGraph is the graph's shape inside the workflow document.
+type storedGraph struct {
+	SchemaVersion int      `bson:"schema_version"`
+	Nodes         []bson.M `bson:"nodes"`
+	Edges         []bson.M `bson:"edges"`
+	Viewport      bson.M   `bson:"viewport"`
+}
+
+func graphToProto(w mongostore.Workflow) (*metarrv1.WorkflowGraph, error) {
+	doc := bson.M{
+		"schema_version": w.SchemaVersion,
+		"nodes":          w.Nodes,
+		"edges":          w.Edges,
+	}
+	if w.Viewport != nil {
+		doc["viewport"] = w.Viewport
+	}
+	extJSON, err := bson.MarshalExtJSON(doc, false, false)
+	if err != nil {
+		return nil, err
+	}
+	graph := &metarrv1.WorkflowGraph{}
+	if err := storedGraphUnmarshal.Unmarshal(extJSON, graph); err != nil {
+		return nil, err
+	}
+	return graph, nil
+}
+
+func graphFromProto(graph *metarrv1.WorkflowGraph) (storedGraph, error) {
+	if graph == nil {
+		graph = &metarrv1.WorkflowGraph{}
+	}
+	protoJSON, err := storedGraphMarshal.Marshal(graph)
+	if err != nil {
+		return storedGraph{}, err
+	}
+	var stored storedGraph
+	if err := bson.UnmarshalExtJSON(protoJSON, false, &stored); err != nil {
+		return storedGraph{}, err
+	}
+	return stored, nil
 }
 
 func workflowToProto(w mongostore.Workflow) (*metarrv1.Workflow, error) {
-	graphJSON, err := json.Marshal(graphPayload{Nodes: w.Nodes, Edges: w.Edges, Viewport: w.Viewport})
+	graph, err := graphToProto(w)
 	if err != nil {
 		return nil, err
 	}
 	return &metarrv1.Workflow{
-		Id:            w.ID.Hex(),
-		DocumentId:    w.DocumentID.Hex(),
-		Version:       int32(w.Version),
-		CreatedAt:     timestamppb.New(w.CreatedAt),
-		Name:          w.Name,
-		Description:   w.Description,
-		Tags:          w.Tags,
-		SchemaVersion: int32(w.SchemaVersion),
-		GraphJson:     graphJSON,
+		Id:          w.ID.Hex(),
+		DocumentId:  w.DocumentID.Hex(),
+		Version:     int32(w.Version),
+		CreatedAt:   timestamppb.New(w.CreatedAt),
+		Name:        w.Name,
+		Description: w.Description,
+		Tags:        w.Tags,
+		Graph:       graph,
 	}, nil
 }
 
 func workflowFromUpsertProto(req *metarrv1.WorkflowServiceUpsertRequest) (mongostore.Workflow, error) {
-	var graph graphPayload
-	if err := json.Unmarshal(req.GetGraphJson(), &graph); err != nil {
+	stored, err := graphFromProto(req.Graph)
+	if err != nil {
 		return mongostore.Workflow{}, errors.New("malformed graph")
 	}
 	return mongostore.Workflow{
 		Name:          req.GetName(),
 		Description:   req.GetDescription(),
 		Tags:          req.GetTags(),
-		SchemaVersion: int(req.GetSchemaVersion()),
-		Nodes:         graph.Nodes,
-		Edges:         graph.Edges,
-		Viewport:      graph.Viewport,
+		SchemaVersion: stored.SchemaVersion,
+		Nodes:         stored.Nodes,
+		Edges:         stored.Edges,
+		Viewport:      stored.Viewport,
 	}, nil
 }
 

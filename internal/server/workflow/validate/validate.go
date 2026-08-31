@@ -48,7 +48,7 @@ func (r Result) Runnable() bool {
 
 // Graph validates a drawn workflow against the catalog it was authored
 // against.
-func Graph(graph workflow.Graph, catalog *workflow.Catalog) Result {
+func Graph(graph *workflow.Graph, catalog *workflow.Catalog) Result {
 	analysis := newAnalysis(graph, catalog)
 
 	analysis.checkSchemaVersion()
@@ -68,10 +68,10 @@ func Graph(graph workflow.Graph, catalog *workflow.Catalog) Result {
 }
 
 type analysis struct {
-	graph   workflow.Graph
+	graph   *workflow.Graph
 	catalog *workflow.Catalog
 
-	nodes map[string]workflow.Node
+	nodes map[string]*workflow.Node
 	types map[string]*workflow.NodeType // node id -> resolved type
 
 	diagnostics []*Diagnostic
@@ -84,11 +84,11 @@ type analysis struct {
 	loopScope map[string]string
 }
 
-func newAnalysis(graph workflow.Graph, catalog *workflow.Catalog) *analysis {
+func newAnalysis(graph *workflow.Graph, catalog *workflow.Catalog) *analysis {
 	return &analysis{
 		graph:   graph,
 		catalog: catalog,
-		nodes:   graph.NodeByID(),
+		nodes:   workflow.NodeByID(graph),
 		types:   make(map[string]*workflow.NodeType),
 	}
 }
@@ -120,8 +120,8 @@ func (a *analysis) checkSchemaVersion() {
 // and edges so the flow can be opened, displayed and re-saved without loss.
 func (a *analysis) checkNodeTypes() {
 	for _, node := range a.graph.Nodes {
-		nodeType, found := a.catalog.Lookup(node.CatalogID)
-		if !found && node.CatalogID == "" {
+		nodeType, found := a.catalog.Lookup(node.CatalogId)
+		if !found && node.CatalogId == "" {
 			// Legacy save from before catalog entries carried an id — fall
 			// back to an arbitrary but deterministic match by Type.
 			nodeType, found = a.catalog.LookupByType(node.Type)
@@ -129,10 +129,10 @@ func (a *analysis) checkNodeTypes() {
 		if !found {
 			a.report(SeverityError, "type.missing",
 				fmt.Sprintf("No node type %s is installed, so this node cannot run. Its settings and connections are preserved.", node.Type),
-				[]string{node.ID}, nil)
+				[]string{node.Id}, nil)
 			continue
 		}
-		a.types[node.ID] = nodeType
+		a.types[node.Id] = nodeType
 	}
 }
 
@@ -160,28 +160,28 @@ func (a *analysis) checkPortsExist() {
 			if !workflow.HasControlOut(fromType, edge.From.Port) {
 				a.report(SeverityError, "port.unknownControlOut",
 					fmt.Sprintf("%s has no control output named %q.", fromType.Name, edge.From.Port),
-					[]string{edge.From.Node}, []string{edge.ID})
+					[]string{edge.From.Node}, []string{edge.Id})
 			}
 			if !workflow.HasControlIn(toType, edge.To.Port) {
 				a.report(SeverityError, "port.unknownControlIn",
 					fmt.Sprintf("%s has no control input named %q.", toType.Name, edge.To.Port),
-					[]string{edge.To.Node}, []string{edge.ID})
+					[]string{edge.To.Node}, []string{edge.Id})
 			}
 		case workflow.EdgeData:
 			if _, found := workflow.DataOutSocket(fromType, edge.From.Port); !found && !a.isInferredOutput(fromType, edge.From.Port) {
 				a.report(SeverityError, "port.unknownDataOut",
 					fmt.Sprintf("%s has no data output named %q.", fromType.Name, edge.From.Port),
-					[]string{edge.From.Node}, []string{edge.ID})
+					[]string{edge.From.Node}, []string{edge.Id})
 			}
 			if _, found := workflow.DataInSocket(toType, edge.To.Port); !found {
 				a.report(SeverityError, "port.unknownDataIn",
 					fmt.Sprintf("%s has no data input named %q.", toType.Name, edge.To.Port),
-					[]string{edge.To.Node}, []string{edge.ID})
+					[]string{edge.To.Node}, []string{edge.Id})
 			}
 		default:
 			a.report(SeverityError, "edge.unknownKind",
-				fmt.Sprintf("Edge %s has kind %q; expected control or data.", edge.ID, edge.Kind),
-				nil, []string{edge.ID})
+				fmt.Sprintf("Edge %s has kind %s; expected control or data.", edge.Id, edge.Kind),
+				nil, []string{edge.Id})
 		}
 	}
 }
@@ -210,10 +210,10 @@ func (a *analysis) checkArity() {
 		switch edge.Kind {
 		case workflow.EdgeControl:
 			key := edge.From.Node + "\x00" + edge.From.Port
-			controlOutUse[key] = append(controlOutUse[key], edge.ID)
+			controlOutUse[key] = append(controlOutUse[key], edge.Id)
 		case workflow.EdgeData:
 			key := edge.To.Node + "\x00" + edge.To.Port
-			dataInUse[key] = append(dataInUse[key], edge.ID)
+			dataInUse[key] = append(dataInUse[key], edge.Id)
 		}
 	}
 
@@ -252,8 +252,8 @@ func splitKey(key string) (nodeID, port string) {
 func (a *analysis) checkStart() {
 	var startNodes []string
 	for _, node := range a.graph.Nodes {
-		if nodeType, resolved := a.types[node.ID]; resolved && nodeType.Kind == workflow.KindStart {
-			startNodes = append(startNodes, node.ID)
+		if nodeType, resolved := a.types[node.Id]; resolved && nodeType.Kind == workflow.KindStart {
+			startNodes = append(startNodes, node.Id)
 		}
 	}
 
@@ -274,7 +274,7 @@ func (a *analysis) checkStart() {
 // so this only ever fires on zero, never on "multiple".
 func (a *analysis) checkEnd() {
 	for _, node := range a.graph.Nodes {
-		if nodeType, resolved := a.types[node.ID]; resolved && nodeType.Kind == workflow.KindEnd {
+		if nodeType, resolved := a.types[node.Id]; resolved && nodeType.Kind == workflow.KindEnd {
 			return
 		}
 	}
@@ -287,11 +287,11 @@ func (a *analysis) checkEnd() {
 func (a *analysis) startNode() string {
 	var found string
 	for _, node := range a.graph.Nodes {
-		if nodeType, resolved := a.types[node.ID]; resolved && nodeType.Kind == workflow.KindStart {
+		if nodeType, resolved := a.types[node.Id]; resolved && nodeType.Kind == workflow.KindStart {
 			if found != "" {
 				return ""
 			}
-			found = node.ID
+			found = node.Id
 		}
 	}
 	return found

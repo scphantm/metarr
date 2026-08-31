@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+import "google/protobuf/struct.proto";
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// The stored workflow graph: the nodes, edges and viewport an author places
+// on the canvas. internal/shared/workflow aliases these messages (Graph =
+// WorkflowGraph, Node = WorkflowGraphNode, and so on). See docs/adr/0005 and
+// the workflow engine design's "Workflow document" section.
+//
+// The graph carries its open content as structured values rather than a
+// typed per-node-type settings union. That is deliberate: a node whose
+// `type` this build does not recognise, and settings it does not recognise,
+// must survive a store-and-load round trip unchanged. A typed union is the
+// shape the design warns silently drops user work — see the passthrough
+// warning in the design's node-and-edges section.
+
+// WorkflowEdgeKind separates a graph's control wiring from its data wiring.
+// The engine owns this closed vocabulary — the two kinds are validated by
+// entirely different rules and are never styled alike in the editor — so it
+// is a proto enum rather than a free string.
+enum WorkflowEdgeKind {
+  WORKFLOW_EDGE_KIND_UNSPECIFIED = 0;
+  // A control edge: says what runs next.
+  WORKFLOW_EDGE_KIND_CONTROL = 1;
+  // A data edge: wires a typed value into a parameter.
+  WORKFLOW_EDGE_KIND_DATA = 2;
+}
+
+// WorkflowGraphPosition is a node's place on the canvas. Purely
+// presentational.
+message WorkflowGraphPosition {
+  double x = 1;
+  double y = 2;
+}
+
+// WorkflowGraphNode is one placed instance of a catalog type.
+message WorkflowGraphNode {
+  string id = 1;
+  // type is the dispatch key. It stays a free string: the catalog owns that
+  // vocabulary, so a node whose type this build does not recognise still
+  // round-trips unchanged rather than being dropped.
+  string type = 2;
+  // catalog_id names the exact catalog entry this instance was placed from —
+  // several entries may share type. Empty on graphs saved before catalog
+  // entries carried an id; resolution then falls back to a deterministic
+  // match by type.
+  string catalog_id = 3;
+  WorkflowGraphPosition position = 4;
+  // settings holds the literal values the user entered, keyed by the
+  // catalog's setting names. It is a structured value, not a typed
+  // per-node-type message, so a setting this build does not recognise
+  // survives a store-and-load round trip.
+  google.protobuf.Struct settings = 5;
+  // promoted lists settings turned into wired data-in sockets on this
+  // instance.
+  repeated string promoted = 6;
+  // label overrides the catalog's display name for this instance.
+  string label = 7;
+  // extra preserves any node field this build's schema does not model —
+  // editor-only colour overrides today, fields from a newer build tomorrow.
+  // Without it a typed schema silently drops them, which the design flags as
+  // the easiest way in the whole design to destroy a user's work.
+  google.protobuf.Struct extra = 8;
+}
+
+// WorkflowEndpoint is one end of an edge: a node and one of its ports.
+message WorkflowEndpoint {
+  string node = 1;
+  string port = 2;
+}
+
+// WorkflowGraphEdge connects two ports.
+message WorkflowGraphEdge {
+  string id = 1;
+  WorkflowEdgeKind kind = 2;
+  WorkflowEndpoint from = 3;
+  WorkflowEndpoint to = 4;
+  // transform names an explicit conversion applied to the value in flight.
+  // Only meaningful on data edges, and always a single registered name.
+  string transform = 5;
+  // settings holds per-edge configuration — "recursive" on a path-typed data
+  // edge, for one. Unlike a node's settings there is no per-type edge schema
+  // behind it.
+  google.protobuf.Struct settings = 6;
+}
+
+// WorkflowGraph is a stored workflow's node and edge content. A document
+// whose schema_version does not match the current one predates the
+// control/data-edge redesign and is opened read-only rather than guessed at.
+message WorkflowGraph {
+  int32 schema_version = 1;
+  repeated WorkflowGraphNode nodes = 2;
+  repeated WorkflowGraphEdge edges = 3;
+  google.protobuf.Struct viewport = 4;
+}

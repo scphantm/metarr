@@ -32,10 +32,7 @@ function isCurrentSchema(workflow: Workflow): boolean {
 }
 
 function snapshotFromWorkflow(workflow: Workflow): StashedDraft {
-  const { nodes, edges } = toRFGraph(
-    { schema_version: workflow.schema_version, nodes: workflow.nodes, edges: workflow.edges },
-    registeredTypes,
-  )
+  const { nodes, edges } = toRFGraph({ nodes: workflow.nodes, edges: workflow.edges }, registeredTypes)
   return {
     name: workflow.name,
     description: workflow.description,
@@ -250,7 +247,7 @@ const EditorBody = forwardRef<
         name: name.trim(),
         description: description.trim(),
         tags,
-        schema_version: graph.schema_version,
+        schema_version: graph.schemaVersion,
         nodes: graph.nodes,
         edges: graph.edges,
         viewport: graph.viewport ?? {},

@@ -3,20 +3,20 @@ syntax = "proto3";
 package metarr.v1;
 
 import "google/protobuf/timestamp.proto";
+import "metarr/v1/workflow_graph.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
-// Workflow mirrors mongostore.Workflow — the versioned document type, with
-// nodes/edges/viewport carried as one opaque graph_json blob rather than
-// modeled proto fields.
+// Workflow is one version of a versioned workflow document: the scalar
+// metadata plus the authored graph. internal/server/mongostore.Workflow is
+// the stored form; internal/shared/workflow aliases WorkflowGraph and its
+// parts. See docs/adr/0005.
 //
-// mongostore.Workflow itself already stores Nodes/Edges/Viewport as loose
-// bson.M rather than typed Go structs specifically so a catalog-driven
-// schema change on the frontend never needs a backend release in lockstep
-// (see its doc comment) — the server has never round-tripped these fields
-// through a typed model. graph_json is exactly {"nodes": [...], "edges":
-// [...], "viewport": {...}} as JSON, matching the REST body/response shape
-// exactly, so nothing about that design changes here.
+// The graph's open content — a node's settings, and its extra field — is
+// carried as structured values so a node whose type this build does not
+// recognise, and settings it does not recognise, round-trip through storage
+// unchanged. schema_version lives on WorkflowGraph, which is the canonical
+// graph shape the catalog also advertises.
 message Workflow {
   string id = 1;
   string document_id = 2;
@@ -25,8 +25,7 @@ message Workflow {
   string name = 5;
   string description = 6;
   repeated string tags = 7;
-  int32 schema_version = 8;
-  bytes graph_json = 9;
+  WorkflowGraph graph = 8;
 }
 
 message WorkflowServiceListRequest {
@@ -73,8 +72,7 @@ message WorkflowServiceUpsertRequest {
   string name = 2;
   string description = 3;
   repeated string tags = 4;
-  int32 schema_version = 5;
-  bytes graph_json = 6;
+  WorkflowGraph graph = 5;
 }
 
 message WorkflowServiceUpsertResponse {

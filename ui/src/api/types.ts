@@ -6,7 +6,10 @@
  * the config screens use live in ./vocab.
  */
 
-import type { GraphEdge, GraphNode } from '../pages/workflows/catalogTypes'
+import type {
+  WorkflowGraphEdge as GraphEdge,
+  WorkflowGraphNode as GraphNode,
+} from '../gen/metarr/v1/workflow_graph_pb'
 
 // ReorderSidecarTypesRequest maps every sidecar type id to its order, covering
 // the whole table in one transaction. Not a model — a map keyed by id.

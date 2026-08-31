@@ -6,26 +6,27 @@ import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegen
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { WorkflowGraph } from "./workflow_graph_pb";
+import { file_metarr_v1_workflow_graph } from "./workflow_graph_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metarr/v1/workflows.proto.
  */
 export const file_metarr_v1_workflows: GenFile = /*@__PURE__*/
-  fileDesc("ChltZXRhcnIvdjEvd29ya2Zsb3dzLnByb3RvEgltZXRhcnIudjEiyQEKCFdvcmtmbG93EgoKAmlkGAEgASgJEhMKC2RvY3VtZW50X2lkGAIgASgJEg8KB3ZlcnNpb24YAyABKAUSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEbmFtZRgFIAEoCRITCgtkZXNjcmlwdGlvbhgGIAEoCRIMCgR0YWdzGAcgAygJEhYKDnNjaGVtYV92ZXJzaW9uGAggASgFEhIKCmdyYXBoX2pzb24YCSABKAwiOwoaV29ya2Zsb3dTZXJ2aWNlTGlzdFJlcXVlc3QSDQoFbGltaXQYASABKAUSDgoGY3Vyc29yGAIgASgJImwKG1dvcmtmbG93U2VydmljZUxpc3RSZXNwb25zZRImCgl3b3JrZmxvd3MYASADKAsyEy5tZXRhcnIudjEuV29ya2Zsb3cSEwoLbmV4dF9jdXJzb3IYAiABKAkSEAoIaGFzX21vcmUYAyABKAgiJwoZV29ya2Zsb3dTZXJ2aWNlR2V0UmVxdWVzdBIKCgJpZBgBIAEoCSJDChpXb3JrZmxvd1NlcnZpY2VHZXRSZXNwb25zZRIlCgh3b3JrZmxvdxgBIAEoCzITLm1ldGFyci52MS5Xb3JrZmxvdyIwCiJXb3JrZmxvd1NlcnZpY2VMaXN0VmVyc2lvbnNSZXF1ZXN0EgoKAmlkGAEgASgJIkwKI1dvcmtmbG93U2VydmljZUxpc3RWZXJzaW9uc1Jlc3BvbnNlEiUKCHZlcnNpb25zGAEgAygLMhMubWV0YXJyLnYxLldvcmtmbG93Ij8KIFdvcmtmbG93U2VydmljZUdldFZlcnNpb25SZXF1ZXN0EgoKAmlkGAEgASgJEg8KB3ZlcnNpb24YAiABKAUiSgohV29ya2Zsb3dTZXJ2aWNlR2V0VmVyc2lvblJlc3BvbnNlEiUKCHdvcmtmbG93GAEgASgLMhMubWV0YXJyLnYxLldvcmtmbG93IpABChxXb3JrZmxvd1NlcnZpY2VVcHNlcnRSZXF1ZXN0EhMKC2RvY3VtZW50X2lkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSDAoEdGFncxgEIAMoCRIWCg5zY2hlbWFfdmVyc2lvbhgFIAEoBRISCgpncmFwaF9qc29uGAYgASgMIkYKHVdvcmtmbG93U2VydmljZVVwc2VydFJlc3BvbnNlEiUKCHdvcmtmbG93GAEgASgLMhMubWV0YXJyLnYxLldvcmtmbG93MvEDCg9Xb3JrZmxvd1NlcnZpY2USVQoETGlzdBIlLm1ldGFyci52MS5Xb3JrZmxvd1NlcnZpY2VMaXN0UmVxdWVzdBomLm1ldGFyci52MS5Xb3JrZmxvd1NlcnZpY2VMaXN0UmVzcG9uc2USUgoDR2V0EiQubWV0YXJyLnYxLldvcmtmbG93U2VydmljZUdldFJlcXVlc3QaJS5tZXRhcnIudjEuV29ya2Zsb3dTZXJ2aWNlR2V0UmVzcG9uc2USbQoMTGlzdFZlcnNpb25zEi0ubWV0YXJyLnYxLldvcmtmbG93U2VydmljZUxpc3RWZXJzaW9uc1JlcXVlc3QaLi5tZXRhcnIudjEuV29ya2Zsb3dTZXJ2aWNlTGlzdFZlcnNpb25zUmVzcG9uc2USZwoKR2V0VmVyc2lvbhIrLm1ldGFyci52MS5Xb3JrZmxvd1NlcnZpY2VHZXRWZXJzaW9uUmVxdWVzdBosLm1ldGFyci52MS5Xb3JrZmxvd1NlcnZpY2VHZXRWZXJzaW9uUmVzcG9uc2USWwoGVXBzZXJ0EicubWV0YXJyLnYxLldvcmtmbG93U2VydmljZVVwc2VydFJlcXVlc3QaKC5tZXRhcnIudjEuV29ya2Zsb3dTZXJ2aWNlVXBzZXJ0UmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("ChltZXRhcnIvdjEvd29ya2Zsb3dzLnByb3RvEgltZXRhcnIudjEixgEKCFdvcmtmbG93EgoKAmlkGAEgASgJEhMKC2RvY3VtZW50X2lkGAIgASgJEg8KB3ZlcnNpb24YAyABKAUSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEbmFtZRgFIAEoCRITCgtkZXNjcmlwdGlvbhgGIAEoCRIMCgR0YWdzGAcgAygJEicKBWdyYXBoGAggASgLMhgubWV0YXJyLnYxLldvcmtmbG93R3JhcGgiOwoaV29ya2Zsb3dTZXJ2aWNlTGlzdFJlcXVlc3QSDQoFbGltaXQYASABKAUSDgoGY3Vyc29yGAIgASgJImwKG1dvcmtmbG93U2VydmljZUxpc3RSZXNwb25zZRImCgl3b3JrZmxvd3MYASADKAsyEy5tZXRhcnIudjEuV29ya2Zsb3cSEwoLbmV4dF9jdXJzb3IYAiABKAkSEAoIaGFzX21vcmUYAyABKAgiJwoZV29ya2Zsb3dTZXJ2aWNlR2V0UmVxdWVzdBIKCgJpZBgBIAEoCSJDChpXb3JrZmxvd1NlcnZpY2VHZXRSZXNwb25zZRIlCgh3b3JrZmxvdxgBIAEoCzITLm1ldGFyci52MS5Xb3JrZmxvdyIwCiJXb3JrZmxvd1NlcnZpY2VMaXN0VmVyc2lvbnNSZXF1ZXN0EgoKAmlkGAEgASgJIkwKI1dvcmtmbG93U2VydmljZUxpc3RWZXJzaW9uc1Jlc3BvbnNlEiUKCHZlcnNpb25zGAEgAygLMhMubWV0YXJyLnYxLldvcmtmbG93Ij8KIFdvcmtmbG93U2VydmljZUdldFZlcnNpb25SZXF1ZXN0EgoKAmlkGAEgASgJEg8KB3ZlcnNpb24YAiABKAUiSgohV29ya2Zsb3dTZXJ2aWNlR2V0VmVyc2lvblJlc3BvbnNlEiUKCHdvcmtmbG93GAEgASgLMhMubWV0YXJyLnYxLldvcmtmbG93Io0BChxXb3JrZmxvd1NlcnZpY2VVcHNlcnRSZXF1ZXN0EhMKC2RvY3VtZW50X2lkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSDAoEdGFncxgEIAMoCRInCgVncmFwaBgFIAEoCzIYLm1ldGFyci52MS5Xb3JrZmxvd0dyYXBoIkYKHVdvcmtmbG93U2VydmljZVVwc2VydFJlc3BvbnNlEiUKCHdvcmtmbG93GAEgASgLMhMubWV0YXJyLnYxLldvcmtmbG93MvEDCg9Xb3JrZmxvd1NlcnZpY2USVQoETGlzdBIlLm1ldGFyci52MS5Xb3JrZmxvd1NlcnZpY2VMaXN0UmVxdWVzdBomLm1ldGFyci52MS5Xb3JrZmxvd1NlcnZpY2VMaXN0UmVzcG9uc2USUgoDR2V0EiQubWV0YXJyLnYxLldvcmtmbG93U2VydmljZUdldFJlcXVlc3QaJS5tZXRhcnIudjEuV29ya2Zsb3dTZXJ2aWNlR2V0UmVzcG9uc2USbQoMTGlzdFZlcnNpb25zEi0ubWV0YXJyLnYxLldvcmtmbG93U2VydmljZUxpc3RWZXJzaW9uc1JlcXVlc3QaLi5tZXRhcnIudjEuV29ya2Zsb3dTZXJ2aWNlTGlzdFZlcnNpb25zUmVzcG9uc2USZwoKR2V0VmVyc2lvbhIrLm1ldGFyci52MS5Xb3JrZmxvd1NlcnZpY2VHZXRWZXJzaW9uUmVxdWVzdBosLm1ldGFyci52MS5Xb3JrZmxvd1NlcnZpY2VHZXRWZXJzaW9uUmVzcG9uc2USWwoGVXBzZXJ0EicubWV0YXJyLnYxLldvcmtmbG93U2VydmljZVVwc2VydFJlcXVlc3QaKC5tZXRhcnIudjEuV29ya2Zsb3dTZXJ2aWNlVXBzZXJ0UmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_google_protobuf_timestamp, file_metarr_v1_workflow_graph]);
 
 /**
- * Workflow mirrors mongostore.Workflow — the versioned document type, with
- * nodes/edges/viewport carried as one opaque graph_json blob rather than
- * modeled proto fields.
+ * Workflow is one version of a versioned workflow document: the scalar
+ * metadata plus the authored graph. internal/server/mongostore.Workflow is
+ * the stored form; internal/shared/workflow aliases WorkflowGraph and its
+ * parts. See docs/adr/0005.
  *
- * mongostore.Workflow itself already stores Nodes/Edges/Viewport as loose
- * bson.M rather than typed Go structs specifically so a catalog-driven
- * schema change on the frontend never needs a backend release in lockstep
- * (see its doc comment) — the server has never round-tripped these fields
- * through a typed model. graph_json is exactly {"nodes": [...], "edges":
- * [...], "viewport": {...}} as JSON, matching the REST body/response shape
- * exactly, so nothing about that design changes here.
+ * The graph's open content — a node's settings, and its extra field — is
+ * carried as structured values so a node whose type this build does not
+ * recognise, and settings it does not recognise, round-trip through storage
+ * unchanged. schema_version lives on WorkflowGraph, which is the canonical
+ * graph shape the catalog also advertises.
  *
  * @generated from message metarr.v1.Workflow
  */
@@ -66,14 +67,9 @@ export type Workflow = Message<"metarr.v1.Workflow"> & {
   tags: string[];
 
   /**
-   * @generated from field: int32 schema_version = 8;
+   * @generated from field: metarr.v1.WorkflowGraph graph = 8;
    */
-  schemaVersion: number;
-
-  /**
-   * @generated from field: bytes graph_json = 9;
-   */
-  graphJson: Uint8Array;
+  graph?: WorkflowGraph | undefined;
 };
 
 /**
@@ -268,14 +264,9 @@ export type WorkflowServiceUpsertRequest = Message<"metarr.v1.WorkflowServiceUps
   tags: string[];
 
   /**
-   * @generated from field: int32 schema_version = 5;
+   * @generated from field: metarr.v1.WorkflowGraph graph = 5;
    */
-  schemaVersion: number;
-
-  /**
-   * @generated from field: bytes graph_json = 6;
-   */
-  graphJson: Uint8Array;
+  graph?: WorkflowGraph | undefined;
 };
 
 /**

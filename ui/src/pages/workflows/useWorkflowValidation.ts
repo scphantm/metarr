@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 
 import { workflowCatalogClient } from '../../api/clients'
 import type { WorkflowCatalogServiceValidateResponse } from '../../gen/metarr/v1/workflow_catalog_pb'
+import type { WorkflowGraph } from '../../gen/metarr/v1/workflow_graph_pb'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
-import type { Graph } from './catalogTypes'
 
 // The hook's return shape is the generated validate response itself, narrowed
 // to the two fields the editor reads — WorkflowDiagnostic flows through
@@ -21,7 +21,7 @@ const emptyResult: ValidationResult = { diagnostics: [], runnable: true }
  * after a newer request has already gone out, so a fast typist's stale
  * result can never clobber a fresher one.
  */
-export function useWorkflowValidation(graph: Graph | null, enabled: boolean): ValidationResult {
+export function useWorkflowValidation(graph: WorkflowGraph | null, enabled: boolean): ValidationResult {
   const debouncedGraph = useDebouncedValue(graph, 500)
   const [result, setResult] = useState<ValidationResult>(emptyResult)
   const requestId = useRef(0)
@@ -29,9 +29,8 @@ export function useWorkflowValidation(graph: Graph | null, enabled: boolean): Va
   useEffect(() => {
     if (!enabled || !debouncedGraph) return
     const id = ++requestId.current
-    const graphJson = new TextEncoder().encode(JSON.stringify(debouncedGraph))
     workflowCatalogClient
-      .validate({ graphJson })
+      .validate({ graph: debouncedGraph })
       .then((response) => {
         if (id !== requestId.current) return
         setResult({ diagnostics: response.diagnostics, runnable: response.runnable })

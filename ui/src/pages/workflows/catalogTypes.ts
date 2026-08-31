@@ -1,79 +1,23 @@
 /*
- * Hand-written mirror of the Go workflow contract's graph JSON shape, field
- * for field against its `json:` tags — internal/shared/workflow/graph.go.
- * Graph node/edge types are prefixed `Graph*` because React Flow already owns
- * the bare `Node`/`Edge` names.
+ * Editor-only data types for the workflow canvas.
  *
- * The catalog half (node types, sockets, settings, transforms, the node-kind
- * and effects vocabularies) and the validation diagnostics (WorkflowDiagnostic,
- * WorkflowDiagnosticSeverity) are generated now — see ../../gen/metarr/v1/
- * workflow_catalog_pb and docs/adr/0005. The graph half follows in its own
- * slice.
+ * The graph model itself — nodes, edges, endpoints, the edge-kind
+ * vocabulary — is generated now (WorkflowGraph and friends in
+ * ../../gen/metarr/v1/workflow_graph_pb), as is the catalog half and the
+ * validation diagnostics (workflow_catalog_pb). See docs/adr/0005. What
+ * remains here is what a React Flow node carries in its `data` slot, which
+ * has no proto message because it never crosses a language boundary — it is
+ * re-resolved live from the fetched catalog and never persisted verbatim.
  *
- * This file has no logic of its own — see graphAdapter.ts for the canonical
- * graph <-> React Flow boundary and connectionRules.ts for the type-lattice
- * rules ported from types.go.
+ * graphAdapter.ts is the one place the generated graph message is translated
+ * to and from React Flow's own node/edge shape; connectionRules.ts holds the
+ * type-lattice rules ported from types.go.
  */
 
-// ---- graph.go -------------------------------------------------------------
-
-// The current stored graph format. A document without a matching
-// schema_version predates the control/data-edge redesign and is opened
-// read-only rather than guessed at — see WorkflowEditorPage.
+// The current stored graph format. A document whose graph reports a
+// different schema_version predates the control/data-edge redesign and is
+// opened read-only rather than guessed at — see WorkflowEditorPage.
 export const SchemaVersion = 1
-
-export type GraphPosition = {
-  x: number
-  y: number
-}
-
-export type GraphNode = {
-  id: string
-  type: string
-  // The exact catalog entry this instance was placed from — several entries
-  // may share `type` (variations of one plugin, e.g. two core/start entries
-  // with different dataOut shapes), so this is what resolves it
-  // unambiguously. Absent on graphs saved before catalog entries carried an
-  // id; those fall back to an arbitrary match by type.
-  catalogId?: string
-  position: GraphPosition
-  settings?: Record<string, unknown>
-  promoted?: string[]
-  label?: string
-  // Per-instance color overrides — independent parameters, each one of the
-  // 8 Solarized accent token names (see nodes/shared/nodeVisual.ts).
-  // Unknown to the Go backend's typed Node struct, which round-trips them
-  // via its Extra field rather than dropping them — see
-  // internal/shared/workflow/graph.go.
-  shapeColor?: string
-  borderColor?: string
-}
-
-export type EdgeKind = 'control' | 'data'
-
-export type Endpoint = {
-  node: string
-  port: string
-}
-
-export type GraphEdge = {
-  id: string
-  kind: EdgeKind
-  from: Endpoint
-  to: Endpoint
-  transform?: string
-  // Per-edge configuration, e.g. { recursive: true } on a data edge
-  // delivering a path — opened by double-clicking the edge in the editor.
-  // No catalog schema, unlike a node's settings (see workflow.Edge.Settings).
-  settings?: Record<string, unknown>
-}
-
-export type Graph = {
-  schema_version: number
-  nodes: GraphNode[]
-  edges: GraphEdge[]
-  viewport?: Record<string, unknown>
-}
 
 // ---- editor-only data carried on a React Flow node -------------------------
 
