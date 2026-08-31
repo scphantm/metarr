@@ -47,9 +47,13 @@ func (b *PubSubBus) Publish(ctx context.Context, channel string, event *Event) e
 	return b.client.Publish(ctx, channel, data).Err()
 }
 
-// Subscribe returns a raw subscription to channel. Callers are responsible
-// for closing it.
-func (b *PubSubBus) Subscribe(ctx context.Context, channel string) *redis.PubSub {
+// subscribe returns a raw subscription to channel. Callers are responsible
+// for closing it. It is unexported on purpose: the only subscribers are
+// PubSubRouter (notifications and the answering side of request/reply) and
+// Request (the reply wait below), both in this package. A raw *redis.PubSub
+// no longer leaves the eventbus interface, so Pub/Sub mechanics cannot leak
+// into a new call site.
+func (b *PubSubBus) subscribe(ctx context.Context, channel string) *redis.PubSub {
 	return b.client.Subscribe(ctx, channel)
 }
 
@@ -62,7 +66,7 @@ func (b *PubSubBus) Subscribe(ctx context.Context, channel string) *redis.PubSub
 // error), so a caller can distinguish "the other end never answered" from a
 // transport failure.
 func (b *PubSubBus) Request(ctx context.Context, requestChannel string, event *Event) (*Event, error) {
-	sub := b.client.Subscribe(ctx, ReplyChannel(event.GetCorrelationId()))
+	sub := b.subscribe(ctx, ReplyChannel(event.GetCorrelationId()))
 	defer func() { _ = sub.Close() }()
 
 	// Wait for the subscription to be acknowledged before publishing, so

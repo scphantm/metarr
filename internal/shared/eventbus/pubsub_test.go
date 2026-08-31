@@ -31,7 +31,7 @@ func startResponder(t *testing.T, bus *PubSubBus, requestChannel string, reply f
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	sub := bus.Subscribe(ctx, requestChannel)
+	sub := bus.subscribe(ctx, requestChannel)
 	ready := make(chan struct{})
 	go func() {
 		if _, err := sub.Receive(ctx); err != nil {
@@ -103,7 +103,7 @@ func TestReplyGoesToTheCorrelationScopedChannel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	sub := bus.Subscribe(ctx, ReplyChannel("corr-3"))
+	sub := bus.subscribe(ctx, ReplyChannel("corr-3"))
 	defer func() { _ = sub.Close() }()
 	if _, err := sub.Receive(ctx); err != nil {
 		t.Fatalf("subscribe: %v", err)
