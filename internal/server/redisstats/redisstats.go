@@ -14,6 +14,7 @@ package redisstats
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -27,11 +28,16 @@ import (
 // Collector reads statistics from a Redis instance.
 type Collector struct {
 	client redis.UniversalClient
+	logger *slog.Logger
 }
 
-// New wraps client as a Collector.
-func New(client redis.UniversalClient) *Collector {
-	return &Collector{client: client}
+// New wraps client as a Collector. logger records a partial stream
+// discovery (a failed per-agent SCAN); pass nil to discard it.
+func New(client redis.UniversalClient, logger *slog.Logger) *Collector {
+	if logger == nil {
+		logger = slog.New(slog.DiscardHandler)
+	}
+	return &Collector{client: client, logger: logger}
 }
 
 // The snapshot model. Every type here is an alias to the generated
@@ -97,8 +103,12 @@ func (c *Collector) collectStreams(ctx context.Context) []*StreamStat {
 	// concrete row per per-agent command stream currently in Redis. A
 	// partial SCAN failure still yields the streams it did find — someone
 	// looking here to see why an agent is not picking up work should see
-	// what there is rather than a blank panel.
-	topics, _ := eventbus.DiscoverStreamTopics(ctx, c.client)
+	// what there is rather than a blank panel — but it is logged, so the
+	// gap on the dashboard has a trail.
+	topics, err := eventbus.DiscoverStreamTopics(ctx, c.client)
+	if err != nil {
+		c.logger.Warn("redis stats: stream discovery partially failed", "error", err)
+	}
 
 	stats := make([]*StreamStat, 0, len(topics))
 	for _, topic := range topics {
