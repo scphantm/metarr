@@ -49,3 +49,9 @@ func (b *StreamBus) Fire(ctx context.Context, stream string, event *Event) error
 	msg.SetContext(ctx)
 	return b.publisher.Publish(stream, msg)
 }
+
+// Close releases the underlying publisher. The shared Redis client is not
+// closed here — its owner does that.
+func (b *StreamBus) Close() error {
+	return b.publisher.Close()
+}

@@ -55,7 +55,7 @@ func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 	}
 
 	assertKeys(t, "config", document, []string{
-		"admin", "agents", "api_keys", "directory_scanner", "interfaces", "logging",
+		"admin", "agents", "api_keys", "directory_scanner", "event_bus", "interfaces", "logging",
 	})
 	assertKeys(t, "config.admin", document["admin"], []string{
 		"email", "password_hash", "password_salt", "username",
@@ -97,6 +97,11 @@ func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 
 	assertKeys(t, "config.logging", document["logging"], []string{
 		"endpoint", "server_level", "sink", "stream",
+	})
+
+	assertKeys(t, "config.event_bus", document["event_bus"], []string{
+		"max_len_high", "max_len_default", "retention_hours",
+		"retry_attempts", "retry_backoff_base_ms", "retry_backoff_max_ms",
 	})
 
 	// _id identifies the stored document rather than describing a setting,

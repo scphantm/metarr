@@ -26,6 +26,7 @@ type builtinDefaultsDoc struct {
 	} `json:"directory_scanner"`
 	SidecarTypes []*SidecarTypeDefinition `json:"sidecar_types"`
 	Logging      *LoggingConfig           `json:"logging"`
+	EventBus     *EventBusConfig          `json:"event_bus"`
 	Admin        struct {
 		Username string `json:"username"`
 		Email    string `json:"email"`

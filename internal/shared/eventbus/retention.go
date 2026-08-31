@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/redis/go-redis/v9"
+
+	metarrv1 "Metarr/internal/genproto/metarr/v1"
 )
 
 // Stream retention defaults.
@@ -37,13 +39,26 @@ type RetentionPolicy struct {
 	RetentionHours int
 }
 
-// DefaultRetentionPolicy returns the hardcoded policy used until the
-// event_bus config section supplies one.
+// DefaultRetentionPolicy returns the built-in policy. It is the reference
+// the event_bus section's built-in defaults (builtin_defaults.json) must
+// agree with, and what a process with no live config to read — the agent —
+// runs with.
 func DefaultRetentionPolicy() RetentionPolicy {
 	return RetentionPolicy{
 		MaxLenHigh:     DefaultMaxLenHigh,
 		MaxLenDefault:  DefaultMaxLenDefault,
 		RetentionHours: DefaultRetentionHours,
+	}
+}
+
+// RetentionPolicyFromConfig builds a RetentionPolicy from the live event_bus
+// config section. The server reads its publish caps and sweep window this
+// way instead of from the constants above (docs/adr/0006).
+func RetentionPolicyFromConfig(c *metarrv1.EventBusConfig) RetentionPolicy {
+	return RetentionPolicy{
+		MaxLenHigh:     int64(c.GetMaxLenHigh()),
+		MaxLenDefault:  int64(c.GetMaxLenDefault()),
+		RetentionHours: int(c.GetRetentionHours()),
 	}
 }
 

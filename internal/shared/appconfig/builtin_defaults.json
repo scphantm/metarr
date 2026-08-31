@@ -439,6 +439,14 @@
     "endpoint": "",
     "stream": "metarr_app"
   },
+  "event_bus": {
+    "max_len_high": 100000,
+    "max_len_default": 10000,
+    "retention_hours": 48,
+    "retry_attempts": 4,
+    "retry_backoff_base_ms": 500,
+    "retry_backoff_max_ms": 30000
+  },
   "admin": {
     "username": "admin",
     "email": "admin@example.com"

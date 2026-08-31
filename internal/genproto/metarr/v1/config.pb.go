@@ -291,6 +291,7 @@ type Config struct {
 	DirectoryScanner *DirectoryScannerConfig `protobuf:"bytes,4,opt,name=directory_scanner,json=directoryScanner,proto3" json:"directory_scanner,omitempty"`
 	Agents           []*AgentConfig          `protobuf:"bytes,5,rep,name=agents,proto3" json:"agents,omitempty"`
 	Logging          *LoggingConfig          `protobuf:"bytes,6,opt,name=logging,proto3" json:"logging,omitempty"`
+	EventBus         *EventBusConfig         `protobuf:"bytes,7,opt,name=event_bus,json=eventBus,proto3" json:"event_bus,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -363,6 +364,13 @@ func (x *Config) GetAgents() []*AgentConfig {
 func (x *Config) GetLogging() *LoggingConfig {
 	if x != nil {
 		return x.Logging
+	}
+	return nil
+}
+
+func (x *Config) GetEventBus() *EventBusConfig {
+	if x != nil {
+		return x.EventBus
 	}
 	return nil
 }
@@ -625,7 +633,7 @@ var File_metarr_v1_config_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_config_proto_rawDesc = "" +
 	"\n" +
-	"\x16metarr/v1/config.proto\x12\tmetarr.v1\x1a\x16metarr/v1/agents.proto\x1a\x16metarr/v1/common.proto\x1a!metarr/v1/directory_scanner.proto\x1a\x17metarr/v1/logging.proto\x1a!metarr/v1/sonarr_interfaces.proto\"\x87\x01\n" +
+	"\x16metarr/v1/config.proto\x12\tmetarr.v1\x1a\x16metarr/v1/agents.proto\x1a\x16metarr/v1/common.proto\x1a!metarr/v1/directory_scanner.proto\x1a\x19metarr/v1/event_bus.proto\x1a\x17metarr/v1/logging.proto\x1a!metarr/v1/sonarr_interfaces.proto\"\x87\x01\n" +
 	"\tAdminUser\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12#\n" +
@@ -641,7 +649,7 @@ const file_metarr_v1_config_proto_rawDesc = "" +
 	"\awebhook\x18\x03 \x03(\v2\x16.metarr.v1.APIKeyEntryR\awebhook\x123\n" +
 	"\tread_only\x18\x04 \x03(\v2\x16.metarr.v1.APIKeyEntryR\breadOnly\"E\n" +
 	"\x10InterfacesConfig\x121\n" +
-	"\x06sonarr\x18\x01 \x03(\v2\x19.metarr.v1.SonarrInstanceR\x06sonarr\"\xda\x02\n" +
+	"\x06sonarr\x18\x01 \x03(\v2\x19.metarr.v1.SonarrInstanceR\x06sonarr\"\x92\x03\n" +
 	"\x06Config\x123\n" +
 	"\bapi_keys\x18\x01 \x01(\v2\x18.metarr.v1.APIKeysConfigR\aapiKeys\x12*\n" +
 	"\x05admin\x18\x02 \x01(\v2\x14.metarr.v1.AdminUserR\x05admin\x12;\n" +
@@ -650,7 +658,8 @@ const file_metarr_v1_config_proto_rawDesc = "" +
 	"interfaces\x12N\n" +
 	"\x11directory_scanner\x18\x04 \x01(\v2!.metarr.v1.DirectoryScannerConfigR\x10directoryScanner\x12.\n" +
 	"\x06agents\x18\x05 \x03(\v2\x16.metarr.v1.AgentConfigR\x06agents\x122\n" +
-	"\alogging\x18\x06 \x01(\v2\x18.metarr.v1.LoggingConfigR\alogging\"\x19\n" +
+	"\alogging\x18\x06 \x01(\v2\x18.metarr.v1.LoggingConfigR\alogging\x126\n" +
+	"\tevent_bus\x18\a \x01(\v2\x19.metarr.v1.EventBusConfigR\beventBus\"\x19\n" +
 	"\x17ConfigServiceGetRequest\"E\n" +
 	"\x18ConfigServiceGetResponse\x12)\n" +
 	"\x06config\x18\x01 \x01(\v2\x11.metarr.v1.ConfigR\x06config\"\xa2\x01\n" +
@@ -701,7 +710,8 @@ var file_metarr_v1_config_proto_goTypes = []any{
 	(*DirectoryScannerConfig)(nil),           // 11: metarr.v1.DirectoryScannerConfig
 	(*AgentConfig)(nil),                      // 12: metarr.v1.AgentConfig
 	(*LoggingConfig)(nil),                    // 13: metarr.v1.LoggingConfig
-	(*AcceptedResponse)(nil),                 // 14: metarr.v1.AcceptedResponse
+	(*EventBusConfig)(nil),                   // 14: metarr.v1.EventBusConfig
+	(*AcceptedResponse)(nil),                 // 15: metarr.v1.AcceptedResponse
 }
 var file_metarr_v1_config_proto_depIdxs = []int32{
 	1,  // 0: metarr.v1.APIKeysConfig.admin:type_name -> metarr.v1.APIKeyEntry
@@ -715,21 +725,22 @@ var file_metarr_v1_config_proto_depIdxs = []int32{
 	11, // 8: metarr.v1.Config.directory_scanner:type_name -> metarr.v1.DirectoryScannerConfig
 	12, // 9: metarr.v1.Config.agents:type_name -> metarr.v1.AgentConfig
 	13, // 10: metarr.v1.Config.logging:type_name -> metarr.v1.LoggingConfig
-	4,  // 11: metarr.v1.ConfigServiceGetResponse.config:type_name -> metarr.v1.Config
-	1,  // 12: metarr.v1.ConfigServiceUpsertApiKeyRequest.entry:type_name -> metarr.v1.APIKeyEntry
-	5,  // 13: metarr.v1.ConfigService.Get:input_type -> metarr.v1.ConfigServiceGetRequest
-	7,  // 14: metarr.v1.ConfigService.UpdateAdmin:input_type -> metarr.v1.ConfigServiceUpdateAdminRequest
-	8,  // 15: metarr.v1.ConfigService.UpsertApiKey:input_type -> metarr.v1.ConfigServiceUpsertApiKeyRequest
-	9,  // 16: metarr.v1.ConfigService.DeleteApiKey:input_type -> metarr.v1.ConfigServiceDeleteApiKeyRequest
-	6,  // 17: metarr.v1.ConfigService.Get:output_type -> metarr.v1.ConfigServiceGetResponse
-	14, // 18: metarr.v1.ConfigService.UpdateAdmin:output_type -> metarr.v1.AcceptedResponse
-	14, // 19: metarr.v1.ConfigService.UpsertApiKey:output_type -> metarr.v1.AcceptedResponse
-	14, // 20: metarr.v1.ConfigService.DeleteApiKey:output_type -> metarr.v1.AcceptedResponse
-	17, // [17:21] is the sub-list for method output_type
-	13, // [13:17] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	14, // 11: metarr.v1.Config.event_bus:type_name -> metarr.v1.EventBusConfig
+	4,  // 12: metarr.v1.ConfigServiceGetResponse.config:type_name -> metarr.v1.Config
+	1,  // 13: metarr.v1.ConfigServiceUpsertApiKeyRequest.entry:type_name -> metarr.v1.APIKeyEntry
+	5,  // 14: metarr.v1.ConfigService.Get:input_type -> metarr.v1.ConfigServiceGetRequest
+	7,  // 15: metarr.v1.ConfigService.UpdateAdmin:input_type -> metarr.v1.ConfigServiceUpdateAdminRequest
+	8,  // 16: metarr.v1.ConfigService.UpsertApiKey:input_type -> metarr.v1.ConfigServiceUpsertApiKeyRequest
+	9,  // 17: metarr.v1.ConfigService.DeleteApiKey:input_type -> metarr.v1.ConfigServiceDeleteApiKeyRequest
+	6,  // 18: metarr.v1.ConfigService.Get:output_type -> metarr.v1.ConfigServiceGetResponse
+	15, // 19: metarr.v1.ConfigService.UpdateAdmin:output_type -> metarr.v1.AcceptedResponse
+	15, // 20: metarr.v1.ConfigService.UpsertApiKey:output_type -> metarr.v1.AcceptedResponse
+	15, // 21: metarr.v1.ConfigService.DeleteApiKey:output_type -> metarr.v1.AcceptedResponse
+	18, // [18:22] is the sub-list for method output_type
+	14, // [14:18] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_config_proto_init() }
@@ -740,6 +751,7 @@ func file_metarr_v1_config_proto_init() {
 	file_metarr_v1_agents_proto_init()
 	file_metarr_v1_common_proto_init()
 	file_metarr_v1_directory_scanner_proto_init()
+	file_metarr_v1_event_bus_proto_init()
 	file_metarr_v1_logging_proto_init()
 	file_metarr_v1_sonarr_interfaces_proto_init()
 	file_metarr_v1_config_proto_msgTypes[7].OneofWrappers = []any{}
