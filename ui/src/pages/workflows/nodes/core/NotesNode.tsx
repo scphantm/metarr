@@ -1,6 +1,6 @@
 import { useReactFlow, type Node, type NodeProps } from '@xyflow/react'
 
-import type { CatalogNodeData } from '../../catalogTypes'
+import type { CatalogNodeData } from '../../editorNodeData'
 import './NotesNode.css'
 
 /*

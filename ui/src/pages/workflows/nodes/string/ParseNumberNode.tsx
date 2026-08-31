@@ -1,7 +1,7 @@
 import type { Node, NodeProps } from '@xyflow/react'
 
 import { NodeShell } from '../shared/NodeShell'
-import type { CatalogNodeData } from '../../catalogTypes'
+import type { CatalogNodeData } from '../../editorNodeData'
 
 const TYPE_KEY = 'string/parseNumber'
 

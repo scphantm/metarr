@@ -1,6 +1,6 @@
 import type { NodeProps, Node } from '@xyflow/react'
 
-import type { UnknownNodeData } from '../../catalogTypes'
+import type { UnknownNodeData } from '../../editorNodeData'
 import './UnknownNode.css'
 
 /*
