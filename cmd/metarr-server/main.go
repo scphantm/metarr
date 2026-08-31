@@ -105,8 +105,8 @@ func run() error {
 	// The Pub/Sub counterpart of the stream Router: every notification
 	// subscriber and the answering side of every request/reply on this
 	// process register on it, then one Run(ctx) drives them (docs/adr/0006).
-	// #58 folds this and the stream router into one uniform "register on both,
-	// run both" entrypoint shape.
+	// It and the stream router are wired the same way — register every
+	// handler, then drive both through startRouter near the end of run().
 	pubsubRouter := eventbus.NewPubSubRouter(redisClient, eventbus.SourceServer, logger)
 	// A first StreamBus with built-in caps, enough for bootstrap to fire
 	// through. Once bootstrap has seeded the config and the live singleton is
@@ -266,11 +266,6 @@ func run() error {
 	if err := listeners.RegisterAgentScanResultListener(eventRouter, localDirectoryRepo, logger); err != nil {
 		return err
 	}
-	go func() {
-		if err := eventRouter.Run(ctx); err != nil && ctx.Err() == nil {
-			logger.Error("event router stopped unexpectedly", "error", err)
-		}
-	}()
 
 	// The age half of retention: publish-time MAXLEN bounds a stream by count,
 	// this bounds a low-volume stream by age so nothing outlives the window.
@@ -294,13 +289,19 @@ func run() error {
 		listeners.RegisterLogForwardListener(pubsubRouter, forwarder, logger)
 	}
 
-	// Every Pub/Sub registration is in; drive them for the lifetime of the
-	// process. #58 collapses this into the shared router-lifecycle pattern.
-	go func() {
-		if err := pubsubRouter.Run(ctx); err != nil && ctx.Err() == nil {
-			logger.Error("pub/sub router stopped unexpectedly", "error", err)
-		}
-	}()
+	// Every handler is registered on both routers now; drive each for the
+	// lifetime of the process through the one lifecycle helper so it is
+	// written once, not twice. A warm-up publisher can wait on Running() on
+	// either.
+	startRouter := func(name string, run func(context.Context) error) {
+		go func() {
+			if err := run(ctx); err != nil && ctx.Err() == nil {
+				logger.Error("router stopped unexpectedly", "router", name, "error", err)
+			}
+		}()
+	}
+	startRouter("event", eventRouter.Run)
+	startRouter("pubsub", pubsubRouter.Run)
 
 	// The streaming layer: stats.redis, agents.presence and logging.tail all
 	// migrated to their own server-streaming gRPC-Web RPCs — see

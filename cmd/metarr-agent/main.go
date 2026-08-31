@@ -104,10 +104,9 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	// The Pub/Sub counterpart of the stream Router: the NFO-read responder
-	// registers on it and one Run(ctx) drives it (docs/adr/0006). #58 folds
-	// this and the stream router into one uniform entrypoint shape and moves
-	// the config-changed watch's subscription half onto it too.
+	// The Pub/Sub counterpart of the stream Router: the NFO-read responder and
+	// the config-changed watch register on it, then one Run(ctx) drives it
+	// (docs/adr/0006), the same shape the stream router is driven with below.
 	pubsubRouter := eventbus.NewPubSubRouter(redisClient, eventbus.AgentSource(cfg.Slug), logger)
 
 	configStore := runtime.NewConfigStore(redisClient, logger, cfg.Slug, logShipper)
@@ -136,6 +135,7 @@ func run() error {
 	}
 	nfoReader := runtime.NewNFOReader(configStore, logger, cfg.Slug)
 	nfoReader.Register(pubsubRouter)
+	configStore.Register(pubsubRouter)
 
 	// Every loop is tracked, so shutdown waits for a scan in flight rather than
 	// killing it half way through and leaving the server holding a partial
@@ -150,18 +150,21 @@ func run() error {
 		}()
 	}
 
+	// Both routers now have every handler registered; drive each with the one
+	// tracked-goroutine helper so their lifecycle is written once, not twice.
+	// A warm-up publisher can wait on Running() on either.
+	startRouter := func(name string, run func(context.Context) error) {
+		start(name, func() {
+			if err := run(ctx); err != nil && ctx.Err() == nil {
+				logger.Error("router stopped unexpectedly", "router", name, "error", err)
+			}
+		})
+	}
+
 	start("presence", func() { presence.Run(ctx) })
-	start("config", func() { configStore.Watch(ctx) })
-	start("pubsubrouter", func() {
-		if err := pubsubRouter.Run(ctx); err != nil && ctx.Err() == nil {
-			logger.Error("pub/sub router stopped unexpectedly", "error", err)
-		}
-	})
-	start("router", func() {
-		if err := eventRouter.Run(ctx); err != nil && ctx.Err() == nil {
-			logger.Error("event router stopped unexpectedly", "error", err)
-		}
-	})
+	start("config", func() { configStore.RefreshPeriodically(ctx) })
+	startRouter("pubsub", pubsubRouter.Run)
+	startRouter("event", eventRouter.Run)
 
 	<-ctx.Done()
 	logger.Info("agent shutting down")
