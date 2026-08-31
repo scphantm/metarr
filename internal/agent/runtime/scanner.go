@@ -38,34 +38,28 @@ func NewScanner(bus *eventbus.StreamBus, config *ConfigStore, logger *slog.Logge
 	return &Scanner{bus: bus, config: config, logger: logger, slug: slug}
 }
 
-// Run consumes scan commands until ctx is cancelled.
-func (s *Scanner) Run(ctx context.Context) error {
-	return s.bus.Consume(
-		ctx,
+// Register wires the scan-command consumer onto the agent's process Router.
+func (s *Scanner) Register(router *eventbus.Router) error {
+	return router.Handle(
+		"agent_scan_commands",
 		eventbus.AgentCommandStream(s.slug),
 		eventbus.AgentCommandGroup(s.slug),
 		s.slug,
-		func(ctx context.Context, event *eventbus.Event) error {
-			s.handle(ctx, event)
-			// Never returned as an error. A Nack means Redis redelivers, and a
-			// scan that fails for a reason that will not change — an unmapped
-			// slug, an unreadable root — would then be retried forever. The
-			// failure is reported to the server as an event instead.
-			return nil
-		},
+		s.handle,
 	)
 }
 
-func (s *Scanner) handle(ctx context.Context, event *eventbus.Event) {
+func (s *Scanner) handle(ctx context.Context, event *eventbus.Event) error {
 	if event.Name != eventbus.AgentScanCommandEventName {
 		s.logger.Warn("ignoring unknown command", "event", event.Name)
-		return
+		return nil
 	}
 
 	var command agentproto.ScanCommand
 	if err := json.Unmarshal(event.Payload, &command); err != nil {
-		s.logger.Error("could not decode scan command", "error", err)
-		return
+		// An undecodable command cannot be processed at all: let the Router
+		// retry and then park it, rather than silently swallowing it.
+		return fmt.Errorf("decode scan command: %w", err)
 	}
 
 	log := s.logger.With(
@@ -75,6 +69,10 @@ func (s *Scanner) handle(ctx context.Context, event *eventbus.Event) {
 	)
 
 	if err := s.scan(ctx, command, log); err != nil {
+		// The scan ran and failed for a reason a retry will not change — an
+		// unmapped slug, an unreadable root. It is reported to the server as a
+		// failure result event and the handler returns nil, so a business
+		// failure never enters the retry or dead-letter path.
 		log.Error("scan failed", "error", err)
 		if reportErr := s.report(ctx, event.CorrelationId, eventbus.AgentScanFailedEventName, agentproto.ScanFailedMessage{
 			ScanID:      command.ScanID,
@@ -85,6 +83,7 @@ func (s *Scanner) handle(ctx context.Context, event *eventbus.Event) {
 			log.Error("failed to report scan failure", "error", reportErr)
 		}
 	}
+	return nil
 }
 
 func (s *Scanner) scan(ctx context.Context, command agentproto.ScanCommand, log *slog.Logger) error {
