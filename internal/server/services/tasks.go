@@ -66,18 +66,12 @@ func (s *TaskServer) RunDirectoryScan(
 			fmt.Errorf("no agent is mapped to scan directory %q; map one under System > Agents", slug))
 	}
 
-	online, err := s.Agents.IsOnline(ctx, agent.Slug)
-	if err != nil {
-		s.Logger.Error("failed to check agent presence", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue task"))
-	}
-	if !online {
-		// The command stream is durable, so an offline agent would pick this up
-		// whenever it returned. That is rarely what someone pressing "scan"
-		// wants, and saying so beats a scan that appears to hang for a day.
-		return nil, connectError(http.StatusUnprocessableEntity,
-			fmt.Errorf("agent %q is not currently connected", agent.Slug))
-	}
+	// No point-in-time online check here. The command stream is durable, so a
+	// command dispatched to an agent that is briefly absent waits on the
+	// stream and runs when the agent returns; one that never returns is
+	// failed by the presence watcher's "agent offline" signal. Checking
+	// presence here and firing separately only reopened a time-of-check-to-
+	// time-of-use gap between the two (docs/adr/0006).
 
 	payload, err := json.Marshal(agentproto.ScanCommand{
 		ScanID:      correlationID,

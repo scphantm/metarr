@@ -233,6 +233,13 @@ func run() error {
 	// single HTTP request.
 	go listeners.RunHeartbeatListener(ctx, pubsubBus, logger)
 
+	// One process-wide watcher for agents losing their presence key. It emits
+	// an "agent offline" signal that in-flight work reacts to; the workflow
+	// engine is its consumer once it lands, so for now the signal is only
+	// logged. It reuses the registry's presence SCAN — no second scan.
+	presenceWatcher := agentregistry.NewPresenceWatcher(agentRegistry, func() time.Time { return time.Now().UTC() }, logger)
+	go presenceWatcher.Run(ctx, agentregistry.DefaultPresenceWatchInterval)
+
 	// Every durable stream this process consumes runs under one Watermill
 	// Router with the Recoverer/PoisonQueue/Retry middleware stack: a handler
 	// that errors past the retry cap is parked on events.dead_letter and
