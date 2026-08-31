@@ -39,13 +39,12 @@ func New(client redis.UniversalClient) *Collector {
 // model that crosses a language boundary, and this one crosses the wire to
 // the dashboard. See docs/adr/0005.
 type (
-	Snapshot       = metarrv1.RedisSnapshot
-	ServerInfo     = metarrv1.RedisServerInfo
-	StreamStat     = metarrv1.RedisStreamStat
-	GroupStat      = metarrv1.RedisGroupStat
-	ConsumerStat   = metarrv1.RedisConsumerStat
-	ChannelStat    = metarrv1.RedisChannelStat
-	DeadLetterStat = metarrv1.RedisDeadLetterStat
+	Snapshot     = metarrv1.RedisSnapshot
+	ServerInfo   = metarrv1.RedisServerInfo
+	StreamStat   = metarrv1.RedisStreamStat
+	GroupStat    = metarrv1.RedisGroupStat
+	ConsumerStat = metarrv1.RedisConsumerStat
+	ChannelStat  = metarrv1.RedisChannelStat
 )
 
 // Collect gathers a snapshot. Errors reading an individual stream are
@@ -67,38 +66,7 @@ func (c *Collector) Collect(ctx context.Context) (*Snapshot, error) {
 		Server:      server,
 		Streams:     c.collectStreams(ctx),
 		Pubsub:      pubsub,
-		DeadLetter:  c.collectDeadLetter(ctx),
 	}, nil
-}
-
-// collectDeadLetter reports the depth and freshness of events.dead_letter.
-// Nothing consumes it, so there is no group state to read — just how many
-// messages have been parked and when the newest one arrived.
-func (c *Collector) collectDeadLetter(ctx context.Context) *DeadLetterStat {
-	stat := &DeadLetterStat{}
-
-	length, err := c.client.XLen(ctx, eventbus.DeadLetterStream).Result()
-	if err != nil {
-		stat.Error = err.Error()
-		return stat
-	}
-	stat.Length = length
-	if length == 0 {
-		return stat
-	}
-	stat.Exists = true
-
-	newest, err := c.client.XRevRangeN(ctx, eventbus.DeadLetterStream, "+", "-", 1).Result()
-	if err != nil {
-		stat.Error = err.Error()
-		return stat
-	}
-	if len(newest) == 1 {
-		if when, ok := eventbus.TimeFromStreamID(newest[0].ID); ok {
-			stat.NewestEntry = timestamppb.New(when)
-		}
-	}
-	return stat
 }
 
 func (c *Collector) collectServer(ctx context.Context) (*ServerInfo, error) {
@@ -125,8 +93,12 @@ func (c *Collector) collectServer(ctx context.Context) (*ServerInfo, error) {
 }
 
 func (c *Collector) collectStreams(ctx context.Context) []*StreamStat {
-	topics := eventbus.KnownStreams()
-	topics = append(topics, c.discoverStreams(ctx, topics)...)
+	// One read over the shared stream topic table: the static rows plus one
+	// concrete row per per-agent command stream currently in Redis. A
+	// partial SCAN failure still yields the streams it did find — someone
+	// looking here to see why an agent is not picking up work should see
+	// what there is rather than a blank panel.
+	topics, _ := eventbus.DiscoverStreamTopics(ctx, c.client)
 
 	stats := make([]*StreamStat, 0, len(topics))
 	for _, topic := range topics {
@@ -136,73 +108,21 @@ func (c *Collector) collectStreams(ctx context.Context) []*StreamStat {
 	return stats
 }
 
-// discoverStreams finds streams whose names are not known ahead of time.
-//
-// Each agent reads its work from a stream named after its slug, so the set
-// depends on which agents exist. Without this they would be invisible on the
-// dashboard — which is exactly where someone would look to find out why an
-// agent is not picking up work.
-func (c *Collector) discoverStreams(ctx context.Context, known []eventbus.StreamTopic) []eventbus.StreamTopic {
-	seen := make(map[string]bool, len(known))
-	for _, topic := range known {
-		seen[topic.Stream] = true
-	}
-
-	var discovered []eventbus.StreamTopic
-	for _, pattern := range eventbus.KnownStreamPatterns() {
-		iterator := c.client.Scan(ctx, 0, pattern, 100).Iterator()
-		for iterator.Next(ctx) {
-			stream := iterator.Val()
-			if seen[stream] {
-				continue
-			}
-			seen[stream] = true
-
-			// The group name is derivable from the stream name, so a
-			// discovered stream still reports its consumer group rather than
-			// appearing as an orphan.
-			discovered = append(discovered, eventbus.StreamTopic{
-				Stream:    stream,
-				Group:     groupForAgentStream(stream),
-				EventName: eventbus.AgentScanCommandEventName,
-			})
-		}
-		if err := iterator.Err(); err != nil {
-			// Discovery is an enhancement to the dashboard, not the point of
-			// it. A failed scan drops the dynamic streams rather than the
-			// whole snapshot.
-			return discovered
-		}
-	}
-	return discovered
-}
-
-// groupForAgentStream turns an agent command stream name into the consumer
-// group that agent reads it with. Both name shapes are owned by eventbus, so
-// this only composes its helpers.
-func groupForAgentStream(stream string) string {
-	slug := eventbus.SlugFromAgentCommandStream(stream)
-	if slug == "" {
-		return ""
-	}
-	return eventbus.AgentCommandGroup(slug)
-}
-
 func (c *Collector) collectStream(ctx context.Context, topic eventbus.StreamTopic) *StreamStat {
 	stat := &StreamStat{
-		Stream:    topic.Stream,
-		EventName: topic.EventName,
+		Stream:    topic.Name,
+		EventName: strings.Join(topic.Events, ", "),
 		Groups:    []*GroupStat{},
 	}
 
-	length, err := c.client.XLen(ctx, topic.Stream).Result()
+	length, err := c.client.XLen(ctx, topic.Name).Result()
 	if err != nil {
 		stat.Error = err.Error()
 		return stat
 	}
 	stat.Length = length
 
-	groups, err := c.client.XInfoGroups(ctx, topic.Stream).Result()
+	groups, err := c.client.XInfoGroups(ctx, topic.Name).Result()
 	if err != nil {
 		// A stream nobody has subscribed to yet does not exist at all, which
 		// XINFO reports as a missing key. That is a normal cold-start state,
@@ -222,7 +142,7 @@ func (c *Collector) collectStream(ctx context.Context, topic eventbus.StreamTopi
 			Pending:         group.Pending,
 			Lag:             group.Lag,
 			LastDeliveredId: group.LastDeliveredID,
-			ConsumerDetail:  c.collectConsumers(ctx, topic.Stream, group.Name),
+			ConsumerDetail:  c.collectConsumers(ctx, topic.Name, group.Name),
 		})
 	}
 

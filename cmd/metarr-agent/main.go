@@ -112,13 +112,13 @@ func run() error {
 	}
 
 	// One Watermill Router per process consumes every durable stream this
-	// agent reads, with the Recoverer/PoisonQueue/Retry middleware stack; a
-	// command that errors past the retry cap is parked on events.dead_letter
-	// rather than redelivered forever (docs/adr/0006). The agent enforces
-	// dry-run and reports business failures as result events itself, so the
-	// scan handler only ever returns an error for a message it could not
-	// process at all.
-	eventRouter, err := eventbus.NewRedisRouter(redisClient, eventbus.DefaultRetryPolicy(), retentionPolicy, eventbus.NewSlogAdapter(logger))
+	// agent reads, with the Recoverer/drop-after-retry/Retry middleware
+	// stack; a command that errors past the retry cap is logged at error
+	// level and acked rather than redelivered forever (docs/adr/0006). The
+	// agent enforces dry-run and reports business failures as result events
+	// itself, so the scan handler only ever returns an error for a message it
+	// could not process at all.
+	eventRouter, err := eventbus.NewRedisRouter(redisClient, eventbus.DefaultRetryPolicy(), eventbus.NewSlogAdapter(logger))
 	if err != nil {
 		return err
 	}

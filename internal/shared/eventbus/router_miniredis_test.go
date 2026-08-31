@@ -56,7 +56,7 @@ func TestRouterOverRedisCreatesGroupAndReclaimsAfterConsumerDies(t *testing.T) {
 	// message still pending in the group.
 	gotFirst := make(chan struct{}, 1)
 	hang := make(chan struct{})
-	dyingRouter, err := NewRouter(publisher, newSub("dies-mid-handler"), testPolicy(), logger)
+	dyingRouter, err := NewRouter(newSub("dies-mid-handler"), testPolicy(), logger)
 	if err != nil {
 		t.Fatalf("dying router: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestRouterOverRedisCreatesGroupAndReclaimsAfterConsumerDies(t *testing.T) {
 
 	// A fresh consumer in the same group reclaims the idle pending message.
 	reclaimed := make(chan string, 1)
-	liveRouter, err := NewRouter(publisher, newSub("takes-over"), testPolicy(), logger)
+	liveRouter, err := NewRouter(newSub("takes-over"), testPolicy(), logger)
 	if err != nil {
 		t.Fatalf("live router: %v", err)
 	}
