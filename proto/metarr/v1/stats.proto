@@ -18,31 +18,16 @@ option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 // depth and pending counts are real numbers. Pub/Sub holds nothing, so
 // RedisChannelStat carries a subscriber count and no depth.
 message RedisSnapshot {
+  // Field 5 was dead_letter, a RedisDeadLetterStat for the events.dead_letter
+  // parking stream, removed with the stream itself (scphantm/metarr#47): a
+  // message that exhausts its retries is logged and acked, not parked.
+  reserved 5;
+  reserved "dead_letter";
+
   google.protobuf.Timestamp collected_at = 1;
   RedisServerInfo server = 2;
   repeated RedisStreamStat streams = 3;
   repeated RedisChannelStat pubsub = 4;
-  // dead_letter is the events.dead_letter parking stream: messages that
-  // errored past the Router's retry cap. A length that climbs, or a recent
-  // newest_entry, means handlers are failing and their messages are being
-  // parked for inspection rather than lost.
-  RedisDeadLetterStat dead_letter = 5;
-}
-
-// RedisDeadLetterStat is the depth and freshness of the events.dead_letter
-// stream. It has no consumer group — nothing reads it — so it reports a
-// length and the time of its newest entry rather than group state.
-message RedisDeadLetterStat {
-  int64 length = 1;
-  // exists is false before the first message is ever parked, since the
-  // stream is created lazily on first publish.
-  bool exists = 2;
-  // newest_entry is the publish time of the most recently parked message,
-  // recovered from its stream ID. Unset when the stream is empty.
-  google.protobuf.Timestamp newest_entry = 3;
-  // error records a failure reading the stream; it should not cost the
-  // caller the rest of the snapshot.
-  string error = 4;
 }
 
 // RedisServerInfo holds the instance-wide counters, read from INFO and DBSIZE.

@@ -23,7 +23,7 @@ import (
 const (
 	// DefaultRetryAttempts is the number of retries after the first attempt,
 	// so a handler runs at most DefaultRetryAttempts+1 times before its
-	// message is parked on DeadLetterStream.
+	// message is logged at error level and acked (dropped).
 	DefaultRetryAttempts = 4
 	// DefaultRetryBackoffBase is the wait before the first retry.
 	DefaultRetryBackoffBase = 500 * time.Millisecond
@@ -36,8 +36,9 @@ const (
 	retryBackoffMultiplier = 2.0
 )
 
-// RetryPolicy is the retry-then-dead-letter tuning the Router applies to
-// every handler it registers.
+// RetryPolicy is the retry tuning the Router applies to every handler it
+// registers. A message whose error survives every retry is logged and
+// acked; there is no dead-letter stream.
 type RetryPolicy struct {
 	// MaxAttempts is the number of retries after the first attempt.
 	MaxAttempts int
@@ -76,10 +77,11 @@ func RetryPolicyFromConfig(c *metarrv1.EventBusConfig) RetryPolicy {
 // Failure convention (documented, not enforced): return an error only when
 // the message could not be processed at all — an undecodable payload, a
 // datastore that is unreachable. The Router retries such a message with
-// exponential backoff, then republishes it to DeadLetterStream with the
-// reason recorded and acks it, so it stops cycling. Work that ran and
-// produced a failure publishes a failure result event and returns nil; that
-// never reaches retry or the dead-letter stream.
+// exponential backoff; once the retries are spent it logs the message at
+// error level with its identifier and acks it (dropped), so one poison
+// message stops cycling instead of stalling its consumer group. Work that
+// ran and produced a failure publishes a failure result event and returns
+// nil; that never reaches the retry path.
 type StreamHandler func(ctx context.Context, event *Event) error
 
 // SubscriberFactory opens a durable-stream subscriber bound to one consumer
@@ -89,13 +91,15 @@ type SubscriberFactory func(group, consumer string) (message.Subscriber, error)
 // Router consumes every durable stream in one process through a single
 // watermill message.Router. The middleware stack, outermost first:
 //
-//   - Recoverer   — a panicking handler becomes an error rather than a
+//   - Recoverer      — a panicking handler becomes an error rather than a
 //     crashed subscriber goroutine.
-//   - PoisonQueue — an error that survives Retry is republished to
-//     DeadLetterStream with the reason in metadata, and the source message
-//     is acked so it stops being redelivered.
-//   - Retry       — a handler error is retried with exponential backoff up
-//     to the policy's cap.
+//   - dropAfterRetry — an error that survives Retry is logged at error level
+//     with the message identifier and the source message is acked, so a
+//     poison message stops being redelivered instead of stalling its
+//     consumer group. There is no parking stream; the log line is the
+//     record.
+//   - Retry          — a handler error is retried with exponential backoff
+//     up to the policy's cap.
 //
 // One Router per process (docs/adr/0002, docs/adr/0006): the server runs
 // one, each agent runs one.
@@ -105,12 +109,10 @@ type Router struct {
 	logger watermill.LoggerAdapter
 }
 
-// NewRouter builds a Router that republishes exhausted messages through
-// deadLetterPublisher and opens a per-stream subscriber through newSub.
-// Tests pass a watermill gochannel for both; NewRedisRouter wires the Redis
+// NewRouter builds a Router that opens a per-stream subscriber through
+// newSub. Tests pass a watermill gochannel; NewRedisRouter wires the Redis
 // Streams transport.
 func NewRouter(
-	deadLetterPublisher message.Publisher,
 	newSub SubscriberFactory,
 	policy RetryPolicy,
 	logger watermill.LoggerAdapter,
@@ -120,14 +122,9 @@ func NewRouter(
 		return nil, fmt.Errorf("eventbus: new router: %w", err)
 	}
 
-	poison, err := middleware.PoisonQueue(deadLetterPublisher, DeadLetterStream)
-	if err != nil {
-		return nil, fmt.Errorf("eventbus: poison queue: %w", err)
-	}
-
 	inner.AddMiddleware(
 		middleware.Recoverer,
-		poison,
+		dropAfterRetry(logger),
 		middleware.Retry{
 			MaxRetries:      policy.MaxAttempts,
 			InitialInterval: policy.BackoffBase,
@@ -140,19 +137,28 @@ func NewRouter(
 	return &Router{router: inner, newSub: newSub, logger: logger}, nil
 }
 
-// NewRedisRouter builds a Router backed by Redis Streams: the dead-letter
-// republish and every per-stream subscriber use client. The dead-letter
-// stream is capped at retention.MaxLenDefault so parked messages cannot grow
-// without bound.
-func NewRedisRouter(client redis.UniversalClient, policy RetryPolicy, retention RetentionPolicy, logger watermill.LoggerAdapter) (*Router, error) {
-	publisher, err := redisstream.NewPublisher(redisstream.PublisherConfig{
-		Client:        client,
-		DefaultMaxlen: retention.MaxLenDefault,
-	}, logger)
-	if err != nil {
-		return nil, fmt.Errorf("eventbus: dead-letter publisher: %w", err)
+// dropAfterRetry stands in for a dead-letter stream. Ordered outside Retry,
+// so it runs once every retry is spent: it logs the still-failing message at
+// error level with its identifier and returns success, so the message is
+// acked (dropped) rather than parked or redelivered forever.
+func dropAfterRetry(logger watermill.LoggerAdapter) message.HandlerMiddleware {
+	return func(next message.HandlerFunc) message.HandlerFunc {
+		return func(msg *message.Message) ([]*message.Message, error) {
+			produced, err := next(msg)
+			if err != nil {
+				logger.Error("eventbus: dropping message after retries exhausted", err, watermill.LogFields{
+					"message_uuid": msg.UUID,
+				})
+				return nil, nil
+			}
+			return produced, nil
+		}
 	}
+}
 
+// NewRedisRouter builds a Router backed by Redis Streams: every per-stream
+// subscriber uses client.
+func NewRedisRouter(client redis.UniversalClient, policy RetryPolicy, logger watermill.LoggerAdapter) (*Router, error) {
 	newSub := func(group, consumer string) (message.Subscriber, error) {
 		return redisstream.NewSubscriber(redisstream.SubscriberConfig{
 			Client:        client,
@@ -161,7 +167,7 @@ func NewRedisRouter(client redis.UniversalClient, policy RetryPolicy, retention 
 		}, logger)
 	}
 
-	return NewRouter(publisher, newSub, policy, logger)
+	return NewRouter(newSub, policy, logger)
 }
 
 // Handle registers handler as the sole consumer of stream, read as
@@ -171,7 +177,7 @@ func NewRedisRouter(client redis.UniversalClient, policy RetryPolicy, retention 
 //
 // A decode failure is returned as an error on purpose: a payload that will
 // never parse is retried a few times (cheap, and covers a transient
-// truncation) and then parked, rather than silently dropped.
+// truncation) and then logged and dropped, rather than silently swallowed.
 func (r *Router) Handle(name, stream, group, consumer string, handler StreamHandler) error {
 	subscriber, err := r.newSub(group, consumer)
 	if err != nil {

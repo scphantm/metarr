@@ -1,6 +1,11 @@
 package eventbus
 
-import "strings"
+import (
+	"context"
+	"strings"
+
+	"github.com/redis/go-redis/v9"
+)
 
 // This file is the single registry of every event-bus name: Redis Stream
 // names, consumer-group names, Pub/Sub channel names, the per-agent names
@@ -55,19 +60,11 @@ const (
 	// AgentScanResultStream with.
 	AgentScanResultGroup = "agent_scan_results_group"
 
-	// DeadLetterStream is where the Router parks a message that errored past
-	// the retry cap, with the failure reason recorded in its metadata. Nothing
-	// consumes it: it is size-capped (docs/adr/0006) and read by hand with
-	// redis-cli to diagnose a stuck handler, and a parked entry is replayed by
-	// re-adding it to its origin stream once the cause is fixed. It has no
-	// consumer group.
-	DeadLetterStream = "events.dead_letter"
-
 	// AgentNodeResultStream carries workflow node execution outcomes from the
 	// agent back to the server. The name is reserved here so retention and
-	// stats treat it as a high-volume result stream from the start; its
-	// consumer group and listener are created by the workflow-engine work
-	// (docs/adr/0006, spec scphantm/metarr#37).
+	// stats treat it as a durable stream from the start; its consumer group
+	// and listener are created by the workflow-engine work (docs/adr/0006,
+	// spec scphantm/metarr#37).
 	AgentNodeResultStream = "events.agent_node_results"
 )
 
@@ -130,50 +127,165 @@ func AgentConfigChangedChannel(slug string) string { return "agent.config.change
 // be the wrong shape. Replies go to the correlation-scoped ReplyChannel.
 func AgentRequestChannel(slug string) string { return "agent." + slug + ".request" }
 
-// StreamTopic describes one Redis Stream and the consumer group that reads
-// it, pairing the constants above so callers that need to walk every stream
-// — the statistics collector, for one — don't have to restate the names.
+// StreamTopic is one durable Redis Stream in the system, and the single
+// representation of it. Every inventory that used to keep its own list —
+// the statistics dashboard, the retention sweep, the publish cap, per-agent
+// discovery — reads StreamTopics() instead, so adding a durable stream is
+// one row here rather than an edit in four places.
 type StreamTopic struct {
-	Stream    string
-	Group     string
-	EventName string
+	// Name is the literal stream name, or the glob for a pattern topic.
+	Name string
+	// Pattern is true when Name is a glob: the concrete topics come from
+	// DiscoverStreamTopics expanding it against live Redis, not from this
+	// row directly.
+	Pattern bool
+	// Group is the consumer group that reads the stream. It is "" when
+	// nothing consumes the stream (a reserved name), and "" on a pattern
+	// row (the group is per concrete stream, filled in by discovery).
+	Group string
+	// Consumed is true when a listener is registered on the stream. A
+	// reserved-but-unconsumed stream — AgentNodeResultStream until the
+	// workflow engine lands — is Consumed false with no Group.
+	Consumed bool
+	// Events are the envelope Name discriminators a handler on this stream
+	// may see. Informational only: routing is the handler's job, not this
+	// list's.
+	Events []string
 }
 
-// FixedStreamNames is every Redis Stream with a name known ahead of time:
-// the streams with a server consumer group (KnownStreams), plus the two that
-// exist but nothing consumes — the reserved node-result stream and the
-// dead-letter stream. Retention trims this set; the per-agent command
-// streams, whose names depend on which agents exist, are discovered by glob
-// on top of it. One list so adding a stream is one edit.
-func FixedStreamNames() []string {
-	names := make([]string, 0, len(KnownStreams())+2)
-	for _, topic := range KnownStreams() {
-		names = append(names, topic.Stream)
-	}
-	return append(names, AgentNodeResultStream, DeadLetterStream)
-}
+// streamScanCount is the COUNT hint for the per-agent stream SCAN. It only
+// tunes how many keys Redis returns per round trip; the iterator still walks
+// the whole keyspace.
+const streamScanCount = 100
 
-// KnownStreams returns every fixed Redis Stream the application publishes to.
-func KnownStreams() []StreamTopic {
+// StreamTopics is the one table of every durable stream: the static rows,
+// plus one pattern row for the per-agent command streams.
+// DiscoverStreamTopics expands the pattern against live Redis.
+func StreamTopics() []StreamTopic {
 	return []StreamTopic{
-		{
-			Stream:    SystemConfigUpdateStream,
-			Group:     SystemConfigUpdateGroup,
-			EventName: SystemConfigUpdateEventName,
-		},
-		{
-			Stream:    AgentScanResultStream,
-			Group:     AgentScanResultGroup,
-			EventName: AgentScanResultEventName,
+		SystemConfigUpdateTopic(),
+		AgentScanResultTopic(),
+		agentNodeResultTopic(),
+		agentCommandStreamPatternTopic(),
+	}
+}
+
+// SystemConfigUpdateTopic is the stream the server's config-update listener
+// registers on.
+func SystemConfigUpdateTopic() StreamTopic {
+	return StreamTopic{
+		Name:     SystemConfigUpdateStream,
+		Group:    SystemConfigUpdateGroup,
+		Consumed: true,
+		Events:   []string{SystemConfigUpdateEventName},
+	}
+}
+
+// AgentScanResultTopic is the shared stream the server's scan-result
+// listener registers on. Its handler sees three discriminators.
+func AgentScanResultTopic() StreamTopic {
+	return StreamTopic{
+		Name:     AgentScanResultStream,
+		Group:    AgentScanResultGroup,
+		Consumed: true,
+		Events: []string{
+			AgentScanResultEventName,
+			AgentScanCompleteEventName,
+			AgentScanFailedEventName,
 		},
 	}
 }
 
-// KnownStreamPatterns returns glob patterns matching streams whose names are
-// not known ahead of time. Each agent reads its work from a stream named after
-// its slug, so the statistics collector discovers them rather than listing them.
-func KnownStreamPatterns() []string {
-	return []string{AgentCommandStreamPattern}
+// AgentCommandTopic is the concrete per-agent command topic for slug: the
+// row the agent registers its scan-command listener with. Discovery
+// produces the same shape for a stream it finds by glob.
+func AgentCommandTopic(slug string) StreamTopic {
+	return StreamTopic{
+		Name:     AgentCommandStream(slug),
+		Group:    AgentCommandGroup(slug),
+		Consumed: true,
+		Events:   []string{AgentScanCommandEventName},
+	}
+}
+
+// agentNodeResultTopic is the reserved workflow node-result stream. It has
+// no consumer group and no listener until the workflow engine lands
+// (scphantm/metarr#37); retention and stats still treat it as a durable
+// stream so it is visible before then.
+func agentNodeResultTopic() StreamTopic {
+	return StreamTopic{Name: AgentNodeResultStream}
+}
+
+// agentCommandStreamPatternTopic is the single pattern row. Each agent
+// reads its work from a stream named after its slug, so the concrete rows
+// are discovered rather than listed.
+func agentCommandStreamPatternTopic() StreamTopic {
+	return StreamTopic{
+		Name:     AgentCommandStreamPattern,
+		Pattern:  true,
+		Consumed: true,
+		Events:   []string{AgentScanCommandEventName},
+	}
+}
+
+// DiscoverStreamTopics returns every concrete durable stream topic: the
+// static rows as-is, plus one row per Redis key matching a pattern row,
+// each with its consumer group derived from the slug. On a SCAN failure it
+// returns what it has plus the error — every caller logs the error and
+// proceeds with the partial set, so a failed scan still trims or shows what
+// it can.
+func DiscoverStreamTopics(ctx context.Context, client redis.UniversalClient) ([]StreamTopic, error) {
+	var (
+		topics  []StreamTopic
+		scanErr error
+	)
+	seen := map[string]bool{}
+
+	for _, topic := range StreamTopics() {
+		if topic.Pattern {
+			continue
+		}
+		topics = append(topics, topic)
+		seen[topic.Name] = true
+	}
+
+	for _, topic := range StreamTopics() {
+		if !topic.Pattern {
+			continue
+		}
+		iterator := client.Scan(ctx, 0, topic.Name, streamScanCount).Iterator()
+		for iterator.Next(ctx) {
+			name := iterator.Val()
+			if seen[name] {
+				continue
+			}
+			seen[name] = true
+			topics = append(topics, StreamTopic{
+				Name:     name,
+				Group:    groupForAgentCommandStream(name),
+				Consumed: topic.Consumed,
+				Events:   topic.Events,
+			})
+		}
+		if err := iterator.Err(); err != nil && scanErr == nil {
+			scanErr = err
+		}
+	}
+
+	return topics, scanErr
+}
+
+// groupForAgentCommandStream turns an agent command stream name into the
+// consumer group that agent reads it with, composing the slug helpers. It
+// returns "" when name is not an agent command stream. This is the one
+// place the stream-to-group derivation lives; other packages call discovery
+// rather than re-deriving it.
+func groupForAgentCommandStream(name string) string {
+	slug := SlugFromAgentCommandStream(name)
+	if slug == "" {
+		return ""
+	}
+	return AgentCommandGroup(slug)
 }
 
 // KnownPubSubChannels returns the fixed Pub/Sub channels. The per-request

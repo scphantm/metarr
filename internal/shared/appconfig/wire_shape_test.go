@@ -100,7 +100,7 @@ func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 	})
 
 	assertKeys(t, "config.event_bus", document["event_bus"], []string{
-		"max_len_high", "max_len_default", "retention_hours",
+		"max_len", "retention_hours",
 		"retry_attempts", "retry_backoff_base_ms", "retry_backoff_max_ms",
 	})
 

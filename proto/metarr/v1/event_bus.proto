@@ -7,24 +7,27 @@ import "metarr/v1/common.proto";
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
 // EventBusConfig tunes the Redis event bus without a rebuild (docs/adr/0006):
-// stream size caps, the retention window, and the Router's retry-then-
-// dead-letter policy. Server-side reads come from live config; the built-in
-// defaults in builtin_defaults.json are the values a fresh install runs
-// with and match eventbus.DefaultRetryPolicy / DefaultRetentionPolicy.
+// the stream size cap, the retention window, and the Router's retry policy.
+// Server-side reads come from live config; the built-in defaults in
+// builtin_defaults.json are the values a fresh install runs with and match
+// eventbus.DefaultRetryPolicy / DefaultRetentionPolicy.
 message EventBusConfig {
-  // max_len_high is the approximate MAXLEN for the high-volume result
-  // streams (events.agent_scan_results, events.agent_node_results).
-  int32 max_len_high = 1;
-  // max_len_default is the approximate MAXLEN for every other stream,
-  // including events.dead_letter.
-  int32 max_len_default = 2;
+  // Field 2 was max_len_default, alongside a max_len_high tier that is gone
+  // (scphantm/metarr#47): one cap now covers every stream. Reserved so the
+  // number is not reused.
+  reserved 2;
+  reserved "max_len_high", "max_len_default";
+
+  // max_len is the approximate MAXLEN applied to every stream at publish
+  // time.
+  int32 max_len = 1;
   // retention_hours is how far back the periodic XTRIM sweep keeps entries.
   // The external-subscriber contract is at least 48 hours, or MAXLEN
   // entries, whichever is larger; setting this below 48 narrows that
   // guarantee.
   int32 retention_hours = 3;
   // retry_attempts is the number of retries after the first attempt before
-  // a handler's message is parked on events.dead_letter.
+  // a handler's message is logged at error level and acked (dropped).
   int32 retry_attempts = 4;
   // retry_backoff_base_ms is the wait before the first retry.
   int32 retry_backoff_base_ms = 5;

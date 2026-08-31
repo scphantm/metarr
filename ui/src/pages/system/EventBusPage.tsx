@@ -10,14 +10,14 @@ import { PageHeader } from '../../layout/AppShell'
 /*
  * System > Event Bus.
  *
- * The knobs behind the Redis event bus: how large each stream is allowed to
+ * The knobs behind the Redis event bus: how large a stream is allowed to
  * grow, how far back history is kept, and how hard the Router retries a
- * failing handler before parking its message on events.dead_letter.
+ * failing handler before its message is logged and dropped.
  *
  * Unlike the log level, these are read once when the server starts, so an
  * edit here takes effect on the next restart rather than live. Every field
  * saves the whole section, so the server can reject a contradictory
- * combination (a max backoff below the base, a high cap below the default).
+ * combination (a max backoff below the base, a non-positive stream cap).
  */
 export function EventBusPage() {
   const eventBus = useEventBusConfig()
@@ -44,7 +44,7 @@ export function EventBusPage() {
     <>
       <PageHeader
         title="Event Bus"
-        description="Stream size caps, the retention window, and the Router's retry-then-dead-letter policy. Read at server startup — changes apply on the next restart."
+        description="The stream size cap, the retention window, and the Router's retry policy. Read at server startup — changes apply on the next restart."
       />
 
       <div className="page-body">
@@ -94,22 +94,14 @@ function EventBusFields({ config }: { config: EventBusConfig }) {
     <>
       <Card
         title="Retention"
-        description="Every publish sets an approximate MAXLEN by stream tier; a periodic sweep also trims each stream by age."
+        description="Every publish sets one approximate MAXLEN for every stream; a periodic sweep also trims each stream by age."
       >
         <NumberField
-          label="High-volume cap"
-          hint="Approximate entry cap for the agent result streams (scan results, node results)."
-          value={config.maxLenHigh}
+          label="Stream cap"
+          hint="Approximate entry cap applied to every stream. Must be greater than zero."
+          value={config.maxLen}
           min={1}
-          field="maxLenHigh"
-          save={save}
-        />
-        <NumberField
-          label="Default cap"
-          hint="Approximate entry cap for every other stream, including events.dead_letter."
-          value={config.maxLenDefault}
-          min={1}
-          field="maxLenDefault"
+          field="maxLen"
           save={save}
         />
         <NumberField
@@ -123,8 +115,8 @@ function EventBusFields({ config }: { config: EventBusConfig }) {
       </Card>
 
       <Card
-        title="Retry & dead-letter"
-        description="A handler error is retried with exponential backoff; a message that fails past the cap is parked on events.dead_letter and acked."
+        title="Retry"
+        description="A handler error is retried with exponential backoff; a message that fails past the cap is logged at error level and acked (dropped)."
       >
         <NumberField
           label="Retry attempts"
@@ -180,8 +172,8 @@ export function EventBusSidebar() {
         description={
           <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 0 }}>
             A stream is bounded by whichever is larger — its MAXLEN in entries, or the retention
-            window in time. The dead-letter stream has no consumer; a non-zero length there is
-            parked work waiting to be inspected on the System dashboard.
+            window in time. A message whose handler keeps failing past the retry cap is logged at
+            error level with its identifier and then dropped, not parked.
           </Typography.Paragraph>
         }
       />

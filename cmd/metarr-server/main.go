@@ -244,12 +244,12 @@ func run() error {
 	go presenceWatcher.Run(ctx, agentregistry.DefaultPresenceWatchInterval)
 
 	// Every durable stream this process consumes runs under one Watermill
-	// Router with the Recoverer/PoisonQueue/Retry middleware stack: a handler
-	// that errors past the retry cap is parked on events.dead_letter and
-	// acked, instead of redelivering forever (docs/adr/0006). Scanning itself
-	// now happens on the agents; the scan-result listener is the half that
-	// persists what they report.
-	eventRouter, err := eventbus.NewRedisRouter(redisClient, retryPolicy, retentionPolicy, eventbus.NewSlogAdapter(logger))
+	// Router with the Recoverer/drop-after-retry/Retry middleware stack: a
+	// handler that errors past the retry cap has its message logged at error
+	// level and acked, instead of redelivering forever (docs/adr/0006).
+	// Scanning itself now happens on the agents; the scan-result listener is
+	// the half that persists what they report.
+	eventRouter, err := eventbus.NewRedisRouter(redisClient, retryPolicy, eventbus.NewSlogAdapter(logger))
 	if err != nil {
 		return err
 	}

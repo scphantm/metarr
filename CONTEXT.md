@@ -72,10 +72,16 @@ of work. Scans and workflow nodes have separate result streams so one kind's
 backlog cannot hide another's.
 _Avoid_: response queue, callback stream
 
-**Dead-letter stream**:
-Where a message goes once its handler has failed the retry limit. It has no
-consumer and is read by hand when something needs investigating.
-_Avoid_: poison queue, error queue, DLQ
+**Stream topic**:
+One row describing a durable stream: its name, the consumer group that reads
+it (empty when nothing consumes it), whether a listener is registered
+(_consumed_), and the event names a handler on it may see. One list of stream
+topics is the single representation of every durable stream — the stats
+dashboard, the retention sweep, the publish cap and per-agent discovery each
+read it. A _pattern topic_ carries a glob instead of a literal name; the
+per-agent command streams are its concrete rows, discovered against live
+Redis with each group derived from the slug.
+_Avoid_: catalog, registry, known streams, Kafka topic
 
 **Request/reply**:
 The one synchronous pattern on the bus. The server publishes a request on an
