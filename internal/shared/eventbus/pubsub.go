@@ -2,13 +2,24 @@ package eventbus
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/redis/go-redis/v9"
 )
 
-// PubSubBus is the Redis Pub/Sub backed message queue used for the
-// heartbeat's synchronous request/reply exchange.
+// ErrNoResponder is returned by Request when the timeout elapses with no
+// reply — nothing was listening on the request channel, or the responder
+// took too long. It wraps the context's deadline error, so a caller can
+// test for either errors.Is(err, ErrNoResponder) or
+// errors.Is(err, context.DeadlineExceeded).
+var ErrNoResponder = errors.New("eventbus: no responder answered the request")
+
+// PubSubBus is the Redis Pub/Sub backed message queue. It carries fire-and-
+// forget notifications and the one synchronous request/reply pattern on the
+// bus (Request/Reply below) — the durable streams go through the Router
+// instead. Request/Reply is the single implementation of that pattern: the
+// heartbeat health check and the NFO-read call both use it.
 type PubSubBus struct {
 	client *redis.Client
 }
@@ -42,9 +53,14 @@ func (b *PubSubBus) Subscribe(ctx context.Context, channel string) *redis.PubSub
 	return b.client.Subscribe(ctx, channel)
 }
 
-// Request publishes event to requestChannel and blocks until a reply arrives
-// on that correlation ID's reply channel, or ctx is done. This backs the
-// heartbeat API's blocking behavior.
+// Request publishes event on requestChannel and blocks until a reply arrives
+// on that correlation ID's reply channel, or ctx is done. It is the one
+// synchronous call on the bus: the heartbeat health check and the NFO read
+// both go through here.
+//
+// A timeout with no reply comes back as ErrNoResponder (wrapping the context
+// error), so a caller can distinguish "the other end never answered" from a
+// transport failure.
 func (b *PubSubBus) Request(ctx context.Context, requestChannel string, event *Event) (*Event, error) {
 	sub := b.client.Subscribe(ctx, ReplyChannel(event.GetCorrelationId()))
 	defer func() { _ = sub.Close() }()
@@ -62,7 +78,7 @@ func (b *PubSubBus) Request(ctx context.Context, requestChannel string, event *E
 	select {
 	case replyMsg, ok := <-sub.Channel():
 		if !ok {
-			return nil, fmt.Errorf("eventbus: reply subscription closed for correlation_id=%s", event.GetCorrelationId())
+			return nil, fmt.Errorf("%w: reply subscription closed for correlation_id=%s", ErrNoResponder, event.GetCorrelationId())
 		}
 		var reply Event
 		if err := UnmarshalEvent([]byte(replyMsg.Payload), &reply); err != nil {
@@ -70,7 +86,7 @@ func (b *PubSubBus) Request(ctx context.Context, requestChannel string, event *E
 		}
 		return &reply, nil
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, fmt.Errorf("%w: %w", ErrNoResponder, ctx.Err())
 	}
 }
 

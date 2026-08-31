@@ -17,14 +17,14 @@ const docTemplate = `{
     "paths": {
         "/api/heartbeat": {
             "get": {
-                "description": "Publishes a heartbeat request on the Redis Pub/Sub queue and blocks until the heartbeat listener replies with the current time and the request's correlation ID.",
+                "description": "Publishes a request on a Redis Pub/Sub channel and blocks until the in-process heartbeat listener replies with the current time and the request's correlation ID. Confirms the server's Redis request/reply path; it does not reach any agent.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Heartbeat"
                 ],
-                "summary": "Blocking heartbeat check",
+                "summary": "Redis round-trip health check",
                 "responses": {
                     "200": {
                         "description": "OK",
