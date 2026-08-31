@@ -86,8 +86,18 @@ _Avoid_: catalog, registry, known streams, Kafka topic
 **Request/reply**:
 The one synchronous pattern on the bus. The server publishes a request on an
 agent's Pub/Sub channel and waits on a correlation-scoped reply channel with a
-timeout. Used only where a miss should fail fast rather than be retried.
+timeout. Used only where a miss should fail fast rather than be retried. The
+answering side is a responder.
 _Avoid_: RPC, sync call
+
+**Responder**:
+The handler registered on a request channel that produces the reply a
+request/reply call is blocked on. One per request channel on the answering
+process — server-side for the heartbeat check, agent-side for an NFO read. It
+receives the decoded request envelope and returns a reply payload; the bus
+stamps the correlation id so the reply lands on the caller's correlation-scoped
+channel.
+_Avoid_: listener, handler, callback
 
 ### Identity
 
