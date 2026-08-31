@@ -149,13 +149,22 @@ func (r *Registry) presence(ctx context.Context) (map[string]*agentproto.AgentPr
 	return found, nil
 }
 
-// IsOnline reports whether one agent is currently present.
-func (r *Registry) IsOnline(ctx context.Context, slug string) (bool, error) {
-	count, err := r.client.Exists(ctx, agentproto.PresenceKey(slug)).Result()
+// PresentSlugs returns the slug of every agent with a live presence key,
+// reusing the same SCAN List runs. It is the PresenceWatcher's read
+// dependency; there is deliberately no point-in-time "is agent X online"
+// check any more — a scan dispatch that used one had a time-of-check-to-
+// time-of-use gap against the agent consuming its durable command stream
+// (docs/adr/0006).
+func (r *Registry) PresentSlugs(ctx context.Context) ([]string, error) {
+	presence, err := r.presence(ctx)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	return count > 0, nil
+	slugs := make([]string, 0, len(presence))
+	for slug := range presence {
+		slugs = append(slugs, slug)
+	}
+	return slugs, nil
 }
 
 // PublishAll rewrites the configuration projection for every configured agent
