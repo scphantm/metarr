@@ -139,6 +139,20 @@ type StreamTopic struct {
 	EventName string
 }
 
+// FixedStreamNames is every Redis Stream with a name known ahead of time:
+// the streams with a server consumer group (KnownStreams), plus the two that
+// exist but nothing consumes — the reserved node-result stream and the
+// dead-letter stream. Retention trims this set; the per-agent command
+// streams, whose names depend on which agents exist, are discovered by glob
+// on top of it. One list so adding a stream is one edit.
+func FixedStreamNames() []string {
+	names := make([]string, 0, len(KnownStreams())+2)
+	for _, topic := range KnownStreams() {
+		names = append(names, topic.Stream)
+	}
+	return append(names, AgentNodeResultStream, DeadLetterStream)
+}
+
 // KnownStreams returns every fixed Redis Stream the application publishes to.
 func KnownStreams() []StreamTopic {
 	return []StreamTopic{

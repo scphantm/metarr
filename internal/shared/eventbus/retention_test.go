@@ -128,12 +128,11 @@ func xlen(t *testing.T, client redis.UniversalClient, stream string) int64 {
 	return n
 }
 
-// addAt appends an entry to stream with a Redis Stream ID whose millisecond
-// component is at, so age-based trimming has something deterministic to act
-// on.
+// addAt appends an entry to stream with a Redis Stream ID timestamped at, so
+// age-based trimming has something deterministic to act on.
 func addAt(t *testing.T, client redis.UniversalClient, stream string, at time.Time, marker string) {
 	t.Helper()
-	id := strconv.FormatInt(at.UnixMilli(), 10) + "-0"
+	id := StreamIDForTime(at)
 	if err := client.XAdd(context.Background(), &redis.XAddArgs{
 		Stream: stream,
 		ID:     id,

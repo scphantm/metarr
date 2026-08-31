@@ -16,8 +16,9 @@ const DefaultPresenceWatchInterval = 3 * time.Second
 
 // PresenceLister is the watcher's one read dependency: the slugs of the
 // agents with a live presence key right now. Satisfied by *Registry
-// (PresentSlugs), which reuses the same SCAN Registry.List already runs, and
-// by a fake in tests.
+// (PresentSlugs), which goes through the same presence SCAN path
+// Registry.List uses — not a second way of reading presence — and by a fake
+// in tests.
 type PresenceLister interface {
 	PresentSlugs(ctx context.Context) ([]string, error)
 }

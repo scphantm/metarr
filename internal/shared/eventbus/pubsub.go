@@ -8,11 +8,11 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// ErrNoResponder is returned by Request when the timeout elapses with no
-// reply — nothing was listening on the request channel, or the responder
-// took too long. It wraps the context's deadline error, so a caller can
-// test for either errors.Is(err, ErrNoResponder) or
-// errors.Is(err, context.DeadlineExceeded).
+// ErrNoResponder is returned by Request when no reply comes back — the
+// timeout elapsed with nothing listening on the request channel or the
+// responder too slow, or the reply subscription closed under it. On the
+// timeout path (the common one) it also wraps the context's deadline error,
+// so errors.Is(err, context.DeadlineExceeded) still matches there.
 var ErrNoResponder = errors.New("eventbus: no responder answered the request")
 
 // PubSubBus is the Redis Pub/Sub backed message queue. It carries fire-and-

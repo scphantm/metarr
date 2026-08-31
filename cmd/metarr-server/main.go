@@ -236,7 +236,10 @@ func run() error {
 	// One process-wide watcher for agents losing their presence key. It emits
 	// an "agent offline" signal that in-flight work reacts to; the workflow
 	// engine is its consumer once it lands, so for now the signal is only
-	// logged. It reuses the registry's presence SCAN — no second scan.
+	// logged. It reads presence through the same Registry SCAN path
+	// Registry.List uses (PresentSlugs), rather than a second way of reading
+	// presence — the per-connection StreamPresence loop can't double as a
+	// process-wide watcher.
 	presenceWatcher := agentregistry.NewPresenceWatcher(agentRegistry, func() time.Time { return time.Now().UTC() }, logger)
 	go presenceWatcher.Run(ctx, agentregistry.DefaultPresenceWatchInterval)
 

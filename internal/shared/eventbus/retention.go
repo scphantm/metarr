@@ -95,11 +95,9 @@ func sweepStreamNames(ctx context.Context, client redis.UniversalClient) []strin
 		names = append(names, stream)
 	}
 
-	for _, topic := range KnownStreams() {
-		add(topic.Stream)
+	for _, stream := range FixedStreamNames() {
+		add(stream)
 	}
-	add(AgentNodeResultStream)
-	add(DeadLetterStream)
 
 	for _, pattern := range KnownStreamPatterns() {
 		iterator := client.Scan(ctx, 0, pattern, 100).Iterator()

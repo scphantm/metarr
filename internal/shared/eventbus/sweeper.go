@@ -3,7 +3,6 @@ package eventbus
 import (
 	"context"
 	"log/slog"
-	"strconv"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -59,9 +58,8 @@ func (s *RetentionSweeper) Run(ctx context.Context, interval time.Duration) {
 // on; only a context error stops it.
 func (s *RetentionSweeper) SweepOnce(ctx context.Context) error {
 	cutoff := s.now().Add(-time.Duration(s.policy.RetentionHours) * time.Hour)
-	// A Redis Stream ID is "<unix-millis>-<sequence>"; MINID drops every
-	// entry with an ID below this one.
-	minID := strconv.FormatInt(cutoff.UnixMilli(), 10) + "-0"
+	// MINID drops every entry with an ID below this one.
+	minID := StreamIDForTime(cutoff)
 
 	for _, stream := range sweepStreamNames(ctx, s.client) {
 		if ctx.Err() != nil {
