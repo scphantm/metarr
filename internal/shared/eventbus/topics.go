@@ -11,20 +11,11 @@ const (
 	// log records to. Pub/Sub rather than a Stream is deliberate: logs are
 	// high-volume and loss-tolerant (missing a few lines during a shipper
 	// restart is fine), which is exactly the trade-off Pub/Sub makes and a
-	// durable Stream would not. Fluent Bit subscribes here to ship to
-	// OpenObserve; the server also subscribes here to feed the live-tail pane
-	// in the UI.
+	// durable Stream would not. Neither binary talks to OpenObserve directly:
+	// only metarr-server subscribes here and forwards the records over HTTP to
+	// Fluent Bit's http input (Fluent Bit has no Redis input). The server also
+	// consumes this channel to feed the live-tail pane in the UI.
 	LogChannel = "logs.app"
-
-	// SonarrCacheDataStream is the Redis Stream the sonarr_cache_data task
-	// event is fired on.
-	SonarrCacheDataStream = "events.sonarr_cache_data"
-	// SonarrCacheDataGroup is the consumer group used to read
-	// SonarrCacheDataStream.
-	SonarrCacheDataGroup = "sonarr_cache_data_group"
-	// SonarrCacheDataEventName is the event name carried in the Event
-	// envelope for a sonarr_cache_data task.
-	SonarrCacheDataEventName = "sonarr_cache_data"
 
 	// SystemConfigUpdateStream is the Redis Stream the system_config_update
 	// event is fired on when the application config is changed via the API.
@@ -58,11 +49,6 @@ type StreamTopic struct {
 // KnownStreams returns every Redis Stream the application publishes to.
 func KnownStreams() []StreamTopic {
 	return []StreamTopic{
-		{
-			Stream:    SonarrCacheDataStream,
-			Group:     SonarrCacheDataGroup,
-			EventName: SonarrCacheDataEventName,
-		},
 		{
 			Stream:    SystemConfigUpdateStream,
 			Group:     SystemConfigUpdateGroup,

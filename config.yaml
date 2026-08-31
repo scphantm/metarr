@@ -21,8 +21,8 @@ mongodb:
   database: metarr
 
 redis:
-  # Backs the job queue: job state is stored here and new work is
-  # announced over a Redis Pub/Sub channel (see app/jobs/queue.py).
+  # Backs the event bus: durable server<->agent work runs on Redis Streams
+  # and notifications on Redis Pub/Sub (see internal/shared/eventbus).
   # The password must match REDIS_PASSWORD in .env, which is what
   # docker-compose passes to redis-server. This file is parsed as plain YAML —
   # no shell substitution happens here — so the two are kept in step by hand.
