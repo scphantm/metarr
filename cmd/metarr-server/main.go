@@ -213,16 +213,26 @@ func run() error {
 
 	// single HTTP request.
 	go listeners.RunHeartbeatListener(ctx, pubsubBus, logger)
+
+	// Every durable stream this process consumes runs under one Watermill
+	// Router with the Recoverer/PoisonQueue/Retry middleware stack: a handler
+	// that errors past the retry cap is parked on events.dead_letter and
+	// acked, instead of redelivering forever (docs/adr/0006). Scanning itself
+	// now happens on the agents; the scan-result listener is the half that
+	// persists what they report.
+	eventRouter, err := eventbus.NewRedisRouter(redisClient, eventbus.DefaultRetryPolicy(), eventbus.NewSlogAdapter(logger))
+	if err != nil {
+		return err
+	}
+	if err := listeners.RegisterSystemConfigUpdateListener(eventRouter, appConfigRepo, agentRegistry, logShipper, logger); err != nil {
+		return err
+	}
+	if err := listeners.RegisterAgentScanResultListener(eventRouter, localDirectoryRepo, logger); err != nil {
+		return err
+	}
 	go func() {
-		if err := listeners.RunSystemConfigUpdateListener(ctx, streamBus, appConfigRepo, agentRegistry, logShipper, logger); err != nil && ctx.Err() == nil {
-			logger.Error("system_config_update listener stopped unexpectedly", "error", err)
-		}
-	}()
-	// Scanning itself now happens on the agents; what runs here is the half
-	// that persists what they report.
-	go func() {
-		if err := listeners.RunAgentScanResultListener(ctx, streamBus, localDirectoryRepo, logger); err != nil && ctx.Err() == nil {
-			logger.Error("agent scan result listener stopped unexpectedly", "error", err)
+		if err := eventRouter.Run(ctx); err != nil && ctx.Err() == nil {
+			logger.Error("event router stopped unexpectedly", "error", err)
 		}
 	}()
 

@@ -110,7 +110,22 @@ func run() error {
 		logger.Warn("could not read configuration at startup; will retry", "error", err)
 	}
 
+	// One Watermill Router per process consumes every durable stream this
+	// agent reads, with the Recoverer/PoisonQueue/Retry middleware stack; a
+	// command that errors past the retry cap is parked on events.dead_letter
+	// rather than redelivered forever (docs/adr/0006). The agent enforces
+	// dry-run and reports business failures as result events itself, so the
+	// scan handler only ever returns an error for a message it could not
+	// process at all.
+	eventRouter, err := eventbus.NewRedisRouter(redisClient, eventbus.DefaultRetryPolicy(), eventbus.NewSlogAdapter(logger))
+	if err != nil {
+		return err
+	}
+
 	scanner := runtime.NewScanner(streamBus, configStore, logger, cfg.Slug)
+	if err := scanner.Register(eventRouter); err != nil {
+		return err
+	}
 	responder := runtime.NewResponder(pubsubBus, configStore, logger, cfg.Slug)
 
 	// Every loop is tracked, so shutdown waits for a scan in flight rather than
@@ -129,9 +144,9 @@ func run() error {
 	start("presence", func() { presence.Run(ctx) })
 	start("config", func() { configStore.Watch(ctx) })
 	start("responder", func() { responder.Run(ctx) })
-	start("scanner", func() {
-		if err := scanner.Run(ctx); err != nil && ctx.Err() == nil {
-			logger.Error("scan consumer stopped unexpectedly", "error", err)
+	start("router", func() {
+		if err := eventRouter.Run(ctx); err != nil && ctx.Err() == nil {
+			logger.Error("event router stopped unexpectedly", "error", err)
 		}
 	})
 

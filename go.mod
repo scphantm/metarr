@@ -7,7 +7,7 @@ require (
 	connectrpc.com/grpcreflect v1.3.0
 	github.com/ThreeDotsLabs/watermill v1.5.0
 	github.com/ThreeDotsLabs/watermill-redisstream v1.4.5
-	github.com/coder/websocket v1.8.15
+	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/google/uuid v1.6.0
 	github.com/oapi-codegen/oapi-codegen/v2 v2.8.0
 	github.com/oapi-codegen/runtime v1.6.0
@@ -87,6 +87,7 @@ require (
 	github.com/butuzov/mirror v1.3.3 // indirect
 	github.com/catenacyber/perfsprint v0.10.1 // indirect
 	github.com/ccojocar/zxcvbn-go v1.0.4 // indirect
+	github.com/cenkalti/backoff/v5 v5.0.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charithe/durationcheck v0.0.11 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
@@ -257,6 +258,7 @@ require (
 	github.com/sirupsen/logrus v1.10.0 // indirect
 	github.com/sivchari/containedctx v1.0.3 // indirect
 	github.com/sonatard/noctx v0.5.1 // indirect
+	github.com/sony/gobreaker v1.0.0 // indirect
 	github.com/sourcegraph/go-diff v0.8.0 // indirect
 	github.com/speakeasy-api/jsonpath v0.6.3 // indirect
 	github.com/speakeasy-api/openapi v1.24.0 // indirect
@@ -297,6 +299,7 @@ require (
 	github.com/yeya24/promlinter v0.3.0 // indirect
 	github.com/ykadowak/zerologlint v0.1.5 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	gitlab.com/bosi/decorder v0.4.2 // indirect
 	go-simpler.org/musttag v0.14.0 // indirect
