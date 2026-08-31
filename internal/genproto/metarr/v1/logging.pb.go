@@ -9,6 +9,7 @@ package metarrv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -216,6 +217,97 @@ func (x *LoggingServiceUpdateConfigRequest) GetConfig() *LoggingConfig {
 	return nil
 }
 
+// LogRecord is the vendor-neutral shape of one log line, shared by both
+// binaries. It is the single definition of that shape:
+// internal/shared/logging aliases it, publishes it to Redis (where Fluent
+// Bit ships it onward), and the live-tail pane on the Logging screen reads
+// it. It deliberately carries no vendor-specific field names — Fluent Bit's
+// own filters do that translation, which is what keeps the vendor swappable
+// at the Fluent Bit layer rather than this one.
+//
+// time is an RFC3339 nanosecond string rather than google.protobuf.Timestamp
+// because that string is the vendor-neutral wire form Fluent Bit already
+// consumes verbatim; normalising it through a Timestamp would change the
+// bytes on the Redis channel for no gain here.
+type LogRecord struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Time    string                 `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
+	Level   string                 `protobuf:"bytes,2,opt,name=level,proto3" json:"level,omitempty"`
+	Message string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	Source  string                 `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
+	// attrs is the caller's free-form key/value context, carried as a
+	// structured value so typing the record does not flatten what a caller
+	// attached to it. Absent when the caller attached nothing.
+	Attrs         *structpb.Struct `protobuf:"bytes,5,opt,name=attrs,proto3" json:"attrs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogRecord) Reset() {
+	*x = LogRecord{}
+	mi := &file_metarr_v1_logging_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogRecord) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogRecord) ProtoMessage() {}
+
+func (x *LogRecord) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_logging_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogRecord.ProtoReflect.Descriptor instead.
+func (*LogRecord) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_logging_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *LogRecord) GetTime() string {
+	if x != nil {
+		return x.Time
+	}
+	return ""
+}
+
+func (x *LogRecord) GetLevel() string {
+	if x != nil {
+		return x.Level
+	}
+	return ""
+}
+
+func (x *LogRecord) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *LogRecord) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *LogRecord) GetAttrs() *structpb.Struct {
+	if x != nil {
+		return x.Attrs
+	}
+	return nil
+}
+
 type LoggingServiceGetTailRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -224,7 +316,7 @@ type LoggingServiceGetTailRequest struct {
 
 func (x *LoggingServiceGetTailRequest) Reset() {
 	*x = LoggingServiceGetTailRequest{}
-	mi := &file_metarr_v1_logging_proto_msgTypes[4]
+	mi := &file_metarr_v1_logging_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -236,7 +328,7 @@ func (x *LoggingServiceGetTailRequest) String() string {
 func (*LoggingServiceGetTailRequest) ProtoMessage() {}
 
 func (x *LoggingServiceGetTailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_logging_proto_msgTypes[4]
+	mi := &file_metarr_v1_logging_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -249,22 +341,21 @@ func (x *LoggingServiceGetTailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoggingServiceGetTailRequest.ProtoReflect.Descriptor instead.
 func (*LoggingServiceGetTailRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_logging_proto_rawDescGZIP(), []int{4}
+	return file_metarr_v1_logging_proto_rawDescGZIP(), []int{5}
 }
 
-// LoggingServiceGetTailResponse/StreamTailResponse carry the exact JSON
-// logging.Record already produced over REST/WebSocket, kept opaque — its
-// Attrs field is a free-form map[string]any with no fixed shape to model.
+// LoggingServiceGetTailResponse/StreamTailResponse carry the tail buffer as
+// typed LogRecord messages, oldest first.
 type LoggingServiceGetTailResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RecordsJson   []byte                 `protobuf:"bytes,1,opt,name=records_json,json=recordsJson,proto3" json:"records_json,omitempty"`
+	Records       []*LogRecord           `protobuf:"bytes,1,rep,name=records,proto3" json:"records,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LoggingServiceGetTailResponse) Reset() {
 	*x = LoggingServiceGetTailResponse{}
-	mi := &file_metarr_v1_logging_proto_msgTypes[5]
+	mi := &file_metarr_v1_logging_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -276,7 +367,7 @@ func (x *LoggingServiceGetTailResponse) String() string {
 func (*LoggingServiceGetTailResponse) ProtoMessage() {}
 
 func (x *LoggingServiceGetTailResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_logging_proto_msgTypes[5]
+	mi := &file_metarr_v1_logging_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -289,12 +380,12 @@ func (x *LoggingServiceGetTailResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoggingServiceGetTailResponse.ProtoReflect.Descriptor instead.
 func (*LoggingServiceGetTailResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_logging_proto_rawDescGZIP(), []int{5}
+	return file_metarr_v1_logging_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *LoggingServiceGetTailResponse) GetRecordsJson() []byte {
+func (x *LoggingServiceGetTailResponse) GetRecords() []*LogRecord {
 	if x != nil {
-		return x.RecordsJson
+		return x.Records
 	}
 	return nil
 }
@@ -307,7 +398,7 @@ type LoggingServiceStreamTailRequest struct {
 
 func (x *LoggingServiceStreamTailRequest) Reset() {
 	*x = LoggingServiceStreamTailRequest{}
-	mi := &file_metarr_v1_logging_proto_msgTypes[6]
+	mi := &file_metarr_v1_logging_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -319,7 +410,7 @@ func (x *LoggingServiceStreamTailRequest) String() string {
 func (*LoggingServiceStreamTailRequest) ProtoMessage() {}
 
 func (x *LoggingServiceStreamTailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_logging_proto_msgTypes[6]
+	mi := &file_metarr_v1_logging_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -332,19 +423,19 @@ func (x *LoggingServiceStreamTailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoggingServiceStreamTailRequest.ProtoReflect.Descriptor instead.
 func (*LoggingServiceStreamTailRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_logging_proto_rawDescGZIP(), []int{6}
+	return file_metarr_v1_logging_proto_rawDescGZIP(), []int{7}
 }
 
 type LoggingServiceStreamTailResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RecordsJson   []byte                 `protobuf:"bytes,1,opt,name=records_json,json=recordsJson,proto3" json:"records_json,omitempty"`
+	Records       []*LogRecord           `protobuf:"bytes,1,rep,name=records,proto3" json:"records,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LoggingServiceStreamTailResponse) Reset() {
 	*x = LoggingServiceStreamTailResponse{}
-	mi := &file_metarr_v1_logging_proto_msgTypes[7]
+	mi := &file_metarr_v1_logging_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -356,7 +447,7 @@ func (x *LoggingServiceStreamTailResponse) String() string {
 func (*LoggingServiceStreamTailResponse) ProtoMessage() {}
 
 func (x *LoggingServiceStreamTailResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_logging_proto_msgTypes[7]
+	mi := &file_metarr_v1_logging_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -369,12 +460,12 @@ func (x *LoggingServiceStreamTailResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoggingServiceStreamTailResponse.ProtoReflect.Descriptor instead.
 func (*LoggingServiceStreamTailResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_logging_proto_rawDescGZIP(), []int{7}
+	return file_metarr_v1_logging_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *LoggingServiceStreamTailResponse) GetRecordsJson() []byte {
+func (x *LoggingServiceStreamTailResponse) GetRecords() []*LogRecord {
 	if x != nil {
-		return x.RecordsJson
+		return x.Records
 	}
 	return nil
 }
@@ -383,7 +474,7 @@ var File_metarr_v1_logging_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_logging_proto_rawDesc = "" +
 	"\n" +
-	"\x17metarr/v1/logging.proto\x12\tmetarr.v1\x1a\x16metarr/v1/common.proto\"z\n" +
+	"\x17metarr/v1/logging.proto\x12\tmetarr.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x16metarr/v1/common.proto\"z\n" +
 	"\rLoggingConfig\x12!\n" +
 	"\fserver_level\x18\x01 \x01(\tR\vserverLevel\x12\x12\n" +
 	"\x04sink\x18\x02 \x01(\tR\x04sink\x12\x1a\n" +
@@ -393,13 +484,19 @@ const file_metarr_v1_logging_proto_rawDesc = "" +
 	"\x1fLoggingServiceGetConfigResponse\x120\n" +
 	"\x06config\x18\x01 \x01(\v2\x18.metarr.v1.LoggingConfigR\x06config\"U\n" +
 	"!LoggingServiceUpdateConfigRequest\x120\n" +
-	"\x06config\x18\x01 \x01(\v2\x18.metarr.v1.LoggingConfigR\x06config\"\x1e\n" +
-	"\x1cLoggingServiceGetTailRequest\"B\n" +
-	"\x1dLoggingServiceGetTailResponse\x12!\n" +
-	"\frecords_json\x18\x01 \x01(\fR\vrecordsJson\"!\n" +
-	"\x1fLoggingServiceStreamTailRequest\"E\n" +
-	" LoggingServiceStreamTailResponse\x12!\n" +
-	"\frecords_json\x18\x01 \x01(\fR\vrecordsJson2\x96\x03\n" +
+	"\x06config\x18\x01 \x01(\v2\x18.metarr.v1.LoggingConfigR\x06config\"\x96\x01\n" +
+	"\tLogRecord\x12\x12\n" +
+	"\x04time\x18\x01 \x01(\tR\x04time\x12\x14\n" +
+	"\x05level\x18\x02 \x01(\tR\x05level\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x12\x16\n" +
+	"\x06source\x18\x04 \x01(\tR\x06source\x12-\n" +
+	"\x05attrs\x18\x05 \x01(\v2\x17.google.protobuf.StructR\x05attrs\"\x1e\n" +
+	"\x1cLoggingServiceGetTailRequest\"O\n" +
+	"\x1dLoggingServiceGetTailResponse\x12.\n" +
+	"\arecords\x18\x01 \x03(\v2\x14.metarr.v1.LogRecordR\arecords\"!\n" +
+	"\x1fLoggingServiceStreamTailRequest\"R\n" +
+	" LoggingServiceStreamTailResponse\x12.\n" +
+	"\arecords\x18\x01 \x03(\v2\x14.metarr.v1.LogRecordR\arecords2\x96\x03\n" +
 	"\x0eLoggingService\x12b\n" +
 	"\tGetConfig\x12).metarr.v1.LoggingServiceGetConfigRequest\x1a*.metarr.v1.LoggingServiceGetConfigResponse\x12Y\n" +
 	"\fUpdateConfig\x12,.metarr.v1.LoggingServiceUpdateConfigRequest\x1a\x1b.metarr.v1.AcceptedResponse\x12\\\n" +
@@ -419,34 +516,39 @@ func file_metarr_v1_logging_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_logging_proto_rawDescData
 }
 
-var file_metarr_v1_logging_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_metarr_v1_logging_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_metarr_v1_logging_proto_goTypes = []any{
 	(*LoggingConfig)(nil),                     // 0: metarr.v1.LoggingConfig
 	(*LoggingServiceGetConfigRequest)(nil),    // 1: metarr.v1.LoggingServiceGetConfigRequest
 	(*LoggingServiceGetConfigResponse)(nil),   // 2: metarr.v1.LoggingServiceGetConfigResponse
 	(*LoggingServiceUpdateConfigRequest)(nil), // 3: metarr.v1.LoggingServiceUpdateConfigRequest
-	(*LoggingServiceGetTailRequest)(nil),      // 4: metarr.v1.LoggingServiceGetTailRequest
-	(*LoggingServiceGetTailResponse)(nil),     // 5: metarr.v1.LoggingServiceGetTailResponse
-	(*LoggingServiceStreamTailRequest)(nil),   // 6: metarr.v1.LoggingServiceStreamTailRequest
-	(*LoggingServiceStreamTailResponse)(nil),  // 7: metarr.v1.LoggingServiceStreamTailResponse
-	(*AcceptedResponse)(nil),                  // 8: metarr.v1.AcceptedResponse
+	(*LogRecord)(nil),                         // 4: metarr.v1.LogRecord
+	(*LoggingServiceGetTailRequest)(nil),      // 5: metarr.v1.LoggingServiceGetTailRequest
+	(*LoggingServiceGetTailResponse)(nil),     // 6: metarr.v1.LoggingServiceGetTailResponse
+	(*LoggingServiceStreamTailRequest)(nil),   // 7: metarr.v1.LoggingServiceStreamTailRequest
+	(*LoggingServiceStreamTailResponse)(nil),  // 8: metarr.v1.LoggingServiceStreamTailResponse
+	(*structpb.Struct)(nil),                   // 9: google.protobuf.Struct
+	(*AcceptedResponse)(nil),                  // 10: metarr.v1.AcceptedResponse
 }
 var file_metarr_v1_logging_proto_depIdxs = []int32{
-	0, // 0: metarr.v1.LoggingServiceGetConfigResponse.config:type_name -> metarr.v1.LoggingConfig
-	0, // 1: metarr.v1.LoggingServiceUpdateConfigRequest.config:type_name -> metarr.v1.LoggingConfig
-	1, // 2: metarr.v1.LoggingService.GetConfig:input_type -> metarr.v1.LoggingServiceGetConfigRequest
-	3, // 3: metarr.v1.LoggingService.UpdateConfig:input_type -> metarr.v1.LoggingServiceUpdateConfigRequest
-	4, // 4: metarr.v1.LoggingService.GetTail:input_type -> metarr.v1.LoggingServiceGetTailRequest
-	6, // 5: metarr.v1.LoggingService.StreamTail:input_type -> metarr.v1.LoggingServiceStreamTailRequest
-	2, // 6: metarr.v1.LoggingService.GetConfig:output_type -> metarr.v1.LoggingServiceGetConfigResponse
-	8, // 7: metarr.v1.LoggingService.UpdateConfig:output_type -> metarr.v1.AcceptedResponse
-	5, // 8: metarr.v1.LoggingService.GetTail:output_type -> metarr.v1.LoggingServiceGetTailResponse
-	7, // 9: metarr.v1.LoggingService.StreamTail:output_type -> metarr.v1.LoggingServiceStreamTailResponse
-	6, // [6:10] is the sub-list for method output_type
-	2, // [2:6] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0,  // 0: metarr.v1.LoggingServiceGetConfigResponse.config:type_name -> metarr.v1.LoggingConfig
+	0,  // 1: metarr.v1.LoggingServiceUpdateConfigRequest.config:type_name -> metarr.v1.LoggingConfig
+	9,  // 2: metarr.v1.LogRecord.attrs:type_name -> google.protobuf.Struct
+	4,  // 3: metarr.v1.LoggingServiceGetTailResponse.records:type_name -> metarr.v1.LogRecord
+	4,  // 4: metarr.v1.LoggingServiceStreamTailResponse.records:type_name -> metarr.v1.LogRecord
+	1,  // 5: metarr.v1.LoggingService.GetConfig:input_type -> metarr.v1.LoggingServiceGetConfigRequest
+	3,  // 6: metarr.v1.LoggingService.UpdateConfig:input_type -> metarr.v1.LoggingServiceUpdateConfigRequest
+	5,  // 7: metarr.v1.LoggingService.GetTail:input_type -> metarr.v1.LoggingServiceGetTailRequest
+	7,  // 8: metarr.v1.LoggingService.StreamTail:input_type -> metarr.v1.LoggingServiceStreamTailRequest
+	2,  // 9: metarr.v1.LoggingService.GetConfig:output_type -> metarr.v1.LoggingServiceGetConfigResponse
+	10, // 10: metarr.v1.LoggingService.UpdateConfig:output_type -> metarr.v1.AcceptedResponse
+	6,  // 11: metarr.v1.LoggingService.GetTail:output_type -> metarr.v1.LoggingServiceGetTailResponse
+	8,  // 12: metarr.v1.LoggingService.StreamTail:output_type -> metarr.v1.LoggingServiceStreamTailResponse
+	9,  // [9:13] is the sub-list for method output_type
+	5,  // [5:9] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_logging_proto_init() }
@@ -461,7 +563,7 @@ func file_metarr_v1_logging_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_logging_proto_rawDesc), len(file_metarr_v1_logging_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

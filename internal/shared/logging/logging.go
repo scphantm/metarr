@@ -21,6 +21,8 @@ package logging
 import (
 	"log/slog"
 	"os"
+
+	metarrv1 "Metarr/internal/genproto/metarr/v1"
 )
 
 // defaultBufferSize is how many records may be queued for shipping before
@@ -35,13 +37,16 @@ const defaultBufferSize = 4096
 // Splunk "sourcetype"): Fluent Bit's own filters do that translation, which
 // is what keeps the vendor swappable at the Fluent Bit layer instead of this
 // one.
-type Record struct {
-	Time    string         `json:"time"`
-	Level   string         `json:"level"`
-	Message string         `json:"message"`
-	Source  string         `json:"source"`
-	Attrs   map[string]any `json:"attrs,omitempty"`
-}
+//
+// It is an alias to the generated metarr.v1.LogRecord message — proto is the
+// single definition for a model that crosses a language boundary, and this
+// one crosses both the Redis channel and the wire to the Logging screen's
+// live tail. See docs/adr/0005. The free-form attrs a caller attaches are
+// carried as a *structpb.Struct so typing the record does not flatten them.
+// The bytes on the Redis channel stay the flat JSON object they have always
+// been — see the note in record.go on why the publish path does not go
+// through the generated message to produce them.
+type Record = metarrv1.LogRecord
 
 // New returns a logger and the Shipper controlling where its records go.
 // source identifies the emitting process — "metarr-server", or

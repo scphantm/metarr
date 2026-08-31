@@ -10,8 +10,7 @@ import {
   useUpdateLoggingConfig,
 } from '../../api/queries'
 import { logLevels, type LogLevel } from '../../api/vocab'
-import type { LogTailEntry } from '../../api/types'
-import type { LoggingConfig } from '../../gen/metarr/v1/logging_pb'
+import type { LoggingConfig, LogRecord } from '../../gen/metarr/v1/logging_pb'
 import { Card, EmptyState } from '../../components/Card'
 import { PageError, PageLoading } from '../../components/PageState'
 import { PageHeader } from '../../layout/AppShell'
@@ -280,7 +279,7 @@ function LiveTail() {
   )
 }
 
-function TailLine({ entry }: { entry: LogTailEntry }) {
+function TailLine({ entry }: { entry: LogRecord }) {
   const toneVar =
     entry.level === 'ERROR'
       ? 'var(--color-red)'

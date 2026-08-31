@@ -19,7 +19,6 @@ import {
 import { mapAsync, registerStream, Stream, useStream, useStreamStatus } from './streams'
 import type {
   AcceptedResponse,
-  LogTailEntry,
   ReorderSidecarTypesRequest,
   UpsertWorkflowRequest,
   Workflow,
@@ -181,13 +180,11 @@ export function useLoggingConfig() {
   })
 }
 
-// Same opaque-JSON pattern as redisStatsStream above.
+// LoggingService.GetTail/StreamTail carry typed LogRecord messages; the
+// stream frame and the first-paint read land in the same cache entry.
 const logTailStream = registerStream(
   new Stream((signal) =>
-    mapAsync(
-      loggingClient.streamTail({}, { signal }),
-      (response) => JSON.parse(new TextDecoder().decode(response.recordsJson)) as LogTailEntry[],
-    ),
+    mapAsync(loggingClient.streamTail({}, { signal }), (response) => response.records),
   ),
 )
 
@@ -202,10 +199,7 @@ export function useLogTail() {
 
   return useQuery({
     queryKey: queryKeys.logTail,
-    queryFn: async () => {
-      const { recordsJson } = await loggingClient.getTail({})
-      return JSON.parse(new TextDecoder().decode(recordsJson)) as LogTailEntry[]
-    },
+    queryFn: async () => (await loggingClient.getTail({})).records,
     staleTime: Infinity,
   })
 }
