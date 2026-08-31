@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Input, Space, Typography } from 'antd'
 
 import { useDeleteAgent, useUpsertAgent } from '../../api/queries'
-import type { AgentView } from '../../api/types'
+import type { AgentView } from '../../gen/metarr/v1/agents_pb'
 import { Button } from '../../components/Card'
 import './AgentConfigureForm.css'
 
@@ -27,10 +27,10 @@ export function AgentConfigureForm({
   const upsert = useUpsertAgent()
   const remove = useDeleteAgent()
 
-  const [displayName, setDisplayName] = useState(agent.display_name ?? '')
+  const [displayName, setDisplayName] = useState(agent.displayName)
   const [paths, setPaths] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      agent.mappings.map((mapping) => [mapping.scanner_slug, mapping.agent_path]),
+      agent.mappings.map((mapping) => [mapping.scannerSlug, mapping.agentPath]),
     ),
   )
   const [error, setError] = useState<string | null>(null)
@@ -42,12 +42,12 @@ export function AgentConfigureForm({
     try {
       await upsert.mutateAsync({
         slug: agent.slug,
-        display_name: displayName.trim(),
+        displayName: displayName.trim(),
         mappings: Object.entries(paths)
           .filter(([, path]) => path.trim() !== '')
-          .map(([scanner_slug, path]) => ({
-            scanner_slug,
-            agent_path: path.trim(),
+          .map(([scannerSlug, path]) => ({
+            scannerSlug,
+            agentPath: path.trim(),
           })),
       })
       onDone()

@@ -2,7 +2,6 @@ package runtime
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"sync/atomic"
 	"time"
@@ -66,12 +65,12 @@ func (s *ConfigStore) Refresh(ctx context.Context) error {
 		return err
 	}
 
-	var projection agentproto.AgentConfigProjection
-	if err := json.Unmarshal([]byte(raw), &projection); err != nil {
+	projection := &agentproto.AgentConfigProjection{}
+	if err := agentproto.UnmarshalStored([]byte(raw), projection); err != nil {
 		return err
 	}
 
-	previous := s.current.Swap(&projection)
+	previous := s.current.Swap(projection)
 	s.applySidecarTypes(projection)
 	s.applyLogLevel(projection)
 
@@ -79,12 +78,12 @@ func (s *ConfigStore) Refresh(ctx context.Context) error {
 		s.logger.Info("configuration received",
 			"directories", len(projection.Directories),
 			"parallel_count", projection.ParallelCount,
-			"updated_at", projection.UpdatedAt,
+			"updated_at", projection.UpdatedAt.AsTime(),
 		)
-	} else if !previous.UpdatedAt.Equal(projection.UpdatedAt) {
+	} else if !previous.UpdatedAt.AsTime().Equal(projection.UpdatedAt.AsTime()) {
 		s.logger.Info("configuration updated",
 			"directories", len(projection.Directories),
-			"updated_at", projection.UpdatedAt,
+			"updated_at", projection.UpdatedAt.AsTime(),
 		)
 	}
 	return nil
@@ -95,7 +94,7 @@ func (s *ConfigStore) Refresh(ctx context.Context) error {
 // The scanner reads this through a package global, so it has to be installed
 // rather than passed. A table that fails to compile leaves the previous one
 // in place: classifying with the last known-good rules beats refusing to scan.
-func (s *ConfigStore) applySidecarTypes(projection agentproto.AgentConfigProjection) {
+func (s *ConfigStore) applySidecarTypes(projection *agentproto.AgentConfigProjection) {
 	if len(projection.SidecarTypes) == 0 {
 		return
 	}
@@ -112,7 +111,7 @@ func (s *ConfigStore) applySidecarTypes(projection agentproto.AgentConfigProject
 // projection. An unrecognized value is treated as info rather than rejected
 // outright — an agent must never end up with no threshold at all just
 // because a future level name it doesn't know about arrived.
-func (s *ConfigStore) applyLogLevel(projection agentproto.AgentConfigProjection) {
+func (s *ConfigStore) applyLogLevel(projection *agentproto.AgentConfigProjection) {
 	if s.shipper == nil {
 		return
 	}

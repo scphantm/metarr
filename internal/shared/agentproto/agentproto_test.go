@@ -1,6 +1,13 @@
 package agentproto
 
-import "testing"
+import (
+	"strings"
+	"testing"
+	"time"
+
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
 
 func TestPresenceKeyRoundTripsThroughSlugFromPresenceKey(t *testing.T) {
 	for _, slug := range []string{"nas-01", "a", "local_agent", "agent-with-a-long-name-99"} {
@@ -52,17 +59,46 @@ func TestValidateSlugRejectsUnsafeNames(t *testing.T) {
 }
 
 func TestFindDirectoryReturnsOnlyMappedLibraries(t *testing.T) {
-	projection := AgentConfigProjection{
-		Directories: []MappedDirectory{
+	projection := &AgentConfigProjection{
+		Directories: []*MappedDirectory{
 			{ScannerSlug: "movies", ScanType: "movie", AgentPath: "/mnt/tank/movies"},
 		},
 	}
 
-	directory, ok := projection.FindDirectory("movies")
+	directory, ok := FindDirectory(projection, "movies")
 	if !ok || directory.AgentPath != "/mnt/tank/movies" {
 		t.Errorf("FindDirectory(movies) = %+v, %v", directory, ok)
 	}
-	if _, ok := projection.FindDirectory("tv"); ok {
+	if _, ok := FindDirectory(projection, "tv"); ok {
 		t.Error("FindDirectory returned an unmapped library")
+	}
+}
+
+// TestMarshalStoredRoundTrip pins the Redis serialization contract: proto
+// field names (snake_case) and an RFC 3339 timestamp, decodable back to an
+// equal message.
+func TestMarshalStoredRoundTrip(t *testing.T) {
+	original := &AgentPresence{
+		Identity:   &AgentIdentity{Slug: "nas", InstanceId: "run-1", Uid: 1000},
+		Telemetry:  &AgentTelemetry{CpuPercent: 12.5, MemoryUsedBytes: 4 << 30},
+		ReportedAt: timestamppb.New(time.Date(2026, 1, 2, 15, 4, 5, 0, time.UTC)),
+	}
+
+	encoded, err := MarshalStored(original)
+	if err != nil {
+		t.Fatalf("MarshalStored() error = %v", err)
+	}
+	for _, want := range []string{`"instance_id"`, `"cpu_percent"`, `"2026-01-02T15:04:05Z"`} {
+		if !strings.Contains(string(encoded), want) {
+			t.Errorf("encoded form %s is missing %s", encoded, want)
+		}
+	}
+
+	var readBack AgentPresence
+	if err := UnmarshalStored(encoded, &readBack); err != nil {
+		t.Fatalf("UnmarshalStored() error = %v", err)
+	}
+	if !proto.Equal(original, &readBack) {
+		t.Errorf("round trip changed the record:\n got %v\nwant %v", &readBack, original)
 	}
 }

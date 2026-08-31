@@ -4,8 +4,15 @@ package metarr.v1;
 
 import "google/protobuf/timestamp.proto";
 import "metarr/v1/common.proto";
+import "metarr/v1/directory_scanner.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// The contract between metarr-server and metarr-agent, plus the agent view the
+// server serves to the UI. This is the single definition of those models —
+// internal/shared/agentproto aliases the contract types, internal/server/
+// agentregistry aliases the view types, and the TypeScript UI reads the
+// generated code. See docs/adr/0005.
 
 // AgentConfig is the operator's side of one agent's configuration — what an
 // operator says about an agent that has announced itself. It is part of the
@@ -24,7 +31,7 @@ message AgentDirectoryMapping {
   string agent_path = 2;
 }
 
-// GPUTelemetry mirrors internal/shared/agentproto.GPUTelemetry.
+// GPUTelemetry is one GPU's live state.
 message GPUTelemetry {
   string name = 1;
   double utilization_percent = 2;
@@ -32,7 +39,7 @@ message GPUTelemetry {
   uint64 memory_total_bytes = 4;
 }
 
-// AgentTelemetry mirrors internal/shared/agentproto.AgentTelemetry.
+// AgentTelemetry is the live host state, refreshed on every heartbeat.
 message AgentTelemetry {
   double cpu_percent = 1;
   uint64 memory_used_bytes = 2;
@@ -40,12 +47,17 @@ message AgentTelemetry {
   repeated GPUTelemetry gpus = 4;
 }
 
-// AgentIdentity mirrors internal/shared/agentproto.AgentIdentity.
+// AgentIdentity is who and where an agent is. Collected once at startup, since
+// none of it changes while the process lives.
 message AgentIdentity {
   string slug = 1;
+  // instance_id distinguishes one run of an agent from the next, so a restart
+  // is visible as a restart rather than continuous uptime.
   string instance_id = 2;
   string hostname = 3;
   string ip = 4;
+  // uid and username are the account the service runs as. uid is -1 on
+  // Windows, which has no uid at all.
   int32 uid = 5;
   string username = 6;
   string os = 7;
@@ -54,8 +66,52 @@ message AgentIdentity {
   google.protobuf.Timestamp started = 10;
 }
 
-// AgentMappingView mirrors internal/server/agentregistry.MappingView — one
-// library mapping shown in both machines' terms.
+// AgentPresence is the whole value stored at the agent's Redis presence key:
+// identity plus a fresh telemetry sample, written by the agent every
+// heartbeat with a TTL.
+message AgentPresence {
+  AgentIdentity identity = 1;
+  AgentTelemetry telemetry = 2;
+  google.protobuf.Timestamp reported_at = 3;
+}
+
+// MappedDirectory is one scan directory as one agent sees it. The server's own
+// path for the same library is deliberately absent — the agent has no use for
+// it, and translating back is the server's job on the way in.
+message MappedDirectory {
+  string scanner_slug = 1;
+  string scan_type = 2;
+  string agent_path = 3;
+}
+
+// AgentConfigProjection is everything an agent is allowed to know — the
+// redacted configuration the server publishes to the agent's Redis config
+// key. It is the security boundary of the agent design: the application config
+// it is derived from holds the admin password hash, every API key and every
+// Sonarr credential, so this is built as an explicit allow-list rather than a
+// copy-with-secrets-deleted. Adding a field here is a decision that every
+// agent host may read it. See internal/server/agentregistry.BuildProjection.
+message AgentConfigProjection {
+  string slug = 1;
+  string display_name = 2;
+  // parallel_count is how many item directories the agent walks at once.
+  int32 parallel_count = 3;
+  // sidecar_types is the classification table; the agent holds it because
+  // classification happens where the files are.
+  repeated SidecarTypeDefinition sidecar_types = 4;
+  // directories are only those mapped to this agent — it is told nothing
+  // about libraries it cannot see.
+  repeated MappedDirectory directories = 5;
+  // log_level is this agent's own verbosity ("info" or "debug"). Not a
+  // secret-boundary concern; it lives here because it is per-agent state
+  // delivered the same way as everything else the agent needs.
+  string log_level = 6;
+  // updated_at lets the agent log which revision it is running, telling "the
+  // mapping is wrong" apart from "the agent never got the new mapping".
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+// AgentMappingView is one library mapping shown in both machines' terms.
 message AgentMappingView {
   string scanner_slug = 1;
   string scan_type = 2;
@@ -63,12 +119,16 @@ message AgentMappingView {
   string agent_path = 4;
 }
 
-// AgentView mirrors internal/server/agentregistry.AgentView — what List
-// returns: configuration merged with live presence.
+// AgentView is one agent as the UI sees it: what the operator configured,
+// what the agent itself reports, and whether it is currently present.
 message AgentView {
   string slug = 1;
   string display_name = 2;
+  // online is presence, not health — true while the agent is still refreshing
+  // its key.
   bool online = 3;
+  // configured separates an agent that has announced itself from one someone
+  // has actually set up.
   bool configured = 4;
   AgentIdentity identity = 5;
   AgentTelemetry telemetry = 6;

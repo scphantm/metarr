@@ -79,9 +79,9 @@ export function LoggingPage() {
                 <AgentLevelRow
                   key={agent.slug}
                   slug={agent.slug}
-                  displayName={agent.display_name}
+                  displayName={agent.displayName}
                   online={agent.online}
-                  level={agent.log_level}
+                  level={agent.logLevel}
                 />
               ))}
             </div>

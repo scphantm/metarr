@@ -5,12 +5,12 @@ package runtime
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"Metarr/internal/agent/hostinfo"
 	"Metarr/internal/shared/agentproto"
@@ -28,12 +28,12 @@ var ErrSlugInUse = fmt.Errorf("agent slug is already claimed by another running 
 type Presence struct {
 	client   redis.UniversalClient
 	logger   *slog.Logger
-	identity agentproto.AgentIdentity
+	identity *agentproto.AgentIdentity
 	metrics  *hostinfo.Collector
 }
 
 // NewPresence returns a Presence for identity.
-func NewPresence(client redis.UniversalClient, logger *slog.Logger, identity agentproto.AgentIdentity) *Presence {
+func NewPresence(client redis.UniversalClient, logger *slog.Logger, identity *agentproto.AgentIdentity) *Presence {
 	return &Presence{
 		client:   client,
 		logger:   logger,
@@ -51,7 +51,7 @@ func NewPresence(client redis.UniversalClient, logger *slog.Logger, identity age
 func (p *Presence) Claim(ctx context.Context) error {
 	key := agentproto.LockKey(p.identity.Slug)
 
-	acquired, err := p.client.SetNX(ctx, key, p.identity.InstanceID, agentproto.PresenceTTL).Result()
+	acquired, err := p.client.SetNX(ctx, key, p.identity.InstanceId, agentproto.PresenceTTL).Result()
 	if err != nil {
 		return fmt.Errorf("claiming agent slug: %w", err)
 	}
@@ -63,7 +63,7 @@ func (p *Presence) Claim(ctx context.Context) error {
 	if err != nil && err != redis.Nil {
 		return fmt.Errorf("reading agent slug lock: %w", err)
 	}
-	if holder == p.identity.InstanceID {
+	if holder == p.identity.InstanceId {
 		return p.refreshLock(ctx)
 	}
 
@@ -71,18 +71,18 @@ func (p *Presence) Claim(ctx context.Context) error {
 }
 
 func (p *Presence) refreshLock(ctx context.Context) error {
-	return p.client.Set(ctx, agentproto.LockKey(p.identity.Slug), p.identity.InstanceID, agentproto.PresenceTTL).Err()
+	return p.client.Set(ctx, agentproto.LockKey(p.identity.Slug), p.identity.InstanceId, agentproto.PresenceTTL).Err()
 }
 
 // Report writes one presence record: identity plus a fresh telemetry sample.
 func (p *Presence) Report(ctx context.Context) error {
-	presence := agentproto.AgentPresence{
+	presence := &agentproto.AgentPresence{
 		Identity:   p.identity,
 		Telemetry:  p.metrics.Telemetry(ctx),
-		ReportedAt: time.Now().UTC(),
+		ReportedAt: timestamppb.New(time.Now().UTC()),
 	}
 
-	encoded, err := json.Marshal(presence)
+	encoded, err := agentproto.MarshalStored(presence)
 	if err != nil {
 		return err
 	}

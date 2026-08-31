@@ -87,12 +87,12 @@ func run() error {
 
 	logger.Info("agent starting",
 		"slug", identity.Slug,
-		"instance_id", identity.InstanceID,
+		"instance_id", identity.InstanceId,
 		"hostname", identity.Hostname,
-		"ip", identity.IP,
-		"uid", identity.UID,
+		"ip", identity.Ip,
+		"uid", identity.Uid,
 		"user", identity.Username,
-		"platform", identity.OS+"/"+identity.Arch,
+		"platform", identity.Os+"/"+identity.Arch,
 		"version", version.Raw,
 	)
 
