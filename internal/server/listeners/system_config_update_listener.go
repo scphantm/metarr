@@ -21,8 +21,9 @@ import (
 // logged and skipped.
 //
 // A fatal failure here (an undecodable payload, a persist that could not
-// reach Mongo) is returned, so the Router retries it and then parks it on
-// events.dead_letter rather than the old listener's silent redelivery loop.
+// reach Mongo) is returned, so the Router retries it and then, once the
+// retries are spent, logs it at error level and acks it (dropped) rather
+// than the old listener's silent redelivery loop.
 //
 // Agents must never subscribe to this stream: its payload is the whole
 // config document, including the admin password hash, every API key and
@@ -41,9 +42,7 @@ func RegisterSystemConfigUpdateListener(
 	propagator := newConfigPropagator(repo, liveConfigSetterFunc(appconfig.Set), sidecarRegistryAdapter{}, agents, logShipper, logger)
 
 	return router.Handle(
-		"system_config_update",
-		eventbus.SystemConfigUpdateStream,
-		eventbus.SystemConfigUpdateGroup,
+		eventbus.SystemConfigUpdateTopic(),
 		eventbus.ConsumerName,
 		func(ctx context.Context, event *eventbus.Event) error {
 			// Decode through the same protojson path the payload was published

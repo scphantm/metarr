@@ -81,7 +81,7 @@ func TestRouterDecodesEnvelopeAndDispatchesToHandler(t *testing.T) {
 	router, pubSub := newGoChannelRouter(t, testPolicy())
 
 	got := make(chan *Event, 1)
-	if err := router.Handle("scan-results", AgentScanResultStream, AgentScanResultGroup, ConsumerName,
+	if err := router.Handle(AgentScanResultTopic(), ConsumerName,
 		func(_ context.Context, event *Event) error {
 			got <- event
 			return nil
@@ -114,7 +114,7 @@ func TestRouterDropsMessageAfterRetriesExhausted(t *testing.T) {
 	router, pubSub := newGoChannelRouter(t, policy)
 
 	var calls atomic.Int32
-	if err := router.Handle("always-fails", SystemConfigUpdateStream, SystemConfigUpdateGroup, ConsumerName,
+	if err := router.Handle(SystemConfigUpdateTopic(), ConsumerName,
 		func(_ context.Context, _ *Event) error {
 			calls.Add(1)
 			return errUnreachable
@@ -150,7 +150,7 @@ func TestRouterHandlerReturningNilIsNotRetried(t *testing.T) {
 	router, pubSub := newGoChannelRouter(t, testPolicy())
 
 	var calls atomic.Int32
-	if err := router.Handle("ran-and-succeeded", AgentScanResultStream, AgentScanResultGroup, ConsumerName,
+	if err := router.Handle(AgentScanResultTopic(), ConsumerName,
 		func(_ context.Context, _ *Event) error {
 			calls.Add(1)
 			return nil
@@ -178,7 +178,7 @@ func TestRouterUndecodableEnvelopeIsNotDispatched(t *testing.T) {
 	router, pubSub := newGoChannelRouter(t, testPolicy())
 
 	called := make(chan struct{}, 1)
-	if err := router.Handle("never-runs", SystemConfigUpdateStream, SystemConfigUpdateGroup, ConsumerName,
+	if err := router.Handle(SystemConfigUpdateTopic(), ConsumerName,
 		func(_ context.Context, _ *Event) error {
 			called <- struct{}{}
 			return nil
