@@ -47,6 +47,7 @@ const items: MenuProps['items'] = [
           { key: '/system/directory-scanner', label: 'Directory Scanner' },
           { key: '/system/sidecars', label: 'Sidecars' },
           { key: '/system/interfaces', label: 'Interfaces' },
+          { key: '/system/event-bus', label: 'Event Bus' },
           { key: '/system/security', label: 'Security' },
         ],
       },

@@ -11,6 +11,7 @@ import {
   DirectoryScannerPage,
   DirectoryScannerSidebar,
 } from './pages/system/DirectoryScannerPage'
+import { EventBusPage, EventBusSidebar } from './pages/system/EventBusPage'
 import {
   ExternalToolsPage,
   ExternalToolsSidebar,
@@ -88,6 +89,14 @@ export function App() {
           element={
             <AppShell sidebar={<LoggingSidebar />}>
               <LoggingPage />
+            </AppShell>
+          }
+        />
+        <Route
+          path="/system/event-bus"
+          element={
+            <AppShell sidebar={<EventBusSidebar />}>
+              <EventBusPage />
             </AppShell>
           }
         />

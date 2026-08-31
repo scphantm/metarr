@@ -5,6 +5,7 @@ package metarr.v1;
 import "metarr/v1/agents.proto";
 import "metarr/v1/common.proto";
 import "metarr/v1/directory_scanner.proto";
+import "metarr/v1/event_bus.proto";
 import "metarr/v1/logging.proto";
 import "metarr/v1/sonarr_interfaces.proto";
 
@@ -63,6 +64,7 @@ message Config {
   DirectoryScannerConfig directory_scanner = 4;
   repeated AgentConfig agents = 5;
   LoggingConfig logging = 6;
+  EventBusConfig event_bus = 7;
 }
 
 message ConfigServiceGetRequest {}
