@@ -170,24 +170,28 @@ func NewRedisRouter(client redis.UniversalClient, policy RetryPolicy, logger wat
 	return NewRouter(newSub, policy, logger)
 }
 
-// Handle registers handler as the sole consumer of stream, read as
-// group/consumer. name is the handler's identity within the router and must
-// be unique. Envelope decode lives here, so a listener is one registration
-// call and never re-implements the decode-and-ack loop.
+// Handle registers handler as the sole consumer of topic, read with the
+// topic's consumer group as consumer. The stream and its group arrive as one
+// value, so a call site can no longer pair the wrong two. The Watermill
+// handler name is the topic name — unique per stream already, and per-slug
+// automatically for a per-agent command topic, so uniqueness does not depend
+// on there being one router per process. Envelope decode lives here, so a
+// listener is one registration call and never re-implements the
+// decode-and-ack loop.
 //
 // A decode failure is returned as an error on purpose: a payload that will
 // never parse is retried a few times (cheap, and covers a transient
 // truncation) and then logged and dropped, rather than silently swallowed.
-func (r *Router) Handle(name, stream, group, consumer string, handler StreamHandler) error {
-	subscriber, err := r.newSub(group, consumer)
+func (r *Router) Handle(topic StreamTopic, consumer string, handler StreamHandler) error {
+	subscriber, err := r.newSub(topic.Group, consumer)
 	if err != nil {
-		return fmt.Errorf("eventbus: subscriber for %s: %w", stream, err)
+		return fmt.Errorf("eventbus: subscriber for %s: %w", topic.Name, err)
 	}
 
-	r.router.AddNoPublisherHandler(name, stream, subscriber, func(msg *message.Message) error {
+	r.router.AddNoPublisherHandler(topic.Name, topic.Name, subscriber, func(msg *message.Message) error {
 		var event Event
 		if err := UnmarshalEvent(msg.Payload, &event); err != nil {
-			return fmt.Errorf("eventbus: decode envelope on %s: %w", stream, err)
+			return fmt.Errorf("eventbus: decode envelope on %s: %w", topic.Name, err)
 		}
 		return handler(msg.Context(), &event)
 	})

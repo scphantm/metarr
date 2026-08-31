@@ -25,12 +25,13 @@ import (
 // A result that cannot be persisted or cannot be placed — an undecodable
 // payload, Mongo unreachable, or an agent/mapping deleted out from under a
 // scan already in flight — is returned as an error, so the Router retries it
-// and then parks it on events.dead_letter. It is inspectable there rather
-// than silently dropped, which is what the old return-nil workarounds did.
-// The config-drift cases (agent or mapping gone) will not recover on a
-// retry, so they spend the full retry budget before parking; that is
-// accepted — they are rare, the retried work is an in-memory config lookup,
-// and dead-lettering a handful of orphaned results beats losing them.
+// and then, once the retries are spent, logs it at error level with its
+// identifier and acks it (dropped) rather than silently swallowing it, which
+// is what the old return-nil workarounds did. The config-drift cases (agent
+// or mapping gone) will not recover on a retry, so they spend the full retry
+// budget before being dropped; that is accepted — they are rare, the retried
+// work is an in-memory config lookup, and a logged drop of a handful of
+// orphaned results beats losing them silently.
 func RegisterAgentScanResultListener(
 	router *eventbus.Router,
 	repo *mongostore.LocalDirectoryRepo,
@@ -39,9 +40,7 @@ func RegisterAgentScanResultListener(
 	logger.Info("registering agent scan result listener", "stream", eventbus.AgentScanResultStream)
 
 	return router.Handle(
-		"agent_scan_results",
-		eventbus.AgentScanResultStream,
-		eventbus.AgentScanResultGroup,
+		eventbus.AgentScanResultTopic(),
 		eventbus.ConsumerName,
 		func(ctx context.Context, event *eventbus.Event) error {
 			return handleAgentScanEvent(ctx, repo, logger, event)
@@ -89,8 +88,9 @@ func storeScanResult(
 	translator, err := translatorFor(message.AgentSlug, message.ScannerSlug)
 	if err != nil {
 		// The agent or its mapping was removed while this scan was in flight.
-		// There is no defensible place for the record, so it is parked rather
-		// than guessed at or dropped.
+		// There is no defensible place for the record, so it is returned as
+		// an error — logged and dropped after the retries — rather than
+		// guessed at or silently swallowed.
 		log.Error("cannot store scan result", "error", err)
 		return err
 	}

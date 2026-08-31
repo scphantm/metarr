@@ -60,7 +60,8 @@ func TestRouterOverRedisCreatesGroupAndReclaimsAfterConsumerDies(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dying router: %v", err)
 	}
-	if err := dyingRouter.Handle("reclaim", stream, group, "dies-mid-handler",
+	reclaimTopic := StreamTopic{Name: stream, Group: group, Consumed: true}
+	if err := dyingRouter.Handle(reclaimTopic, "dies-mid-handler",
 		func(ctx context.Context, _ *Event) error {
 			select {
 			case gotFirst <- struct{}{}:
@@ -105,7 +106,7 @@ func TestRouterOverRedisCreatesGroupAndReclaimsAfterConsumerDies(t *testing.T) {
 	if err != nil {
 		t.Fatalf("live router: %v", err)
 	}
-	if err := liveRouter.Handle("reclaim", stream, group, "takes-over",
+	if err := liveRouter.Handle(reclaimTopic, "takes-over",
 		func(_ context.Context, event *Event) error {
 			reclaimed <- event.GetCorrelationId()
 			return nil
