@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"testing"
 
@@ -79,17 +78,8 @@ func TestValidate_ReturnsTypedDiagnostics(t *testing.T) {
 
 	// A graph with neither a Start nor an End node: two error-severity
 	// diagnostics, not runnable.
-	graphJSON, err := json.Marshal(map[string]any{
-		"schema_version": workflow.SchemaVersion,
-		"nodes":          []any{},
-		"edges":          []any{},
-	})
-	if err != nil {
-		t.Fatalf("marshalling graph: %v", err)
-	}
-
 	resp, err := server.Validate(context.Background(), connect.NewRequest(&metarrv1.WorkflowCatalogServiceValidateRequest{
-		GraphJson: graphJSON,
+		Graph: &metarrv1.WorkflowGraph{SchemaVersion: workflow.SchemaVersion},
 	}))
 	if err != nil {
 		t.Fatalf("Validate: %v", err)
@@ -116,14 +106,13 @@ func TestValidate_ReturnsTypedDiagnostics(t *testing.T) {
 	}
 }
 
-// TestValidate_MalformedGraphIsRejected guards the bad-request path.
-func TestValidate_MalformedGraphIsRejected(t *testing.T) {
+// TestValidate_MissingGraphIsRejected guards the bad-request path: the graph
+// is a typed message now, so "malformed" is simply its absence.
+func TestValidate_MissingGraphIsRejected(t *testing.T) {
 	server := newTestCatalogServer(t)
-	_, err := server.Validate(context.Background(), connect.NewRequest(&metarrv1.WorkflowCatalogServiceValidateRequest{
-		GraphJson: []byte("not json"),
-	}))
+	_, err := server.Validate(context.Background(), connect.NewRequest(&metarrv1.WorkflowCatalogServiceValidateRequest{}))
 	if err == nil {
-		t.Fatal("expected Validate to reject a malformed graph")
+		t.Fatal("expected Validate to reject a request with no graph")
 	}
 }
 

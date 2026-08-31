@@ -11,7 +11,7 @@ import (
 // restricted to executable nodes.
 func (a *analysis) controlSuccessors() map[string][]string {
 	successors := make(map[string][]string)
-	for _, edge := range a.graph.ControlEdges() {
+	for _, edge := range workflow.ControlEdges(a.graph) {
 		if a.executable(edge.From.Node) && a.executable(edge.To.Node) {
 			successors[edge.From.Node] = append(successors[edge.From.Node], edge.To.Node)
 		}
@@ -39,7 +39,7 @@ func (a *analysis) reachableFromPortBounded(nodeID, port string, stopAtJoins boo
 	successors := a.controlSuccessors()
 
 	var queue []string
-	for _, edge := range a.graph.ControlEdges() {
+	for _, edge := range workflow.ControlEdges(a.graph) {
 		if edge.From.Node == nodeID && edge.From.Port == port {
 			queue = append(queue, edge.To.Node)
 		}
@@ -81,8 +81,8 @@ func (a *analysis) computeLoopScopes() {
 
 	regions := make(map[string]map[string]bool)
 	for _, node := range a.graph.Nodes {
-		if nodeType, resolved := a.types[node.ID]; resolved && nodeType.Kind == workflow.KindForEach {
-			regions[node.ID] = a.reachableFromPort(node.ID, "body")
+		if nodeType, resolved := a.types[node.Id]; resolved && nodeType.Kind == workflow.KindForEach {
+			regions[node.Id] = a.reachableFromPort(node.Id, "body")
 		}
 	}
 
@@ -90,7 +90,7 @@ func (a *analysis) computeLoopScopes() {
 		innermost := ""
 		smallest := -1
 		for loopID, region := range regions {
-			if !region[node.ID] {
+			if !region[node.Id] {
 				continue
 			}
 			// Innermost wins: a node inside a nested loop is inside both
@@ -100,7 +100,7 @@ func (a *analysis) computeLoopScopes() {
 				smallest = len(region)
 			}
 		}
-		a.loopScope[node.ID] = innermost
+		a.loopScope[node.Id] = innermost
 	}
 }
 
@@ -163,14 +163,14 @@ func (a *analysis) computeMustHaveRun() {
 
 	var universe []string
 	for _, node := range a.graph.Nodes {
-		if a.executable(node.ID) {
-			universe = append(universe, node.ID)
+		if a.executable(node.Id) {
+			universe = append(universe, node.Id)
 		}
 	}
 	sort.Strings(universe)
 
-	inbound := make(map[string][]workflow.Edge)
-	for _, edge := range a.graph.ControlEdges() {
+	inbound := make(map[string][]*workflow.Edge)
+	for _, edge := range workflow.ControlEdges(a.graph) {
 		if a.executable(edge.From.Node) && a.executable(edge.To.Node) {
 			inbound[edge.To.Node] = append(inbound[edge.To.Node], edge)
 		}
@@ -218,7 +218,7 @@ func (a *analysis) computeMustHaveRun() {
 
 // through is MustHaveRun(source) plus the source itself — what is guaranteed
 // to have run when control arrives along this edge.
-func (a *analysis) through(edge workflow.Edge) map[string]bool {
+func (a *analysis) through(edge *workflow.Edge) map[string]bool {
 	result := make(map[string]bool, len(a.mustHaveRun[edge.From.Node])+1)
 	for nodeID := range a.mustHaveRun[edge.From.Node] {
 		result[nodeID] = true
@@ -228,7 +228,7 @@ func (a *analysis) through(edge workflow.Edge) map[string]bool {
 }
 
 // ordinaryMeet intersects: only one predecessor actually ran.
-func (a *analysis) ordinaryMeet(edges []workflow.Edge) map[string]bool {
+func (a *analysis) ordinaryMeet(edges []*workflow.Edge) map[string]bool {
 	result := a.through(edges[0])
 	for _, edge := range edges[1:] {
 		result = intersect(result, a.through(edge))
@@ -238,8 +238,8 @@ func (a *analysis) ordinaryMeet(edges []workflow.Edge) map[string]bool {
 
 // joinMeet intersects within each branch and unions across them, because a
 // join only proceeds once every branch has arrived.
-func (a *analysis) joinMeet(edges []workflow.Edge) map[string]bool {
-	byBranch := make(map[string][]workflow.Edge)
+func (a *analysis) joinMeet(edges []*workflow.Edge) map[string]bool {
+	byBranch := make(map[string][]*workflow.Edge)
 	for _, edge := range edges {
 		byBranch[edge.To.Port] = append(byBranch[edge.To.Port], edge)
 	}
@@ -336,22 +336,22 @@ func (a *analysis) checkTerminalPlacement() {
 
 	parallelBranchNodes := make(map[string]string)
 	for _, node := range a.graph.Nodes {
-		nodeType, resolved := a.types[node.ID]
+		nodeType, resolved := a.types[node.Id]
 		if !resolved || nodeType.Kind != workflow.KindParallel {
 			continue
 		}
 		for _, port := range nodeType.Control.Out {
-			for reachedNode := range a.branchRegion(node.ID, port) {
+			for reachedNode := range a.branchRegion(node.Id, port) {
 				if reachedType, ok := a.types[reachedNode]; ok && reachedType.Kind == workflow.KindJoin {
 					continue
 				}
-				parallelBranchNodes[reachedNode] = node.ID
+				parallelBranchNodes[reachedNode] = node.Id
 			}
 		}
 	}
 
 	for _, node := range a.graph.Nodes {
-		nodeType, resolved := a.types[node.ID]
+		nodeType, resolved := a.types[node.Id]
 		if !resolved {
 			continue
 		}
@@ -360,18 +360,18 @@ func (a *analysis) checkTerminalPlacement() {
 			continue
 		}
 
-		if loopID := a.loopScope[node.ID]; loopID != "" {
+		if loopID := a.loopScope[node.Id]; loopID != "" {
 			a.report(SeverityError, "terminal.inLoop",
 				fmt.Sprintf("%s ends the run, so it cannot sit inside the body of %s. Use a Break node to leave the loop instead.",
-					a.nodeLabel(node.ID), a.nodeLabel(loopID)),
-				[]string{node.ID, loopID}, nil)
+					a.nodeLabel(node.Id), a.nodeLabel(loopID)),
+				[]string{node.Id, loopID}, nil)
 			continue
 		}
-		if parallelID, inBranch := parallelBranchNodes[node.ID]; inBranch {
+		if parallelID, inBranch := parallelBranchNodes[node.Id]; inBranch {
 			a.report(SeverityError, "terminal.inParallelBranch",
 				fmt.Sprintf("%s ends the run, so it cannot sit inside a branch of %s — the other branches would never reach the Join. Route to the Join and end after it.",
-					a.nodeLabel(node.ID), a.nodeLabel(parallelID)),
-				[]string{node.ID, parallelID}, nil)
+					a.nodeLabel(node.Id), a.nodeLabel(parallelID)),
+				[]string{node.Id, parallelID}, nil)
 		}
 	}
 }
@@ -380,14 +380,14 @@ func (a *analysis) checkTerminalPlacement() {
 // shared join, and that no more branches are wired than the node declares.
 func (a *analysis) checkParallelJoins() {
 	for _, node := range a.graph.Nodes {
-		nodeType, resolved := a.types[node.ID]
+		nodeType, resolved := a.types[node.Id]
 		if !resolved || nodeType.Kind != workflow.KindParallel {
 			continue
 		}
 
 		usedPorts := map[string]bool{}
-		for _, edge := range a.graph.ControlEdges() {
-			if edge.From.Node == node.ID {
+		for _, edge := range workflow.ControlEdges(a.graph) {
+			if edge.From.Node == node.Id {
 				usedPorts[edge.From.Port] = true
 			}
 		}
@@ -396,19 +396,19 @@ func (a *analysis) checkParallelJoins() {
 		}
 		if len(usedPorts) < 2 {
 			a.report(SeverityWarning, "parallel.singleBranch",
-				fmt.Sprintf("%s has only one branch wired, so it runs nothing concurrently.", a.nodeLabel(node.ID)),
-				[]string{node.ID}, nil)
+				fmt.Sprintf("%s has only one branch wired, so it runs nothing concurrently.", a.nodeLabel(node.Id)),
+				[]string{node.Id}, nil)
 		}
-		if declared := declaredBranches(a.nodes[node.ID], nodeType); declared > 0 && len(usedPorts) > declared {
+		if declared := declaredBranches(a.nodes[node.Id], nodeType); declared > 0 && len(usedPorts) > declared {
 			a.report(SeverityError, "parallel.tooManyBranches",
-				fmt.Sprintf("%s is set to %d branches but %d are wired.", a.nodeLabel(node.ID), declared, len(usedPorts)),
-				[]string{node.ID}, nil)
+				fmt.Sprintf("%s is set to %d branches but %d are wired.", a.nodeLabel(node.Id), declared, len(usedPorts)),
+				[]string{node.Id}, nil)
 		}
 
 		var shared map[string]bool
 		for port := range usedPorts {
 			joins := map[string]bool{}
-			for reached := range a.reachableFromPort(node.ID, port) {
+			for reached := range a.reachableFromPort(node.Id, port) {
 				if reachedType, ok := a.types[reached]; ok && reachedType.Kind == workflow.KindJoin {
 					joins[reached] = true
 				}
@@ -421,18 +421,20 @@ func (a *analysis) checkParallelJoins() {
 		}
 		if len(shared) == 0 {
 			a.report(SeverityError, "parallel.noSharedJoin",
-				fmt.Sprintf("The branches of %s do not all reach the same Join, so the run could not tell when they had finished.", a.nodeLabel(node.ID)),
-				[]string{node.ID}, nil)
+				fmt.Sprintf("The branches of %s do not all reach the same Join, so the run could not tell when they had finished.", a.nodeLabel(node.Id)),
+				[]string{node.Id}, nil)
 		}
 	}
 }
 
 // declaredBranches reads the parallel's branches setting, falling back to the
 // catalog default.
-func declaredBranches(node workflow.Node, nodeType *workflow.NodeType) int {
-	if raw, set := node.Settings["branches"]; set {
-		if count, ok := asInt(raw); ok {
-			return count
+func declaredBranches(node *workflow.Node, nodeType *workflow.NodeType) int {
+	if node != nil && node.Settings != nil {
+		if raw, set := node.Settings.Fields["branches"]; set {
+			if count, ok := asInt(raw.AsInterface()); ok {
+				return count
+			}
 		}
 	}
 	for _, setting := range nodeType.Settings {

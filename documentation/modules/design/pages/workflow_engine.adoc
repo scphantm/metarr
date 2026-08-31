@@ -129,17 +129,34 @@ Two structural consequences:
 
 === Workflow document
 
-Persisted shape gains a schema version:
+The graph is a generated proto message, `WorkflowGraph`, like every other model that crosses a language boundary (see `docs/adr/0005`). Go and TypeScript both read the generated type; `internal/shared/workflow` aliases it (`Graph = metarrv1.WorkflowGraph`), and it is the shape the workflow service persists.
 
-[source,json]
+[source,proto]
 ----
-{ "schema_version": 1, "name": "…", "description": "…", "tags": ["…"],
-  "nodes": [ … ], "edges": [ … ], "viewport": { … } }
+message WorkflowGraph {
+  int32 schema_version = 1;
+  repeated WorkflowGraphNode nodes = 2;
+  repeated WorkflowGraphEdge edges = 3;
+  google.protobuf.Struct viewport = 4;
+}
+
+message WorkflowGraphNode {
+  string id = 1;
+  string type = 2;               // free string — the catalog owns the vocabulary
+  string catalog_id = 3;
+  WorkflowGraphPosition position = 4;
+  google.protobuf.Struct settings = 5;   // structured, not a typed per-type union
+  repeated string promoted = 6;
+  string label = 7;
+  google.protobuf.Struct extra = 8;      // whatever this build's schema does not model
+}
 ----
 
-Store the **canonical shape above**, not React Flow's `toObject()` output, with an adapter in the UI. React Flow's `type` field means *which component renders this* — a presentation concern currently conflated with node identity (`catalogNode` / `notesNode` / `checkFlowVariableNode`). The adapter is also the correct place to validate on load, replacing the unchecked `as Node[]` casts in `WorkflowEditorPage.snapshotFromWorkflow`.
+`kind` on an edge is the `WorkflowEdgeKind` enum (`control` / `data`) — a closed vocabulary the engine owns. A node's `type` stays a free string so a new node type is a catalog data change, never a proto change or a release.
 
-> **Do not lose unknown nodes.** Today's opaque `[]bson.M` storage preserves nodes of unrecognised types by accident. A typed Go schema will *silently drop them* unless an explicit passthrough is kept for unrecognised fields and node types. This is the easiest way in this entire design to destroy a user's work, and it must be handled deliberately — see §9.
+The UI keeps an adapter (`graphAdapter.ts`) between this message and React Flow's own node/edge shape — React Flow's `type` field means *which component renders this*, a presentation concern distinct from node identity — and it is where the editor's per-instance colour overrides are moved into and out of `extra`, since the message has no field for them.
+
+> **A node this build does not recognise survives being loaded and saved.** The graph carries its open content as structured values: a node's `settings` and its `extra` field are both `google.protobuf.Struct`, so a node whose `type` this build does not know, and settings it does not know, round-trip through storage unchanged. This is no longer an accident of opaque `[]bson.M` storage — it is an asserted behaviour, guarded by a store-and-load round-trip test at the workflow service seam (`internal/server/services/workflows_test.go`). A typed per-node-type settings union was considered and rejected for exactly this reason: it is the shape that silently drops user work. See §9.
 
 '''
 
@@ -570,7 +587,7 @@ Follows the existing three-transport split exactly:
 - **Catalog entries are immutable per `id`.** The server hashes each entry at load and stores seen hashes; a changed hash on an unchanged `id` is a **startup error**. This matters more than usual because the catalog is a hand-edited file with no review process. A behaviour change gets a new `id` (a new JSON object in catalog.json), not a content edit to an existing one.
 - **Compatible changes**: adding an optional data-in, adding a data-out, adding a setting with a default — safe to make as a content edit under the same `id`, since nothing an existing node instance depends on changes shape. **Incompatible**: removing or renaming a port, making an input required, narrowing a type — these require a new `id` (`typeVersion` was retired from the schema; `id` alone is the catalog's identity now).
 - **Resolution status on load**, per node instance: `ok` | `upgradable` | `missing` | `incompatible`.
-- **Tombstone rendering.** A `missing`/`incompatible` node renders as a distinct tombstone that **preserves its stored settings and edges verbatim**. The flow opens, displays, and re-saves without loss; it simply cannot run. See the warning in §3.3 — a typed schema loses this unless the passthrough is deliberate.
+- **Tombstone rendering.** A `missing`/`incompatible` node renders as a distinct tombstone that **preserves its stored settings and edges verbatim**. The flow opens, displays, and re-saves without loss; it simply cannot run. The generated `WorkflowGraph` message makes this deliberate rather than incidental — `type` is a free string and `settings`/`extra` are structured values — and the guarantee is asserted by the round-trip test named in "Workflow document" above.
 - **Cheap migrations**: `"migrations": [{ "from": "1.0.0", "renamePorts": { "src": "source" } }]` covers the common rename without a code release.
 
 '''

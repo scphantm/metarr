@@ -3,6 +3,7 @@ syntax = "proto3";
 package metarr.v1;
 
 import "google/protobuf/struct.proto";
+import "metarr/v1/workflow_graph.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
@@ -203,12 +204,13 @@ message WorkflowCatalogServiceGetResponse {
   WorkflowCatalog catalog = 1;
 }
 
-// WorkflowCatalogServiceValidateRequest carries a workflow.Graph as opaque
-// bytes: Node.Extra must survive a round-trip losslessly, which a modeled
-// proto message cannot yet guarantee, so the graph is not decoded into a
-// typed message on the wire. The workflow graph slice revisits this.
+// WorkflowCatalogServiceValidateRequest carries the graph to validate as a
+// typed WorkflowGraph. A node's settings and its extra field are structured
+// values, so a node type or setting this build does not recognise survives
+// the round trip losslessly — the concern that kept this an opaque blob is
+// answered by the graph message's shape.
 message WorkflowCatalogServiceValidateRequest {
-  bytes graph_json = 1;
+  WorkflowGraph graph = 1;
 }
 
 // WorkflowDiagnostic is one finding from static validation — small,
