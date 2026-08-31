@@ -4,15 +4,16 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
 import type { AcceptedResponseSchema } from "./common_pb";
 import { file_metarr_v1_common } from "./common_pb";
-import type { Message } from "@bufbuild/protobuf";
+import type { JsonObject, Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metarr/v1/logging.proto.
  */
 export const file_metarr_v1_logging: GenFile = /*@__PURE__*/
-  fileDesc("ChdtZXRhcnIvdjEvbG9nZ2luZy5wcm90bxIJbWV0YXJyLnYxIlUKDUxvZ2dpbmdDb25maWcSFAoMc2VydmVyX2xldmVsGAEgASgJEgwKBHNpbmsYAiABKAkSEAoIZW5kcG9pbnQYAyABKAkSDgoGc3RyZWFtGAQgASgJIiAKHkxvZ2dpbmdTZXJ2aWNlR2V0Q29uZmlnUmVxdWVzdCJLCh9Mb2dnaW5nU2VydmljZUdldENvbmZpZ1Jlc3BvbnNlEigKBmNvbmZpZxgBIAEoCzIYLm1ldGFyci52MS5Mb2dnaW5nQ29uZmlnIk0KIUxvZ2dpbmdTZXJ2aWNlVXBkYXRlQ29uZmlnUmVxdWVzdBIoCgZjb25maWcYASABKAsyGC5tZXRhcnIudjEuTG9nZ2luZ0NvbmZpZyIeChxMb2dnaW5nU2VydmljZUdldFRhaWxSZXF1ZXN0IjUKHUxvZ2dpbmdTZXJ2aWNlR2V0VGFpbFJlc3BvbnNlEhQKDHJlY29yZHNfanNvbhgBIAEoDCIhCh9Mb2dnaW5nU2VydmljZVN0cmVhbVRhaWxSZXF1ZXN0IjgKIExvZ2dpbmdTZXJ2aWNlU3RyZWFtVGFpbFJlc3BvbnNlEhQKDHJlY29yZHNfanNvbhgBIAEoDDKWAwoOTG9nZ2luZ1NlcnZpY2USYgoJR2V0Q29uZmlnEikubWV0YXJyLnYxLkxvZ2dpbmdTZXJ2aWNlR2V0Q29uZmlnUmVxdWVzdBoqLm1ldGFyci52MS5Mb2dnaW5nU2VydmljZUdldENvbmZpZ1Jlc3BvbnNlElkKDFVwZGF0ZUNvbmZpZxIsLm1ldGFyci52MS5Mb2dnaW5nU2VydmljZVVwZGF0ZUNvbmZpZ1JlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZRJcCgdHZXRUYWlsEicubWV0YXJyLnYxLkxvZ2dpbmdTZXJ2aWNlR2V0VGFpbFJlcXVlc3QaKC5tZXRhcnIudjEuTG9nZ2luZ1NlcnZpY2VHZXRUYWlsUmVzcG9uc2USZwoKU3RyZWFtVGFpbBIqLm1ldGFyci52MS5Mb2dnaW5nU2VydmljZVN0cmVhbVRhaWxSZXF1ZXN0GisubWV0YXJyLnYxLkxvZ2dpbmdTZXJ2aWNlU3RyZWFtVGFpbFJlc3BvbnNlMAFCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_metarr_v1_common]);
+  fileDesc("ChdtZXRhcnIvdjEvbG9nZ2luZy5wcm90bxIJbWV0YXJyLnYxIlUKDUxvZ2dpbmdDb25maWcSFAoMc2VydmVyX2xldmVsGAEgASgJEgwKBHNpbmsYAiABKAkSEAoIZW5kcG9pbnQYAyABKAkSDgoGc3RyZWFtGAQgASgJIiAKHkxvZ2dpbmdTZXJ2aWNlR2V0Q29uZmlnUmVxdWVzdCJLCh9Mb2dnaW5nU2VydmljZUdldENvbmZpZ1Jlc3BvbnNlEigKBmNvbmZpZxgBIAEoCzIYLm1ldGFyci52MS5Mb2dnaW5nQ29uZmlnIk0KIUxvZ2dpbmdTZXJ2aWNlVXBkYXRlQ29uZmlnUmVxdWVzdBIoCgZjb25maWcYASABKAsyGC5tZXRhcnIudjEuTG9nZ2luZ0NvbmZpZyJxCglMb2dSZWNvcmQSDAoEdGltZRgBIAEoCRINCgVsZXZlbBgCIAEoCRIPCgdtZXNzYWdlGAMgASgJEg4KBnNvdXJjZRgEIAEoCRImCgVhdHRycxgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QiHgocTG9nZ2luZ1NlcnZpY2VHZXRUYWlsUmVxdWVzdCJGCh1Mb2dnaW5nU2VydmljZUdldFRhaWxSZXNwb25zZRIlCgdyZWNvcmRzGAEgAygLMhQubWV0YXJyLnYxLkxvZ1JlY29yZCIhCh9Mb2dnaW5nU2VydmljZVN0cmVhbVRhaWxSZXF1ZXN0IkkKIExvZ2dpbmdTZXJ2aWNlU3RyZWFtVGFpbFJlc3BvbnNlEiUKB3JlY29yZHMYASADKAsyFC5tZXRhcnIudjEuTG9nUmVjb3JkMpYDCg5Mb2dnaW5nU2VydmljZRJiCglHZXRDb25maWcSKS5tZXRhcnIudjEuTG9nZ2luZ1NlcnZpY2VHZXRDb25maWdSZXF1ZXN0GioubWV0YXJyLnYxLkxvZ2dpbmdTZXJ2aWNlR2V0Q29uZmlnUmVzcG9uc2USWQoMVXBkYXRlQ29uZmlnEiwubWV0YXJyLnYxLkxvZ2dpbmdTZXJ2aWNlVXBkYXRlQ29uZmlnUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlElwKB0dldFRhaWwSJy5tZXRhcnIudjEuTG9nZ2luZ1NlcnZpY2VHZXRUYWlsUmVxdWVzdBooLm1ldGFyci52MS5Mb2dnaW5nU2VydmljZUdldFRhaWxSZXNwb25zZRJnCgpTdHJlYW1UYWlsEioubWV0YXJyLnYxLkxvZ2dpbmdTZXJ2aWNlU3RyZWFtVGFpbFJlcXVlc3QaKy5tZXRhcnIudjEuTG9nZ2luZ1NlcnZpY2VTdHJlYW1UYWlsUmVzcG9uc2UwAUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_google_protobuf_struct, file_metarr_v1_common]);
 
 /**
  * LoggingConfig controls the centralized logging pipeline: the servers own
@@ -98,6 +99,60 @@ export const LoggingServiceUpdateConfigRequestSchema: GenMessage<LoggingServiceU
   messageDesc(file_metarr_v1_logging, 3);
 
 /**
+ * LogRecord is the vendor-neutral shape of one log line, shared by both
+ * binaries. It is the single definition of that shape:
+ * internal/shared/logging aliases it, publishes it to Redis (where Fluent
+ * Bit ships it onward), and the live-tail pane on the Logging screen reads
+ * it. It deliberately carries no vendor-specific field names — Fluent Bit's
+ * own filters do that translation, which is what keeps the vendor swappable
+ * at the Fluent Bit layer rather than this one.
+ *
+ * time is an RFC3339 nanosecond string rather than google.protobuf.Timestamp
+ * because that string is the vendor-neutral wire form Fluent Bit already
+ * consumes verbatim; normalising it through a Timestamp would change the
+ * bytes on the Redis channel for no gain here.
+ *
+ * @generated from message metarr.v1.LogRecord
+ */
+export type LogRecord = Message<"metarr.v1.LogRecord"> & {
+  /**
+   * @generated from field: string time = 1;
+   */
+  time: string;
+
+  /**
+   * @generated from field: string level = 2;
+   */
+  level: string;
+
+  /**
+   * @generated from field: string message = 3;
+   */
+  message: string;
+
+  /**
+   * @generated from field: string source = 4;
+   */
+  source: string;
+
+  /**
+   * attrs is the caller's free-form key/value context, carried as a
+   * structured value so typing the record does not flatten what a caller
+   * attached to it. Absent when the caller attached nothing.
+   *
+   * @generated from field: google.protobuf.Struct attrs = 5;
+   */
+  attrs?: JsonObject | undefined;
+};
+
+/**
+ * Describes the message metarr.v1.LogRecord.
+ * Use `create(LogRecordSchema)` to create a new message.
+ */
+export const LogRecordSchema: GenMessage<LogRecord> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_logging, 4);
+
+/**
  * @generated from message metarr.v1.LoggingServiceGetTailRequest
  */
 export type LoggingServiceGetTailRequest = Message<"metarr.v1.LoggingServiceGetTailRequest"> & {
@@ -108,20 +163,19 @@ export type LoggingServiceGetTailRequest = Message<"metarr.v1.LoggingServiceGetT
  * Use `create(LoggingServiceGetTailRequestSchema)` to create a new message.
  */
 export const LoggingServiceGetTailRequestSchema: GenMessage<LoggingServiceGetTailRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_logging, 4);
+  messageDesc(file_metarr_v1_logging, 5);
 
 /**
- * LoggingServiceGetTailResponse/StreamTailResponse carry the exact JSON
- * logging.Record already produced over REST/WebSocket, kept opaque — its
- * Attrs field is a free-form map[string]any with no fixed shape to model.
+ * LoggingServiceGetTailResponse/StreamTailResponse carry the tail buffer as
+ * typed LogRecord messages, oldest first.
  *
  * @generated from message metarr.v1.LoggingServiceGetTailResponse
  */
 export type LoggingServiceGetTailResponse = Message<"metarr.v1.LoggingServiceGetTailResponse"> & {
   /**
-   * @generated from field: bytes records_json = 1;
+   * @generated from field: repeated metarr.v1.LogRecord records = 1;
    */
-  recordsJson: Uint8Array;
+  records: LogRecord[];
 };
 
 /**
@@ -129,7 +183,7 @@ export type LoggingServiceGetTailResponse = Message<"metarr.v1.LoggingServiceGet
  * Use `create(LoggingServiceGetTailResponseSchema)` to create a new message.
  */
 export const LoggingServiceGetTailResponseSchema: GenMessage<LoggingServiceGetTailResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_logging, 5);
+  messageDesc(file_metarr_v1_logging, 6);
 
 /**
  * @generated from message metarr.v1.LoggingServiceStreamTailRequest
@@ -142,16 +196,16 @@ export type LoggingServiceStreamTailRequest = Message<"metarr.v1.LoggingServiceS
  * Use `create(LoggingServiceStreamTailRequestSchema)` to create a new message.
  */
 export const LoggingServiceStreamTailRequestSchema: GenMessage<LoggingServiceStreamTailRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_logging, 6);
+  messageDesc(file_metarr_v1_logging, 7);
 
 /**
  * @generated from message metarr.v1.LoggingServiceStreamTailResponse
  */
 export type LoggingServiceStreamTailResponse = Message<"metarr.v1.LoggingServiceStreamTailResponse"> & {
   /**
-   * @generated from field: bytes records_json = 1;
+   * @generated from field: repeated metarr.v1.LogRecord records = 1;
    */
-  recordsJson: Uint8Array;
+  records: LogRecord[];
 };
 
 /**
@@ -159,7 +213,7 @@ export type LoggingServiceStreamTailResponse = Message<"metarr.v1.LoggingService
  * Use `create(LoggingServiceStreamTailResponseSchema)` to create a new message.
  */
 export const LoggingServiceStreamTailResponseSchema: GenMessage<LoggingServiceStreamTailResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_logging, 7);
+  messageDesc(file_metarr_v1_logging, 8);
 
 /**
  * LoggingService covers the whole Logging screen: config (server level,

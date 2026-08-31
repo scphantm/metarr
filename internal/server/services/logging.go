@@ -2,8 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
 
@@ -80,12 +78,7 @@ func (s *LoggingServer) GetTail(
 	ctx context.Context,
 	req *connect.Request[metarrv1.LoggingServiceGetTailRequest],
 ) (*connect.Response[metarrv1.LoggingServiceGetTailResponse], error) {
-	recordsJSON, err := json.Marshal(s.LogTail.Recent())
-	if err != nil {
-		s.Logger.Error("failed to encode log tail", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to encode log tail"))
-	}
-	return connect.NewResponse(&metarrv1.LoggingServiceGetTailResponse{RecordsJson: recordsJSON}), nil
+	return connect.NewResponse(&metarrv1.LoggingServiceGetTailResponse{Records: s.LogTail.Recent()}), nil
 }
 
 func (s *LoggingServer) StreamTail(
@@ -97,13 +90,7 @@ func (s *LoggingServer) StreamTail(
 	defer ticker.Stop()
 
 	for {
-		recordsJSON, err := json.Marshal(s.LogTail.Recent())
-		if err != nil {
-			s.Logger.Error("failed to encode log tail", "error", err)
-			return connectError(http.StatusInternalServerError, errors.New("failed to encode log tail"))
-		}
-
-		if err := stream.Send(&metarrv1.LoggingServiceStreamTailResponse{RecordsJson: recordsJSON}); err != nil {
+		if err := stream.Send(&metarrv1.LoggingServiceStreamTailResponse{Records: s.LogTail.Recent()}); err != nil {
 			return err
 		}
 

@@ -26,15 +26,44 @@ func (c *captured) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-func (c *captured) last() Record {
+func (c *captured) last() *Record {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if len(c.lines) == 0 {
-		return Record{}
+		return &Record{}
 	}
-	var record Record
-	_ = json.Unmarshal([]byte(c.lines[len(c.lines)-1]), &record)
+	record, err := UnmarshalRecord([]byte(c.lines[len(c.lines)-1]))
+	if err != nil {
+		return &Record{}
+	}
 	return record
+}
+
+// strAttr reads one flattened attribute off a decoded record. Every attr the
+// tests here attach is a string, so a plain accessor keeps the assertions
+// readable; a missing key comes back "".
+func strAttr(record *Record, key string) string {
+	return record.GetAttrs().GetFields()[key].GetStringValue()
+}
+
+// hasAttr reports whether the decoded record carries an attribute under key
+// at all, regardless of its value.
+func hasAttr(record *Record, key string) bool {
+	_, ok := record.GetAttrs().GetFields()[key]
+	return ok
+}
+
+// rawLast returns the exact bytes of the most recent line written to stdout,
+// for assertions about the on-the-wire JSON shape rather than a decoded
+// record.
+func (c *captured) rawLast(t *testing.T) string {
+	t.Helper()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if len(c.lines) == 0 {
+		t.Fatal("no record was written")
+	}
+	return c.lines[len(c.lines)-1]
 }
 
 func (c *captured) count() int {
@@ -56,6 +85,69 @@ func newTestLogger(t *testing.T, bufferSize int) (*slog.Logger, *Shipper, *captu
 	handler.stdout = out
 
 	return logger, shipper, out
+}
+
+// The bytes on the Redis channel are what Fluent Bit consumes verbatim, so
+// the record must serialize as the same flat JSON object it always has:
+// snake_case top-level keys, and no attrs key at all when the caller
+// attached nothing.
+func TestRecordSerializesAsFlatVendorNeutralJSON(t *testing.T) {
+	logger, _, out := newTestLogger(t, 16)
+
+	logger.Info("no attrs here")
+
+	var decoded map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(out.rawLast(t)), &decoded); err != nil {
+		t.Fatalf("record was not a JSON object: %v", err)
+	}
+	for _, key := range []string{"time", "level", "message", "source"} {
+		if _, ok := decoded[key]; !ok {
+			t.Errorf("record is missing top-level key %q: %v", key, decoded)
+		}
+	}
+	if _, ok := decoded["attrs"]; ok {
+		t.Errorf("record carried an attrs key with nothing attached: %v", decoded)
+	}
+
+	logger.With("agent", "nas-01").Info("with an attr")
+	if err := json.Unmarshal([]byte(out.rawLast(t)), &decoded); err != nil {
+		t.Fatalf("record was not a JSON object: %v", err)
+	}
+	if _, ok := decoded["attrs"]; !ok {
+		t.Errorf("record dropped the attrs the caller attached: %v", decoded)
+	}
+}
+
+// protojson would drop an empty string field; the flat JSON on the Redis
+// channel must keep message present even when it is "" so a downstream
+// field-presence filter still sees it, exactly as the old struct did.
+func TestAnEmptyMessageStillEmitsTheKey(t *testing.T) {
+	logger, _, out := newTestLogger(t, 16)
+
+	logger.Info("")
+
+	var decoded map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(out.rawLast(t)), &decoded); err != nil {
+		t.Fatalf("record was not a JSON object: %v", err)
+	}
+	if got, ok := decoded["message"]; !ok || string(got) != `""` {
+		t.Errorf("message key = %s, present = %v, want present and empty", got, ok)
+	}
+}
+
+// An integer attribute past 2^53 must reach the Redis channel byte-exact.
+// google.protobuf.Struct holds numbers as float64, so the publish path
+// serialises the raw attribute map rather than the generated message — this
+// pins that it stays that way.
+func TestLargeIntegerAttrKeepsFullPrecisionOnTheWire(t *testing.T) {
+	logger, _, out := newTestLogger(t, 16)
+
+	const nanos int64 = 1725060645123456789 // ~2024, well past 2^53
+	logger.Info("scan finished", "observed_at", nanos)
+
+	if raw := out.rawLast(t); !strings.Contains(raw, "1725060645123456789") {
+		t.Errorf("wire record lost integer precision: %s", raw)
+	}
 }
 
 // Every record must carry the source this logger was constructed with — the
@@ -140,11 +232,39 @@ func TestWithAttrsArePreservedOnTheRecord(t *testing.T) {
 	logger.With("agent", "nas-01", "scanner_slug", "movies").Info("scan started")
 
 	record := out.last()
-	if record.Attrs["agent"] != "nas-01" {
-		t.Errorf("attrs[agent] = %v, want nas-01", record.Attrs["agent"])
+	if got := strAttr(record, "agent"); got != "nas-01" {
+		t.Errorf("attrs[agent] = %q, want nas-01", got)
 	}
-	if record.Attrs["scanner_slug"] != "movies" {
-		t.Errorf("attrs[scanner_slug] = %v, want movies", record.Attrs["scanner_slug"])
+	if got := strAttr(record, "scanner_slug"); got != "movies" {
+		t.Errorf("attrs[scanner_slug] = %q, want movies", got)
+	}
+}
+
+// A record's attrs are carried as a structured value, not a flattened
+// string: a non-scalar attribute value must survive the encode/decode with
+// its shape intact. This is the property the generated-message slice exists
+// to add — see docs/adr/0005.
+func TestStructuredAttrValuesSurviveTheRoundTrip(t *testing.T) {
+	logger, _, out := newTestLogger(t, 16)
+
+	logger.Info("scan finished",
+		"counts", map[string]any{"added": 3, "skipped": 1},
+		"paths", []any{"/a", "/b"},
+	)
+
+	fields := out.last().GetAttrs().GetFields()
+
+	counts := fields["counts"].GetStructValue().GetFields()
+	if got := counts["added"].GetNumberValue(); got != 3 {
+		t.Errorf("attrs.counts.added = %v, want 3", got)
+	}
+	if got := counts["skipped"].GetNumberValue(); got != 1 {
+		t.Errorf("attrs.counts.skipped = %v, want 1", got)
+	}
+
+	paths := fields["paths"].GetListValue().GetValues()
+	if len(paths) != 2 || paths[0].GetStringValue() != "/a" || paths[1].GetStringValue() != "/b" {
+		t.Errorf("attrs.paths = %v, want [/a /b]", paths)
 	}
 }
 
@@ -158,11 +278,11 @@ func TestWithGroupOnlyAffectsAttrsAddedAfterIt(t *testing.T) {
 	logger.Info("grouped", "key", "value")
 
 	record := out.last()
-	if record.Attrs["outer"] != "value" {
-		t.Errorf("attrs[outer] = %v, want value (added before the group)", record.Attrs["outer"])
+	if got := strAttr(record, "outer"); got != "value" {
+		t.Errorf("attrs[outer] = %q, want value (added before the group)", got)
 	}
-	if record.Attrs["inner.key"] != "value" {
-		t.Errorf("attrs[inner.key] = %v, want value (added after the group)", record.Attrs["inner.key"])
+	if got := strAttr(record, "inner.key"); got != "value" {
+		t.Errorf("attrs[inner.key] = %q, want value (added after the group)", got)
 	}
 }
 
@@ -174,13 +294,13 @@ func TestWithAttrsDoesNotMutateTheOriginalHandler(t *testing.T) {
 	child := logger.With("child_only", "yes")
 	logger.Info("from the parent")
 
-	if attrs := out.last().Attrs; attrs["child_only"] != nil {
-		t.Errorf("parent logger's record carried the child's attr: %v", attrs)
+	if record := out.last(); hasAttr(record, "child_only") {
+		t.Errorf("parent logger's record carried the child's attr: %v", record.GetAttrs())
 	}
 
 	child.Info("from the child")
-	if attrs := out.last().Attrs; attrs["child_only"] != "yes" {
-		t.Errorf("child logger did not carry its own attr: %v", attrs)
+	if got := strAttr(out.last(), "child_only"); got != "yes" {
+		t.Errorf("child logger did not carry its own attr: %q", got)
 	}
 }
 
@@ -230,8 +350,8 @@ func TestShipperPublishesBufferedRecords(t *testing.T) {
 		t.Fatalf("fake publisher received %d messages, want 1", len(fake.messages))
 	}
 
-	var record Record
-	if err := json.Unmarshal(fake.messages[0], &record); err != nil {
+	record, err := UnmarshalRecord(fake.messages[0])
+	if err != nil {
 		t.Fatalf("published message did not decode as a Record: %v", err)
 	}
 	if record.Message != "ships to the fake publisher" {

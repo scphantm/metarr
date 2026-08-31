@@ -7,7 +7,6 @@
 package logtail
 
 import (
-	"encoding/json"
 	"sync"
 
 	"Metarr/internal/shared/logging"
@@ -16,7 +15,7 @@ import (
 // Buffer holds up to max recent records, oldest evicted first.
 type Buffer struct {
 	mu      sync.Mutex
-	entries []logging.Record
+	entries []*logging.Record
 	max     int
 }
 
@@ -31,8 +30,8 @@ func NewBuffer(max int) *Buffer {
 // everything after it; the live view losing one malformed line is a far
 // smaller problem than it wedging entirely.
 func (b *Buffer) Add(raw []byte) {
-	var record logging.Record
-	if err := json.Unmarshal(raw, &record); err != nil {
+	record, err := logging.UnmarshalRecord(raw)
+	if err != nil {
 		return
 	}
 
@@ -46,13 +45,13 @@ func (b *Buffer) Add(raw []byte) {
 }
 
 // Recent returns a snapshot of the buffer's current contents, oldest first.
-// It is a copy: the caller can hold onto or mutate it freely without racing
-// future calls to Add.
-func (b *Buffer) Recent() []logging.Record {
+// The slice is freshly allocated, so later calls to Add do not disturb it;
+// the records it points at are not copied and must be treated as read-only.
+func (b *Buffer) Recent() []*logging.Record {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	snapshot := make([]logging.Record, len(b.entries))
+	snapshot := make([]*logging.Record, len(b.entries))
 	copy(snapshot, b.entries)
 	return snapshot
 }

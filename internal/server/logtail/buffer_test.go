@@ -3,23 +3,34 @@ package logtail
 import (
 	"encoding/json"
 	"testing"
-
-	"Metarr/internal/shared/logging"
 )
 
-func encode(t *testing.T, record logging.Record) []byte {
+// line builds one record in the flat JSON form published to
+// eventbus.LogChannel — the same shape internal/shared/logging.marshalLogLine
+// writes — so the buffer is exercised against realistic bytes.
+func line(t *testing.T, fields map[string]any) []byte {
 	t.Helper()
-	data, err := json.Marshal(record)
+	data, err := json.Marshal(fields)
 	if err != nil {
 		t.Fatalf("encoding fixture record: %v", err)
 	}
 	return data
 }
 
+func msg(t *testing.T, message string) []byte {
+	t.Helper()
+	return line(t, map[string]any{
+		"time":    "2026-08-31T00:00:00Z",
+		"level":   "INFO",
+		"message": message,
+		"source":  "metarr-server",
+	})
+}
+
 func TestRecentReturnsWhatWasAdded(t *testing.T) {
 	buffer := NewBuffer(10)
-	buffer.Add(encode(t, logging.Record{Message: "one", Source: "metarr-server"}))
-	buffer.Add(encode(t, logging.Record{Message: "two", Source: "metarr-server"}))
+	buffer.Add(msg(t, "one"))
+	buffer.Add(msg(t, "two"))
 
 	recent := buffer.Recent()
 	if len(recent) != 2 {
@@ -35,7 +46,7 @@ func TestRecentReturnsWhatWasAdded(t *testing.T) {
 func TestBufferEvictsOldestWhenFull(t *testing.T) {
 	buffer := NewBuffer(3)
 	for i := range 5 {
-		buffer.Add(encode(t, logging.Record{Message: string(rune('a' + i))}))
+		buffer.Add(msg(t, string(rune('a'+i))))
 	}
 
 	recent := buffer.Recent()
@@ -57,9 +68,9 @@ func TestBufferEvictsOldestWhenFull(t *testing.T) {
 // must not corrupt or wedge the buffer for records around it.
 func TestAddIgnoresUndecodableRecords(t *testing.T) {
 	buffer := NewBuffer(10)
-	buffer.Add(encode(t, logging.Record{Message: "before"}))
+	buffer.Add(msg(t, "before"))
 	buffer.Add([]byte("not json"))
-	buffer.Add(encode(t, logging.Record{Message: "after"}))
+	buffer.Add(msg(t, "after"))
 
 	recent := buffer.Recent()
 	if len(recent) != 2 {
@@ -70,15 +81,42 @@ func TestAddIgnoresUndecodableRecords(t *testing.T) {
 	}
 }
 
-func TestRecentReturnsACopyNotTheLiveBuffer(t *testing.T) {
+// A record's free-form attrs are structured data, not an opaque blob: they
+// must come back off the buffer with their shape intact so the tail can be
+// rendered against a real type.
+func TestAddPreservesStructuredAttrs(t *testing.T) {
 	buffer := NewBuffer(10)
-	buffer.Add(encode(t, logging.Record{Message: "one"}))
+	buffer.Add(line(t, map[string]any{
+		"time":    "2026-08-31T00:00:00Z",
+		"level":   "INFO",
+		"message": "scan done",
+		"source":  "metarr-server",
+		"attrs": map[string]any{
+			"agent":  "nas-01",
+			"counts": map[string]any{"added": 2},
+		},
+	}))
+
+	fields := buffer.Recent()[0].GetAttrs().GetFields()
+	if got := fields["agent"].GetStringValue(); got != "nas-01" {
+		t.Errorf("attrs.agent = %q, want nas-01", got)
+	}
+	if got := fields["counts"].GetStructValue().GetFields()["added"].GetNumberValue(); got != 2 {
+		t.Errorf("attrs.counts.added = %v, want 2", got)
+	}
+}
+
+// Recent hands back a fresh slice: adding more records after the call must
+// not disturb what an earlier caller received.
+func TestRecentReturnsASliceIndependentOfLaterAdds(t *testing.T) {
+	buffer := NewBuffer(10)
+	buffer.Add(msg(t, "one"))
 
 	snapshot := buffer.Recent()
-	snapshot[0].Message = "mutated"
+	buffer.Add(msg(t, "two"))
 
-	if got := buffer.Recent()[0].Message; got != "one" {
-		t.Errorf("mutating a snapshot changed the buffer: %q", got)
+	if len(snapshot) != 1 || snapshot[0].Message != "one" {
+		t.Errorf("earlier snapshot changed after a later Add: %+v", snapshot)
 	}
 }
 

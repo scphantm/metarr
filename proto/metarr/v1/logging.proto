@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package metarr.v1;
 
+import "google/protobuf/struct.proto";
 import "metarr/v1/common.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
@@ -26,19 +27,41 @@ message LoggingServiceUpdateConfigRequest {
   LoggingConfig config = 1;
 }
 
+// LogRecord is the vendor-neutral shape of one log line, shared by both
+// binaries. It is the single definition of that shape:
+// internal/shared/logging aliases it, publishes it to Redis (where Fluent
+// Bit ships it onward), and the live-tail pane on the Logging screen reads
+// it. It deliberately carries no vendor-specific field names — Fluent Bit's
+// own filters do that translation, which is what keeps the vendor swappable
+// at the Fluent Bit layer rather than this one.
+//
+// time is an RFC3339 nanosecond string rather than google.protobuf.Timestamp
+// because that string is the vendor-neutral wire form Fluent Bit already
+// consumes verbatim; normalising it through a Timestamp would change the
+// bytes on the Redis channel for no gain here.
+message LogRecord {
+  string time = 1;
+  string level = 2;
+  string message = 3;
+  string source = 4;
+  // attrs is the caller's free-form key/value context, carried as a
+  // structured value so typing the record does not flatten what a caller
+  // attached to it. Absent when the caller attached nothing.
+  google.protobuf.Struct attrs = 5;
+}
+
 message LoggingServiceGetTailRequest {}
 
-// LoggingServiceGetTailResponse/StreamTailResponse carry the exact JSON
-// logging.Record already produced over REST/WebSocket, kept opaque — its
-// Attrs field is a free-form map[string]any with no fixed shape to model.
+// LoggingServiceGetTailResponse/StreamTailResponse carry the tail buffer as
+// typed LogRecord messages, oldest first.
 message LoggingServiceGetTailResponse {
-  bytes records_json = 1;
+  repeated LogRecord records = 1;
 }
 
 message LoggingServiceStreamTailRequest {}
 
 message LoggingServiceStreamTailResponse {
-  bytes records_json = 1;
+  repeated LogRecord records = 1;
 }
 
 // LoggingService covers the whole Logging screen: config (server level,

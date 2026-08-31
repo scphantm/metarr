@@ -2,7 +2,6 @@ package logging
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"log/slog"
 	"strings"
@@ -64,13 +63,13 @@ func (h *Handler) Handle(_ context.Context, record slog.Record) error {
 		when = time.Now()
 	}
 
-	encoded, err := json.Marshal(Record{
-		Time:    when.UTC().Format(time.RFC3339Nano),
-		Level:   record.Level.String(),
-		Message: record.Message,
-		Source:  h.source,
-		Attrs:   attrs,
-	})
+	encoded, err := marshalLogLine(
+		when.UTC().Format(time.RFC3339Nano),
+		record.Level.String(),
+		record.Message,
+		h.source,
+		attrs,
+	)
 	if err != nil {
 		// A record that fails to marshal is vanishingly unlikely — it means an
 		// attribute value isn't JSON-encodable, which is already a slog misuse
