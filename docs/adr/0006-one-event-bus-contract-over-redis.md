@@ -45,3 +45,13 @@ An error is retried a bounded number of times with exponential backoff. Once the
 ## Out of scope
 
 Replacing Redis. Running more than one server instance. The workflow engine's Redis working memory (`metarr:run:{runID}:out:{nodeID}:{frame}`), which is scratch state, not events. OpenTelemetry tracing across the bus. Replay tooling for failed messages — there is no parking stream to replay from; a message past its retry budget is logged only.
+
+## Amendments
+
+### 2026-08-31 — the Pub/Sub half is routed too
+
+The decision above describes the Pub/Sub side as staying "the thin hand-rolled layer." That was literally true at first: every subscriber (heartbeat responder, agent NFO responder, log tail, log forward, agent config-changed watch) open-coded the same `for { select { ctx.Done / sub.Channel() } }` loop, and `PubSubBus.Subscribe` handed back a raw `*redis.PubSub`.
+
+Those loops are now consolidated into a `PubSubRouter`, the Pub/Sub counterpart of the stream `Router`: `Handle(channel, func(ctx, []byte))` for notifications, `Respond(channel, func(ctx, *Event) ([]byte, error))` for the responder side (which stamps `source`, `correlation_id`, and the reply event name so a handler cannot answer on the wrong correlation). Registration then one `Run(ctx)` per process, matching the stream side. `PubSubBus` keeps only the one-shot `Publish` / `Request` / `Reply`; `Subscribe` is now private.
+
+This does not change the decision — two transports, Pub/Sub for the non-durable half, request/reply for fail-fast calls. It changes how that half is built: from N copies of one loop to one routed seam. There is still no retry or drop-after-retry on Pub/Sub; a handler error is logged and nothing else, and a failed `Respond` sends no reply so the caller hits its existing `ErrNoResponder` timeout.
