@@ -16,13 +16,17 @@ type HeartbeatResponse struct {
 	Version       string `json:"version"`
 }
 
-// Heartbeat handles GET /api/heartbeat. It publishes a heartbeat request
-// event onto the Redis Pub/Sub queue and blocks until the heartbeat
-// listener replies with the current time and correlation ID, which is then
-// returned to the client verbatim as the response body.
+// Heartbeat handles GET /api/heartbeat. It is a Redis round-trip health
+// check: it publishes a request on a Pub/Sub channel and blocks on the
+// correlation-scoped reply channel until the heartbeat listener — also in
+// metarr-server — answers with the current time and correlation ID, which is
+// returned to the client verbatim. It exercises the same request/reply path
+// (eventbus.PubSubBus.Request) the NFO read uses, so a green heartbeat means
+// the server can publish, subscribe, and round-trip through Redis. It does
+// not reach an agent.
 //
-// @Summary		Blocking heartbeat check
-// @Description	Publishes a heartbeat request on the Redis Pub/Sub queue and blocks until the heartbeat listener replies with the current time and the request's correlation ID.
+// @Summary		Redis round-trip health check
+// @Description	Publishes a request on a Redis Pub/Sub channel and blocks until the in-process heartbeat listener replies with the current time and the request's correlation ID. Confirms the server's Redis request/reply path; it does not reach any agent.
 // @Tags			Heartbeat
 // @Produce		json
 // @Success		200	{object}	HeartbeatResponse
@@ -41,7 +45,7 @@ func (h *Handlers) Heartbeat(w http.ResponseWriter, r *http.Request) {
 	reply, err := h.PubSub.Request(timeoutCtx, eventbus.HeartbeatRequestChannel, event)
 	if err != nil {
 		h.Logger.Error("heartbeat request failed", "correlation_id", correlationID, "error", err)
-		if errors.Is(err, context.DeadlineExceeded) {
+		if errors.Is(err, eventbus.ErrNoResponder) {
 			http.Error(w, "heartbeat timed out", http.StatusGatewayTimeout)
 			return
 		}
