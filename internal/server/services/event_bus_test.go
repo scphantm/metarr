@@ -24,7 +24,7 @@ func newTestEventBusServer(seed *appconfig.Config) (*EventBusServer, *fakeConfig
 
 func validEventBusConfig() *metarrv1.EventBusConfig {
 	return &metarrv1.EventBusConfig{
-		MaxLenHigh: 100000, MaxLenDefault: 10000, RetentionHours: 48,
+		MaxLen: 10000, RetentionHours: 48,
 		RetryAttempts: 4, RetryBackoffBaseMs: 500, RetryBackoffMaxMs: 30000,
 	}
 }
@@ -34,7 +34,7 @@ func TestEventBusUpdateConfig_WritesThroughAScopedMutation(t *testing.T) {
 	// event_bus and leave everything else byte-identical.
 	seed := &appconfig.Config{
 		Admin:    &appconfig.AdminUser{Username: "admin", PasswordHash: "keep-me"},
-		EventBus: &appconfig.EventBusConfig{RetentionHours: 48, MaxLenHigh: 1, MaxLenDefault: 1, RetryBackoffBaseMs: 1, RetryBackoffMaxMs: 1},
+		EventBus: &appconfig.EventBusConfig{RetentionHours: 48, MaxLen: 1, RetryBackoffBaseMs: 1, RetryBackoffMaxMs: 1},
 	}
 	server, backend := newTestEventBusServer(seed)
 
@@ -60,10 +60,10 @@ func TestEventBusUpdateConfig_RejectsAnInvalidSection(t *testing.T) {
 	server, backend := newTestEventBusServer(&appconfig.Config{})
 
 	cases := map[string]func(*metarrv1.EventBusConfig){
-		"zero max_len_default":       func(c *metarrv1.EventBusConfig) { c.MaxLenDefault = 0 },
-		"high cap below default cap": func(c *metarrv1.EventBusConfig) { c.MaxLenHigh = 5; c.MaxLenDefault = 10 },
-		"zero retention":             func(c *metarrv1.EventBusConfig) { c.RetentionHours = 0 },
-		"max backoff below base":     func(c *metarrv1.EventBusConfig) { c.RetryBackoffMaxMs = 1; c.RetryBackoffBaseMs = 500 },
+		"zero max_len":           func(c *metarrv1.EventBusConfig) { c.MaxLen = 0 },
+		"negative max_len":       func(c *metarrv1.EventBusConfig) { c.MaxLen = -1 },
+		"zero retention":         func(c *metarrv1.EventBusConfig) { c.RetentionHours = 0 },
+		"max backoff below base": func(c *metarrv1.EventBusConfig) { c.RetryBackoffMaxMs = 1; c.RetryBackoffBaseMs = 500 },
 	}
 
 	for name, mutate := range cases {
@@ -87,7 +87,7 @@ func TestEventBusUpdateConfig_RejectsAnInvalidSection(t *testing.T) {
 
 func TestEventBusGetConfig_ReadsLiveConfig(t *testing.T) {
 	withLiveConfig(t, &appconfig.Config{
-		EventBus: &appconfig.EventBusConfig{MaxLenHigh: 12345, RetentionHours: 96},
+		EventBus: &appconfig.EventBusConfig{MaxLen: 12345, RetentionHours: 96},
 	})
 	server := &EventBusServer{Handlers: &handlers.Handlers{}}
 
@@ -95,8 +95,8 @@ func TestEventBusGetConfig_ReadsLiveConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetConfig: %v", err)
 	}
-	if got := resp.Msg.GetConfig().GetMaxLenHigh(); got != 12345 {
-		t.Errorf("max_len_high = %d, want 12345", got)
+	if got := resp.Msg.GetConfig().GetMaxLen(); got != 12345 {
+		t.Errorf("max_len = %d, want 12345", got)
 	}
 	if got := resp.Msg.GetConfig().GetRetentionHours(); got != 96 {
 		t.Errorf("retention_hours = %d, want 96", got)

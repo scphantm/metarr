@@ -12,33 +12,25 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/event_bus.proto.
  */
 export const file_metarr_v1_event_bus: GenFile = /*@__PURE__*/
-  fileDesc("ChltZXRhcnIvdjEvZXZlbnRfYnVzLnByb3RvEgltZXRhcnIudjEirQEKDkV2ZW50QnVzQ29uZmlnEhQKDG1heF9sZW5faGlnaBgBIAEoBRIXCg9tYXhfbGVuX2RlZmF1bHQYAiABKAUSFwoPcmV0ZW50aW9uX2hvdXJzGAMgASgFEhYKDnJldHJ5X2F0dGVtcHRzGAQgASgFEh0KFXJldHJ5X2JhY2tvZmZfYmFzZV9tcxgFIAEoBRIcChRyZXRyeV9iYWNrb2ZmX21heF9tcxgGIAEoBSIhCh9FdmVudEJ1c1NlcnZpY2VHZXRDb25maWdSZXF1ZXN0Ik0KIEV2ZW50QnVzU2VydmljZUdldENvbmZpZ1Jlc3BvbnNlEikKBmNvbmZpZxgBIAEoCzIZLm1ldGFyci52MS5FdmVudEJ1c0NvbmZpZyJPCiJFdmVudEJ1c1NlcnZpY2VVcGRhdGVDb25maWdSZXF1ZXN0EikKBmNvbmZpZxgBIAEoCzIZLm1ldGFyci52MS5FdmVudEJ1c0NvbmZpZzLTAQoPRXZlbnRCdXNTZXJ2aWNlEmQKCUdldENvbmZpZxIqLm1ldGFyci52MS5FdmVudEJ1c1NlcnZpY2VHZXRDb25maWdSZXF1ZXN0GisubWV0YXJyLnYxLkV2ZW50QnVzU2VydmljZUdldENvbmZpZ1Jlc3BvbnNlEloKDFVwZGF0ZUNvbmZpZxItLm1ldGFyci52MS5FdmVudEJ1c1NlcnZpY2VVcGRhdGVDb25maWdSZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_metarr_v1_common]);
+  fileDesc("ChltZXRhcnIvdjEvZXZlbnRfYnVzLnByb3RvEgltZXRhcnIudjEitAEKDkV2ZW50QnVzQ29uZmlnEg8KB21heF9sZW4YASABKAUSFwoPcmV0ZW50aW9uX2hvdXJzGAMgASgFEhYKDnJldHJ5X2F0dGVtcHRzGAQgASgFEh0KFXJldHJ5X2JhY2tvZmZfYmFzZV9tcxgFIAEoBRIcChRyZXRyeV9iYWNrb2ZmX21heF9tcxgGIAEoBUoECAIQA1IMbWF4X2xlbl9oaWdoUg9tYXhfbGVuX2RlZmF1bHQiIQofRXZlbnRCdXNTZXJ2aWNlR2V0Q29uZmlnUmVxdWVzdCJNCiBFdmVudEJ1c1NlcnZpY2VHZXRDb25maWdSZXNwb25zZRIpCgZjb25maWcYASABKAsyGS5tZXRhcnIudjEuRXZlbnRCdXNDb25maWciTwoiRXZlbnRCdXNTZXJ2aWNlVXBkYXRlQ29uZmlnUmVxdWVzdBIpCgZjb25maWcYASABKAsyGS5tZXRhcnIudjEuRXZlbnRCdXNDb25maWcy0wEKD0V2ZW50QnVzU2VydmljZRJkCglHZXRDb25maWcSKi5tZXRhcnIudjEuRXZlbnRCdXNTZXJ2aWNlR2V0Q29uZmlnUmVxdWVzdBorLm1ldGFyci52MS5FdmVudEJ1c1NlcnZpY2VHZXRDb25maWdSZXNwb25zZRJaCgxVcGRhdGVDb25maWcSLS5tZXRhcnIudjEuRXZlbnRCdXNTZXJ2aWNlVXBkYXRlQ29uZmlnUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_metarr_v1_common]);
 
 /**
  * EventBusConfig tunes the Redis event bus without a rebuild (docs/adr/0006):
- * stream size caps, the retention window, and the Router's retry-then-
- * dead-letter policy. Server-side reads come from live config; the built-in
- * defaults in builtin_defaults.json are the values a fresh install runs
- * with and match eventbus.DefaultRetryPolicy / DefaultRetentionPolicy.
+ * the stream size cap, the retention window, and the Router's retry policy.
+ * Server-side reads come from live config; the built-in defaults in
+ * builtin_defaults.json are the values a fresh install runs with and match
+ * eventbus.DefaultRetryPolicy / DefaultRetentionPolicy.
  *
  * @generated from message metarr.v1.EventBusConfig
  */
 export type EventBusConfig = Message<"metarr.v1.EventBusConfig"> & {
   /**
-   * max_len_high is the approximate MAXLEN for the high-volume result
-   * streams (events.agent_scan_results, events.agent_node_results).
+   * max_len is the approximate MAXLEN applied to every stream at publish
+   * time.
    *
-   * @generated from field: int32 max_len_high = 1;
+   * @generated from field: int32 max_len = 1;
    */
-  maxLenHigh: number;
-
-  /**
-   * max_len_default is the approximate MAXLEN for every other stream,
-   * including events.dead_letter.
-   *
-   * @generated from field: int32 max_len_default = 2;
-   */
-  maxLenDefault: number;
+  maxLen: number;
 
   /**
    * retention_hours is how far back the periodic XTRIM sweep keeps entries.
@@ -52,7 +44,7 @@ export type EventBusConfig = Message<"metarr.v1.EventBusConfig"> & {
 
   /**
    * retry_attempts is the number of retries after the first attempt before
-   * a handler's message is parked on events.dead_letter.
+   * a handler's message is logged at error level and acked (dropped).
    *
    * @generated from field: int32 retry_attempts = 4;
    */

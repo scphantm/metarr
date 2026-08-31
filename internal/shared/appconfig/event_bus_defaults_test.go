@@ -19,11 +19,8 @@ func TestEventBusBuiltinDefaultsMatchThePackagePolicies(t *testing.T) {
 	}
 
 	retention := eventbus.DefaultRetentionPolicy()
-	if int64(cfg.GetMaxLenHigh()) != retention.MaxLenHigh {
-		t.Errorf("max_len_high = %d, want %d", cfg.GetMaxLenHigh(), retention.MaxLenHigh)
-	}
-	if int64(cfg.GetMaxLenDefault()) != retention.MaxLenDefault {
-		t.Errorf("max_len_default = %d, want %d", cfg.GetMaxLenDefault(), retention.MaxLenDefault)
+	if int64(cfg.GetMaxLen()) != retention.MaxLen {
+		t.Errorf("max_len = %d, want %d", cfg.GetMaxLen(), retention.MaxLen)
 	}
 	if int(cfg.GetRetentionHours()) != retention.RetentionHours {
 		t.Errorf("retention_hours = %d, want %d", cfg.GetRetentionHours(), retention.RetentionHours)
@@ -44,12 +41,12 @@ func TestEventBusBuiltinDefaultsMatchThePackagePolicies(t *testing.T) {
 // The live-config converters must round-trip the section they are handed.
 func TestEventBusPolicyConvertersReadTheLiveSection(t *testing.T) {
 	cfg := &EventBusConfig{
-		MaxLenHigh: 5, MaxLenDefault: 2, RetentionHours: 12,
+		MaxLen: 2, RetentionHours: 12,
 		RetryAttempts: 7, RetryBackoffBaseMs: 250, RetryBackoffMaxMs: 9000,
 	}
 
 	retention := eventbus.RetentionPolicyFromConfig(cfg)
-	if retention.MaxLenHigh != 5 || retention.MaxLenDefault != 2 || retention.RetentionHours != 12 {
+	if retention.MaxLen != 2 || retention.RetentionHours != 12 {
 		t.Errorf("RetentionPolicyFromConfig = %+v", retention)
 	}
 

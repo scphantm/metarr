@@ -73,16 +73,12 @@ func (s *EventBusServer) UpdateConfig(
 }
 
 // validateEventBusConfig rejects a section that would break the bus: a
-// non-positive cap drops every message, a zero retry count parks on the
-// first transient error, and a max backoff below the base is contradictory.
+// non-positive cap drops every message, a negative retry count is
+// nonsensical, and a max backoff below the base is contradictory.
 func validateEventBusConfig(c *metarrv1.EventBusConfig) error {
 	switch {
-	case c.GetMaxLenHigh() <= 0:
-		return fmt.Errorf("max_len_high must be greater than zero")
-	case c.GetMaxLenDefault() <= 0:
-		return fmt.Errorf("max_len_default must be greater than zero")
-	case c.GetMaxLenHigh() < c.GetMaxLenDefault():
-		return fmt.Errorf("max_len_high must be at least max_len_default")
+	case c.GetMaxLen() <= 0:
+		return fmt.Errorf("max_len must be greater than zero")
 	case c.GetRetentionHours() < 1:
 		return fmt.Errorf("retention_hours must be at least 1")
 	case c.GetRetryAttempts() < 0:

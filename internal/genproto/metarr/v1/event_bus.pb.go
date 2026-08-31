@@ -22,25 +22,22 @@ const (
 )
 
 // EventBusConfig tunes the Redis event bus without a rebuild (docs/adr/0006):
-// stream size caps, the retention window, and the Router's retry-then-
-// dead-letter policy. Server-side reads come from live config; the built-in
-// defaults in builtin_defaults.json are the values a fresh install runs
-// with and match eventbus.DefaultRetryPolicy / DefaultRetentionPolicy.
+// the stream size cap, the retention window, and the Router's retry policy.
+// Server-side reads come from live config; the built-in defaults in
+// builtin_defaults.json are the values a fresh install runs with and match
+// eventbus.DefaultRetryPolicy / DefaultRetentionPolicy.
 type EventBusConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// max_len_high is the approximate MAXLEN for the high-volume result
-	// streams (events.agent_scan_results, events.agent_node_results).
-	MaxLenHigh int32 `protobuf:"varint,1,opt,name=max_len_high,json=maxLenHigh,proto3" json:"max_len_high,omitempty"`
-	// max_len_default is the approximate MAXLEN for every other stream,
-	// including events.dead_letter.
-	MaxLenDefault int32 `protobuf:"varint,2,opt,name=max_len_default,json=maxLenDefault,proto3" json:"max_len_default,omitempty"`
+	// max_len is the approximate MAXLEN applied to every stream at publish
+	// time.
+	MaxLen int32 `protobuf:"varint,1,opt,name=max_len,json=maxLen,proto3" json:"max_len,omitempty"`
 	// retention_hours is how far back the periodic XTRIM sweep keeps entries.
 	// The external-subscriber contract is at least 48 hours, or MAXLEN
 	// entries, whichever is larger; setting this below 48 narrows that
 	// guarantee.
 	RetentionHours int32 `protobuf:"varint,3,opt,name=retention_hours,json=retentionHours,proto3" json:"retention_hours,omitempty"`
 	// retry_attempts is the number of retries after the first attempt before
-	// a handler's message is parked on events.dead_letter.
+	// a handler's message is logged at error level and acked (dropped).
 	RetryAttempts int32 `protobuf:"varint,4,opt,name=retry_attempts,json=retryAttempts,proto3" json:"retry_attempts,omitempty"`
 	// retry_backoff_base_ms is the wait before the first retry.
 	RetryBackoffBaseMs int32 `protobuf:"varint,5,opt,name=retry_backoff_base_ms,json=retryBackoffBaseMs,proto3" json:"retry_backoff_base_ms,omitempty"`
@@ -80,16 +77,9 @@ func (*EventBusConfig) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_event_bus_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *EventBusConfig) GetMaxLenHigh() int32 {
+func (x *EventBusConfig) GetMaxLen() int32 {
 	if x != nil {
-		return x.MaxLenHigh
-	}
-	return 0
-}
-
-func (x *EventBusConfig) GetMaxLenDefault() int32 {
-	if x != nil {
-		return x.MaxLenDefault
+		return x.MaxLen
 	}
 	return 0
 }
@@ -255,15 +245,13 @@ var File_metarr_v1_event_bus_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_event_bus_proto_rawDesc = "" +
 	"\n" +
-	"\x19metarr/v1/event_bus.proto\x12\tmetarr.v1\x1a\x16metarr/v1/common.proto\"\x8e\x02\n" +
-	"\x0eEventBusConfig\x12 \n" +
-	"\fmax_len_high\x18\x01 \x01(\x05R\n" +
-	"maxLenHigh\x12&\n" +
-	"\x0fmax_len_default\x18\x02 \x01(\x05R\rmaxLenDefault\x12'\n" +
+	"\x19metarr/v1/event_bus.proto\x12\tmetarr.v1\x1a\x16metarr/v1/common.proto\"\x82\x02\n" +
+	"\x0eEventBusConfig\x12\x17\n" +
+	"\amax_len\x18\x01 \x01(\x05R\x06maxLen\x12'\n" +
 	"\x0fretention_hours\x18\x03 \x01(\x05R\x0eretentionHours\x12%\n" +
 	"\x0eretry_attempts\x18\x04 \x01(\x05R\rretryAttempts\x121\n" +
 	"\x15retry_backoff_base_ms\x18\x05 \x01(\x05R\x12retryBackoffBaseMs\x12/\n" +
-	"\x14retry_backoff_max_ms\x18\x06 \x01(\x05R\x11retryBackoffMaxMs\"!\n" +
+	"\x14retry_backoff_max_ms\x18\x06 \x01(\x05R\x11retryBackoffMaxMsJ\x04\b\x02\x10\x03R\fmax_len_highR\x0fmax_len_default\"!\n" +
 	"\x1fEventBusServiceGetConfigRequest\"U\n" +
 	" EventBusServiceGetConfigResponse\x121\n" +
 	"\x06config\x18\x01 \x01(\v2\x19.metarr.v1.EventBusConfigR\x06config\"W\n" +

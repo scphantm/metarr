@@ -13,10 +13,10 @@ import (
 // floor, but infrequent enough that the repeated XTRIM cost is negligible.
 const DefaultSweepInterval = time.Hour
 
-// RetentionSweeper trims every known stream by age on an interval. Publish
-// time caps a stream by entry count (RetentionPolicy.Maxlens); this bounds a
-// low-volume stream that would otherwise keep months of history under its
-// count cap.
+// RetentionSweeper trims every discovered stream by age on an interval.
+// Publish time caps a stream by entry count (RetentionPolicy.MaxLen); this
+// bounds a low-volume stream that would otherwise keep months of history
+// under its count cap.
 type RetentionSweeper struct {
 	client redis.UniversalClient
 	policy RetentionPolicy
@@ -53,26 +53,33 @@ func (s *RetentionSweeper) Run(ctx context.Context, interval time.Duration) {
 	}
 }
 
-// SweepOnce trims every known stream so nothing older than the retention
-// window survives. A per-stream trim failure is logged and the sweep moves
-// on; only a context error stops it.
+// SweepOnce trims every stream DiscoverStreamTopics returns so nothing older
+// than the retention window survives. A partial discovery failure (a failed
+// per-agent SCAN) is logged and the streams it did find are still trimmed; a
+// per-stream trim failure is logged and the sweep moves on; only a context
+// error stops it.
 func (s *RetentionSweeper) SweepOnce(ctx context.Context) error {
 	cutoff := s.now().Add(-time.Duration(s.policy.RetentionHours) * time.Hour)
 	// MINID drops every entry with an ID below this one.
 	minID := StreamIDForTime(cutoff)
 
-	for _, stream := range sweepStreamNames(ctx, s.client) {
+	topics, err := DiscoverStreamTopics(ctx, s.client)
+	if err != nil {
+		s.logger.Warn("stream retention sweep: stream discovery partially failed", "error", err)
+	}
+
+	for _, topic := range topics {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		removed, err := s.client.XTrimMinIDApprox(ctx, stream, minID, 0).Result()
+		removed, err := s.client.XTrimMinIDApprox(ctx, topic.Name, minID, 0).Result()
 		if err != nil {
-			s.logger.Warn("stream retention sweep: trim failed", "stream", stream, "error", err)
+			s.logger.Warn("stream retention sweep: trim failed", "stream", topic.Name, "error", err)
 			continue
 		}
 		if removed > 0 {
 			s.logger.Info("stream retention sweep trimmed old entries",
-				"stream", stream, "removed", removed, "older_than", cutoff.Format(time.RFC3339))
+				"stream", topic.Name, "removed", removed, "older_than", cutoff.Format(time.RFC3339))
 		}
 	}
 	return nil

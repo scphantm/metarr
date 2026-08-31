@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/stats.proto.
  */
 export const file_metarr_v1_stats: GenFile = /*@__PURE__*/
-  fileDesc("ChVtZXRhcnIvdjEvc3RhdHMucHJvdG8SCW1ldGFyci52MSL8AQoNUmVkaXNTbmFwc2hvdBIwCgxjb2xsZWN0ZWRfYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEioKBnNlcnZlchgCIAEoCzIaLm1ldGFyci52MS5SZWRpc1NlcnZlckluZm8SKwoHc3RyZWFtcxgDIAMoCzIaLm1ldGFyci52MS5SZWRpc1N0cmVhbVN0YXQSKwoGcHVic3ViGAQgAygLMhsubWV0YXJyLnYxLlJlZGlzQ2hhbm5lbFN0YXQSMwoLZGVhZF9sZXR0ZXIYBSABKAsyHi5tZXRhcnIudjEuUmVkaXNEZWFkTGV0dGVyU3RhdCJ2ChNSZWRpc0RlYWRMZXR0ZXJTdGF0Eg4KBmxlbmd0aBgBIAEoAxIOCgZleGlzdHMYAiABKAgSMAoMbmV3ZXN0X2VudHJ5GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVlcnJvchgEIAEoCSKxAQoPUmVkaXNTZXJ2ZXJJbmZvEg8KB3ZlcnNpb24YASABKAkSFgoOdXB0aW1lX3NlY29uZHMYAiABKAMSGQoRY29ubmVjdGVkX2NsaWVudHMYAyABKAMSEwoLdXNlZF9tZW1vcnkYBCABKAMSGQoRdXNlZF9tZW1vcnlfaHVtYW4YBSABKAkSFgoOb3BzX3Blcl9zZWNvbmQYBiABKAMSEgoKdG90YWxfa2V5cxgHIAEoAyKPAQoPUmVkaXNTdHJlYW1TdGF0Eg4KBnN0cmVhbRgBIAEoCRISCgpldmVudF9uYW1lGAIgASgJEg4KBmxlbmd0aBgDIAEoAxIOCgZleGlzdHMYBCABKAgSKQoGZ3JvdXBzGAUgAygLMhkubWV0YXJyLnYxLlJlZGlzR3JvdXBTdGF0Eg0KBWVycm9yGAYgASgJIqEBCg5SZWRpc0dyb3VwU3RhdBIMCgRuYW1lGAEgASgJEhEKCWNvbnN1bWVycxgCIAEoAxIPCgdwZW5kaW5nGAMgASgDEgsKA2xhZxgEIAEoAxIZChFsYXN0X2RlbGl2ZXJlZF9pZBgFIAEoCRI1Cg9jb25zdW1lcl9kZXRhaWwYBiADKAsyHC5tZXRhcnIudjEuUmVkaXNDb25zdW1lclN0YXQiSAoRUmVkaXNDb25zdW1lclN0YXQSDAoEbmFtZRgBIAEoCRIPCgdwZW5kaW5nGAIgASgDEhQKDGlkbGVfc2Vjb25kcxgDIAEoAyJHChBSZWRpc0NoYW5uZWxTdGF0Eg8KB2NoYW5uZWwYASABKAkSEwoLc3Vic2NyaWJlcnMYAiABKAMSDQoFa25vd24YAyABKAgiGAoWU3RhdHNTZXJ2aWNlR2V0UmVxdWVzdCJFChdTdGF0c1NlcnZpY2VHZXRSZXNwb25zZRIqCghzbmFwc2hvdBgBIAEoCzIYLm1ldGFyci52MS5SZWRpc1NuYXBzaG90IhsKGVN0YXRzU2VydmljZVN0cmVhbVJlcXVlc3QiSAoaU3RhdHNTZXJ2aWNlU3RyZWFtUmVzcG9uc2USKgoIc25hcHNob3QYASABKAsyGC5tZXRhcnIudjEuUmVkaXNTbmFwc2hvdDK1AQoMU3RhdHNTZXJ2aWNlEkwKA0dldBIhLm1ldGFyci52MS5TdGF0c1NlcnZpY2VHZXRSZXF1ZXN0GiIubWV0YXJyLnYxLlN0YXRzU2VydmljZUdldFJlc3BvbnNlElcKBlN0cmVhbRIkLm1ldGFyci52MS5TdGF0c1NlcnZpY2VTdHJlYW1SZXF1ZXN0GiUubWV0YXJyLnYxLlN0YXRzU2VydmljZVN0cmVhbVJlc3BvbnNlMAFCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("ChVtZXRhcnIvdjEvc3RhdHMucHJvdG8SCW1ldGFyci52MSLaAQoNUmVkaXNTbmFwc2hvdBIwCgxjb2xsZWN0ZWRfYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEioKBnNlcnZlchgCIAEoCzIaLm1ldGFyci52MS5SZWRpc1NlcnZlckluZm8SKwoHc3RyZWFtcxgDIAMoCzIaLm1ldGFyci52MS5SZWRpc1N0cmVhbVN0YXQSKwoGcHVic3ViGAQgAygLMhsubWV0YXJyLnYxLlJlZGlzQ2hhbm5lbFN0YXRKBAgFEAZSC2RlYWRfbGV0dGVyIrEBCg9SZWRpc1NlcnZlckluZm8SDwoHdmVyc2lvbhgBIAEoCRIWCg51cHRpbWVfc2Vjb25kcxgCIAEoAxIZChFjb25uZWN0ZWRfY2xpZW50cxgDIAEoAxITCgt1c2VkX21lbW9yeRgEIAEoAxIZChF1c2VkX21lbW9yeV9odW1hbhgFIAEoCRIWCg5vcHNfcGVyX3NlY29uZBgGIAEoAxISCgp0b3RhbF9rZXlzGAcgASgDIo8BCg9SZWRpc1N0cmVhbVN0YXQSDgoGc3RyZWFtGAEgASgJEhIKCmV2ZW50X25hbWUYAiABKAkSDgoGbGVuZ3RoGAMgASgDEg4KBmV4aXN0cxgEIAEoCBIpCgZncm91cHMYBSADKAsyGS5tZXRhcnIudjEuUmVkaXNHcm91cFN0YXQSDQoFZXJyb3IYBiABKAkioQEKDlJlZGlzR3JvdXBTdGF0EgwKBG5hbWUYASABKAkSEQoJY29uc3VtZXJzGAIgASgDEg8KB3BlbmRpbmcYAyABKAMSCwoDbGFnGAQgASgDEhkKEWxhc3RfZGVsaXZlcmVkX2lkGAUgASgJEjUKD2NvbnN1bWVyX2RldGFpbBgGIAMoCzIcLm1ldGFyci52MS5SZWRpc0NvbnN1bWVyU3RhdCJIChFSZWRpc0NvbnN1bWVyU3RhdBIMCgRuYW1lGAEgASgJEg8KB3BlbmRpbmcYAiABKAMSFAoMaWRsZV9zZWNvbmRzGAMgASgDIkcKEFJlZGlzQ2hhbm5lbFN0YXQSDwoHY2hhbm5lbBgBIAEoCRITCgtzdWJzY3JpYmVycxgCIAEoAxINCgVrbm93bhgDIAEoCCIYChZTdGF0c1NlcnZpY2VHZXRSZXF1ZXN0IkUKF1N0YXRzU2VydmljZUdldFJlc3BvbnNlEioKCHNuYXBzaG90GAEgASgLMhgubWV0YXJyLnYxLlJlZGlzU25hcHNob3QiGwoZU3RhdHNTZXJ2aWNlU3RyZWFtUmVxdWVzdCJIChpTdGF0c1NlcnZpY2VTdHJlYW1SZXNwb25zZRIqCghzbmFwc2hvdBgBIAEoCzIYLm1ldGFyci52MS5SZWRpc1NuYXBzaG90MrUBCgxTdGF0c1NlcnZpY2USTAoDR2V0EiEubWV0YXJyLnYxLlN0YXRzU2VydmljZUdldFJlcXVlc3QaIi5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlR2V0UmVzcG9uc2USVwoGU3RyZWFtEiQubWV0YXJyLnYxLlN0YXRzU2VydmljZVN0cmVhbVJlcXVlc3QaJS5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlU3RyZWFtUmVzcG9uc2UwAUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * RedisSnapshot is a point-in-time view of the Redis instance backing the
@@ -49,16 +49,6 @@ export type RedisSnapshot = Message<"metarr.v1.RedisSnapshot"> & {
    * @generated from field: repeated metarr.v1.RedisChannelStat pubsub = 4;
    */
   pubsub: RedisChannelStat[];
-
-  /**
-   * dead_letter is the events.dead_letter parking stream: messages that
-   * errored past the Router's retry cap. A length that climbs, or a recent
-   * newest_entry, means handlers are failing and their messages are being
-   * parked for inspection rather than lost.
-   *
-   * @generated from field: metarr.v1.RedisDeadLetterStat dead_letter = 5;
-   */
-  deadLetter?: RedisDeadLetterStat | undefined;
 };
 
 /**
@@ -67,51 +57,6 @@ export type RedisSnapshot = Message<"metarr.v1.RedisSnapshot"> & {
  */
 export const RedisSnapshotSchema: GenMessage<RedisSnapshot> = /*@__PURE__*/
   messageDesc(file_metarr_v1_stats, 0);
-
-/**
- * RedisDeadLetterStat is the depth and freshness of the events.dead_letter
- * stream. It has no consumer group — nothing reads it — so it reports a
- * length and the time of its newest entry rather than group state.
- *
- * @generated from message metarr.v1.RedisDeadLetterStat
- */
-export type RedisDeadLetterStat = Message<"metarr.v1.RedisDeadLetterStat"> & {
-  /**
-   * @generated from field: int64 length = 1;
-   */
-  length: bigint;
-
-  /**
-   * exists is false before the first message is ever parked, since the
-   * stream is created lazily on first publish.
-   *
-   * @generated from field: bool exists = 2;
-   */
-  exists: boolean;
-
-  /**
-   * newest_entry is the publish time of the most recently parked message,
-   * recovered from its stream ID. Unset when the stream is empty.
-   *
-   * @generated from field: google.protobuf.Timestamp newest_entry = 3;
-   */
-  newestEntry?: Timestamp | undefined;
-
-  /**
-   * error records a failure reading the stream; it should not cost the
-   * caller the rest of the snapshot.
-   *
-   * @generated from field: string error = 4;
-   */
-  error: string;
-};
-
-/**
- * Describes the message metarr.v1.RedisDeadLetterStat.
- * Use `create(RedisDeadLetterStatSchema)` to create a new message.
- */
-export const RedisDeadLetterStatSchema: GenMessage<RedisDeadLetterStat> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_stats, 1);
 
 /**
  * RedisServerInfo holds the instance-wide counters, read from INFO and DBSIZE.
@@ -160,7 +105,7 @@ export type RedisServerInfo = Message<"metarr.v1.RedisServerInfo"> & {
  * Use `create(RedisServerInfoSchema)` to create a new message.
  */
 export const RedisServerInfoSchema: GenMessage<RedisServerInfo> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_stats, 2);
+  messageDesc(file_metarr_v1_stats, 1);
 
 /**
  * RedisStreamStat is one event stream and the consumer groups reading it.
@@ -210,7 +155,7 @@ export type RedisStreamStat = Message<"metarr.v1.RedisStreamStat"> & {
  * Use `create(RedisStreamStatSchema)` to create a new message.
  */
 export const RedisStreamStatSchema: GenMessage<RedisStreamStat> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_stats, 3);
+  messageDesc(file_metarr_v1_stats, 2);
 
 /**
  * RedisGroupStat is one consumer group's position on a stream.
@@ -254,7 +199,7 @@ export type RedisGroupStat = Message<"metarr.v1.RedisGroupStat"> & {
  * Use `create(RedisGroupStatSchema)` to create a new message.
  */
 export const RedisGroupStatSchema: GenMessage<RedisGroupStat> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_stats, 4);
+  messageDesc(file_metarr_v1_stats, 3);
 
 /**
  * RedisConsumerStat is a single consumer within a group.
@@ -283,7 +228,7 @@ export type RedisConsumerStat = Message<"metarr.v1.RedisConsumerStat"> & {
  * Use `create(RedisConsumerStatSchema)` to create a new message.
  */
 export const RedisConsumerStatSchema: GenMessage<RedisConsumerStat> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_stats, 5);
+  messageDesc(file_metarr_v1_stats, 4);
 
 /**
  * RedisChannelStat is one Pub/Sub channel. It carries no message count
@@ -316,7 +261,7 @@ export type RedisChannelStat = Message<"metarr.v1.RedisChannelStat"> & {
  * Use `create(RedisChannelStatSchema)` to create a new message.
  */
 export const RedisChannelStatSchema: GenMessage<RedisChannelStat> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_stats, 6);
+  messageDesc(file_metarr_v1_stats, 5);
 
 /**
  * @generated from message metarr.v1.StatsServiceGetRequest
@@ -329,7 +274,7 @@ export type StatsServiceGetRequest = Message<"metarr.v1.StatsServiceGetRequest">
  * Use `create(StatsServiceGetRequestSchema)` to create a new message.
  */
 export const StatsServiceGetRequestSchema: GenMessage<StatsServiceGetRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_stats, 7);
+  messageDesc(file_metarr_v1_stats, 6);
 
 /**
  * @generated from message metarr.v1.StatsServiceGetResponse
@@ -346,7 +291,7 @@ export type StatsServiceGetResponse = Message<"metarr.v1.StatsServiceGetResponse
  * Use `create(StatsServiceGetResponseSchema)` to create a new message.
  */
 export const StatsServiceGetResponseSchema: GenMessage<StatsServiceGetResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_stats, 8);
+  messageDesc(file_metarr_v1_stats, 7);
 
 /**
  * @generated from message metarr.v1.StatsServiceStreamRequest
@@ -359,7 +304,7 @@ export type StatsServiceStreamRequest = Message<"metarr.v1.StatsServiceStreamReq
  * Use `create(StatsServiceStreamRequestSchema)` to create a new message.
  */
 export const StatsServiceStreamRequestSchema: GenMessage<StatsServiceStreamRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_stats, 9);
+  messageDesc(file_metarr_v1_stats, 8);
 
 /**
  * @generated from message metarr.v1.StatsServiceStreamResponse
@@ -376,7 +321,7 @@ export type StatsServiceStreamResponse = Message<"metarr.v1.StatsServiceStreamRe
  * Use `create(StatsServiceStreamResponseSchema)` to create a new message.
  */
 export const StatsServiceStreamResponseSchema: GenMessage<StatsServiceStreamResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_stats, 10);
+  messageDesc(file_metarr_v1_stats, 9);
 
 /**
  * StatsService.Get is the REST-era first-paint fallback (a dashboard needs

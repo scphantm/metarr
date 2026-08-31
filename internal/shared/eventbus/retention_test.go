@@ -22,11 +22,12 @@ func newRetentionRedis(t *testing.T) (*miniredis.Miniredis, redis.UniversalClien
 	return server, client
 }
 
-// A stream held at its cap under sustained publishing (acceptance criterion).
-func TestStreamBusCapsEveryPublishByTier(t *testing.T) {
+// Every stream is held at the one cap under sustained publishing (acceptance
+// criterion): there is no tier, so the same MAXLEN applies to all of them.
+func TestStreamBusCapsEveryPublish(t *testing.T) {
 	_, client := newRetentionRedis(t)
 
-	policy := RetentionPolicy{MaxLenHigh: 10, MaxLenDefault: 4, RetentionHours: 48}
+	policy := RetentionPolicy{MaxLen: 4, RetentionHours: 48}
 	bus, err := NewStreamBus(client, policy, NewSlogAdapter(discardSlog()))
 	if err != nil {
 		t.Fatalf("NewStreamBus: %v", err)
@@ -36,22 +37,17 @@ func TestStreamBusCapsEveryPublishByTier(t *testing.T) {
 	for i := range 50 {
 		id := strconv.Itoa(i)
 		if err := bus.Fire(ctx, SystemConfigUpdateStream, NewEvent(SourceServer, SystemConfigUpdateEventName, id, []byte(`{}`))); err != nil {
-			t.Fatalf("fire default-tier: %v", err)
+			t.Fatalf("fire system_config_update: %v", err)
 		}
 		if err := bus.Fire(ctx, AgentScanResultStream, NewEvent(AgentSource("nas-01"), AgentScanResultEventName, id, []byte(`{}`))); err != nil {
-			t.Fatalf("fire high-tier: %v", err)
+			t.Fatalf("fire agent_scan_results: %v", err)
 		}
 	}
 
-	if got := xlen(t, client, SystemConfigUpdateStream); got > policy.MaxLenDefault {
-		t.Errorf("default-tier stream length %d exceeds cap %d", got, policy.MaxLenDefault)
-	}
-	if got := xlen(t, client, AgentScanResultStream); got > policy.MaxLenHigh {
-		t.Errorf("high-tier stream length %d exceeds cap %d", got, policy.MaxLenHigh)
-	}
-	// The high-tier cap really is higher than the default one.
-	if xlen(t, client, AgentScanResultStream) <= xlen(t, client, SystemConfigUpdateStream) {
-		t.Error("expected the high-volume stream to retain more entries than the default-tier one")
+	for _, stream := range []string{SystemConfigUpdateStream, AgentScanResultStream} {
+		if got := xlen(t, client, stream); got > policy.MaxLen {
+			t.Errorf("%s length %d exceeds the one cap %d", stream, got, policy.MaxLen)
+		}
 	}
 }
 
@@ -62,10 +58,10 @@ func TestRetentionSweepTrimsByAge(t *testing.T) {
 	ctx := context.Background()
 
 	now := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
-	policy := RetentionPolicy{MaxLenHigh: 1_000, MaxLenDefault: 1_000, RetentionHours: 48}
+	policy := RetentionPolicy{MaxLen: 1_000, RetentionHours: 48}
 
 	agentStream := AgentCommandStream("nas-01")
-	streams := []string{SystemConfigUpdateStream, AgentScanResultStream, DeadLetterStream, agentStream}
+	streams := []string{SystemConfigUpdateStream, AgentScanResultStream, AgentNodeResultStream, agentStream}
 
 	for _, stream := range streams {
 		// One entry three days old, one a minute old.
@@ -108,14 +104,8 @@ func TestDefaultRetentionPolicyMatchesTheDocumentedFloor(t *testing.T) {
 	if policy.RetentionHours != 48 {
 		t.Errorf("RetentionHours = %d, want the documented 48-hour floor", policy.RetentionHours)
 	}
-	if policy.MaxLenHigh <= policy.MaxLenDefault {
-		t.Errorf("MaxLenHigh (%d) should exceed MaxLenDefault (%d)", policy.MaxLenHigh, policy.MaxLenDefault)
-	}
-	caps := policy.Maxlens()
-	for _, stream := range HighVolumeStreams() {
-		if caps[stream] != policy.MaxLenHigh {
-			t.Errorf("Maxlens()[%q] = %d, want MaxLenHigh %d", stream, caps[stream], policy.MaxLenHigh)
-		}
+	if policy.MaxLen <= 0 {
+		t.Errorf("MaxLen = %d, want a positive cap", policy.MaxLen)
 	}
 }
 
