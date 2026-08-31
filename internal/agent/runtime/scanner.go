@@ -220,7 +220,7 @@ func (s *Scanner) sendResult(ctx context.Context, request scanStreamRequest, res
 		return err
 	}
 	if len(encoded) <= maxResultBytes {
-		return s.fire(ctx, request.command.ScanID, eventbus.AgentScanResultEventName, encoded)
+		return s.publish(ctx, request.command.ScanID, eventbus.AgentScanResultEventName, encoded)
 	}
 
 	return s.sendResultInParts(ctx, request, result, base, len(encoded))
@@ -243,7 +243,7 @@ func (s *Scanner) sendResultInParts(
 		if err != nil {
 			return err
 		}
-		return s.fire(ctx, request.command.ScanID, eventbus.AgentScanResultEventName, encoded)
+		return s.publish(ctx, request.command.ScanID, eventbus.AgentScanResultEventName, encoded)
 	}
 
 	// Size the chunks from what the whole item actually encoded to, rather than
@@ -281,15 +281,15 @@ func (s *Scanner) sendResultInParts(
 		if err != nil {
 			return err
 		}
-		if err := s.fire(ctx, request.command.ScanID, eventbus.AgentScanResultEventName, encoded); err != nil {
+		if err := s.publish(ctx, request.command.ScanID, eventbus.AgentScanResultEventName, encoded); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *Scanner) fire(ctx context.Context, correlationID, name string, payload []byte) error {
-	return s.bus.Fire(ctx, eventbus.AgentScanResultStream,
+func (s *Scanner) publish(ctx context.Context, correlationID, name string, payload []byte) error {
+	return s.bus.Publish(ctx, eventbus.AgentScanResultTopic(),
 		eventbus.NewEvent(eventbus.AgentSource(s.slug), name, correlationID, payload))
 }
 
@@ -298,7 +298,7 @@ func (s *Scanner) report(ctx context.Context, correlationID, name string, messag
 	if err != nil {
 		return err
 	}
-	return s.fire(ctx, correlationID, name, payload)
+	return s.publish(ctx, correlationID, name, payload)
 }
 
 // readItemDirectories lists the immediate subdirectories of a scan root. Each

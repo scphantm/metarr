@@ -2,6 +2,7 @@ package eventbus
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/redis/go-redis/v9"
@@ -169,6 +170,54 @@ func StreamTopics() []StreamTopic {
 		agentNodeResultTopic(),
 		agentCommandStreamPatternTopic(),
 	}
+}
+
+// streamTopicPublishable reports whether StreamBus.Publish may append to
+// topic. It returns an error for a pattern topic — a glob names many streams,
+// not one — and for a non-pattern topic whose Name is not one the stream
+// topic table resolves to, whether a static row or a concrete per-agent
+// command stream the pattern row covers. The topic constructors are the
+// primary safety; this is the backstop for a hand-built StreamTopic.
+func streamTopicPublishable(topic StreamTopic) error {
+	if topic.Pattern {
+		return fmt.Errorf("eventbus: stream topic %q is a pattern; a glob is not publishable", topic.Name)
+	}
+	if !streamTopicNameKnown(topic.Name) {
+		return fmt.Errorf("eventbus: unknown stream topic %q", topic.Name)
+	}
+	return nil
+}
+
+// streamTopicNameKnown reports whether name is a stream the topic table
+// resolves to: a static row's literal name, or a concrete stream a pattern
+// row's glob covers.
+func streamTopicNameKnown(name string) bool {
+	for _, topic := range StreamTopics() {
+		if topic.Pattern {
+			if matchesStreamGlob(topic.Name, name) {
+				return true
+			}
+			continue
+		}
+		if topic.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// matchesStreamGlob reports whether name matches a single-'*' glob, the only
+// shape the stream topic table's pattern rows use. It is the same
+// prefix/suffix split SlugFromAgentCommandStream does, kept general to the
+// pattern string.
+func matchesStreamGlob(pattern, name string) bool {
+	prefix, suffix, ok := strings.Cut(pattern, "*")
+	if !ok {
+		return pattern == name
+	}
+	return len(name) >= len(prefix)+len(suffix) &&
+		strings.HasPrefix(name, prefix) &&
+		strings.HasSuffix(name, suffix)
 }
 
 // SystemConfigUpdateTopic is the stream the server's config-update listener

@@ -36,11 +36,11 @@ func TestStreamBusCapsEveryPublish(t *testing.T) {
 	ctx := context.Background()
 	for i := range 50 {
 		id := strconv.Itoa(i)
-		if err := bus.Fire(ctx, SystemConfigUpdateStream, NewEvent(SourceServer, SystemConfigUpdateEventName, id, []byte(`{}`))); err != nil {
-			t.Fatalf("fire system_config_update: %v", err)
+		if err := bus.Publish(ctx, SystemConfigUpdateTopic(), NewEvent(SourceServer, SystemConfigUpdateEventName, id, []byte(`{}`))); err != nil {
+			t.Fatalf("publish system_config_update: %v", err)
 		}
-		if err := bus.Fire(ctx, AgentScanResultStream, NewEvent(AgentSource("nas-01"), AgentScanResultEventName, id, []byte(`{}`))); err != nil {
-			t.Fatalf("fire agent_scan_results: %v", err)
+		if err := bus.Publish(ctx, AgentScanResultTopic(), NewEvent(AgentSource("nas-01"), AgentScanResultEventName, id, []byte(`{}`))); err != nil {
+			t.Fatalf("publish agent_scan_results: %v", err)
 		}
 	}
 

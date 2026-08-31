@@ -28,10 +28,10 @@ type configReader interface {
 	Get(ctx context.Context) (*appconfig.Config, error)
 }
 
-// updateFirer is the store's write dependency, satisfied by
+// updatePublisher is the store's write dependency, satisfied by
 // *eventbus.StreamBus without any change to that type.
-type updateFirer interface {
-	Fire(ctx context.Context, stream string, event *eventbus.Event) error
+type updatePublisher interface {
+	Publish(ctx context.Context, topic eventbus.StreamTopic, event *eventbus.Event) error
 }
 
 // configWriter is Bootstrap's persistence dependency — a direct, synchronous
@@ -43,15 +43,15 @@ type configWriter interface {
 
 // Store is the config store.
 type Store struct {
-	mu     sync.Mutex
-	reader configReader
-	writer configWriter
-	firer  updateFirer
+	mu        sync.Mutex
+	reader    configReader
+	writer    configWriter
+	publisher updatePublisher
 }
 
-// New returns a config store backed by reader, writer, and firer.
-func New(reader configReader, writer configWriter, firer updateFirer) *Store {
-	return &Store{reader: reader, writer: writer, firer: firer}
+// New returns a config store backed by reader, writer, and publisher.
+func New(reader configReader, writer configWriter, publisher updatePublisher) *Store {
+	return &Store{reader: reader, writer: writer, publisher: publisher}
 }
 
 // Read returns the currently stored application config, straight from
@@ -98,7 +98,7 @@ func (s *Store) Mutate(ctx context.Context, apply func(*appconfig.Config) error)
 		payload,
 	)
 
-	return s.firer.Fire(ctx, eventbus.SystemConfigUpdateStream, event)
+	return s.publisher.Publish(ctx, eventbus.SystemConfigUpdateTopic(), event)
 }
 
 // Bootstrap reads the current application config, applies apply to it, and
