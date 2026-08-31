@@ -39,14 +39,10 @@ func NewScanner(bus *eventbus.StreamBus, config *ConfigStore, logger *slog.Logge
 }
 
 // Register wires the scan-command consumer onto the agent's process Router.
+// The command topic is per-slug, so its Watermill handler name is per-slug
+// too — uniqueness does not depend on one router per process.
 func (s *Scanner) Register(router *eventbus.Router) error {
-	return router.Handle(
-		"agent_scan_commands",
-		eventbus.AgentCommandStream(s.slug),
-		eventbus.AgentCommandGroup(s.slug),
-		s.slug,
-		s.handle,
-	)
+	return router.Handle(eventbus.AgentCommandTopic(s.slug), s.slug, s.handle)
 }
 
 func (s *Scanner) handle(ctx context.Context, event *eventbus.Event) error {
@@ -72,7 +68,7 @@ func (s *Scanner) handle(ctx context.Context, event *eventbus.Event) error {
 		// The scan ran and failed for a reason a retry will not change — an
 		// unmapped slug, an unreadable root. It is reported to the server as a
 		// failure result event and the handler returns nil, so a business
-		// failure never enters the retry or dead-letter path.
+		// failure never enters the retry path.
 		log.Error("scan failed", "error", err)
 		if reportErr := s.report(ctx, event.CorrelationId, eventbus.AgentScanFailedEventName, agentproto.ScanFailedMessage{
 			ScanID:      command.ScanID,
