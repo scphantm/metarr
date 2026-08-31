@@ -16,9 +16,8 @@ import { PageHeader } from '../../layout/AppShell'
  *
  * Unlike the log level, these are read once when the server starts, so an
  * edit here takes effect on the next restart rather than live. Every field
- * saves independently against the whole section, so the server can reject a
- * contradictory combination (a max backoff below the base, a high cap below
- * the default one).
+ * saves the whole section, so the server can reject a contradictory
+ * combination (a max backoff below the base, a high cap below the default).
  */
 export function EventBusPage() {
   const eventBus = useEventBusConfig()
@@ -49,99 +48,110 @@ export function EventBusPage() {
       />
 
       <div className="page-body">
-        <RetentionCard config={eventBus.data} />
-        <RetryCard config={eventBus.data} />
+        <EventBusFields config={eventBus.data} />
       </div>
     </>
   )
 }
 
-function RetentionCard({ config }: { config: EventBusConfig }) {
-  const update = useUpdateEventBusConfig()
-  const save = (patch: Partial<EventBusConfig>) => update.mutateAsync({ ...config, ...patch })
+// One field is a Row + EditableNumber that saves the whole section with this
+// one value replaced; the server validates the combination.
+type SaveField = (patch: Partial<EventBusConfig>) => Promise<unknown>
 
+function NumberField({
+  label,
+  hint,
+  value,
+  min,
+  field,
+  save,
+}: {
+  label: string
+  hint: string
+  value: number
+  min: number
+  field: keyof EventBusConfig
+  save: SaveField
+}) {
   return (
-    <Card
-      title="Retention"
-      description="Every publish sets an approximate MAXLEN by stream tier; a periodic sweep also trims each stream by age."
-    >
-      <Row
-        label="High-volume cap"
-        hint="Approximate entry cap for the agent result streams (scan results, node results)."
-      >
-        <EditableNumber
-          label="High-volume cap"
-          queryKey={queryKeys.eventBus}
-          value={config.maxLenHigh}
-          min={1}
-          onSave={(maxLenHigh) => save({ maxLenHigh })}
-        />
-      </Row>
-      <Row
-        label="Default cap"
-        hint="Approximate entry cap for every other stream, including events.dead_letter."
-      >
-        <EditableNumber
-          label="Default cap"
-          queryKey={queryKeys.eventBus}
-          value={config.maxLenDefault}
-          min={1}
-          onSave={(maxLenDefault) => save({ maxLenDefault })}
-        />
-      </Row>
-      <Row
-        label="Retention window (hours)"
-        hint="How far back the age sweep keeps entries. The documented floor for external subscribers is 48; going lower narrows that guarantee."
-      >
-        <EditableNumber
-          label="Retention window (hours)"
-          queryKey={queryKeys.eventBus}
-          value={config.retentionHours}
-          min={1}
-          onSave={(retentionHours) => save({ retentionHours })}
-        />
-      </Row>
-    </Card>
+    <Row label={label} hint={hint}>
+      <EditableNumber
+        label={label}
+        queryKey={queryKeys.eventBus}
+        value={value}
+        min={min}
+        onSave={(next) => save({ [field]: next })}
+      />
+    </Row>
   )
 }
 
-function RetryCard({ config }: { config: EventBusConfig }) {
+function EventBusFields({ config }: { config: EventBusConfig }) {
   const update = useUpdateEventBusConfig()
-  const save = (patch: Partial<EventBusConfig>) => update.mutateAsync({ ...config, ...patch })
+  const save: SaveField = (patch) => update.mutateAsync({ ...config, ...patch })
 
   return (
-    <Card
-      title="Retry & dead-letter"
-      description="A handler error is retried with exponential backoff; a message that fails past the cap is parked on events.dead_letter and acked."
-    >
-      <Row label="Retry attempts" hint="Retries after the first attempt before a message is parked.">
-        <EditableNumber
+    <>
+      <Card
+        title="Retention"
+        description="Every publish sets an approximate MAXLEN by stream tier; a periodic sweep also trims each stream by age."
+      >
+        <NumberField
+          label="High-volume cap"
+          hint="Approximate entry cap for the agent result streams (scan results, node results)."
+          value={config.maxLenHigh}
+          min={1}
+          field="maxLenHigh"
+          save={save}
+        />
+        <NumberField
+          label="Default cap"
+          hint="Approximate entry cap for every other stream, including events.dead_letter."
+          value={config.maxLenDefault}
+          min={1}
+          field="maxLenDefault"
+          save={save}
+        />
+        <NumberField
+          label="Retention window (hours)"
+          hint="How far back the age sweep keeps entries. The documented floor for external subscribers is 48; going lower narrows that guarantee."
+          value={config.retentionHours}
+          min={1}
+          field="retentionHours"
+          save={save}
+        />
+      </Card>
+
+      <Card
+        title="Retry & dead-letter"
+        description="A handler error is retried with exponential backoff; a message that fails past the cap is parked on events.dead_letter and acked."
+      >
+        <NumberField
           label="Retry attempts"
-          queryKey={queryKeys.eventBus}
+          hint="Retries after the first attempt before a message is parked."
           value={config.retryAttempts}
           min={0}
-          onSave={(retryAttempts) => save({ retryAttempts })}
+          field="retryAttempts"
+          save={save}
         />
-      </Row>
-      <Row label="Backoff base (ms)" hint="Wait before the first retry.">
-        <EditableNumber
+        <NumberField
           label="Backoff base (ms)"
-          queryKey={queryKeys.eventBus}
+          hint="Wait before the first retry."
           value={config.retryBackoffBaseMs}
           min={1}
-          onSave={(retryBackoffBaseMs) => save({ retryBackoffBaseMs })}
+          field="retryBackoffBaseMs"
+          save={save}
         />
-      </Row>
-      <Row label="Backoff max (ms)" hint="Ceiling for the exponential backoff between retries.">
-        <EditableNumber
+        <NumberField
           label="Backoff max (ms)"
-          queryKey={queryKeys.eventBus}
+          hint="Ceiling for the exponential backoff between retries."
           value={config.retryBackoffMaxMs}
           min={1}
-          onSave={(retryBackoffMaxMs) => save({ retryBackoffMaxMs })}
+          field="retryBackoffMaxMs"
+          save={save}
         />
-      </Row>
-    </Card>
+      </Card>
+    </>
   )
 }
 

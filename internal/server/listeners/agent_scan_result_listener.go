@@ -27,6 +27,10 @@ import (
 // scan already in flight — is returned as an error, so the Router retries it
 // and then parks it on events.dead_letter. It is inspectable there rather
 // than silently dropped, which is what the old return-nil workarounds did.
+// The config-drift cases (agent or mapping gone) will not recover on a
+// retry, so they spend the full retry budget before parking; that is
+// accepted — they are rare, the retried work is an in-memory config lookup,
+// and dead-lettering a handful of orphaned results beats losing them.
 func RegisterAgentScanResultListener(
 	router *eventbus.Router,
 	repo *mongostore.LocalDirectoryRepo,

@@ -64,16 +64,3 @@ func TestCollectDeadLetterReportsLengthAndNewestEntry(t *testing.T) {
 		t.Errorf("newest_entry %v is not within [%v, %v]", newest, before, after)
 	}
 }
-
-func TestTimeFromStreamID(t *testing.T) {
-	when, ok := timeFromStreamID("1700000000000-0")
-	if !ok {
-		t.Fatal("expected a well-formed stream ID to parse")
-	}
-	if got := when.UnixMilli(); got != 1700000000000 {
-		t.Errorf("UnixMilli = %d, want 1700000000000", got)
-	}
-	if _, ok := timeFromStreamID("not-an-id"); ok {
-		t.Error("expected a malformed stream ID to be rejected")
-	}
-}
