@@ -28,7 +28,7 @@ import {
 import { AgentConfigSchema } from '../gen/metarr/v1/agents_pb'
 import { ScanDirectorySchema, SidecarTypeDefinitionSchema } from '../gen/metarr/v1/directory_scanner_pb'
 import { LoggingConfigSchema } from '../gen/metarr/v1/logging_pb'
-import type { WorkflowGraph } from '../gen/metarr/v1/workflow_graph_pb'
+import { WorkflowServiceUpsertRequestSchema } from '../gen/metarr/v1/workflows_pb'
 
 export const queryKeys = {
   config: ['config'] as const,
@@ -400,25 +400,15 @@ export function useWorkflowCatalog() {
   })
 }
 
-export type SaveWorkflowInput = {
-  documentId: string
-  name: string
-  description: string
-  tags: string[]
-  graph: WorkflowGraph
-}
+// The upsert body is the generated request's init shape — no hand-maintained
+// copy of its fields to keep in step (docs/adr/0005).
+export type SaveWorkflowInput = MessageInitShape<typeof WorkflowServiceUpsertRequestSchema>
 
 export function useSaveWorkflow() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (body: SaveWorkflowInput) => {
-      const { workflow } = await workflowClient.upsert({
-        documentId: body.documentId,
-        name: body.name,
-        description: body.description,
-        tags: body.tags,
-        graph: body.graph,
-      })
+      const { workflow } = await workflowClient.upsert(body)
       if (!workflow) throw new Error('save did not return a workflow')
       return workflow
     },
