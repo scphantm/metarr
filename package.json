@@ -2,7 +2,8 @@
   "private": true,
   "workspaces": [
     "documentation",
-    "documentation-theme"
+    "documentation-theme",
+    "ui"
   ],
   "engines": {
     "node": ">= 22.0.0"
