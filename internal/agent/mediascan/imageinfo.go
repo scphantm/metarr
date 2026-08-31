@@ -44,7 +44,7 @@ func readImageInfo(path string) (*scanmodel.ImageInfo, error) {
 
 	return &scanmodel.ImageInfo{
 		Codec:  format,
-		Width:  config.Width,
-		Height: config.Height,
+		Width:  int32(config.Width),
+		Height: int32(config.Height),
 	}, nil
 }

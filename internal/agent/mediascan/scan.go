@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"Metarr/internal/agent/nfo"
 	"Metarr/internal/shared/metadata"
 	"Metarr/internal/shared/scanmodel"
@@ -45,7 +47,7 @@ func Scan(directoryPath string, directoryType scanmodel.DirectoryType) (*scanmod
 		contexts:           map[string]folderContext{".": {}},
 		mediaBaseNames:     map[string]map[string]int{},
 		mediaRelativePaths: map[string]bool{},
-		seasonSidecars:     map[int][]scanmodel.SidecarFile{},
+		seasonSidecars:     map[int][]*scanmodel.SidecarFile{},
 	}
 
 	if err := scanner.walk(); err != nil {
@@ -97,7 +99,7 @@ type walkedFile struct {
 type mediaCandidate struct {
 	file       walkedFile
 	video      *metadata.VideoAttributes
-	sidecars   []scanmodel.SidecarFile
+	sidecars   []*scanmodel.SidecarFile
 	nfoAttrs   *metadata.Metadata
 	episodeIDs []*metadata.Link
 	warnings   []string
@@ -126,8 +128,8 @@ type directoryScanner struct {
 	// whole; seasonSidecars holds those scoped to one season, keyed by season
 	// number. Files belonging to a specific media file live on that file's
 	// candidate instead.
-	directorySidecars []scanmodel.SidecarFile
-	seasonSidecars    map[int][]scanmodel.SidecarFile
+	directorySidecars []*scanmodel.SidecarFile
+	seasonSidecars    map[int][]*scanmodel.SidecarFile
 
 	// ownerNames resolves the uids and gids the walk collects into names, once
 	// per distinct id rather than once per file.
@@ -477,17 +479,17 @@ func (s *directoryScanner) trickplayOwnerOf(file walkedFile) (int, bool) {
 // Context wins because a file's position says things its name cannot: a video
 // called "clip1.mkv" inside "Behind The Scenes/" is a behind-the-scenes extra,
 // and no pattern matched against its name could know that.
-func (s *directoryScanner) sidecarFor(file walkedFile) scanmodel.SidecarFile {
+func (s *directoryScanner) sidecarFor(file walkedFile) *scanmodel.SidecarFile {
 	sidecarType := s.sidecarTypeFor(file)
 
-	return scanmodel.SidecarFile{
+	return &scanmodel.SidecarFile{
 		RelativePath: file.relativePath,
 		FileName:     file.fileName,
 		Extension:    file.extension,
 		SizeBytes:    file.sizeBytes,
-		ModifiedAt:   file.modifiedAt,
-		Type:         sidecarType,
-		Category:     scanmodel.CategoryOf(sidecarType),
+		ModifiedAt:   timestamppb.New(file.modifiedAt),
+		Type:         string(sidecarType),
+		Category:     string(scanmodel.CategoryOf(sidecarType)),
 		Stat:         file.stat,
 		Image:        s.imageInfoFor(file),
 		Trickplay:    trickplayInfoFor(file),
@@ -508,12 +510,13 @@ func trickplayInfoFor(file walkedFile) *scanmodel.TrickplayInfo {
 	}
 
 	info := &scanmodel.TrickplayInfo{
-		Width:      trickplay.width,
-		TileWidth:  trickplay.tileWidth,
-		TileHeight: trickplay.tileHeight,
+		Width:      int32(trickplay.width),
+		TileWidth:  int32(trickplay.tileWidth),
+		TileHeight: int32(trickplay.tileHeight),
 	}
 	if tileIndex, err := strconv.Atoi(file.baseName); err == nil {
-		info.TileIndex = &tileIndex
+		index := int32(tileIndex)
+		info.TileIndex = &index
 	}
 	return info
 }
@@ -712,27 +715,27 @@ func (s *directoryScanner) assemble() *scanmodel.ScanResult {
 	scannedAt := time.Now().UTC()
 
 	directory := &scanmodel.TVSeries{
-		RecordType: scanmodel.RecordTypeTVSeries,
+		RecordType: string(scanmodel.RecordTypeTVSeries),
 		Path:       s.rootPath,
-		Type:       s.directoryType,
+		Type:       string(s.directoryType),
 		FolderName: s.folderName,
 
-		ScannedAt: scannedAt,
+		ScannedAt: timestamppb.New(scannedAt),
 		Seasons:   s.assembleSeasons(),
 		Sidecars:  s.directorySidecars,
 		Warnings:  s.warnings,
 	}
 	if directory.Sidecars == nil {
-		directory.Sidecars = []scanmodel.SidecarFile{}
+		directory.Sidecars = []*scanmodel.SidecarFile{}
 	}
 
 	directory.Metadata = s.directoryMetadata()
 
-	mediaFiles := make([]scanmodel.MediaFile, 0, len(s.mediaCandidates))
+	mediaFiles := make([]*scanmodel.MediaFile, 0, len(s.mediaCandidates))
 	for _, candidate := range s.mediaCandidates {
 		sidecars := candidate.sidecars
 		if sidecars == nil {
-			sidecars = []scanmodel.SidecarFile{}
+			sidecars = []*scanmodel.SidecarFile{}
 		}
 		// An episode's provider ids describe the episode, so they live on its own
 		// metadata record rather than beside it. Assigning here rather than in
@@ -743,17 +746,17 @@ func (s *directoryScanner) assemble() *scanmodel.ScanResult {
 			candidate.nfoAttrs.ExternalLinks = nonNilLinks(candidate.episodeIDs)
 		}
 
-		mediaFile := scanmodel.MediaFile{
-			RecordType:    scanmodel.RecordTypeMediaFile,
+		mediaFile := &scanmodel.MediaFile{
+			RecordType:    string(scanmodel.RecordTypeMediaFile),
 			DirectoryPath: s.rootPath,
-			Type:          s.directoryType,
+			Type:          string(s.directoryType),
 			Path:          filepath.Join(s.rootPath, filepath.FromSlash(candidate.file.relativePath)),
 			RelativePath:  candidate.file.relativePath,
 			FileName:      candidate.file.fileName,
 			Extension:     candidate.file.extension,
 			SizeBytes:     candidate.file.sizeBytes,
-			ModifiedAt:    candidate.file.modifiedAt,
-			ScannedAt:     scannedAt,
+			ModifiedAt:    timestamppb.New(candidate.file.modifiedAt),
+			ScannedAt:     timestamppb.New(scannedAt),
 			Video:         candidate.video,
 			Stat:          candidate.file.stat,
 			Metadata:      candidate.nfoAttrs,
@@ -843,20 +846,20 @@ func sortedSeasonNumbers(folderNames map[int]string) []int {
 // assembleSeasons builds the season records, each carrying the sidecars scoped
 // to it. A season folder holding nothing but episodes still produces a record:
 // the season exists on disk, and saying so is the point of the field.
-func (s *directoryScanner) assembleSeasons() []scanmodel.TVSeason {
+func (s *directoryScanner) assembleSeasons() []*scanmodel.TVSeason {
 	folderNames := s.seasonNumbers()
 	if len(folderNames) == 0 {
 		return nil
 	}
 
-	seasons := make([]scanmodel.TVSeason, 0, len(folderNames))
+	seasons := make([]*scanmodel.TVSeason, 0, len(folderNames))
 	for _, number := range sortedSeasonNumbers(folderNames) {
 		sidecars := s.seasonSidecars[number]
 		if sidecars == nil {
-			sidecars = []scanmodel.SidecarFile{}
+			sidecars = []*scanmodel.SidecarFile{}
 		}
-		seasons = append(seasons, scanmodel.TVSeason{
-			SeasonNumber: number,
+		seasons = append(seasons, &scanmodel.TVSeason{
+			SeasonNumber: int32(number),
 			FolderName:   folderNames[number],
 			Sidecars:     sidecars,
 		})

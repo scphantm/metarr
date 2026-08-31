@@ -2,16 +2,15 @@ syntax = "proto3";
 
 package metarr.v1;
 
+import "metarr/v1/metadata.proto";
+import "metarr/v1/scan.proto";
+
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
-// Every response here carries the exact JSON the REST handlers already
-// produced (scanmodel.TVSeries, scanmodel.MediaFile, metadata.Metadata),
-// kept opaque rather than modeled field-for-field: these are read-only scan
-// results with no forward-compat requirement forcing strong typing (unlike
-// workflow.Graph's Node.Extra), and the types are large (~2,150 lines
-// across scanmodel + metadata) for a domain nothing here ever constructs or
-// partially updates. Decided together with workflow_catalog.proto's
-// opaque catalog for the same reason.
+// Read-only access to the scan records the agents produced. The responses
+// carry the generated scan record messages directly (scanmodel aliases
+// them) — proto is the single definition for a model that crosses a
+// language boundary. See docs/adr/0005.
 
 message LocalDirectoryServiceListDirectoriesRequest {
   string type = 1;
@@ -21,7 +20,7 @@ message LocalDirectoryServiceListDirectoriesRequest {
 }
 
 message LocalDirectoryServiceListDirectoriesResponse {
-  bytes directories_json = 1;
+  repeated TVSeries directories = 1;
 }
 
 message LocalDirectoryServiceGetDirectoryRequest {
@@ -29,7 +28,7 @@ message LocalDirectoryServiceGetDirectoryRequest {
 }
 
 message LocalDirectoryServiceGetDirectoryResponse {
-  bytes directory_json = 1;
+  TVSeries directory = 1;
 }
 
 message LocalDirectoryServiceListMediaFilesRequest {
@@ -37,7 +36,7 @@ message LocalDirectoryServiceListMediaFilesRequest {
 }
 
 message LocalDirectoryServiceListMediaFilesResponse {
-  bytes media_files_json = 1;
+  repeated MediaFile media_files = 1;
 }
 
 message LocalDirectoryServiceGetMediaFileRequest {
@@ -45,7 +44,7 @@ message LocalDirectoryServiceGetMediaFileRequest {
 }
 
 message LocalDirectoryServiceGetMediaFileResponse {
-  bytes media_file_json = 1;
+  MediaFile media_file = 1;
 }
 
 message LocalDirectoryServiceGetDirectoryNFORequest {
@@ -54,7 +53,7 @@ message LocalDirectoryServiceGetDirectoryNFORequest {
 }
 
 message LocalDirectoryServiceGetDirectoryNFOResponse {
-  bytes metadata_json = 1;
+  Metadata metadata = 1;
 }
 
 service LocalDirectoryService {

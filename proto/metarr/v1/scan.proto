@@ -1,0 +1,185 @@
+syntax = "proto3";
+
+package metarr.v1;
+
+import "google/protobuf/timestamp.proto";
+import "metarr/v1/metadata.proto";
+
+option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+
+// The scan record model: what one directory scan produced and stored in the
+// local_directory collection. This is the single definition of that model —
+// the Go agent builds it (internal/shared/scanmodel aliases these messages),
+// the server persists it through scanmodel.MarshalStored (protojson with
+// proto field names, so the stored document stays readable in the
+// collection), and the LocalDirectoryService returns it. See docs/adr/0005.
+//
+// record_type, type (a DirectoryType on a record, a sidecar kind on a
+// SidecarFile) and a sidecar's category are free strings: the sidecar type
+// table is configuration, and the closed vocabularies are validated by
+// scanmodel's Parse* helpers rather than by a proto enum, matching
+// directory_scanner.proto.
+
+// TVSeries is one media item directory — a single movie, series, or music
+// video folder — stored with record_type "tvseries". id is the collection's
+// _id as hex; a scan leaves it empty and the store fills it in, matching on
+// path so it stays stable across rescans.
+message TVSeries {
+  string id = 1;
+  string record_type = 2;
+  string path = 3;
+  string scan_root_path = 4;
+  string type = 5;
+  string folder_name = 6;
+  Metadata metadata = 7;
+  google.protobuf.Timestamp scanned_at = 8;
+  repeated TVSeason seasons = 9;
+  repeated string warnings = 10;
+  repeated SidecarFile sidecars = 11;
+}
+
+// TVSeason is one season folder found under a series, carrying the sidecars
+// scoped to it. A season known only from artwork kept beside the series has
+// an empty folder_name.
+message TVSeason {
+  int32 season_number = 1;
+  string folder_name = 2;
+  repeated SidecarFile sidecars = 3;
+}
+
+// MediaFile is one playable file — a movie, an episode, or a music video —
+// stored with record_type "media_file" and linked to its directory by
+// directory_id (the directory's _id as hex).
+message MediaFile {
+  string id = 1;
+  string record_type = 2;
+  string directory_id = 3;
+  string directory_path = 4;
+  string scan_root_path = 5;
+  string type = 6;
+  string path = 7;
+  string relative_path = 8;
+  string file_name = 9;
+  string extension = 10;
+  int64 size_bytes = 11;
+  google.protobuf.Timestamp modified_at = 12;
+  google.protobuf.Timestamp scanned_at = 13;
+  VideoAttributes video = 14;
+  // stat is the filesystem's view of the file; file_info is the codec's view.
+  FileStat stat = 15;
+  FileInfo file_info = 16;
+  Metadata metadata = 17;
+  repeated SidecarFile sidecars = 18;
+  repeated string warnings = 19;
+}
+
+// SidecarFile is one non-media file attached to a directory, season or media
+// file, classified against the configurable sidecar type table. category is
+// stored alongside type — denormalized on purpose — so a query can select a
+// whole class of files directly.
+message SidecarFile {
+  string relative_path = 1;
+  string file_name = 2;
+  string extension = 3;
+  int64 size_bytes = 4;
+  google.protobuf.Timestamp modified_at = 5;
+  string type = 6;
+  string category = 7;
+  FileStat stat = 8;
+  // image is the codec and dimensions read from the file's header, present
+  // only on artwork sidecars.
+  ImageInfo image = 9;
+  // trickplay places a scrubbing preview tile within its media file's
+  // previews, present only on those.
+  TrickplayInfo trickplay = 10;
+}
+
+// TrickplayInfo places one tile sheet within its media file's scrubbing
+// previews: the resolution Jellyfin generated it at, the grid each sheet
+// packs its thumbnails into, and which sheet in the sequence this one is.
+message TrickplayInfo {
+  int32 width = 1;
+  int32 tile_width = 2;
+  int32 tile_height = 3;
+  // tile_index is unset for a file inside a resolution folder that is not a
+  // numbered tile, which is different from being the first one.
+  optional int32 tile_index = 4;
+}
+
+// FileInfo wraps the technical stream description read from a media file.
+message FileInfo {
+  StreamDetails stream_details = 1;
+}
+
+// StreamDetails describes the media streams inside the video file.
+message StreamDetails {
+  repeated VideoStream video = 1;
+  repeated AudioStream audio = 2;
+  repeated SubtitleStream subtitle = 3;
+}
+
+// VideoStream is one video track. The numeric-looking fields stay strings:
+// they come verbatim from an NFO's <streamdetails> and are routinely blank
+// or non-numeric.
+message VideoStream {
+  string codec = 1;
+  string aspect = 2;
+  string width = 3;
+  string height = 4;
+  string duration_in_seconds = 5;
+  string stereo_mode = 6;
+  string hdr_type = 7;
+}
+
+// AudioStream is one audio track.
+message AudioStream {
+  string codec = 1;
+  string language = 2;
+  string channels = 3;
+}
+
+// SubtitleStream is one embedded subtitle track.
+message SubtitleStream {
+  string language = 1;
+}
+
+// FileStat is the filesystem's own description of a file, captured at scan
+// time with lstat. It is a message on its own so a platform that cannot
+// supply one records nothing rather than a block of zeros.
+message FileStat {
+  // mode is the symbolic rendering, "-rw-r--r--", and mode_bits the numeric
+  // permission bits alongside setuid, setgid and sticky.
+  string mode = 1;
+  uint32 mode_bits = 2;
+  uint32 uid = 3;
+  uint32 gid = 4;
+  string owner_name = 5;
+  string group_name = 6;
+  uint64 inode = 7;
+  uint64 link_count = 8;
+  uint64 device_id = 9;
+  int64 size_bytes = 10;
+  int64 block_size = 11;
+  int64 blocks = 12;
+  google.protobuf.Timestamp accessed_at = 13;
+  google.protobuf.Timestamp modified_at = 14;
+  google.protobuf.Timestamp changed_at = 15;
+  // created_at is the file's birth time. It stays unset on Linux, which does
+  // not expose one through stat(2).
+  google.protobuf.Timestamp created_at = 16;
+  // is_symlink reports that this record describes the link rather than its
+  // target: the scan walks with lstat.
+  bool is_symlink = 17;
+}
+
+// ImageInfo is what an artwork sidecar's header says about it: the format it
+// is stored in and its pixel dimensions.
+message ImageInfo {
+  string codec = 1;
+  int32 width = 2;
+  int32 height = 3;
+  // error records why the header could not be read, and is the only field
+  // set when it is set, so a corrupt poster stays distinguishable from one
+  // never examined.
+  string error = 4;
+}

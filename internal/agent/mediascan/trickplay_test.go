@@ -22,7 +22,7 @@ func tileFixtures(t *testing.T, trickplayFolder, resolutionFolder string, count 
 }
 
 // assertTile checks one tile against the resolution folder it came out of.
-func assertTile(t *testing.T, sidecar scanmodel.SidecarFile, wantWidth, wantTileWidth, wantTileHeight, wantIndex int) {
+func assertTile(t *testing.T, sidecar *scanmodel.SidecarFile, wantWidth, wantTileWidth, wantTileHeight, wantIndex int32) {
 	t.Helper()
 
 	if sidecar.Type != scanmodel.SidecarTrickplay {
@@ -109,7 +109,7 @@ func TestTrickplayRecordsEveryResolution(t *testing.T) {
 	result := scanTree(t, "The Movie (2019)", scanmodel.TypeMovie, files)
 	mediaFile := mediaFileByName(t, result, "The Movie (2019).mkv")
 
-	byResolution := map[int]int{}
+	byResolution := map[int32]int{}
 	for _, sidecar := range mediaFile.Sidecars {
 		if sidecar.Trickplay != nil {
 			byResolution[sidecar.Trickplay.Width]++
@@ -221,7 +221,7 @@ func TestTrickplayFolderIsWalkedButHiddenFoldersAreNot(t *testing.T) {
 		t.Errorf("trickplay tile was not recorded: %v", err)
 	}
 
-	for _, sidecar := range append(append([]scanmodel.SidecarFile{}, result.Directory.Sidecars...), mediaFile.Sidecars...) {
+	for _, sidecar := range append(append([]*scanmodel.SidecarFile{}, result.Directory.Sidecars...), mediaFile.Sidecars...) {
 		if strings.HasPrefix(sidecar.RelativePath, ".actors/") || strings.HasPrefix(sidecar.RelativePath, "extrafanart/") {
 			t.Errorf("ignored folder was walked: %q", sidecar.RelativePath)
 		}
@@ -244,19 +244,19 @@ func TestTrickplayLooseFileHasNoResolution(t *testing.T) {
 		t.Errorf("Type = %q, want %q from its position", sidecar.Type, scanmodel.SidecarTrickplay)
 	}
 	if sidecar.Trickplay != nil {
-		t.Errorf("Trickplay = %+v, want nil for a file at no resolution", *sidecar.Trickplay)
+		t.Errorf("Trickplay = %+v, want nil for a file at no resolution", sidecar.Trickplay)
 	}
 }
 
 // findSidecar looks a sidecar up by name without failing the test, for the
 // cases that assert on absence.
-func findSidecar(sidecars []scanmodel.SidecarFile, fileName string) (scanmodel.SidecarFile, error) {
+func findSidecar(sidecars []*scanmodel.SidecarFile, fileName string) (*scanmodel.SidecarFile, error) {
 	for _, sidecar := range sidecars {
 		if sidecar.FileName == fileName {
 			return sidecar, nil
 		}
 	}
-	return scanmodel.SidecarFile{}, errSidecarNotFound
+	return nil, errSidecarNotFound
 }
 
 var errSidecarNotFound = errNotFound("sidecar not found")

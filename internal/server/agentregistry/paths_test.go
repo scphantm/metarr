@@ -72,23 +72,23 @@ func scanResultUnderAgentRoot() *scanmodel.ScanResult {
 			// Sidecars and seasons carry relative paths only, so they need no
 			// translation. They are populated here so the test would notice if
 			// that ever changed and they started holding absolute paths.
-			Sidecars: []scanmodel.SidecarFile{
+			Sidecars: []*scanmodel.SidecarFile{
 				{RelativePath: "poster.jpg", FileName: "poster.jpg"},
 			},
-			Seasons: []scanmodel.TVSeason{{
+			Seasons: []*scanmodel.TVSeason{{
 				SeasonNumber: 1,
 				FolderName:   "Season 01",
-				Sidecars: []scanmodel.SidecarFile{
+				Sidecars: []*scanmodel.SidecarFile{
 					{RelativePath: "Season 01/season.nfo", FileName: "season.nfo"},
 				},
 			}},
 		},
-		MediaFiles: []scanmodel.MediaFile{{
+		MediaFiles: []*scanmodel.MediaFile{{
 			Path:          "/mnt/tank/movies/Show/Season 01/ep.mkv",
 			DirectoryPath: "/mnt/tank/movies/Show",
 			ScanRootPath:  "/mnt/tank/movies",
 			RelativePath:  "Season 01/ep.mkv",
-			Sidecars: []scanmodel.SidecarFile{
+			Sidecars: []*scanmodel.SidecarFile{
 				{RelativePath: "Season 01/ep.nfo", FileName: "ep.nfo"},
 			},
 		}},
@@ -159,7 +159,7 @@ func TestResultHandlesAPartWithNoDirectory(t *testing.T) {
 	translator := NewPathTranslator("/mnt/tank/movies", "/media/movies")
 
 	result := &scanmodel.ScanResult{
-		MediaFiles: []scanmodel.MediaFile{{Path: "/mnt/tank/movies/Show/ep.mkv"}},
+		MediaFiles: []*scanmodel.MediaFile{{Path: "/mnt/tank/movies/Show/ep.mkv"}},
 	}
 
 	if err := translator.Result(result); err != nil {
