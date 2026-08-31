@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Alert, Badge, Progress, Space, Typography } from 'antd'
 
+import { timestampDate } from '@bufbuild/protobuf/wkt'
+
 import { useAgents, useAgentsPresenceStreamStatus, useScanDirectories } from '../../api/queries'
-import type { AgentTelemetry, AgentView } from '../../api/types'
+import type { AgentTelemetry, AgentView } from '../../gen/metarr/v1/agents_pb'
 import { Button, Card, EmptyState } from '../../components/Card'
 import { PageError, PageLoading } from '../../components/PageState'
 import { PageHeader } from '../../layout/AppShell'
@@ -101,8 +103,8 @@ function AgentCard({
 
   return (
     <Card
-      title={agent.display_name || agent.slug}
-      description={agent.display_name ? agent.slug : undefined}
+      title={agent.displayName || agent.slug}
+      description={agent.displayName ? agent.slug : undefined}
       actions={
         <Space align="center">
           <AgentStatus agent={agent} />
@@ -163,7 +165,7 @@ function AgentIdentityGrid({ agent }: { agent: AgentView }) {
     ['Running as', `${identity.username || 'unknown'} (uid ${identity.uid})`],
     ['Platform', `${identity.os}/${identity.arch}`],
     ['Version', identity.version],
-    ['Up since', new Date(identity.started).toLocaleString()],
+    ['Up since', identity.started ? timestampDate(identity.started).toLocaleString() : '—'],
   ]
 
   return (
@@ -184,32 +186,30 @@ function AgentIdentityGrid({ agent }: { agent: AgentView }) {
 // a filled track against the same-hue background. A chart of two numbers would
 // say less than the numbers do.
 function TelemetryMeters({ telemetry }: { telemetry: AgentTelemetry }) {
-  const memoryPercent = telemetry.memory_total_bytes
-    ? (telemetry.memory_used_bytes / telemetry.memory_total_bytes) * 100
-    : 0
+  const memoryUsed = Number(telemetry.memoryUsedBytes)
+  const memoryTotal = Number(telemetry.memoryTotalBytes)
+  const memoryPercent = memoryTotal ? (memoryUsed / memoryTotal) * 100 : 0
 
   return (
     <Space direction="vertical" size={12} className="agent-telemetry-meters">
       <Meter
         label="CPU"
-        percent={telemetry.cpu_percent}
-        detail={`${telemetry.cpu_percent.toFixed(1)}%`}
+        percent={telemetry.cpuPercent}
+        detail={`${telemetry.cpuPercent.toFixed(1)}%`}
       />
       <Meter
         label="Memory"
         percent={memoryPercent}
-        detail={`${formatBytes(telemetry.memory_used_bytes)} of ${formatBytes(
-          telemetry.memory_total_bytes,
-        )}`}
+        detail={`${formatBytes(memoryUsed)} of ${formatBytes(memoryTotal)}`}
       />
-      {(telemetry.gpus ?? []).map((gpu, index) => (
+      {telemetry.gpus.map((gpu, index) => (
         <Meter
           key={`${gpu.name}-${index}`}
           label={gpu.name || 'GPU'}
-          percent={gpu.utilization_percent}
-          detail={`${gpu.utilization_percent.toFixed(0)}% · ${formatBytes(
-            gpu.memory_used_bytes,
-          )} of ${formatBytes(gpu.memory_total_bytes)}`}
+          percent={gpu.utilizationPercent}
+          detail={`${gpu.utilizationPercent.toFixed(0)}% · ${formatBytes(
+            Number(gpu.memoryUsedBytes),
+          )} of ${formatBytes(Number(gpu.memoryTotalBytes))}`}
         />
       ))}
     </Space>
@@ -255,13 +255,13 @@ function MappingList({ agent }: { agent: AgentView }) {
         Mapped libraries
       </Typography.Text>
       {agent.mappings.map((mapping) => (
-        <div key={mapping.scanner_slug} className="agent-mapping-row">
-          <span className="agent-mapping-slug">{mapping.scanner_slug}</span>
-          <span className="agent-mapping-path">{mapping.server_path || '—'}</span>
+        <div key={mapping.scannerSlug} className="agent-mapping-row">
+          <span className="agent-mapping-slug">{mapping.scannerSlug}</span>
+          <span className="agent-mapping-path">{mapping.serverPath || '—'}</span>
           <Typography.Text type="secondary" aria-hidden="true">
             →
           </Typography.Text>
-          <span className="agent-mapping-path is-local">{mapping.agent_path}</span>
+          <span className="agent-mapping-path is-local">{mapping.agentPath}</span>
         </div>
       ))}
     </Space>

@@ -8,10 +8,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
-	"Metarr/internal/server/agentregistry"
 	"Metarr/internal/server/auth"
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/server/httpserver"
@@ -54,11 +52,7 @@ func (s *AgentServer) List(
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to list agents"))
 	}
 
-	agents := make([]*metarrv1.AgentView, 0, len(views))
-	for _, view := range views {
-		agents = append(agents, agentViewToProto(view))
-	}
-	return connect.NewResponse(&metarrv1.AgentServiceListResponse{Agents: agents}), nil
+	return connect.NewResponse(&metarrv1.AgentServiceListResponse{Agents: views}), nil
 }
 
 func (s *AgentServer) StreamPresence(
@@ -81,12 +75,7 @@ func (s *AgentServer) StreamPresence(
 			return connectError(http.StatusInternalServerError, errors.New("failed to list agents"))
 		}
 
-		agents := make([]*metarrv1.AgentView, 0, len(views))
-		for _, view := range views {
-			agents = append(agents, agentViewToProto(view))
-		}
-
-		if err := stream.Send(&metarrv1.AgentServiceStreamPresenceResponse{Agents: agents}); err != nil {
+		if err := stream.Send(&metarrv1.AgentServiceStreamPresenceResponse{Agents: views}); err != nil {
 			return err
 		}
 
@@ -221,68 +210,4 @@ func validateMappings(config *appconfig.Config, entry *appconfig.AgentConfig) (i
 	}
 
 	return 0, nil
-}
-
-func agentViewToProto(view agentregistry.AgentView) *metarrv1.AgentView {
-	mappings := make([]*metarrv1.AgentMappingView, 0, len(view.Mappings))
-	for _, m := range view.Mappings {
-		mappings = append(mappings, &metarrv1.AgentMappingView{
-			ScannerSlug: m.ScannerSlug,
-			ScanType:    m.ScanType,
-			ServerPath:  m.ServerPath,
-			AgentPath:   m.AgentPath,
-		})
-	}
-
-	proto := &metarrv1.AgentView{
-		Slug:        view.Slug,
-		DisplayName: view.DisplayName,
-		Online:      view.Online,
-		Configured:  view.Configured,
-		Mappings:    mappings,
-		LogLevel:    view.LogLevel,
-	}
-	if view.Identity != nil {
-		proto.Identity = agentIdentityToProto(*view.Identity)
-	}
-	if view.Telemetry != nil {
-		proto.Telemetry = agentTelemetryToProto(*view.Telemetry)
-	}
-	if view.ReportedAt != nil {
-		proto.ReportedAt = timestamppb.New(*view.ReportedAt)
-	}
-	return proto
-}
-
-func agentIdentityToProto(identity agentproto.AgentIdentity) *metarrv1.AgentIdentity {
-	return &metarrv1.AgentIdentity{
-		Slug:       identity.Slug,
-		InstanceId: identity.InstanceID,
-		Hostname:   identity.Hostname,
-		Ip:         identity.IP,
-		Uid:        int32(identity.UID),
-		Username:   identity.Username,
-		Os:         identity.OS,
-		Arch:       identity.Arch,
-		Version:    identity.Version,
-		Started:    timestamppb.New(identity.Started),
-	}
-}
-
-func agentTelemetryToProto(telemetry agentproto.AgentTelemetry) *metarrv1.AgentTelemetry {
-	gpus := make([]*metarrv1.GPUTelemetry, 0, len(telemetry.GPUs))
-	for _, gpu := range telemetry.GPUs {
-		gpus = append(gpus, &metarrv1.GPUTelemetry{
-			Name:               gpu.Name,
-			UtilizationPercent: gpu.UtilizationPct,
-			MemoryUsedBytes:    gpu.MemoryUsedBytes,
-			MemoryTotalBytes:   gpu.MemoryTotalBytes,
-		})
-	}
-	return &metarrv1.AgentTelemetry{
-		CpuPercent:       telemetry.CPUPercent,
-		MemoryUsedBytes:  telemetry.MemoryUsedBytes,
-		MemoryTotalBytes: telemetry.MemoryTotalBytes,
-		Gpus:             gpus,
-	}
 }

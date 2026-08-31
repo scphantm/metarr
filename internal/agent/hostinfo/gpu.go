@@ -23,7 +23,7 @@ import (
 const gpuProbeTimeout = 2 * time.Second
 
 type gpuProbe interface {
-	probe(ctx context.Context) []agentproto.GPUTelemetry
+	probe(ctx context.Context) []*agentproto.GPUTelemetry
 }
 
 // detectGPUProbe returns a probe for whatever this host can answer for, or nil
@@ -41,7 +41,7 @@ type nvidiaProbe struct {
 	path string
 }
 
-func (p nvidiaProbe) probe(ctx context.Context) []agentproto.GPUTelemetry {
+func (p nvidiaProbe) probe(ctx context.Context) []*agentproto.GPUTelemetry {
 	ctx, cancel := context.WithTimeout(ctx, gpuProbeTimeout)
 	defer cancel()
 
@@ -55,7 +55,7 @@ func (p nvidiaProbe) probe(ctx context.Context) []agentproto.GPUTelemetry {
 		return nil
 	}
 
-	var gpus []agentproto.GPUTelemetry
+	var gpus []*agentproto.GPUTelemetry
 	for _, line := range strings.Split(strings.TrimSpace(string(output)), "\n") {
 		if gpu, ok := parseNvidiaLine(line); ok {
 			gpus = append(gpus, gpu)
@@ -66,10 +66,10 @@ func (p nvidiaProbe) probe(ctx context.Context) []agentproto.GPUTelemetry {
 
 // parseNvidiaLine reads one CSV row of "name, util, used MiB, total MiB".
 // nounits means the numbers arrive bare, and memory is always in MiB.
-func parseNvidiaLine(line string) (agentproto.GPUTelemetry, bool) {
+func parseNvidiaLine(line string) (*agentproto.GPUTelemetry, bool) {
 	fields := strings.Split(line, ",")
 	if len(fields) < 4 {
-		return agentproto.GPUTelemetry{}, false
+		return nil, false
 	}
 	for i := range fields {
 		fields[i] = strings.TrimSpace(fields[i])
@@ -80,10 +80,10 @@ func parseNvidiaLine(line string) (agentproto.GPUTelemetry, bool) {
 	usedMiB, _ := strconv.ParseUint(fields[2], 10, 64)
 	totalMiB, _ := strconv.ParseUint(fields[3], 10, 64)
 
-	return agentproto.GPUTelemetry{
-		Name:             fields[0],
-		UtilizationPct:   utilization,
-		MemoryUsedBytes:  usedMiB * mib,
-		MemoryTotalBytes: totalMiB * mib,
+	return &agentproto.GPUTelemetry{
+		Name:               fields[0],
+		UtilizationPercent: utilization,
+		MemoryUsedBytes:    usedMiB * mib,
+		MemoryTotalBytes:   totalMiB * mib,
 	}, true
 }

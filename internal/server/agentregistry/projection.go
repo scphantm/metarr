@@ -6,6 +6,8 @@ package agentregistry
 import (
 	"time"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"Metarr/internal/shared/agentproto"
 	"Metarr/internal/shared/appconfig"
 )
@@ -23,14 +25,14 @@ import (
 // on someone else's box.
 //
 // Adding a field here is a decision that every agent host may read it.
-func BuildProjection(config *appconfig.Config, slug string, updatedAt time.Time) agentproto.AgentConfigProjection {
-	projection := agentproto.AgentConfigProjection{
+func BuildProjection(config *appconfig.Config, slug string, updatedAt time.Time) *agentproto.AgentConfigProjection {
+	projection := &agentproto.AgentConfigProjection{
 		Slug:          slug,
 		ParallelCount: config.DirectoryScanner.ParallelCount,
 		SidecarTypes:  config.DirectoryScanner.SidecarTypes,
-		Directories:   []agentproto.MappedDirectory{},
+		Directories:   []*agentproto.MappedDirectory{},
 		LogLevel:      appconfig.LogLevelInfo,
-		UpdatedAt:     updatedAt,
+		UpdatedAt:     timestamppb.New(updatedAt),
 	}
 
 	index := appconfig.FindAgentIndex(config, slug)
@@ -63,7 +65,7 @@ func BuildProjection(config *appconfig.Config, slug string, updatedAt time.Time)
 			continue
 		}
 
-		projection.Directories = append(projection.Directories, agentproto.MappedDirectory{
+		projection.Directories = append(projection.Directories, &agentproto.MappedDirectory{
 			ScannerSlug: mapping.ScannerSlug,
 			ScanType:    config.DirectoryScanner.ScanDirectories[scannerIndex].ScanType,
 			AgentPath:   mapping.AgentPath,

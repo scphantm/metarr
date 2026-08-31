@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	"Metarr/internal/shared/appconfig"
+	metarrv1 "Metarr/internal/genproto/metarr/v1"
 	"Metarr/internal/shared/metadata"
 	"Metarr/internal/shared/scanmodel"
 )
@@ -108,112 +108,35 @@ func ConfigChangedChannel(slug string) string { return "agent.config.changed." +
 // heartbeat does.
 func RequestChannel(slug string) string { return "agent." + slug + ".request" }
 
-// AgentIdentity is who and where an agent is. Collected once at startup, since
-// none of it changes while the process lives.
-type AgentIdentity struct {
-	Slug string `json:"slug"`
-	// InstanceID distinguishes one run of an agent from the next. It is what
-	// makes a restart visible as a restart rather than as continuous uptime.
-	InstanceID string `json:"instance_id"`
+// The contract models below are aliases to their generated metarr.v1
+// messages — proto is the single definition for a model that crosses the
+// server↔agent boundary. AgentIdentity, AgentTelemetry and GPUTelemetry also
+// reach the UI through AgentService; AgentConfigProjection and AgentPresence
+// are Go-only, serialized to Redis through MarshalStored / UnmarshalStored.
+// See docs/adr/0005.
+type (
+	AgentIdentity  = metarrv1.AgentIdentity
+	AgentTelemetry = metarrv1.AgentTelemetry
+	GPUTelemetry   = metarrv1.GPUTelemetry
+	// AgentPresence is the whole value stored at PresenceKey.
+	AgentPresence = metarrv1.AgentPresence
+	// AgentConfigProjection is everything an agent is allowed to know — the
+	// security boundary of the agent design. See agentregistry.BuildProjection.
+	AgentConfigProjection = metarrv1.AgentConfigProjection
+	// MappedDirectory is one scan directory as one agent sees it.
+	MappedDirectory = metarrv1.MappedDirectory
+)
 
-	Hostname string `json:"hostname"`
-	IP       string `json:"ip"`
-
-	// UID and Username are the account the service runs as — the thing that
-	// decides whether it can actually read the library it was pointed at.
-	UID      int    `json:"uid"`
-	Username string `json:"username"`
-
-	OS      string    `json:"os"`
-	Arch    string    `json:"arch"`
-	Version string    `json:"version"`
-	Started time.Time `json:"started"`
-}
-
-// AgentTelemetry is the live host state, refreshed on every heartbeat.
-type AgentTelemetry struct {
-	CPUPercent float64 `json:"cpu_percent"`
-
-	MemoryUsedBytes  uint64 `json:"memory_used_bytes"`
-	MemoryTotalBytes uint64 `json:"memory_total_bytes"`
-
-	// GPUs is empty on a host without one, which is the common case and not a
-	// failure. A host whose GPU cannot be queried also reports none rather
-	// than failing the heartbeat around it.
-	GPUs []GPUTelemetry `json:"gpus,omitempty"`
-}
-
-// GPUTelemetry is one GPU's live state.
-type GPUTelemetry struct {
-	Name             string  `json:"name"`
-	UtilizationPct   float64 `json:"utilization_percent"`
-	MemoryUsedBytes  uint64  `json:"memory_used_bytes"`
-	MemoryTotalBytes uint64  `json:"memory_total_bytes"`
-}
-
-// AgentPresence is the whole value stored at PresenceKey.
-type AgentPresence struct {
-	Identity   AgentIdentity  `json:"identity"`
-	Telemetry  AgentTelemetry `json:"telemetry"`
-	ReportedAt time.Time      `json:"reported_at"`
-}
-
-// AgentConfigProjection is everything an agent is allowed to know.
-//
-// This type is the security boundary of the whole design. The application
-// config it is derived from holds the admin password hash, all four API key
-// categories and every Sonarr credential, and it is published whole onto an
-// internal stream. An agent runs on a machine the server does not control, so
-// it gets this instead — and adding a field here means deciding, deliberately,
-// that every agent host may read it.
-type AgentConfigProjection struct {
-	Slug        string `json:"slug"`
-	DisplayName string `json:"display_name,omitempty"`
-
-	// ParallelCount is how many item directories the agent walks at once.
-	// int32 because it is carried straight through from the config section
-	// rather than re-typed on the way past.
-	ParallelCount int32 `json:"parallel_count"`
-
-	// SidecarTypes is the classification table. The agent has to hold it
-	// because classification happens where the files are.
-	SidecarTypes []*appconfig.SidecarTypeDefinition `json:"sidecar_types"`
-
-	// Directories are only those mapped to this agent. An agent is told
-	// nothing about libraries it cannot see.
-	Directories []MappedDirectory `json:"directories"`
-
-	// LogLevel is this agent's own verbosity ("info" or "debug"), set from the
-	// System > Logging screen. Unlike everything else in this type it isn't a
-	// secret-boundary concern — a log level is safe for any agent to hold —
-	// but it lives here because it's still per-agent state delivered the same
-	// way as everything else the agent needs.
-	LogLevel string `json:"log_level"`
-
-	// UpdatedAt lets the agent log which revision it is running on, which is
-	// the difference between "the mapping is wrong" and "the agent never got
-	// the new mapping".
-	UpdatedAt time.Time `json:"updated_at"`
-}
-
-// MappedDirectory is one scan directory as this agent sees it.
-type MappedDirectory struct {
-	ScannerSlug string `json:"scanner_slug"`
-	ScanType    string `json:"scan_type"`
-	// AgentPath is the path on the agent's machine. The server's own path for
-	// the same library is deliberately absent: the agent has no use for it,
-	// and translating back is the server's job on the way in.
-	AgentPath string `json:"agent_path"`
-}
-
-// FindDirectory returns the mapping for scannerSlug.
-func (p AgentConfigProjection) FindDirectory(scannerSlug string) (MappedDirectory, bool) {
-	for _, directory := range p.Directories {
+// FindDirectory returns the projection's mapping for scannerSlug. It is a
+// package function rather than a method because a generated message carries
+// none.
+func FindDirectory(projection *AgentConfigProjection, scannerSlug string) (*MappedDirectory, bool) {
+	for _, directory := range projection.Directories {
 		if directory.ScannerSlug == scannerSlug {
 			return directory, true
 		}
 	}
-	return MappedDirectory{}, false
+	return nil, false
 }
 
 // ScanCommand asks an agent to walk one mapped directory.

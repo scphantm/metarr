@@ -93,7 +93,7 @@ func (s *Scanner) scan(ctx context.Context, command agentproto.ScanCommand, log 
 		return fmt.Errorf("this agent has no configuration yet")
 	}
 
-	mapped, ok := projection.FindDirectory(command.ScannerSlug)
+	mapped, ok := agentproto.FindDirectory(projection, command.ScannerSlug)
 	if !ok {
 		return fmt.Errorf("%q is not mapped to this agent", command.ScannerSlug)
 	}

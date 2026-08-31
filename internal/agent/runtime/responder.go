@@ -85,7 +85,7 @@ func (r *Responder) readNFO(request eventbus.Event) agentproto.NFOReadReply {
 		return agentproto.NFOReadReply{Error: "this agent has no configuration yet"}
 	}
 
-	mapped, ok := projection.FindDirectory(body.ScannerSlug)
+	mapped, ok := agentproto.FindDirectory(projection, body.ScannerSlug)
 	if !ok {
 		return agentproto.NFOReadReply{
 			Error: fmt.Sprintf("%q is not mapped to this agent", body.ScannerSlug),
