@@ -7,12 +7,13 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// This file is the single registry of every event-bus name: Redis Stream
+// This file is where every event-bus name is defined once: Redis Stream
 // names, consumer-group names, Pub/Sub channel names, the per-agent names
 // addressed by slug, and the event-name discriminators carried in the
-// envelope. agentproto and every listener, handler, and service import from
-// here, so a name is declared once and the two sides of a stream can never
-// drift out of step.
+// envelope. It also holds the one stream topic table (StreamTopics) that is
+// the single representation of every durable stream. agentproto and every
+// listener, handler, and service import from here, so a name is declared
+// once and the two sides of a stream can never drift out of step.
 
 // ConsumerName is the Redis Streams consumer identity every server-side
 // stream consumer reads with. It is one constant rather than a per-listener
@@ -182,17 +183,15 @@ func SystemConfigUpdateTopic() StreamTopic {
 }
 
 // AgentScanResultTopic is the shared stream the server's scan-result
-// listener registers on. Its handler sees three discriminators.
+// listener registers on. Events names the discriminator the stream is about
+// — the per-item result — not every discriminator its handler branches on
+// (it also sees scan_complete and scan_failed); the field is informational.
 func AgentScanResultTopic() StreamTopic {
 	return StreamTopic{
 		Name:     AgentScanResultStream,
 		Group:    AgentScanResultGroup,
 		Consumed: true,
-		Events: []string{
-			AgentScanResultEventName,
-			AgentScanCompleteEventName,
-			AgentScanFailedEventName,
-		},
+		Events:   []string{AgentScanResultEventName},
 	}
 }
 

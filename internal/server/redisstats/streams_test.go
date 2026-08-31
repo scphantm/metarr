@@ -15,7 +15,7 @@ func newTestCollector(t *testing.T) (*Collector, *miniredis.Miniredis) {
 	server := miniredis.RunT(t)
 	client := redis.NewClient(&redis.Options{Addr: server.Addr()})
 	t.Cleanup(func() { _ = client.Close() })
-	return New(client), server
+	return New(client, nil), server
 }
 
 // The stream list has no events.dead_letter row: a message that exhausts its
