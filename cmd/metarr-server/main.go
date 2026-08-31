@@ -106,7 +106,7 @@ func run() error {
 	// through. Once bootstrap has seeded the config and the live singleton is
 	// warm, both the StreamBus and the config store are rebuilt against the
 	// live event_bus policy just below.
-	streamBus, err := eventbus.NewStreamBus(redisClient, eventbus.DefaultRetentionPolicy(), eventbus.NewSlogAdapter(logger))
+	streamBus, err := eventbus.NewStreamBus(redisClient, eventbus.DefaultBusPolicy().Retention, eventbus.NewSlogAdapter(logger))
 	if err != nil {
 		return err
 	}
@@ -194,16 +194,16 @@ func run() error {
 	startupCfg := bootstrapReport.FinalConfig
 	appconfig.Set(startupCfg)
 
-	// The event bus tuning is now known. Rebuild the StreamBus and the config
-	// store against the live event_bus policy so publish-time MAXLEN caps
-	// track configuration, not just the build-time default (docs/adr/0006).
-	// The Router and the retention sweep below read the same policy.
-	retentionPolicy := eventbus.RetentionPolicyFromConfig(startupCfg.EventBus)
-	retryPolicy := eventbus.RetryPolicyFromConfig(startupCfg.EventBus)
+	// The event bus tuning is now known. Assemble the one BusPolicy from the
+	// live event_bus section and rebuild the StreamBus and the config store
+	// against it so publish-time MAXLEN caps track configuration, not just the
+	// build-time default (docs/adr/0006). The Router and the retention sweep
+	// below take their own slice of the same policy.
+	busPolicy := eventbus.BusPolicyFromConfig(startupCfg.EventBus)
 	if err := streamBus.Close(); err != nil {
 		logger.Warn("closing the bootstrap stream publisher", "error", err)
 	}
-	streamBus, err = eventbus.NewStreamBus(redisClient, retentionPolicy, eventbus.NewSlogAdapter(logger))
+	streamBus, err = eventbus.NewStreamBus(redisClient, busPolicy.Retention, eventbus.NewSlogAdapter(logger))
 	if err != nil {
 		return err
 	}
@@ -249,7 +249,7 @@ func run() error {
 	// level and acked, instead of redelivering forever (docs/adr/0006).
 	// Scanning itself now happens on the agents; the scan-result listener is
 	// the half that persists what they report.
-	eventRouter, err := eventbus.NewRedisRouter(redisClient, retryPolicy, eventbus.NewSlogAdapter(logger))
+	eventRouter, err := eventbus.NewRedisRouter(redisClient, busPolicy.Retry, eventbus.NewSlogAdapter(logger))
 	if err != nil {
 		return err
 	}
@@ -267,7 +267,7 @@ func run() error {
 
 	// The age half of retention: publish-time MAXLEN bounds a stream by count,
 	// this bounds a low-volume stream by age so nothing outlives the window.
-	go eventbus.NewRetentionSweeper(redisClient, retentionPolicy, logger).Run(ctx, eventbus.DefaultSweepInterval)
+	go eventbus.NewRetentionSweeper(redisClient, busPolicy.Retention, busPolicy.SweepInterval, logger).Run(ctx)
 
 	statsCollector := redisstats.New(redisClient, logger)
 

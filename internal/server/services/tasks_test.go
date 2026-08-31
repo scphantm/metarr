@@ -21,7 +21,7 @@ func newTestTaskServer(t *testing.T) (*TaskServer, redis.UniversalClient) {
 	client := redis.NewClient(&redis.Options{Addr: server.Addr()})
 	t.Cleanup(func() { _ = client.Close() })
 
-	bus, err := eventbus.NewStreamBus(client, eventbus.DefaultRetentionPolicy(), eventbus.NewSlogAdapter(slog.Default()))
+	bus, err := eventbus.NewStreamBus(client, eventbus.DefaultBusPolicy().Retention, eventbus.NewSlogAdapter(slog.Default()))
 	if err != nil {
 		t.Fatalf("NewStreamBus: %v", err)
 	}

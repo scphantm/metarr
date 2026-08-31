@@ -96,8 +96,11 @@ func run() error {
 		"version", version.Raw,
 	)
 
-	retentionPolicy := eventbus.DefaultRetentionPolicy()
-	streamBus, err := eventbus.NewStreamBus(redisClient, retentionPolicy, eventbus.NewSlogAdapter(logger))
+	// The agent has no live config to read (operator tuning of the event_bus
+	// section does not reach agents, per ADR-0006), so it assembles the one
+	// BusPolicy from the built-in defaults and passes the sub-slices on.
+	busPolicy := eventbus.DefaultBusPolicy()
+	streamBus, err := eventbus.NewStreamBus(redisClient, busPolicy.Retention, eventbus.NewSlogAdapter(logger))
 	if err != nil {
 		return err
 	}
@@ -118,7 +121,7 @@ func run() error {
 	// agent enforces dry-run and reports business failures as result events
 	// itself, so the scan handler only ever returns an error for a message it
 	// could not process at all.
-	eventRouter, err := eventbus.NewRedisRouter(redisClient, eventbus.DefaultRetryPolicy(), eventbus.NewSlogAdapter(logger))
+	eventRouter, err := eventbus.NewRedisRouter(redisClient, busPolicy.Retry, eventbus.NewSlogAdapter(logger))
 	if err != nil {
 		return err
 	}

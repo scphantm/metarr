@@ -10,8 +10,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/redis/go-redis/v9"
-
-	metarrv1 "Metarr/internal/genproto/metarr/v1"
 )
 
 // Retry policy defaults.
@@ -38,7 +36,8 @@ const (
 
 // RetryPolicy is the retry tuning the Router applies to every handler it
 // registers. A message whose error survives every retry is logged and
-// acked; there is no dead-letter stream.
+// acked; there is no dead-letter stream. It is one slice of BusPolicy;
+// DefaultBusPolicy and BusPolicyFromConfig build it.
 type RetryPolicy struct {
 	// MaxAttempts is the number of retries after the first attempt.
 	MaxAttempts int
@@ -46,29 +45,6 @@ type RetryPolicy struct {
 	BackoffBase time.Duration
 	// BackoffMax caps the exponential backoff.
 	BackoffMax time.Duration
-}
-
-// DefaultRetryPolicy returns the built-in policy. It is the reference the
-// event_bus section's built-in defaults (builtin_defaults.json) must agree
-// with, and what a process with no live config to read — the agent — runs
-// with.
-func DefaultRetryPolicy() RetryPolicy {
-	return RetryPolicy{
-		MaxAttempts: DefaultRetryAttempts,
-		BackoffBase: DefaultRetryBackoffBase,
-		BackoffMax:  DefaultRetryBackoffMax,
-	}
-}
-
-// RetryPolicyFromConfig builds a RetryPolicy from the live event_bus config
-// section. The server reads its Router policy this way instead of from the
-// constants above (docs/adr/0006).
-func RetryPolicyFromConfig(c *metarrv1.EventBusConfig) RetryPolicy {
-	return RetryPolicy{
-		MaxAttempts: int(c.GetRetryAttempts()),
-		BackoffBase: time.Duration(c.GetRetryBackoffBaseMs()) * time.Millisecond,
-		BackoffMax:  time.Duration(c.GetRetryBackoffMaxMs()) * time.Millisecond,
-	}
 }
 
 // StreamHandler is what a durable-stream listener registers with the Router.
