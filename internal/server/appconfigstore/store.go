@@ -15,7 +15,6 @@ package appconfigstore
 import (
 	"context"
 	"sync"
-	"time"
 
 	"Metarr/internal/shared/appconfig"
 	"Metarr/internal/shared/correlation"
@@ -32,7 +31,7 @@ type configReader interface {
 // updateFirer is the store's write dependency, satisfied by
 // *eventbus.StreamBus without any change to that type.
 type updateFirer interface {
-	Fire(ctx context.Context, stream string, event eventbus.Event) error
+	Fire(ctx context.Context, stream string, event *eventbus.Event) error
 }
 
 // configWriter is Bootstrap's persistence dependency — a direct, synchronous
@@ -92,12 +91,12 @@ func (s *Store) Mutate(ctx context.Context, apply func(*appconfig.Config) error)
 		return err
 	}
 
-	event := eventbus.Event{
-		CorrelationID: correlation.FromContext(ctx),
-		Name:          eventbus.SystemConfigUpdateEventName,
-		Payload:       payload,
-		Timestamp:     time.Now().UTC(),
-	}
+	event := eventbus.NewEvent(
+		eventbus.SourceServer,
+		eventbus.SystemConfigUpdateEventName,
+		correlation.FromContext(ctx),
+		payload,
+	)
 
 	return s.firer.Fire(ctx, eventbus.SystemConfigUpdateStream, event)
 }

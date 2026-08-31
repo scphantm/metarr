@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"time"
 
 	"Metarr/internal/shared/correlation"
 	"Metarr/internal/shared/eventbus"
@@ -37,11 +36,7 @@ func (h *Handlers) Heartbeat(w http.ResponseWriter, r *http.Request) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, h.HeartbeatTimeout)
 	defer cancel()
 
-	event := eventbus.Event{
-		CorrelationID: correlationID,
-		Name:          "heartbeat.request",
-		Timestamp:     time.Now().UTC(),
-	}
+	event := eventbus.NewEvent(eventbus.SourceServer, "heartbeat.request", correlationID, nil)
 
 	reply, err := h.PubSub.Request(timeoutCtx, eventbus.HeartbeatRequestChannel, event)
 	if err != nil {

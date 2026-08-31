@@ -22,7 +22,7 @@ import (
 // handed out as a clone rather than aliased across the seam.
 type fakeConfigBackend struct {
 	cfg   *appconfig.Config
-	fired []eventbus.Event
+	fired []*eventbus.Event
 }
 
 func (f *fakeConfigBackend) Get(_ context.Context) (*appconfig.Config, error) {
@@ -32,7 +32,7 @@ func (f *fakeConfigBackend) Get(_ context.Context) (*appconfig.Config, error) {
 	return proto.Clone(f.cfg).(*appconfig.Config), nil
 }
 
-func (f *fakeConfigBackend) Fire(_ context.Context, _ string, event eventbus.Event) error {
+func (f *fakeConfigBackend) Fire(_ context.Context, _ string, event *eventbus.Event) error {
 	cfg, err := appconfig.UnmarshalStored(event.Payload)
 	if err != nil {
 		return err

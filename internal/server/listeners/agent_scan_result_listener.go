@@ -34,7 +34,7 @@ func RunAgentScanResultListener(
 		eventbus.AgentScanResultStream,
 		eventbus.AgentScanResultGroup,
 		eventbus.ConsumerName,
-		func(ctx context.Context, event eventbus.Event) error {
+		func(ctx context.Context, event *eventbus.Event) error {
 			return handleAgentScanEvent(ctx, repo, logger, event)
 		},
 	)
@@ -44,7 +44,7 @@ func handleAgentScanEvent(
 	ctx context.Context,
 	repo *mongostore.LocalDirectoryRepo,
 	logger *slog.Logger,
-	event eventbus.Event,
+	event *eventbus.Event,
 ) error {
 	switch event.Name {
 	case eventbus.AgentScanResultEventName:
@@ -64,7 +64,7 @@ func storeScanResult(
 	ctx context.Context,
 	repo *mongostore.LocalDirectoryRepo,
 	logger *slog.Logger,
-	event eventbus.Event,
+	event *eventbus.Event,
 ) error {
 	var message agentproto.ScanResultMessage
 	if err := json.Unmarshal(event.Payload, &message); err != nil {
@@ -115,7 +115,7 @@ func completeScan(
 	ctx context.Context,
 	repo *mongostore.LocalDirectoryRepo,
 	logger *slog.Logger,
-	event eventbus.Event,
+	event *eventbus.Event,
 ) error {
 	var message agentproto.ScanCompleteMessage
 	if err := json.Unmarshal(event.Payload, &message); err != nil {
@@ -156,7 +156,7 @@ func completeScan(
 	return nil
 }
 
-func reportScanFailure(logger *slog.Logger, event eventbus.Event) {
+func reportScanFailure(logger *slog.Logger, event *eventbus.Event) {
 	var message agentproto.ScanFailedMessage
 	if err := json.Unmarshal(event.Payload, &message); err != nil {
 		logger.Error("could not decode agent scan failure", "error", err)

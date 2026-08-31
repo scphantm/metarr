@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"Metarr/internal/agent/nfo"
 	"Metarr/internal/shared/agentproto"
@@ -40,21 +39,21 @@ func (r *Responder) Run(ctx context.Context) {
 
 	for message := range subscription.Channel() {
 		var request eventbus.Event
-		if err := json.Unmarshal([]byte(message.Payload), &request); err != nil {
+		if err := eventbus.UnmarshalEvent([]byte(message.Payload), &request); err != nil {
 			r.logger.Error("could not decode agent request", "error", err)
 			continue
 		}
 
 		switch request.Name {
 		case eventbus.AgentNFOReadEventName:
-			r.replyNFORead(ctx, request)
+			r.replyNFORead(ctx, &request)
 		default:
 			r.logger.Warn("ignoring unknown request", "event", request.Name)
 		}
 	}
 }
 
-func (r *Responder) replyNFORead(ctx context.Context, request eventbus.Event) {
+func (r *Responder) replyNFORead(ctx context.Context, request *eventbus.Event) {
 	reply := r.readNFO(request)
 
 	payload, err := json.Marshal(reply)
@@ -63,18 +62,14 @@ func (r *Responder) replyNFORead(ctx context.Context, request eventbus.Event) {
 		return
 	}
 
-	err = r.bus.Reply(ctx, request.CorrelationID, eventbus.Event{
-		CorrelationID: request.CorrelationID,
-		Name:          eventbus.AgentNFOReadEventName,
-		Payload:       payload,
-		Timestamp:     time.Now().UTC(),
-	})
+	err = r.bus.Reply(ctx, request.CorrelationId,
+		eventbus.NewEvent(eventbus.AgentSource(r.slug), eventbus.AgentNFOReadEventName, request.CorrelationId, payload))
 	if err != nil {
 		r.logger.Error("could not send NFO reply", "error", err)
 	}
 }
 
-func (r *Responder) readNFO(request eventbus.Event) agentproto.NFOReadReply {
+func (r *Responder) readNFO(request *eventbus.Event) agentproto.NFOReadReply {
 	var body agentproto.NFOReadRequest
 	if err := json.Unmarshal(request.Payload, &body); err != nil {
 		return agentproto.NFOReadReply{Error: "malformed request"}
