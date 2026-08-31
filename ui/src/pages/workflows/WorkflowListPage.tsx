@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Alert, Space, Spin, Tag, Typography } from 'antd'
+import { timestampDate } from '@bufbuild/protobuf/wkt'
 
 import { useWorkflowList } from '../../api/queries'
 import { Button, Card, EmptyState } from '../../components/Card'
@@ -63,11 +64,11 @@ export function WorkflowListPage() {
 
         {workflows.map((workflow) => (
           <Card
-            key={workflow.document_id}
+            key={workflow.documentId}
             title={workflow.name}
             description={workflow.description}
             actions={
-              <Button onClick={() => navigate(`/workflows/${workflow.document_id}/edit`)}>
+              <Button onClick={() => navigate(`/workflows/${workflow.documentId}/edit`)}>
                 Edit
               </Button>
             }
@@ -79,7 +80,7 @@ export function WorkflowListPage() {
                 ))}
               </Space>
               <Typography.Text type="secondary" className="workflow-list-meta">
-                v{workflow.version} · {new Date(workflow.created_at).toLocaleString()}
+                v{workflow.version} · {workflow.createdAt ? timestampDate(workflow.createdAt).toLocaleString() : ''}
               </Typography.Text>
             </div>
           </Card>
