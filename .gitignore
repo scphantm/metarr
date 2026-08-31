@@ -425,3 +425,4 @@ $RECYCLE.BIN/
 Metarr.code-workspace
 .vscode/
 cmd/metarr-agent/__debug_*
+cmd/metarr-server/__debug_*
