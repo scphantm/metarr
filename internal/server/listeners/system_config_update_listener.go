@@ -2,7 +2,6 @@ package listeners
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 
 	"Metarr/internal/server/agentregistry"
@@ -36,19 +35,23 @@ func RunSystemConfigUpdateListener(
 
 	propagator := newConfigPropagator(repo, liveConfigSetterFunc(appconfig.Set), sidecarRegistryAdapter{}, agents, logShipper, logger)
 
-	return bus.Consume(ctx, eventbus.SystemConfigUpdateStream, eventbus.SystemConfigUpdateGroup, eventbus.ConsumerName, func(ctx context.Context, event eventbus.Event) error {
-		var cfg appconfig.Config
-		if err := json.Unmarshal(event.Payload, &cfg); err != nil {
-			logger.Error("system_config_update listener: invalid payload", "correlation_id", event.CorrelationID, "error", err)
+	return bus.Consume(ctx, eventbus.SystemConfigUpdateStream, eventbus.SystemConfigUpdateGroup, eventbus.ConsumerName, func(ctx context.Context, event *eventbus.Event) error {
+		// Decode through the same protojson path the payload was published
+		// with (appconfig.MarshalStored). Reading a proto message back with
+		// encoding/json is what the old listener did, and it silently
+		// mishandled well-known types like the timestamps in this document.
+		cfg, err := appconfig.UnmarshalStored(event.Payload)
+		if err != nil {
+			logger.Error("system_config_update listener: invalid payload", "correlation_id", event.CorrelationId, "error", err)
 			return err
 		}
 
-		ctx = correlation.WithID(ctx, event.CorrelationID)
-		if err := propagator.Apply(ctx, &cfg); err != nil {
+		ctx = correlation.WithID(ctx, event.CorrelationId)
+		if err := propagator.Apply(ctx, cfg); err != nil {
 			return err
 		}
 
-		logger.Info("system config updated", "correlation_id", event.CorrelationID)
+		logger.Info("system config updated", "correlation_id", event.CorrelationId)
 		return nil
 	})
 }

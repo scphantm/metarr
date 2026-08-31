@@ -45,7 +45,7 @@ func (s *Scanner) Run(ctx context.Context) error {
 		eventbus.AgentCommandStream(s.slug),
 		eventbus.AgentCommandGroup(s.slug),
 		s.slug,
-		func(ctx context.Context, event eventbus.Event) error {
+		func(ctx context.Context, event *eventbus.Event) error {
 			s.handle(ctx, event)
 			// Never returned as an error. A Nack means Redis redelivers, and a
 			// scan that fails for a reason that will not change — an unmapped
@@ -56,7 +56,7 @@ func (s *Scanner) Run(ctx context.Context) error {
 	)
 }
 
-func (s *Scanner) handle(ctx context.Context, event eventbus.Event) {
+func (s *Scanner) handle(ctx context.Context, event *eventbus.Event) {
 	if event.Name != eventbus.AgentScanCommandEventName {
 		s.logger.Warn("ignoring unknown command", "event", event.Name)
 		return
@@ -71,12 +71,12 @@ func (s *Scanner) handle(ctx context.Context, event eventbus.Event) {
 	log := s.logger.With(
 		"scan_id", command.ScanID,
 		"scanner_slug", command.ScannerSlug,
-		"correlation_id", event.CorrelationID,
+		"correlation_id", event.CorrelationId,
 	)
 
 	if err := s.scan(ctx, command, log); err != nil {
 		log.Error("scan failed", "error", err)
-		if reportErr := s.report(ctx, event.CorrelationID, eventbus.AgentScanFailedEventName, agentproto.ScanFailedMessage{
+		if reportErr := s.report(ctx, event.CorrelationId, eventbus.AgentScanFailedEventName, agentproto.ScanFailedMessage{
 			ScanID:      command.ScanID,
 			AgentSlug:   s.slug,
 			ScannerSlug: command.ScannerSlug,
@@ -294,12 +294,8 @@ func (s *Scanner) sendResultInParts(
 }
 
 func (s *Scanner) fire(ctx context.Context, correlationID, name string, payload []byte) error {
-	return s.bus.Fire(ctx, eventbus.AgentScanResultStream, eventbus.Event{
-		CorrelationID: correlationID,
-		Name:          name,
-		Payload:       payload,
-		Timestamp:     time.Now().UTC(),
-	})
+	return s.bus.Fire(ctx, eventbus.AgentScanResultStream,
+		eventbus.NewEvent(eventbus.AgentSource(s.slug), name, correlationID, payload))
 }
 
 func (s *Scanner) report(ctx context.Context, correlationID, name string, message any) error {

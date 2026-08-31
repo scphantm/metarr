@@ -28,7 +28,7 @@ type fakeBackend struct {
 	cfg         *appconfig.Config
 	getCalls    int
 	upsertCalls int
-	fired       []eventbus.Event
+	fired       []*eventbus.Event
 }
 
 func (f *fakeBackend) Get(_ context.Context) (*appconfig.Config, error) {
@@ -51,7 +51,7 @@ func (f *fakeBackend) snapshotLocked() *appconfig.Config {
 	return proto.Clone(f.cfg).(*appconfig.Config)
 }
 
-func (f *fakeBackend) Fire(_ context.Context, _ string, event eventbus.Event) error {
+func (f *fakeBackend) Fire(_ context.Context, _ string, event *eventbus.Event) error {
 	cfg, err := appconfig.UnmarshalStored(event.Payload)
 	if err != nil {
 		return err
@@ -103,6 +103,54 @@ func TestMutate_ReadsAppliesAndFiresOneEvent(t *testing.T) {
 	}
 }
 
+// Regression for the system_config_update encoding mismatch: the event was
+// published with protojson and the listener read it back with encoding/json.
+// The fired envelope must survive a full MarshalEvent -> UnmarshalEvent hop
+// (what crossing Redis does) and its payload must still decode through
+// appconfig.UnmarshalStored, the same path the listener now uses.
+func TestMutate_FiredEventSurvivesTheBusEncodeDecode(t *testing.T) {
+	backend := &fakeBackend{}
+	store := New(backend, backend, backend)
+
+	err := store.Mutate(correlation.WithID(context.Background(), "corr-9"), func(cfg *appconfig.Config) error {
+		cfg.Logging.ServerLevel = appconfig.LogLevelDebug
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(backend.fired) != 1 {
+		t.Fatalf("expected one fired event, got %d", len(backend.fired))
+	}
+
+	wire, err := eventbus.MarshalEvent(backend.fired[0])
+	if err != nil {
+		t.Fatalf("MarshalEvent: %v", err)
+	}
+	var got eventbus.Event
+	if err := eventbus.UnmarshalEvent(wire, &got); err != nil {
+		t.Fatalf("UnmarshalEvent: %v", err)
+	}
+
+	if got.Name != eventbus.SystemConfigUpdateEventName {
+		t.Errorf("name = %q", got.Name)
+	}
+	if got.Source != eventbus.SourceServer {
+		t.Errorf("source = %q, want %q", got.Source, eventbus.SourceServer)
+	}
+	if got.CorrelationId != "corr-9" {
+		t.Errorf("correlation_id = %q", got.CorrelationId)
+	}
+
+	cfg, err := appconfig.UnmarshalStored(got.Payload)
+	if err != nil {
+		t.Fatalf("payload did not decode through UnmarshalStored: %v", err)
+	}
+	if cfg.Logging.ServerLevel != appconfig.LogLevelDebug {
+		t.Errorf("decoded config lost the change: %+v", cfg.Logging)
+	}
+}
+
 func TestMutate_ErrorFromApplyAbortsWithoutFiring(t *testing.T) {
 	backend := &fakeBackend{}
 	store := New(backend, backend, backend)
@@ -133,8 +181,8 @@ func TestMutate_CorrelationIDComesFromContext(t *testing.T) {
 	if len(backend.fired) != 1 {
 		t.Fatalf("expected one fired event, got %d", len(backend.fired))
 	}
-	if backend.fired[0].CorrelationID != "corr-123" {
-		t.Fatalf("expected correlation id from context, got %q", backend.fired[0].CorrelationID)
+	if backend.fired[0].CorrelationId != "corr-123" {
+		t.Fatalf("expected correlation id from context, got %q", backend.fired[0].CorrelationId)
 	}
 }
 
