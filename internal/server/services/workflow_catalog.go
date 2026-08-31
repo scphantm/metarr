@@ -16,9 +16,9 @@ import (
 )
 
 // WorkflowCatalogServer implements
-// metarrv1connect.WorkflowCatalogServiceHandler. The catalog crosses the wire
-// as a typed WorkflowCatalog message now (docs/adr/0005); the graph is still
-// carried as opaque JSON bytes on Validate — see workflow_catalog.proto.
+// metarrv1connect.WorkflowCatalogServiceHandler. Both the catalog and the
+// graph on Validate cross the wire as typed messages now — WorkflowCatalog
+// and WorkflowGraph — see docs/adr/0005.
 type WorkflowCatalogServer struct {
 	*handlers.Handlers
 }

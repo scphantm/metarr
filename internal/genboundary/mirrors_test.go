@@ -1,8 +1,8 @@
 // Package genboundary holds no code of its own. This file enforces the rule
 // docs/adr/0005 records: proto is the single definition for any model that
-// crosses a language boundary, so no Go struct and no TypeScript type may be
-// hand-written to mirror a generated message. The next hand-written mirror
-// fails the build rather than accumulating.
+// crosses a language boundary, so no Go or TypeScript type may be hand-written
+// to mirror a generated message or enum. The next hand-written mirror fails
+// the build rather than accumulating.
 package genboundary
 
 import (
@@ -25,27 +25,34 @@ import (
 // for the forbidden shape), scaled to the whole repository.
 //
 // The signal is a name collision. internal/genproto/metarr/v1/*.pb.go and
-// ui/src/gen/metarr/v1/*_pb.ts define every generated message type. A
-// hand-written `type <Name> struct` (Go) or `export type|interface <Name>`
-// (TypeScript) outside those generated trees, with the same <Name>, is a
-// mirror by definition — the generated type already *is* that model. A
-// correct migration replaces the struct with `type <Name> = metarrv1.<Name>`,
-// which this does not flag, because an alias is not a struct declaration.
+// ui/src/gen/metarr/v1/*_pb.ts define every generated message and enum type.
+// A hand-written type *definition* of the same name outside those generated
+// trees — `type <Name> struct` or `type <Name> string` in Go, `export
+// type|interface|enum <Name>` in TypeScript — is a mirror by definition: the
+// generated type already *is* that model. A correct migration replaces it
+// with an alias (`type <Name> = metarrv1.<Name>`), which this does not flag,
+// because an alias is not a definition.
+//
+// The check keys on the name, so a hand-written mirror given a *different*
+// name than its proto type slips through — the enforcement it buys is that
+// the canonical model names, which every removed mirror reused, cannot be
+// re-declared. Enums are covered as well as messages, since a closed
+// vocabulary is exactly the kind of thing tempting to re-type by hand.
 //
 // A false positive is a hand-written type that shares a name with an
-// unrelated generated message without mirroring it — a domain object
-// compiled from stored config, say, or a storage envelope. Each one lives in
-// allowed below with the reason it is not a mirror. Anything not on that list
-// is a violation: migrate it to an alias, or, if it genuinely is not a
-// mirror, add it to the list with an explanation.
+// unrelated generated type without mirroring it — a domain object compiled
+// from stored config, say, or a storage envelope. Each one lives in allowed
+// below with the reason it is not a mirror. Anything not on that list is a
+// violation: migrate it to an alias, or, if it genuinely is not a mirror,
+// add it to the list with an explanation.
 
 // allowed maps "<repo-relative file>::<TypeName>" to why that hand-written
 // type is not a mirror of the generated message it shares a name with.
 var allowed = map[string]string{
-	"internal/shared/config/config.go::Config": "infra wiring loaded from config.yaml (Mongo URI, Redis, log forward URL) — unrelated to metarr.v1.Config, the stored application config",
-	"internal/shared/config/agent.go::AgentConfig": "the agent's tiny local file (Redis connection + slug) — unrelated to metarr.v1.AgentConfig, the server-side agent record",
+	"internal/shared/config/config.go::Config":                    "infra wiring loaded from config.yaml (Mongo URI, Redis, log forward URL) — unrelated to metarr.v1.Config, the stored application config",
+	"internal/shared/config/agent.go::AgentConfig":                "the agent's tiny local file (Redis connection + slug) — unrelated to metarr.v1.AgentConfig, the server-side agent record",
 	"internal/shared/scanmodel/sidecar.go::SidecarTypeDefinition": "the compiled, typed form (closed category vocabulary + compiled regexps) derived from the stored metarr.v1.SidecarTypeDefinition, not a wire or storage shape",
-	"internal/server/mongostore/workflow_repo.go::Workflow": "the versioned storage envelope; the graph it holds rides as the generated metarr.v1.WorkflowGraph, converted in the workflow service",
+	"internal/server/mongostore/workflow_repo.go::Workflow":       "the versioned storage envelope; the graph it holds rides as the generated metarr.v1.WorkflowGraph, converted in the workflow service",
 }
 
 func repoRoot(t *testing.T) string {
@@ -58,8 +65,8 @@ func repoRoot(t *testing.T) string {
 	return filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", ".."))
 }
 
-// generatedGoMessageNames collects every `type X struct` declared in the
-// generated Go proto package.
+// generatedGoMessageNames collects the name of every type defined in the
+// generated Go proto package — message structs and enum int32 types alike.
 func generatedGoMessageNames(t *testing.T, root string) map[string]bool {
 	t.Helper()
 	names := map[string]bool{}
@@ -83,12 +90,13 @@ func generatedGoMessageNames(t *testing.T, root string) map[string]bool {
 			}
 			for _, spec := range gen.Specs {
 				ts, ok := spec.(*ast.TypeSpec)
-				if !ok {
-					continue
+				if !ok || ts.Assign.IsValid() {
+					continue // ts.Assign set => alias; a .pb.go defines, never aliases
 				}
-				if _, isStruct := ts.Type.(*ast.StructType); isStruct {
-					names[ts.Name.Name] = true
-				}
+				// Every top-level definition in a .pb.go is generated: a
+				// message (struct) or an enum (a named int32). Both are models
+				// that cross the boundary, so both are guarded.
+				names[ts.Name.Name] = true
 			}
 		}
 		return nil
@@ -102,10 +110,10 @@ func generatedGoMessageNames(t *testing.T, root string) map[string]bool {
 	return names
 }
 
-// TestNoHandWrittenGoStructMirrorsAGeneratedMessage scans every non-generated,
-// non-test Go file for a struct declaration whose name collides with a
-// generated message.
-func TestNoHandWrittenGoStructMirrorsAGeneratedMessage(t *testing.T) {
+// TestNoHandWrittenGoTypeMirrorsAGeneratedMessage scans every non-generated,
+// non-test Go file for a type definition (struct or enum) whose name collides
+// with a generated message or enum.
+func TestNoHandWrittenGoTypeMirrorsAGeneratedMessage(t *testing.T) {
 	root := repoRoot(t)
 	generated := generatedGoMessageNames(t, root)
 
@@ -142,22 +150,19 @@ func TestNoHandWrittenGoStructMirrorsAGeneratedMessage(t *testing.T) {
 				}
 				for _, spec := range gen.Specs {
 					ts, ok := spec.(*ast.TypeSpec)
-					if !ok {
-						continue
-					}
-					if _, isStruct := ts.Type.(*ast.StructType); !isStruct {
-						continue // an alias (type X = ...) is exactly what we want
+					if !ok || ts.Assign.IsValid() {
+						continue // `type X = ...` is an alias — exactly the migrated shape
 					}
 					name := ts.Name.Name
 					if !generated[name] {
 						continue
 					}
 					if reason, ok := allowed[rel+"::"+name]; ok {
-						t.Logf("allowed: %s declares %s — %s", rel, name, reason)
+						t.Logf("allowed: %s defines %s — %s", rel, name, reason)
 						continue
 					}
 					pos := fset.Position(ts.Pos())
-					t.Errorf("%s:%d declares hand-written struct %q, which is also a generated metarr.v1 message.\n"+
+					t.Errorf("%s:%d defines hand-written type %q, which is also a generated metarr.v1 message or enum.\n"+
 						"Proto is the single definition for a model that crosses a language boundary (docs/adr/0005): "+
 						"replace this with `type %s = metarrv1.%s`, or, if it is genuinely not a mirror, add "+
 						"%q to allowed in this file with the reason.",
@@ -173,8 +178,8 @@ func TestNoHandWrittenGoStructMirrorsAGeneratedMessage(t *testing.T) {
 }
 
 var (
-	tsGeneratedRE = regexp.MustCompile(`(?m)^export type ([A-Za-z0-9_]+) = Message<`)
-	tsHandRE      = regexp.MustCompile(`(?m)^export (?:type|interface) ([A-Za-z0-9_]+)\b`)
+	tsGeneratedRE = regexp.MustCompile(`(?m)^export type ([A-Za-z0-9_]+) = Message<|^export enum ([A-Za-z0-9_]+) \{`)
+	tsHandRE      = regexp.MustCompile(`(?m)^export (?:type|interface|enum) ([A-Za-z0-9_]+)\b`)
 )
 
 // TestNoHandWrittenTSTypeMirrorsAGeneratedMessage is the TypeScript half. The
@@ -199,7 +204,14 @@ func TestNoHandWrittenTSTypeMirrorsAGeneratedMessage(t *testing.T) {
 			return err
 		}
 		for _, m := range tsGeneratedRE.FindAllStringSubmatch(string(content), -1) {
-			generated[m[1]] = true
+			// Group 1 is a message name, group 2 an enum name; exactly one is
+			// set per match.
+			if m[1] != "" {
+				generated[m[1]] = true
+			}
+			if m[2] != "" {
+				generated[m[2]] = true
+			}
 		}
 		return nil
 	})
