@@ -50,6 +50,36 @@ func TestStreamTopicTable(t *testing.T) {
 	}
 }
 
+// streamTopicPublishable is the guard StreamBus.Publish applies: static
+// rows and pattern-covered per-agent command streams pass; a pattern topic
+// and an unknown name are rejected.
+func TestStreamTopicPublishableGuard(t *testing.T) {
+	ok := []StreamTopic{
+		SystemConfigUpdateTopic(),
+		AgentScanResultTopic(),
+		agentNodeResultTopic(),
+		AgentCommandTopic("nas-01"),
+		{Name: AgentScanResultStream}, // a hand-built row with just the name
+	}
+	for _, topic := range ok {
+		if err := streamTopicPublishable(topic); err != nil {
+			t.Errorf("streamTopicPublishable(%+v) = %v, want nil", topic, err)
+		}
+	}
+
+	bad := []StreamTopic{
+		{Name: "events.not_a_real_stream"},
+		{Name: AgentCommandStream("nas-01") + ".extra"},
+		agentCommandStreamPatternTopic(),
+		{Name: AgentScanResultStream, Pattern: true}, // Pattern flag alone is disqualifying
+	}
+	for _, topic := range bad {
+		if err := streamTopicPublishable(topic); err == nil {
+			t.Errorf("streamTopicPublishable(%+v) = nil, want an error", topic)
+		}
+	}
+}
+
 func TestDiscoverStreamTopicsExpandsPerAgentStreams(t *testing.T) {
 	_, client := newRetentionRedis(t)
 	ctx := context.Background()

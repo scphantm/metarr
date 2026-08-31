@@ -21,7 +21,7 @@ import (
 )
 
 // TaskServer implements metarrv1connect.TaskServiceHandler, ported directly
-// from internal/server/handlers/tasks.go — same event-bus Fire calls, only
+// from internal/server/handlers/tasks.go — same event-bus publish calls, only
 // the transport changed. The async listeners on the other end are
 // unaffected by this migration.
 type TaskServer struct {
@@ -84,7 +84,7 @@ func (s *TaskServer) RunDirectoryScan(
 
 	event := eventbus.NewEvent(eventbus.SourceServer, eventbus.AgentScanCommandEventName, correlationID, payload)
 
-	if err := s.Streams.Fire(ctx, eventbus.AgentCommandStream(agent.Slug), event); err != nil {
+	if err := s.Streams.Publish(ctx, eventbus.AgentCommandTopic(agent.Slug), event); err != nil {
 		s.Logger.Error("failed to send scan command to agent", "agent", agent.Slug, "correlation_id", correlationID, "error", err)
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue task"))
 	}
