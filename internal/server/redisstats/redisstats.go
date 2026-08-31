@@ -14,7 +14,6 @@ package redisstats
 
 import (
 	"context"
-	"strconv"
 	"strings"
 	"time"
 
@@ -95,22 +94,11 @@ func (c *Collector) collectDeadLetter(ctx context.Context) *DeadLetterStat {
 		return stat
 	}
 	if len(newest) == 1 {
-		if when, ok := timeFromStreamID(newest[0].ID); ok {
+		if when, ok := eventbus.TimeFromStreamID(newest[0].ID); ok {
 			stat.NewestEntry = timestamppb.New(when)
 		}
 	}
 	return stat
-}
-
-// timeFromStreamID recovers the publish time from a Redis Stream entry ID,
-// which is "<unix-millis>-<sequence>". The sequence is ignored.
-func timeFromStreamID(id string) (time.Time, bool) {
-	millisText, _, _ := strings.Cut(id, "-")
-	millis, err := strconv.ParseInt(millisText, 10, 64)
-	if err != nil {
-		return time.Time{}, false
-	}
-	return time.UnixMilli(millis).UTC(), true
 }
 
 func (c *Collector) collectServer(ctx context.Context) (*ServerInfo, error) {
