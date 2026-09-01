@@ -12,58 +12,72 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/stats.proto.
  */
 export const file_metarr_v1_stats: GenFile = /*@__PURE__*/
-  fileDesc("ChVtZXRhcnIvdjEvc3RhdHMucHJvdG8SCW1ldGFyci52MSLaAQoNUmVkaXNTbmFwc2hvdBIwCgxjb2xsZWN0ZWRfYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEioKBnNlcnZlchgCIAEoCzIaLm1ldGFyci52MS5SZWRpc1NlcnZlckluZm8SKwoHc3RyZWFtcxgDIAMoCzIaLm1ldGFyci52MS5SZWRpc1N0cmVhbVN0YXQSKwoGcHVic3ViGAQgAygLMhsubWV0YXJyLnYxLlJlZGlzQ2hhbm5lbFN0YXRKBAgFEAZSC2RlYWRfbGV0dGVyIrEBCg9SZWRpc1NlcnZlckluZm8SDwoHdmVyc2lvbhgBIAEoCRIWCg51cHRpbWVfc2Vjb25kcxgCIAEoAxIZChFjb25uZWN0ZWRfY2xpZW50cxgDIAEoAxITCgt1c2VkX21lbW9yeRgEIAEoAxIZChF1c2VkX21lbW9yeV9odW1hbhgFIAEoCRIWCg5vcHNfcGVyX3NlY29uZBgGIAEoAxISCgp0b3RhbF9rZXlzGAcgASgDIo8BCg9SZWRpc1N0cmVhbVN0YXQSDgoGc3RyZWFtGAEgASgJEhIKCmV2ZW50X25hbWUYAiABKAkSDgoGbGVuZ3RoGAMgASgDEg4KBmV4aXN0cxgEIAEoCBIpCgZncm91cHMYBSADKAsyGS5tZXRhcnIudjEuUmVkaXNHcm91cFN0YXQSDQoFZXJyb3IYBiABKAkioQEKDlJlZGlzR3JvdXBTdGF0EgwKBG5hbWUYASABKAkSEQoJY29uc3VtZXJzGAIgASgDEg8KB3BlbmRpbmcYAyABKAMSCwoDbGFnGAQgASgDEhkKEWxhc3RfZGVsaXZlcmVkX2lkGAUgASgJEjUKD2NvbnN1bWVyX2RldGFpbBgGIAMoCzIcLm1ldGFyci52MS5SZWRpc0NvbnN1bWVyU3RhdCJIChFSZWRpc0NvbnN1bWVyU3RhdBIMCgRuYW1lGAEgASgJEg8KB3BlbmRpbmcYAiABKAMSFAoMaWRsZV9zZWNvbmRzGAMgASgDIkcKEFJlZGlzQ2hhbm5lbFN0YXQSDwoHY2hhbm5lbBgBIAEoCRITCgtzdWJzY3JpYmVycxgCIAEoAxINCgVrbm93bhgDIAEoCCIYChZTdGF0c1NlcnZpY2VHZXRSZXF1ZXN0IkUKF1N0YXRzU2VydmljZUdldFJlc3BvbnNlEioKCHNuYXBzaG90GAEgASgLMhgubWV0YXJyLnYxLlJlZGlzU25hcHNob3QiGwoZU3RhdHNTZXJ2aWNlU3RyZWFtUmVxdWVzdCJIChpTdGF0c1NlcnZpY2VTdHJlYW1SZXNwb25zZRIqCghzbmFwc2hvdBgBIAEoCzIYLm1ldGFyci52MS5SZWRpc1NuYXBzaG90MrUBCgxTdGF0c1NlcnZpY2USTAoDR2V0EiEubWV0YXJyLnYxLlN0YXRzU2VydmljZUdldFJlcXVlc3QaIi5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlR2V0UmVzcG9uc2USVwoGU3RyZWFtEiQubWV0YXJyLnYxLlN0YXRzU2VydmljZVN0cmVhbVJlcXVlc3QaJS5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlU3RyZWFtUmVzcG9uc2UwAUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("ChVtZXRhcnIvdjEvc3RhdHMucHJvdG8SCW1ldGFyci52MSLBAQoLQnVzU25hcHNob3QSMAoMY29sbGVjdGVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIoCgZzZXJ2ZXIYAiABKAsyGC5tZXRhcnIudjEuQnVzU2VydmVySW5mbxIpCgdzdHJlYW1zGAMgAygLMhgubWV0YXJyLnYxLkJ1c1N0cmVhbVN0YXQSKwoIY2hhbm5lbHMYBCADKAsyGS5tZXRhcnIudjEuQnVzQ2hhbm5lbFN0YXQinAMKDUJ1c1NlcnZlckluZm8SDwoHdmVyc2lvbhgBIAEoCRIWCg51cHRpbWVfc2Vjb25kcxgCIAEoAxIZChFjb25uZWN0ZWRfY2xpZW50cxgDIAEoAxITCgt1c2VkX21lbW9yeRgEIAEoAxIZChF1c2VkX21lbW9yeV9odW1hbhgFIAEoCRIWCg5vcHNfcGVyX3NlY29uZBgGIAEoAxISCgp0b3RhbF9rZXlzGAcgASgDEiAKGGNvbm5lY3RlZF9jbGllbnRzX3NlcmllcxgIIAMoAxIaChJ1c2VkX21lbW9yeV9zZXJpZXMYCSADKAMSHQoVb3BzX3Blcl9zZWNvbmRfc2VyaWVzGAogAygDEhkKEXRvdGFsX2tleXNfc2VyaWVzGAsgAygDEj8KDGZpZWxkX2Vycm9ycxgMIAMoCzIpLm1ldGFyci52MS5CdXNTZXJ2ZXJJbmZvLkZpZWxkRXJyb3JzRW50cnkaMgoQRmllbGRFcnJvcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIosBCg1CdXNTdHJlYW1TdGF0Eg4KBnN0cmVhbRgBIAEoCRISCgpldmVudF9uYW1lGAIgASgJEg4KBmxlbmd0aBgDIAEoAxIOCgZleGlzdHMYBCABKAgSJwoGZ3JvdXBzGAUgAygLMhcubWV0YXJyLnYxLkJ1c0dyb3VwU3RhdBINCgVlcnJvchgGIAEoCSKdAQoMQnVzR3JvdXBTdGF0EgwKBG5hbWUYASABKAkSEQoJY29uc3VtZXJzGAIgASgDEg8KB3BlbmRpbmcYAyABKAMSCwoDbGFnGAQgASgDEhkKEWxhc3RfZGVsaXZlcmVkX2lkGAUgASgJEjMKD2NvbnN1bWVyX2RldGFpbBgGIAMoCzIaLm1ldGFyci52MS5CdXNDb25zdW1lclN0YXQiRgoPQnVzQ29uc3VtZXJTdGF0EgwKBG5hbWUYASABKAkSDwoHcGVuZGluZxgCIAEoAxIUCgxpZGxlX3NlY29uZHMYAyABKAMiRQoOQnVzQ2hhbm5lbFN0YXQSDwoHY2hhbm5lbBgBIAEoCRITCgtzdWJzY3JpYmVycxgCIAEoAxINCgVrbm93bhgDIAEoCCIYChZTdGF0c1NlcnZpY2VHZXRSZXF1ZXN0IkMKF1N0YXRzU2VydmljZUdldFJlc3BvbnNlEigKCHNuYXBzaG90GAEgASgLMhYubWV0YXJyLnYxLkJ1c1NuYXBzaG90IhsKGVN0YXRzU2VydmljZVN0cmVhbVJlcXVlc3QiRgoaU3RhdHNTZXJ2aWNlU3RyZWFtUmVzcG9uc2USKAoIc25hcHNob3QYASABKAsyFi5tZXRhcnIudjEuQnVzU25hcHNob3QytQEKDFN0YXRzU2VydmljZRJMCgNHZXQSIS5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlR2V0UmVxdWVzdBoiLm1ldGFyci52MS5TdGF0c1NlcnZpY2VHZXRSZXNwb25zZRJXCgZTdHJlYW0SJC5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlU3RyZWFtUmVxdWVzdBolLm1ldGFyci52MS5TdGF0c1NlcnZpY2VTdHJlYW1SZXNwb25zZTABQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
- * RedisSnapshot is a point-in-time view of the Redis instance backing the
- * event system: the depth and consumer-group state of every event stream,
- * the subscriber count of every Pub/Sub channel, and a handful of
- * server-wide counters. It is the single definition of that shape — the Go
- * collector (internal/server/redisstats aliases these messages) and the
- * dashboard both read it.
+ * BusSnapshot is a point-in-time view of the Redis instance backing the
+ * event bus: a handful of server-wide counters, and (populated by later
+ * tickets) the depth and consumer-group state of every event stream plus
+ * the subscriber count of every Pub/Sub channel. It is the single
+ * definition of that shape — the Go sampler (internal/server/busstats
+ * aliases these messages) and the dashboard both read it. See docs/adr/0007.
+ *
+ * One background sampler per server process fills this on a fixed interval
+ * into one shared in-process value with a short rolling history; every
+ * dashboard viewer reads that shared value. There is no per-viewer Redis
+ * traffic.
  *
  * The event streams and the Pub/Sub channels are not two flavours of one
  * thing. Streams are durable — messages sit on them until acknowledged, so
  * depth and pending counts are real numbers. Pub/Sub holds nothing, so
- * RedisChannelStat carries a subscriber count and no depth.
+ * BusChannelStat carries a subscriber count and no depth.
  *
- * @generated from message metarr.v1.RedisSnapshot
+ * @generated from message metarr.v1.BusSnapshot
  */
-export type RedisSnapshot = Message<"metarr.v1.RedisSnapshot"> & {
+export type BusSnapshot = Message<"metarr.v1.BusSnapshot"> & {
   /**
    * @generated from field: google.protobuf.Timestamp collected_at = 1;
    */
   collectedAt?: Timestamp | undefined;
 
   /**
-   * @generated from field: metarr.v1.RedisServerInfo server = 2;
+   * @generated from field: metarr.v1.BusServerInfo server = 2;
    */
-  server?: RedisServerInfo | undefined;
+  server?: BusServerInfo | undefined;
 
   /**
-   * @generated from field: repeated metarr.v1.RedisStreamStat streams = 3;
+   * Empty until the stream and channel tables land (scphantm/metarr#62,
+   * scphantm/metarr#64). The walking skeleton fills server only.
+   *
+   * @generated from field: repeated metarr.v1.BusStreamStat streams = 3;
    */
-  streams: RedisStreamStat[];
+  streams: BusStreamStat[];
 
   /**
-   * @generated from field: repeated metarr.v1.RedisChannelStat pubsub = 4;
+   * @generated from field: repeated metarr.v1.BusChannelStat channels = 4;
    */
-  pubsub: RedisChannelStat[];
+  channels: BusChannelStat[];
 };
 
 /**
- * Describes the message metarr.v1.RedisSnapshot.
- * Use `create(RedisSnapshotSchema)` to create a new message.
+ * Describes the message metarr.v1.BusSnapshot.
+ * Use `create(BusSnapshotSchema)` to create a new message.
  */
-export const RedisSnapshotSchema: GenMessage<RedisSnapshot> = /*@__PURE__*/
+export const BusSnapshotSchema: GenMessage<BusSnapshot> = /*@__PURE__*/
   messageDesc(file_metarr_v1_stats, 0);
 
 /**
- * RedisServerInfo holds the instance-wide counters, read from INFO and DBSIZE.
+ * BusServerInfo holds the instance-wide counters, read from INFO and DBSIZE.
  *
- * @generated from message metarr.v1.RedisServerInfo
+ * Each Redis call in a sampler pass is time-boxed on its own. A call that
+ * fails blanks only the fields it feeds and names each of them in
+ * field_errors; the rest of the snapshot is still delivered. Only losing
+ * the connection outright fails the whole pass, and then the last good
+ * snapshot is kept and ages out as stale on the dashboard.
+ *
+ * @generated from message metarr.v1.BusServerInfo
  */
-export type RedisServerInfo = Message<"metarr.v1.RedisServerInfo"> & {
+export type BusServerInfo = Message<"metarr.v1.BusServerInfo"> & {
   /**
    * @generated from field: string version = 1;
    */
@@ -98,21 +112,54 @@ export type RedisServerInfo = Message<"metarr.v1.RedisServerInfo"> & {
    * @generated from field: int64 total_keys = 7;
    */
   totalKeys: bigint;
+
+  /**
+   * Rolling per-metric history, oldest sample first, one entry per sampler
+   * pass (capped at ~150 samples, ~5 min at the 2s cadence). Empty until the
+   * sampler has taken its first pass. These back the tile sparklines.
+   *
+   * @generated from field: repeated int64 connected_clients_series = 8;
+   */
+  connectedClientsSeries: bigint[];
+
+  /**
+   * @generated from field: repeated int64 used_memory_series = 9;
+   */
+  usedMemorySeries: bigint[];
+
+  /**
+   * @generated from field: repeated int64 ops_per_second_series = 10;
+   */
+  opsPerSecondSeries: bigint[];
+
+  /**
+   * @generated from field: repeated int64 total_keys_series = 11;
+   */
+  totalKeysSeries: bigint[];
+
+  /**
+   * field_errors maps a blanked field name (for example "connected_clients"
+   * or "total_keys") to the error that blanked it on the last pass. Empty on
+   * a clean pass.
+   *
+   * @generated from field: map<string, string> field_errors = 12;
+   */
+  fieldErrors: { [key: string]: string };
 };
 
 /**
- * Describes the message metarr.v1.RedisServerInfo.
- * Use `create(RedisServerInfoSchema)` to create a new message.
+ * Describes the message metarr.v1.BusServerInfo.
+ * Use `create(BusServerInfoSchema)` to create a new message.
  */
-export const RedisServerInfoSchema: GenMessage<RedisServerInfo> = /*@__PURE__*/
+export const BusServerInfoSchema: GenMessage<BusServerInfo> = /*@__PURE__*/
   messageDesc(file_metarr_v1_stats, 1);
 
 /**
- * RedisStreamStat is one event stream and the consumer groups reading it.
+ * BusStreamStat is one event stream and the consumer groups reading it.
  *
- * @generated from message metarr.v1.RedisStreamStat
+ * @generated from message metarr.v1.BusStreamStat
  */
-export type RedisStreamStat = Message<"metarr.v1.RedisStreamStat"> & {
+export type BusStreamStat = Message<"metarr.v1.BusStreamStat"> & {
   /**
    * @generated from field: string stream = 1;
    */
@@ -137,9 +184,9 @@ export type RedisStreamStat = Message<"metarr.v1.RedisStreamStat"> & {
   exists: boolean;
 
   /**
-   * @generated from field: repeated metarr.v1.RedisGroupStat groups = 5;
+   * @generated from field: repeated metarr.v1.BusGroupStat groups = 5;
    */
-  groups: RedisGroupStat[];
+  groups: BusGroupStat[];
 
   /**
    * error records a per-stream failure; one unreadable stream should not
@@ -151,18 +198,18 @@ export type RedisStreamStat = Message<"metarr.v1.RedisStreamStat"> & {
 };
 
 /**
- * Describes the message metarr.v1.RedisStreamStat.
- * Use `create(RedisStreamStatSchema)` to create a new message.
+ * Describes the message metarr.v1.BusStreamStat.
+ * Use `create(BusStreamStatSchema)` to create a new message.
  */
-export const RedisStreamStatSchema: GenMessage<RedisStreamStat> = /*@__PURE__*/
+export const BusStreamStatSchema: GenMessage<BusStreamStat> = /*@__PURE__*/
   messageDesc(file_metarr_v1_stats, 2);
 
 /**
- * RedisGroupStat is one consumer group's position on a stream.
+ * BusGroupStat is one consumer group's position on a stream.
  *
- * @generated from message metarr.v1.RedisGroupStat
+ * @generated from message metarr.v1.BusGroupStat
  */
-export type RedisGroupStat = Message<"metarr.v1.RedisGroupStat"> & {
+export type BusGroupStat = Message<"metarr.v1.BusGroupStat"> & {
   /**
    * @generated from field: string name = 1;
    */
@@ -189,24 +236,24 @@ export type RedisGroupStat = Message<"metarr.v1.RedisGroupStat"> & {
   lastDeliveredId: string;
 
   /**
-   * @generated from field: repeated metarr.v1.RedisConsumerStat consumer_detail = 6;
+   * @generated from field: repeated metarr.v1.BusConsumerStat consumer_detail = 6;
    */
-  consumerDetail: RedisConsumerStat[];
+  consumerDetail: BusConsumerStat[];
 };
 
 /**
- * Describes the message metarr.v1.RedisGroupStat.
- * Use `create(RedisGroupStatSchema)` to create a new message.
+ * Describes the message metarr.v1.BusGroupStat.
+ * Use `create(BusGroupStatSchema)` to create a new message.
  */
-export const RedisGroupStatSchema: GenMessage<RedisGroupStat> = /*@__PURE__*/
+export const BusGroupStatSchema: GenMessage<BusGroupStat> = /*@__PURE__*/
   messageDesc(file_metarr_v1_stats, 3);
 
 /**
- * RedisConsumerStat is a single consumer within a group.
+ * BusConsumerStat is a single consumer within a group.
  *
- * @generated from message metarr.v1.RedisConsumerStat
+ * @generated from message metarr.v1.BusConsumerStat
  */
-export type RedisConsumerStat = Message<"metarr.v1.RedisConsumerStat"> & {
+export type BusConsumerStat = Message<"metarr.v1.BusConsumerStat"> & {
   /**
    * @generated from field: string name = 1;
    */
@@ -224,19 +271,19 @@ export type RedisConsumerStat = Message<"metarr.v1.RedisConsumerStat"> & {
 };
 
 /**
- * Describes the message metarr.v1.RedisConsumerStat.
- * Use `create(RedisConsumerStatSchema)` to create a new message.
+ * Describes the message metarr.v1.BusConsumerStat.
+ * Use `create(BusConsumerStatSchema)` to create a new message.
  */
-export const RedisConsumerStatSchema: GenMessage<RedisConsumerStat> = /*@__PURE__*/
+export const BusConsumerStatSchema: GenMessage<BusConsumerStat> = /*@__PURE__*/
   messageDesc(file_metarr_v1_stats, 4);
 
 /**
- * RedisChannelStat is one Pub/Sub channel. It carries no message count
+ * BusChannelStat is one Pub/Sub channel. It carries no message count
  * because Redis Pub/Sub queues nothing.
  *
- * @generated from message metarr.v1.RedisChannelStat
+ * @generated from message metarr.v1.BusChannelStat
  */
-export type RedisChannelStat = Message<"metarr.v1.RedisChannelStat"> & {
+export type BusChannelStat = Message<"metarr.v1.BusChannelStat"> & {
   /**
    * @generated from field: string channel = 1;
    */
@@ -257,10 +304,10 @@ export type RedisChannelStat = Message<"metarr.v1.RedisChannelStat"> & {
 };
 
 /**
- * Describes the message metarr.v1.RedisChannelStat.
- * Use `create(RedisChannelStatSchema)` to create a new message.
+ * Describes the message metarr.v1.BusChannelStat.
+ * Use `create(BusChannelStatSchema)` to create a new message.
  */
-export const RedisChannelStatSchema: GenMessage<RedisChannelStat> = /*@__PURE__*/
+export const BusChannelStatSchema: GenMessage<BusChannelStat> = /*@__PURE__*/
   messageDesc(file_metarr_v1_stats, 5);
 
 /**
@@ -281,9 +328,9 @@ export const StatsServiceGetRequestSchema: GenMessage<StatsServiceGetRequest> = 
  */
 export type StatsServiceGetResponse = Message<"metarr.v1.StatsServiceGetResponse"> & {
   /**
-   * @generated from field: metarr.v1.RedisSnapshot snapshot = 1;
+   * @generated from field: metarr.v1.BusSnapshot snapshot = 1;
    */
-  snapshot?: RedisSnapshot | undefined;
+  snapshot?: BusSnapshot | undefined;
 };
 
 /**
@@ -311,9 +358,9 @@ export const StatsServiceStreamRequestSchema: GenMessage<StatsServiceStreamReque
  */
 export type StatsServiceStreamResponse = Message<"metarr.v1.StatsServiceStreamResponse"> & {
   /**
-   * @generated from field: metarr.v1.RedisSnapshot snapshot = 1;
+   * @generated from field: metarr.v1.BusSnapshot snapshot = 1;
    */
-  snapshot?: RedisSnapshot | undefined;
+  snapshot?: BusSnapshot | undefined;
 };
 
 /**
@@ -324,9 +371,9 @@ export const StatsServiceStreamResponseSchema: GenMessage<StatsServiceStreamResp
   messageDesc(file_metarr_v1_stats, 9);
 
 /**
- * StatsService.Get is the REST-era first-paint fallback (a dashboard needs
- * something to paint before its stream connects); Stream is the same
- * snapshot pushed continuously, replacing the stats.redis wsbus topic.
+ * StatsService.Get is the first-paint fallback (a dashboard needs something
+ * to paint before its stream connects); Stream is the same snapshot pushed
+ * on every sampler tick, fanned out from the shared store.
  *
  * @generated from service metarr.v1.StatsService
  */

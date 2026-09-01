@@ -14,7 +14,7 @@ describe('queryKeys', () => {
     })
 
     it('defines stats keys', () => {
-      expect(queryKeys.redisStats).toEqual(['stats', 'redis'])
+      expect(queryKeys.busSnapshot).toEqual(['stats', 'bus'])
       expect(queryKeys.agents).toEqual(['stats', 'agents'])
       expect(queryKeys.logTail).toEqual(['stats', 'log-tail'])
     })

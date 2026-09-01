@@ -22,41 +22,48 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// RedisSnapshot is a point-in-time view of the Redis instance backing the
-// event system: the depth and consumer-group state of every event stream,
-// the subscriber count of every Pub/Sub channel, and a handful of
-// server-wide counters. It is the single definition of that shape — the Go
-// collector (internal/server/redisstats aliases these messages) and the
-// dashboard both read it.
+// BusSnapshot is a point-in-time view of the Redis instance backing the
+// event bus: a handful of server-wide counters, and (populated by later
+// tickets) the depth and consumer-group state of every event stream plus
+// the subscriber count of every Pub/Sub channel. It is the single
+// definition of that shape — the Go sampler (internal/server/busstats
+// aliases these messages) and the dashboard both read it. See docs/adr/0007.
+//
+// One background sampler per server process fills this on a fixed interval
+// into one shared in-process value with a short rolling history; every
+// dashboard viewer reads that shared value. There is no per-viewer Redis
+// traffic.
 //
 // The event streams and the Pub/Sub channels are not two flavours of one
 // thing. Streams are durable — messages sit on them until acknowledged, so
 // depth and pending counts are real numbers. Pub/Sub holds nothing, so
-// RedisChannelStat carries a subscriber count and no depth.
-type RedisSnapshot struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CollectedAt   *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=collected_at,json=collectedAt,proto3" json:"collected_at,omitempty"`
-	Server        *RedisServerInfo       `protobuf:"bytes,2,opt,name=server,proto3" json:"server,omitempty"`
-	Streams       []*RedisStreamStat     `protobuf:"bytes,3,rep,name=streams,proto3" json:"streams,omitempty"`
-	Pubsub        []*RedisChannelStat    `protobuf:"bytes,4,rep,name=pubsub,proto3" json:"pubsub,omitempty"`
+// BusChannelStat carries a subscriber count and no depth.
+type BusSnapshot struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	CollectedAt *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=collected_at,json=collectedAt,proto3" json:"collected_at,omitempty"`
+	Server      *BusServerInfo         `protobuf:"bytes,2,opt,name=server,proto3" json:"server,omitempty"`
+	// Empty until the stream and channel tables land (scphantm/metarr#62,
+	// scphantm/metarr#64). The walking skeleton fills server only.
+	Streams       []*BusStreamStat  `protobuf:"bytes,3,rep,name=streams,proto3" json:"streams,omitempty"`
+	Channels      []*BusChannelStat `protobuf:"bytes,4,rep,name=channels,proto3" json:"channels,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RedisSnapshot) Reset() {
-	*x = RedisSnapshot{}
+func (x *BusSnapshot) Reset() {
+	*x = BusSnapshot{}
 	mi := &file_metarr_v1_stats_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RedisSnapshot) String() string {
+func (x *BusSnapshot) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RedisSnapshot) ProtoMessage() {}
+func (*BusSnapshot) ProtoMessage() {}
 
-func (x *RedisSnapshot) ProtoReflect() protoreflect.Message {
+func (x *BusSnapshot) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_stats_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -68,41 +75,47 @@ func (x *RedisSnapshot) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RedisSnapshot.ProtoReflect.Descriptor instead.
-func (*RedisSnapshot) Descriptor() ([]byte, []int) {
+// Deprecated: Use BusSnapshot.ProtoReflect.Descriptor instead.
+func (*BusSnapshot) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_stats_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *RedisSnapshot) GetCollectedAt() *timestamppb.Timestamp {
+func (x *BusSnapshot) GetCollectedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CollectedAt
 	}
 	return nil
 }
 
-func (x *RedisSnapshot) GetServer() *RedisServerInfo {
+func (x *BusSnapshot) GetServer() *BusServerInfo {
 	if x != nil {
 		return x.Server
 	}
 	return nil
 }
 
-func (x *RedisSnapshot) GetStreams() []*RedisStreamStat {
+func (x *BusSnapshot) GetStreams() []*BusStreamStat {
 	if x != nil {
 		return x.Streams
 	}
 	return nil
 }
 
-func (x *RedisSnapshot) GetPubsub() []*RedisChannelStat {
+func (x *BusSnapshot) GetChannels() []*BusChannelStat {
 	if x != nil {
-		return x.Pubsub
+		return x.Channels
 	}
 	return nil
 }
 
-// RedisServerInfo holds the instance-wide counters, read from INFO and DBSIZE.
-type RedisServerInfo struct {
+// BusServerInfo holds the instance-wide counters, read from INFO and DBSIZE.
+//
+// Each Redis call in a sampler pass is time-boxed on its own. A call that
+// fails blanks only the fields it feeds and names each of them in
+// field_errors; the rest of the snapshot is still delivered. Only losing
+// the connection outright fails the whole pass, and then the last good
+// snapshot is kept and ages out as stale on the dashboard.
+type BusServerInfo struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Version          string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
 	UptimeSeconds    int64                  `protobuf:"varint,2,opt,name=uptime_seconds,json=uptimeSeconds,proto3" json:"uptime_seconds,omitempty"`
@@ -111,24 +124,35 @@ type RedisServerInfo struct {
 	UsedMemoryHuman  string                 `protobuf:"bytes,5,opt,name=used_memory_human,json=usedMemoryHuman,proto3" json:"used_memory_human,omitempty"`
 	OpsPerSecond     int64                  `protobuf:"varint,6,opt,name=ops_per_second,json=opsPerSecond,proto3" json:"ops_per_second,omitempty"`
 	TotalKeys        int64                  `protobuf:"varint,7,opt,name=total_keys,json=totalKeys,proto3" json:"total_keys,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Rolling per-metric history, oldest sample first, one entry per sampler
+	// pass (capped at ~150 samples, ~5 min at the 2s cadence). Empty until the
+	// sampler has taken its first pass. These back the tile sparklines.
+	ConnectedClientsSeries []int64 `protobuf:"varint,8,rep,packed,name=connected_clients_series,json=connectedClientsSeries,proto3" json:"connected_clients_series,omitempty"`
+	UsedMemorySeries       []int64 `protobuf:"varint,9,rep,packed,name=used_memory_series,json=usedMemorySeries,proto3" json:"used_memory_series,omitempty"`
+	OpsPerSecondSeries     []int64 `protobuf:"varint,10,rep,packed,name=ops_per_second_series,json=opsPerSecondSeries,proto3" json:"ops_per_second_series,omitempty"`
+	TotalKeysSeries        []int64 `protobuf:"varint,11,rep,packed,name=total_keys_series,json=totalKeysSeries,proto3" json:"total_keys_series,omitempty"`
+	// field_errors maps a blanked field name (for example "connected_clients"
+	// or "total_keys") to the error that blanked it on the last pass. Empty on
+	// a clean pass.
+	FieldErrors   map[string]string `protobuf:"bytes,12,rep,name=field_errors,json=fieldErrors,proto3" json:"field_errors,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RedisServerInfo) Reset() {
-	*x = RedisServerInfo{}
+func (x *BusServerInfo) Reset() {
+	*x = BusServerInfo{}
 	mi := &file_metarr_v1_stats_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RedisServerInfo) String() string {
+func (x *BusServerInfo) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RedisServerInfo) ProtoMessage() {}
+func (*BusServerInfo) ProtoMessage() {}
 
-func (x *RedisServerInfo) ProtoReflect() protoreflect.Message {
+func (x *BusServerInfo) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_stats_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -140,70 +164,105 @@ func (x *RedisServerInfo) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RedisServerInfo.ProtoReflect.Descriptor instead.
-func (*RedisServerInfo) Descriptor() ([]byte, []int) {
+// Deprecated: Use BusServerInfo.ProtoReflect.Descriptor instead.
+func (*BusServerInfo) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_stats_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *RedisServerInfo) GetVersion() string {
+func (x *BusServerInfo) GetVersion() string {
 	if x != nil {
 		return x.Version
 	}
 	return ""
 }
 
-func (x *RedisServerInfo) GetUptimeSeconds() int64 {
+func (x *BusServerInfo) GetUptimeSeconds() int64 {
 	if x != nil {
 		return x.UptimeSeconds
 	}
 	return 0
 }
 
-func (x *RedisServerInfo) GetConnectedClients() int64 {
+func (x *BusServerInfo) GetConnectedClients() int64 {
 	if x != nil {
 		return x.ConnectedClients
 	}
 	return 0
 }
 
-func (x *RedisServerInfo) GetUsedMemory() int64 {
+func (x *BusServerInfo) GetUsedMemory() int64 {
 	if x != nil {
 		return x.UsedMemory
 	}
 	return 0
 }
 
-func (x *RedisServerInfo) GetUsedMemoryHuman() string {
+func (x *BusServerInfo) GetUsedMemoryHuman() string {
 	if x != nil {
 		return x.UsedMemoryHuman
 	}
 	return ""
 }
 
-func (x *RedisServerInfo) GetOpsPerSecond() int64 {
+func (x *BusServerInfo) GetOpsPerSecond() int64 {
 	if x != nil {
 		return x.OpsPerSecond
 	}
 	return 0
 }
 
-func (x *RedisServerInfo) GetTotalKeys() int64 {
+func (x *BusServerInfo) GetTotalKeys() int64 {
 	if x != nil {
 		return x.TotalKeys
 	}
 	return 0
 }
 
-// RedisStreamStat is one event stream and the consumer groups reading it.
-type RedisStreamStat struct {
+func (x *BusServerInfo) GetConnectedClientsSeries() []int64 {
+	if x != nil {
+		return x.ConnectedClientsSeries
+	}
+	return nil
+}
+
+func (x *BusServerInfo) GetUsedMemorySeries() []int64 {
+	if x != nil {
+		return x.UsedMemorySeries
+	}
+	return nil
+}
+
+func (x *BusServerInfo) GetOpsPerSecondSeries() []int64 {
+	if x != nil {
+		return x.OpsPerSecondSeries
+	}
+	return nil
+}
+
+func (x *BusServerInfo) GetTotalKeysSeries() []int64 {
+	if x != nil {
+		return x.TotalKeysSeries
+	}
+	return nil
+}
+
+func (x *BusServerInfo) GetFieldErrors() map[string]string {
+	if x != nil {
+		return x.FieldErrors
+	}
+	return nil
+}
+
+// BusStreamStat is one event stream and the consumer groups reading it.
+type BusStreamStat struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Stream    string                 `protobuf:"bytes,1,opt,name=stream,proto3" json:"stream,omitempty"`
 	EventName string                 `protobuf:"bytes,2,opt,name=event_name,json=eventName,proto3" json:"event_name,omitempty"`
 	Length    int64                  `protobuf:"varint,3,opt,name=length,proto3" json:"length,omitempty"`
 	// exists distinguishes an empty stream from one that has never been
 	// created — streams are created lazily, when a listener first subscribes.
-	Exists bool              `protobuf:"varint,4,opt,name=exists,proto3" json:"exists,omitempty"`
-	Groups []*RedisGroupStat `protobuf:"bytes,5,rep,name=groups,proto3" json:"groups,omitempty"`
+	Exists bool            `protobuf:"varint,4,opt,name=exists,proto3" json:"exists,omitempty"`
+	Groups []*BusGroupStat `protobuf:"bytes,5,rep,name=groups,proto3" json:"groups,omitempty"`
 	// error records a per-stream failure; one unreadable stream should not
 	// cost the caller the rest of the snapshot.
 	Error         string `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
@@ -211,20 +270,20 @@ type RedisStreamStat struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RedisStreamStat) Reset() {
-	*x = RedisStreamStat{}
+func (x *BusStreamStat) Reset() {
+	*x = BusStreamStat{}
 	mi := &file_metarr_v1_stats_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RedisStreamStat) String() string {
+func (x *BusStreamStat) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RedisStreamStat) ProtoMessage() {}
+func (*BusStreamStat) ProtoMessage() {}
 
-func (x *RedisStreamStat) ProtoReflect() protoreflect.Message {
+func (x *BusStreamStat) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_stats_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -236,80 +295,80 @@ func (x *RedisStreamStat) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RedisStreamStat.ProtoReflect.Descriptor instead.
-func (*RedisStreamStat) Descriptor() ([]byte, []int) {
+// Deprecated: Use BusStreamStat.ProtoReflect.Descriptor instead.
+func (*BusStreamStat) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_stats_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *RedisStreamStat) GetStream() string {
+func (x *BusStreamStat) GetStream() string {
 	if x != nil {
 		return x.Stream
 	}
 	return ""
 }
 
-func (x *RedisStreamStat) GetEventName() string {
+func (x *BusStreamStat) GetEventName() string {
 	if x != nil {
 		return x.EventName
 	}
 	return ""
 }
 
-func (x *RedisStreamStat) GetLength() int64 {
+func (x *BusStreamStat) GetLength() int64 {
 	if x != nil {
 		return x.Length
 	}
 	return 0
 }
 
-func (x *RedisStreamStat) GetExists() bool {
+func (x *BusStreamStat) GetExists() bool {
 	if x != nil {
 		return x.Exists
 	}
 	return false
 }
 
-func (x *RedisStreamStat) GetGroups() []*RedisGroupStat {
+func (x *BusStreamStat) GetGroups() []*BusGroupStat {
 	if x != nil {
 		return x.Groups
 	}
 	return nil
 }
 
-func (x *RedisStreamStat) GetError() string {
+func (x *BusStreamStat) GetError() string {
 	if x != nil {
 		return x.Error
 	}
 	return ""
 }
 
-// RedisGroupStat is one consumer group's position on a stream.
-type RedisGroupStat struct {
+// BusGroupStat is one consumer group's position on a stream.
+type BusGroupStat struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Consumers       int64                  `protobuf:"varint,2,opt,name=consumers,proto3" json:"consumers,omitempty"`
 	Pending         int64                  `protobuf:"varint,3,opt,name=pending,proto3" json:"pending,omitempty"`
 	Lag             int64                  `protobuf:"varint,4,opt,name=lag,proto3" json:"lag,omitempty"`
 	LastDeliveredId string                 `protobuf:"bytes,5,opt,name=last_delivered_id,json=lastDeliveredId,proto3" json:"last_delivered_id,omitempty"`
-	ConsumerDetail  []*RedisConsumerStat   `protobuf:"bytes,6,rep,name=consumer_detail,json=consumerDetail,proto3" json:"consumer_detail,omitempty"`
+	ConsumerDetail  []*BusConsumerStat     `protobuf:"bytes,6,rep,name=consumer_detail,json=consumerDetail,proto3" json:"consumer_detail,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
-func (x *RedisGroupStat) Reset() {
-	*x = RedisGroupStat{}
+func (x *BusGroupStat) Reset() {
+	*x = BusGroupStat{}
 	mi := &file_metarr_v1_stats_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RedisGroupStat) String() string {
+func (x *BusGroupStat) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RedisGroupStat) ProtoMessage() {}
+func (*BusGroupStat) ProtoMessage() {}
 
-func (x *RedisGroupStat) ProtoReflect() protoreflect.Message {
+func (x *BusGroupStat) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_stats_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -321,55 +380,55 @@ func (x *RedisGroupStat) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RedisGroupStat.ProtoReflect.Descriptor instead.
-func (*RedisGroupStat) Descriptor() ([]byte, []int) {
+// Deprecated: Use BusGroupStat.ProtoReflect.Descriptor instead.
+func (*BusGroupStat) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_stats_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *RedisGroupStat) GetName() string {
+func (x *BusGroupStat) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *RedisGroupStat) GetConsumers() int64 {
+func (x *BusGroupStat) GetConsumers() int64 {
 	if x != nil {
 		return x.Consumers
 	}
 	return 0
 }
 
-func (x *RedisGroupStat) GetPending() int64 {
+func (x *BusGroupStat) GetPending() int64 {
 	if x != nil {
 		return x.Pending
 	}
 	return 0
 }
 
-func (x *RedisGroupStat) GetLag() int64 {
+func (x *BusGroupStat) GetLag() int64 {
 	if x != nil {
 		return x.Lag
 	}
 	return 0
 }
 
-func (x *RedisGroupStat) GetLastDeliveredId() string {
+func (x *BusGroupStat) GetLastDeliveredId() string {
 	if x != nil {
 		return x.LastDeliveredId
 	}
 	return ""
 }
 
-func (x *RedisGroupStat) GetConsumerDetail() []*RedisConsumerStat {
+func (x *BusGroupStat) GetConsumerDetail() []*BusConsumerStat {
 	if x != nil {
 		return x.ConsumerDetail
 	}
 	return nil
 }
 
-// RedisConsumerStat is a single consumer within a group.
-type RedisConsumerStat struct {
+// BusConsumerStat is a single consumer within a group.
+type BusConsumerStat struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Pending       int64                  `protobuf:"varint,2,opt,name=pending,proto3" json:"pending,omitempty"`
@@ -378,20 +437,20 @@ type RedisConsumerStat struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RedisConsumerStat) Reset() {
-	*x = RedisConsumerStat{}
+func (x *BusConsumerStat) Reset() {
+	*x = BusConsumerStat{}
 	mi := &file_metarr_v1_stats_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RedisConsumerStat) String() string {
+func (x *BusConsumerStat) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RedisConsumerStat) ProtoMessage() {}
+func (*BusConsumerStat) ProtoMessage() {}
 
-func (x *RedisConsumerStat) ProtoReflect() protoreflect.Message {
+func (x *BusConsumerStat) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_stats_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -403,35 +462,35 @@ func (x *RedisConsumerStat) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RedisConsumerStat.ProtoReflect.Descriptor instead.
-func (*RedisConsumerStat) Descriptor() ([]byte, []int) {
+// Deprecated: Use BusConsumerStat.ProtoReflect.Descriptor instead.
+func (*BusConsumerStat) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_stats_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *RedisConsumerStat) GetName() string {
+func (x *BusConsumerStat) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *RedisConsumerStat) GetPending() int64 {
+func (x *BusConsumerStat) GetPending() int64 {
 	if x != nil {
 		return x.Pending
 	}
 	return 0
 }
 
-func (x *RedisConsumerStat) GetIdleSeconds() int64 {
+func (x *BusConsumerStat) GetIdleSeconds() int64 {
 	if x != nil {
 		return x.IdleSeconds
 	}
 	return 0
 }
 
-// RedisChannelStat is one Pub/Sub channel. It carries no message count
+// BusChannelStat is one Pub/Sub channel. It carries no message count
 // because Redis Pub/Sub queues nothing.
-type RedisChannelStat struct {
+type BusChannelStat struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	Channel     string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
 	Subscribers int64                  `protobuf:"varint,2,opt,name=subscribers,proto3" json:"subscribers,omitempty"`
@@ -442,20 +501,20 @@ type RedisChannelStat struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RedisChannelStat) Reset() {
-	*x = RedisChannelStat{}
+func (x *BusChannelStat) Reset() {
+	*x = BusChannelStat{}
 	mi := &file_metarr_v1_stats_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RedisChannelStat) String() string {
+func (x *BusChannelStat) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RedisChannelStat) ProtoMessage() {}
+func (*BusChannelStat) ProtoMessage() {}
 
-func (x *RedisChannelStat) ProtoReflect() protoreflect.Message {
+func (x *BusChannelStat) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_stats_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -467,26 +526,26 @@ func (x *RedisChannelStat) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RedisChannelStat.ProtoReflect.Descriptor instead.
-func (*RedisChannelStat) Descriptor() ([]byte, []int) {
+// Deprecated: Use BusChannelStat.ProtoReflect.Descriptor instead.
+func (*BusChannelStat) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_stats_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *RedisChannelStat) GetChannel() string {
+func (x *BusChannelStat) GetChannel() string {
 	if x != nil {
 		return x.Channel
 	}
 	return ""
 }
 
-func (x *RedisChannelStat) GetSubscribers() int64 {
+func (x *BusChannelStat) GetSubscribers() int64 {
 	if x != nil {
 		return x.Subscribers
 	}
 	return 0
 }
 
-func (x *RedisChannelStat) GetKnown() bool {
+func (x *BusChannelStat) GetKnown() bool {
 	if x != nil {
 		return x.Known
 	}
@@ -531,7 +590,7 @@ func (*StatsServiceGetRequest) Descriptor() ([]byte, []int) {
 
 type StatsServiceGetResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Snapshot      *RedisSnapshot         `protobuf:"bytes,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	Snapshot      *BusSnapshot           `protobuf:"bytes,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -566,7 +625,7 @@ func (*StatsServiceGetResponse) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_stats_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *StatsServiceGetResponse) GetSnapshot() *RedisSnapshot {
+func (x *StatsServiceGetResponse) GetSnapshot() *BusSnapshot {
 	if x != nil {
 		return x.Snapshot
 	}
@@ -611,7 +670,7 @@ func (*StatsServiceStreamRequest) Descriptor() ([]byte, []int) {
 
 type StatsServiceStreamResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Snapshot      *RedisSnapshot         `protobuf:"bytes,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	Snapshot      *BusSnapshot           `protobuf:"bytes,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -646,7 +705,7 @@ func (*StatsServiceStreamResponse) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_stats_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *StatsServiceStreamResponse) GetSnapshot() *RedisSnapshot {
+func (x *StatsServiceStreamResponse) GetSnapshot() *BusSnapshot {
 	if x != nil {
 		return x.Snapshot
 	}
@@ -657,13 +716,13 @@ var File_metarr_v1_stats_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_stats_proto_rawDesc = "" +
 	"\n" +
-	"\x15metarr/v1/stats.proto\x12\tmetarr.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x80\x02\n" +
-	"\rRedisSnapshot\x12=\n" +
-	"\fcollected_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\vcollectedAt\x122\n" +
-	"\x06server\x18\x02 \x01(\v2\x1a.metarr.v1.RedisServerInfoR\x06server\x124\n" +
-	"\astreams\x18\x03 \x03(\v2\x1a.metarr.v1.RedisStreamStatR\astreams\x123\n" +
-	"\x06pubsub\x18\x04 \x03(\v2\x1b.metarr.v1.RedisChannelStatR\x06pubsubJ\x04\b\x05\x10\x06R\vdead_letter\"\x91\x02\n" +
-	"\x0fRedisServerInfo\x12\x18\n" +
+	"\x15metarr/v1/stats.proto\x12\tmetarr.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe9\x01\n" +
+	"\vBusSnapshot\x12=\n" +
+	"\fcollected_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\vcollectedAt\x120\n" +
+	"\x06server\x18\x02 \x01(\v2\x18.metarr.v1.BusServerInfoR\x06server\x122\n" +
+	"\astreams\x18\x03 \x03(\v2\x18.metarr.v1.BusStreamStatR\astreams\x125\n" +
+	"\bchannels\x18\x04 \x03(\v2\x19.metarr.v1.BusChannelStatR\bchannels\"\xe4\x04\n" +
+	"\rBusServerInfo\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12%\n" +
 	"\x0euptime_seconds\x18\x02 \x01(\x03R\ruptimeSeconds\x12+\n" +
 	"\x11connected_clients\x18\x03 \x01(\x03R\x10connectedClients\x12\x1f\n" +
@@ -672,36 +731,45 @@ const file_metarr_v1_stats_proto_rawDesc = "" +
 	"\x11used_memory_human\x18\x05 \x01(\tR\x0fusedMemoryHuman\x12$\n" +
 	"\x0eops_per_second\x18\x06 \x01(\x03R\fopsPerSecond\x12\x1d\n" +
 	"\n" +
-	"total_keys\x18\a \x01(\x03R\ttotalKeys\"\xc1\x01\n" +
-	"\x0fRedisStreamStat\x12\x16\n" +
+	"total_keys\x18\a \x01(\x03R\ttotalKeys\x128\n" +
+	"\x18connected_clients_series\x18\b \x03(\x03R\x16connectedClientsSeries\x12,\n" +
+	"\x12used_memory_series\x18\t \x03(\x03R\x10usedMemorySeries\x121\n" +
+	"\x15ops_per_second_series\x18\n" +
+	" \x03(\x03R\x12opsPerSecondSeries\x12*\n" +
+	"\x11total_keys_series\x18\v \x03(\x03R\x0ftotalKeysSeries\x12L\n" +
+	"\ffield_errors\x18\f \x03(\v2).metarr.v1.BusServerInfo.FieldErrorsEntryR\vfieldErrors\x1a>\n" +
+	"\x10FieldErrorsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xbd\x01\n" +
+	"\rBusStreamStat\x12\x16\n" +
 	"\x06stream\x18\x01 \x01(\tR\x06stream\x12\x1d\n" +
 	"\n" +
 	"event_name\x18\x02 \x01(\tR\teventName\x12\x16\n" +
 	"\x06length\x18\x03 \x01(\x03R\x06length\x12\x16\n" +
-	"\x06exists\x18\x04 \x01(\bR\x06exists\x121\n" +
-	"\x06groups\x18\x05 \x03(\v2\x19.metarr.v1.RedisGroupStatR\x06groups\x12\x14\n" +
-	"\x05error\x18\x06 \x01(\tR\x05error\"\xe1\x01\n" +
-	"\x0eRedisGroupStat\x12\x12\n" +
+	"\x06exists\x18\x04 \x01(\bR\x06exists\x12/\n" +
+	"\x06groups\x18\x05 \x03(\v2\x17.metarr.v1.BusGroupStatR\x06groups\x12\x14\n" +
+	"\x05error\x18\x06 \x01(\tR\x05error\"\xdd\x01\n" +
+	"\fBusGroupStat\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1c\n" +
 	"\tconsumers\x18\x02 \x01(\x03R\tconsumers\x12\x18\n" +
 	"\apending\x18\x03 \x01(\x03R\apending\x12\x10\n" +
 	"\x03lag\x18\x04 \x01(\x03R\x03lag\x12*\n" +
-	"\x11last_delivered_id\x18\x05 \x01(\tR\x0flastDeliveredId\x12E\n" +
-	"\x0fconsumer_detail\x18\x06 \x03(\v2\x1c.metarr.v1.RedisConsumerStatR\x0econsumerDetail\"d\n" +
-	"\x11RedisConsumerStat\x12\x12\n" +
+	"\x11last_delivered_id\x18\x05 \x01(\tR\x0flastDeliveredId\x12C\n" +
+	"\x0fconsumer_detail\x18\x06 \x03(\v2\x1a.metarr.v1.BusConsumerStatR\x0econsumerDetail\"b\n" +
+	"\x0fBusConsumerStat\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\apending\x18\x02 \x01(\x03R\apending\x12!\n" +
-	"\fidle_seconds\x18\x03 \x01(\x03R\vidleSeconds\"d\n" +
-	"\x10RedisChannelStat\x12\x18\n" +
+	"\fidle_seconds\x18\x03 \x01(\x03R\vidleSeconds\"b\n" +
+	"\x0eBusChannelStat\x12\x18\n" +
 	"\achannel\x18\x01 \x01(\tR\achannel\x12 \n" +
 	"\vsubscribers\x18\x02 \x01(\x03R\vsubscribers\x12\x14\n" +
 	"\x05known\x18\x03 \x01(\bR\x05known\"\x18\n" +
-	"\x16StatsServiceGetRequest\"O\n" +
-	"\x17StatsServiceGetResponse\x124\n" +
-	"\bsnapshot\x18\x01 \x01(\v2\x18.metarr.v1.RedisSnapshotR\bsnapshot\"\x1b\n" +
-	"\x19StatsServiceStreamRequest\"R\n" +
-	"\x1aStatsServiceStreamResponse\x124\n" +
-	"\bsnapshot\x18\x01 \x01(\v2\x18.metarr.v1.RedisSnapshotR\bsnapshot2\xb5\x01\n" +
+	"\x16StatsServiceGetRequest\"M\n" +
+	"\x17StatsServiceGetResponse\x122\n" +
+	"\bsnapshot\x18\x01 \x01(\v2\x16.metarr.v1.BusSnapshotR\bsnapshot\"\x1b\n" +
+	"\x19StatsServiceStreamRequest\"P\n" +
+	"\x1aStatsServiceStreamResponse\x122\n" +
+	"\bsnapshot\x18\x01 \x01(\v2\x16.metarr.v1.BusSnapshotR\bsnapshot2\xb5\x01\n" +
 	"\fStatsService\x12L\n" +
 	"\x03Get\x12!.metarr.v1.StatsServiceGetRequest\x1a\".metarr.v1.StatsServiceGetResponse\x12W\n" +
 	"\x06Stream\x12$.metarr.v1.StatsServiceStreamRequest\x1a%.metarr.v1.StatsServiceStreamResponse0\x01B-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
@@ -718,38 +786,40 @@ func file_metarr_v1_stats_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_stats_proto_rawDescData
 }
 
-var file_metarr_v1_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_metarr_v1_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_metarr_v1_stats_proto_goTypes = []any{
-	(*RedisSnapshot)(nil),              // 0: metarr.v1.RedisSnapshot
-	(*RedisServerInfo)(nil),            // 1: metarr.v1.RedisServerInfo
-	(*RedisStreamStat)(nil),            // 2: metarr.v1.RedisStreamStat
-	(*RedisGroupStat)(nil),             // 3: metarr.v1.RedisGroupStat
-	(*RedisConsumerStat)(nil),          // 4: metarr.v1.RedisConsumerStat
-	(*RedisChannelStat)(nil),           // 5: metarr.v1.RedisChannelStat
+	(*BusSnapshot)(nil),                // 0: metarr.v1.BusSnapshot
+	(*BusServerInfo)(nil),              // 1: metarr.v1.BusServerInfo
+	(*BusStreamStat)(nil),              // 2: metarr.v1.BusStreamStat
+	(*BusGroupStat)(nil),               // 3: metarr.v1.BusGroupStat
+	(*BusConsumerStat)(nil),            // 4: metarr.v1.BusConsumerStat
+	(*BusChannelStat)(nil),             // 5: metarr.v1.BusChannelStat
 	(*StatsServiceGetRequest)(nil),     // 6: metarr.v1.StatsServiceGetRequest
 	(*StatsServiceGetResponse)(nil),    // 7: metarr.v1.StatsServiceGetResponse
 	(*StatsServiceStreamRequest)(nil),  // 8: metarr.v1.StatsServiceStreamRequest
 	(*StatsServiceStreamResponse)(nil), // 9: metarr.v1.StatsServiceStreamResponse
-	(*timestamppb.Timestamp)(nil),      // 10: google.protobuf.Timestamp
+	nil,                                // 10: metarr.v1.BusServerInfo.FieldErrorsEntry
+	(*timestamppb.Timestamp)(nil),      // 11: google.protobuf.Timestamp
 }
 var file_metarr_v1_stats_proto_depIdxs = []int32{
-	10, // 0: metarr.v1.RedisSnapshot.collected_at:type_name -> google.protobuf.Timestamp
-	1,  // 1: metarr.v1.RedisSnapshot.server:type_name -> metarr.v1.RedisServerInfo
-	2,  // 2: metarr.v1.RedisSnapshot.streams:type_name -> metarr.v1.RedisStreamStat
-	5,  // 3: metarr.v1.RedisSnapshot.pubsub:type_name -> metarr.v1.RedisChannelStat
-	3,  // 4: metarr.v1.RedisStreamStat.groups:type_name -> metarr.v1.RedisGroupStat
-	4,  // 5: metarr.v1.RedisGroupStat.consumer_detail:type_name -> metarr.v1.RedisConsumerStat
-	0,  // 6: metarr.v1.StatsServiceGetResponse.snapshot:type_name -> metarr.v1.RedisSnapshot
-	0,  // 7: metarr.v1.StatsServiceStreamResponse.snapshot:type_name -> metarr.v1.RedisSnapshot
-	6,  // 8: metarr.v1.StatsService.Get:input_type -> metarr.v1.StatsServiceGetRequest
-	8,  // 9: metarr.v1.StatsService.Stream:input_type -> metarr.v1.StatsServiceStreamRequest
-	7,  // 10: metarr.v1.StatsService.Get:output_type -> metarr.v1.StatsServiceGetResponse
-	9,  // 11: metarr.v1.StatsService.Stream:output_type -> metarr.v1.StatsServiceStreamResponse
-	10, // [10:12] is the sub-list for method output_type
-	8,  // [8:10] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	11, // 0: metarr.v1.BusSnapshot.collected_at:type_name -> google.protobuf.Timestamp
+	1,  // 1: metarr.v1.BusSnapshot.server:type_name -> metarr.v1.BusServerInfo
+	2,  // 2: metarr.v1.BusSnapshot.streams:type_name -> metarr.v1.BusStreamStat
+	5,  // 3: metarr.v1.BusSnapshot.channels:type_name -> metarr.v1.BusChannelStat
+	10, // 4: metarr.v1.BusServerInfo.field_errors:type_name -> metarr.v1.BusServerInfo.FieldErrorsEntry
+	3,  // 5: metarr.v1.BusStreamStat.groups:type_name -> metarr.v1.BusGroupStat
+	4,  // 6: metarr.v1.BusGroupStat.consumer_detail:type_name -> metarr.v1.BusConsumerStat
+	0,  // 7: metarr.v1.StatsServiceGetResponse.snapshot:type_name -> metarr.v1.BusSnapshot
+	0,  // 8: metarr.v1.StatsServiceStreamResponse.snapshot:type_name -> metarr.v1.BusSnapshot
+	6,  // 9: metarr.v1.StatsService.Get:input_type -> metarr.v1.StatsServiceGetRequest
+	8,  // 10: metarr.v1.StatsService.Stream:input_type -> metarr.v1.StatsServiceStreamRequest
+	7,  // 11: metarr.v1.StatsService.Get:output_type -> metarr.v1.StatsServiceGetResponse
+	9,  // 12: metarr.v1.StatsService.Stream:output_type -> metarr.v1.StatsServiceStreamResponse
+	11, // [11:13] is the sub-list for method output_type
+	9,  // [9:11] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_stats_proto_init() }
@@ -763,7 +833,7 @@ func file_metarr_v1_stats_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_stats_proto_rawDesc), len(file_metarr_v1_stats_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
