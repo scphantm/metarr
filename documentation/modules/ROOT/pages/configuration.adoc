@@ -5,7 +5,7 @@ lives in tells you how to change it.
 
 [cols="1,2,2",stripes=all]
 |===
-| |Layer 1 — `config.yaml` |Layer 2 — the settings database
+| |Layer 1 — `config/server.yaml` |Layer 2 — the settings database
 
 |Holds
 |Where things live: connection strings, ports, file paths
@@ -25,7 +25,7 @@ The rule behind the split: Layer 1 is infrastructure wiring you need in order to
 reach the database at all, so it cannot itself be stored in the database.
 Everything else can be, and is.
 
-== Layer 1: `config.yaml`
+== Layer 1: `config/server.yaml`
 
 The file is read once at startup. Its location can be overridden with
 `METARR_CONFIG_FILE`. Only these keys are read:
@@ -61,16 +61,16 @@ stdout and Redis — it simply forwards nowhere. See xref:logging.adoc[Logging].
 
 |`workflow.catalog_path`
 |no
-|The workflow node catalog file. Defaults to `catalog.json`.
+|The workflow node catalog file. Defaults to `config/catalog.json`.
 |===
 
-NOTE: `config.yaml` also contains a `mongodb.readonly_uri` entry with a comment
+NOTE: `config/server.yaml` also contains a `mongodb.readonly_uri` entry with a comment
 describing a Search screen. That key is *not parsed and not used* — there is no
 Search screen yet. It is a placeholder.
 
 === Agent configuration
 
-An agent's local file (`agent.yaml`, or `METARR_AGENT_CONFIG_FILE`) carries only
+An agent's local file (`config/agent.yaml`, or `METARR_AGENT_CONFIG_FILE`) carries only
 a slug and how to reach Redis. The file is entirely optional if the environment
 supplies those values.
 
