@@ -1,7 +1,7 @@
 # UI (Vite/React) build and development tasks for the Metarr web frontend.
 # Included by the main Makefile.
 
-.PHONY: ui-install ui-dev ui-build ui-sync-version ui-test ui-test-watch lint-ui
+.PHONY: ui-install ui-dev ui-build ui-sync-version ui-test ui-test-watch
 
 # Install UI dependencies via yarn.
 # Reads from yarn.lock to ensure reproducible installs.
@@ -18,15 +18,10 @@ ui-install:
 ui-dev:
 	yarn workspace @metarr/metarr-ui run dev
 
-# Sync ui/package.json's version field from the repo-root VERSION file.
-# Runs before ui-build so package.json is never hand-edited/out of sync.
-ui-sync-version:
-	yarn workspace @metarr/metarr-ui pkg set version=$$(cat VERSION) --silent
-
 # Build the production bundle.
 # Runs TypeScript type-checking and Vite bundling, producing optimized assets in ui/dist/.
 # Use this to test production builds locally or before deploying.
-ui-build: ui-sync-version
+ui-build: node-sync-version
 	yarn workspace @metarr/metarr-ui run build
 
 # Run the UI unit test suite once.
@@ -39,8 +34,3 @@ ui-test:
 # Reruns tests when source files change — useful during development.
 ui-test-watch:
 	yarn workspace @metarr/metarr-ui run test:watch
-
-# Lint the UI code (JavaScript/TypeScript) using ESLint.
-# Part of the full `make lint` target (which also runs lint-go).
-lint-ui:
-	yarn workspace @metarr/metarr-ui run lint

@@ -206,9 +206,10 @@ func run() error {
 	// build-time default (docs/adr/0006). The Router and the retention sweep
 	// below take their own slice of the same policy.
 	busPolicy := eventbus.BusPolicyFromConfig(startupCfg.EventBus)
-	if err := streamBus.Close(); err != nil {
-		logger.Warn("closing the bootstrap stream publisher", "error", err)
-	}
+	// The bootstrap StreamBus owns nothing to release — its publisher rides
+	// the shared redisClient, which main closes on shutdown — so it is simply
+	// replaced with one carrying the configured retention policy. (Closing it
+	// here would close that shared client out from under everything else.)
 	streamBus, err = eventbus.NewStreamBus(redisClient, busPolicy.Retention, eventbus.NewSlogAdapter(logger))
 	if err != nil {
 		return err

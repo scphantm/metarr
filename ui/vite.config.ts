@@ -10,7 +10,7 @@ import react from '@vitejs/plugin-react'
 const apiTarget = process.env.METARR_API_URL ?? 'http://localhost:8080'
 
 // Read the app version from the repo-root VERSION file.
-const appVersion = readFileSync(path.resolve(__dirname, '../VERSION'), 'utf-8').trim()
+const appVersion = readFileSync(path.resolve(import.meta.dirname, '../VERSION'), 'utf-8').trim()
 
 export default defineConfig({
   plugins: [react()],
@@ -18,7 +18,7 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(appVersion),
   },
   resolve: {
-    alias: { '@': path.resolve(__dirname, './src') },
+    alias: { '@': path.resolve(import.meta.dirname, './src') },
   },
   server: {
     port: 5173,

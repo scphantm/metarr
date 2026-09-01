@@ -1,13 +1,15 @@
 # Makefile for Metarr: build, run, test, and lint targets for the Go backend.
-# Includes UI tasks from make/ui.mk and documentation tasks from make/docs.mk.
+# Includes UI tasks from make/ui.mk, documentation tasks from make/docs.mk, and
+# lint/format tasks from make/lint.mk.
 
 include make/ui.mk
 include make/docs.mk
+include make/lint.mk
 
 .PHONY: help generate build build-server build-agent build-server-production run run-server run-agent run-production down test tidy \
 	dist dist-agent-linux-amd64 dist-agent-linux-arm64 \
 	dist-agent-windows-amd64 dist-agent-darwin-arm64 \
-	docker-build lint lint-go
+	docker-build
 
 # Display this help message showing all available tasks and their descriptions.
 help:
@@ -49,11 +51,13 @@ help:
 	@echo "  make docker-build     Build metarr-server and metarr-agent Docker images"
 	@echo "                        Use: make docker-build VERSION=1.0.0"
 	@echo ""
-	@echo "TEST & LINT:"
+	@echo "TEST & LINT (from make/lint.mk):"
 	@echo "  make test             Run all Go tests"
 	@echo "  make lint             Run all linters (Go + UI)"
 	@echo "  make lint-go          Lint Go code with golangci-lint"
-	@echo "  make lint-ui          Lint UI code with ESLint"
+	@echo "  make lint-ui          Lint the UI with ESLint + stylelint"
+	@echo "  make fmt              Format Go + frontend in place (golangci-lint fmt + prettier)"
+	@echo "  make fmt-check        Verify formatting without writing (CI)"
 	@echo ""
 	@echo "MAINTENANCE:"
 	@echo "  make tidy             Tidy go.mod and go.sum"
@@ -211,12 +215,10 @@ test: generate
 tidy:
 	go mod tidy
 
-# Lint all code: Go (golangci-lint) and UI (ESLint).
-# Runs both lint-go and lint-ui. See those targets for details.
-lint: lint-go lint-ui
+# Lint and format targets (lint, lint-go, lint-ui, fmt, fmt-check) live in
+# make/lint.mk.
 
-# Lint the Go code using golangci-lint.
-# Checks for style, correctness, and common mistakes across the entire Go codebase.
-# Run after making changes to catch issues early.
-lint-go:
-	go tool golangci-lint run ./...
+# Sync package.json's version field from the repo-root VERSION file.
+# Runs before ui-build so package.json is never hand-edited/out of sync.
+node-sync-version:
+	npm pkg set version=$$(cat VERSION) --workspaces
