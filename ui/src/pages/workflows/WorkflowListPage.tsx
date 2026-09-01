@@ -17,8 +17,15 @@ import './WorkflowListPage.css'
  */
 export function WorkflowListPage() {
   const navigate = useNavigate()
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, error } =
-    useWorkflowList()
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    error,
+  } = useWorkflowList()
 
   const sentinelRef = useRef<HTMLDivElement>(null)
 
@@ -54,12 +61,18 @@ export function WorkflowListPage() {
           <Alert
             type="error"
             showIcon
-            message={error instanceof Error ? error.message : 'Failed to load workflows'}
+            message={
+              error instanceof Error
+                ? error.message
+                : 'Failed to load workflows'
+            }
           />
         ) : null}
 
         {!isLoading && workflows.length === 0 ? (
-          <EmptyState>No workflows yet — click Add Workflow to build one.</EmptyState>
+          <EmptyState>
+            No workflows yet — click Add Workflow to build one.
+          </EmptyState>
         ) : null}
 
         {workflows.map((workflow) => (
@@ -68,7 +81,11 @@ export function WorkflowListPage() {
             title={workflow.name}
             description={workflow.description}
             actions={
-              <Button onClick={() => navigate(`/workflows/${workflow.documentId}/edit`)}>
+              <Button
+                onClick={() =>
+                  navigate(`/workflows/${workflow.documentId}/edit`)
+                }
+              >
                 Edit
               </Button>
             }
@@ -80,7 +97,10 @@ export function WorkflowListPage() {
                 ))}
               </Space>
               <Typography.Text type="secondary" className="workflow-list-meta">
-                v{workflow.version} · {workflow.createdAt ? timestampDate(workflow.createdAt).toLocaleString() : ''}
+                v{workflow.version} ·{' '}
+                {workflow.createdAt
+                  ? timestampDate(workflow.createdAt).toLocaleString()
+                  : ''}
               </Typography.Text>
             </div>
           </Card>

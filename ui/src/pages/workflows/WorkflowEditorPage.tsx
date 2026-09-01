@@ -1,11 +1,21 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { ReactFlowProvider, type ReactFlowInstance, type Viewport } from '@xyflow/react'
+import {
+  ReactFlowProvider,
+  type ReactFlowInstance,
+  type Viewport,
+} from '@xyflow/react'
 import { Input, Spin, Typography } from 'antd'
 
 import type { Workflow } from '../../gen/metarr/v1/workflows_pb'
-import { queryKeys, useSaveWorkflow, useWorkflow, useWorkflowVersion, useWorkflowVersions } from '../../api/queries'
+import {
+  queryKeys,
+  useSaveWorkflow,
+  useWorkflow,
+  useWorkflowVersion,
+  useWorkflowVersions,
+} from '../../api/queries'
 import { Button } from '../../components/Card'
 import { DnDProvider } from './DnDContext'
 import { fromRFGraph, toRFGraph } from './graphAdapter'
@@ -14,12 +24,24 @@ import { registeredTypes } from './nodes/registry'
 import { TagsInput } from './TagsInput'
 import { VersionHistory } from './VersionHistory'
 import { WorkflowCanvas } from './WorkflowCanvas'
-import { clearStashedDraft, readStashedDraft, stashDraft, type StashedDraft } from './draftStorage'
+import {
+  clearStashedDraft,
+  readStashedDraft,
+  stashDraft,
+  type StashedDraft,
+} from './draftStorage'
 import { SchemaVersion } from './editorNodeData'
 import './WorkflowEditorPage.css'
 
 const emptyViewport: Viewport = { x: 0, y: 0, zoom: 1 }
-const emptySnapshot: StashedDraft = { name: '', description: '', tags: [], nodes: [], edges: [], viewport: emptyViewport }
+const emptySnapshot: StashedDraft = {
+  name: '',
+  description: '',
+  tags: [],
+  nodes: [],
+  edges: [],
+  viewport: emptyViewport,
+}
 
 // A document whose schema_version doesn't match predates the control/data-
 // edge redesign (design.md §11) — its nodes/edges are the old React-Flow-
@@ -42,12 +64,19 @@ function snapshotFromWorkflow(workflow: Workflow): StashedDraft {
     tags: workflow.tags,
     nodes,
     edges,
-    viewport: (workflow.graph?.viewport as Viewport | undefined) ?? emptyViewport,
+    viewport:
+      (workflow.graph?.viewport as Viewport | undefined) ?? emptyViewport,
   }
 }
 
 function draftDiffers(a: StashedDraft, b: StashedDraft) {
-  const strip = (s: StashedDraft) => ({ name: s.name, description: s.description, tags: s.tags, nodes: s.nodes, edges: s.edges })
+  const strip = (s: StashedDraft) => ({
+    name: s.name,
+    description: s.description,
+    tags: s.tags,
+    nodes: s.nodes,
+    edges: s.edges,
+  })
   return JSON.stringify(strip(a)) !== JSON.stringify(strip(b))
 }
 
@@ -94,7 +123,9 @@ export function WorkflowEditorPage() {
   // The query cache is the baseline — no separate ref/state mirrors it. Save
   // seeds the cache directly (see handleSaved) so this is fresh immediately,
   // not only after the invalidated query's background refetch resolves.
-  const baseline = workflowQuery.data ? snapshotFromWorkflow(workflowQuery.data) : null
+  const baseline = workflowQuery.data
+    ? snapshotFromWorkflow(workflowQuery.data)
+    : null
 
   function handleSelectVersion(version: number) {
     if (!id) return
@@ -170,10 +201,13 @@ export function WorkflowEditorPage() {
         {outdatedSchema ? (
           <div className="workflow-editor-outdated">
             <p>
-              This workflow was saved in an older format that predates control/data edges and can&rsquo;t be opened in
-              this editor.
+              This workflow was saved in an older format that predates
+              control/data edges and can&rsquo;t be opened in this editor.
             </p>
-            <p>Delete it and rebuild it from scratch — this project makes no promise to migrate saved workflows yet.</p>
+            <p>
+              Delete it and rebuild it from scratch — this project makes no
+              promise to migrate saved workflows yet.
+            </p>
           </div>
         ) : ready ? (
           <EditorBody
@@ -216,7 +250,10 @@ const EditorBody = forwardRef<
     onBackToEditing: () => void
     onSaved: (saved: Workflow) => void
   }
->(function EditorBody({ documentId, initial, readOnly, viewingVersion, onBackToEditing, onSaved }, ref) {
+>(function EditorBody(
+  { documentId, initial, readOnly, viewingVersion, onBackToEditing, onSaved },
+  ref,
+) {
   const [name, setName] = useState(initial.name)
   const [description, setDescription] = useState(initial.description)
   const [tags, setTags] = useState(initial.tags)
@@ -244,7 +281,11 @@ const EditorBody = forwardRef<
     setSaving(true)
     setError(null)
     try {
-      const graph = fromRFGraph(instance.getNodes(), instance.getEdges(), instance.getViewport())
+      const graph = fromRFGraph(
+        instance.getNodes(),
+        instance.getEdges(),
+        instance.getViewport(),
+      )
       const saved = await saveWorkflow.mutateAsync({
         documentId: documentId ?? '',
         name: name.trim(),
@@ -260,7 +301,11 @@ const EditorBody = forwardRef<
     }
   }
 
-  const canSave = !readOnly && name.trim() !== '' && description.trim() !== '' && tags.length > 0
+  const canSave =
+    !readOnly &&
+    name.trim() !== '' &&
+    description.trim() !== '' &&
+    tags.length > 0
 
   return (
     <>
@@ -282,7 +327,13 @@ const EditorBody = forwardRef<
               className="workflow-editor-description-input"
             />
           </div>
-          <div className={readOnly ? 'workflow-editor-tags is-read-only' : 'workflow-editor-tags'}>
+          <div
+            className={
+              readOnly
+                ? 'workflow-editor-tags is-read-only'
+                : 'workflow-editor-tags'
+            }
+          >
             <TagsInput value={tags} onChange={setTags} />
           </div>
           {error ? (
@@ -303,7 +354,11 @@ const EditorBody = forwardRef<
               </Button>
             </>
           ) : (
-            <Button variant="primary" disabled={!canSave || saving} onClick={() => void handleSave()}>
+            <Button
+              variant="primary"
+              disabled={!canSave || saving}
+              onClick={() => void handleSave()}
+            >
               {saving ? 'Saving…' : 'Save Workflow'}
             </Button>
           )}
@@ -320,7 +375,11 @@ const EditorBody = forwardRef<
               <WorkflowCanvas
                 initialNodes={initial.nodes}
                 initialEdges={initial.edges}
-                initialViewport={initial.nodes.length > 0 || initial.edges.length > 0 ? initial.viewport : undefined}
+                initialViewport={
+                  initial.nodes.length > 0 || initial.edges.length > 0
+                    ? initial.viewport
+                    : undefined
+                }
                 readOnly={readOnly}
                 onInit={(instance) => {
                   rfInstanceRef.current = instance

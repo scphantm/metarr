@@ -81,7 +81,10 @@ export function AgentConfigureForm({
   return (
     <div className="agent-configure-form">
       <div className="agent-configure-name">
-        <label className="agent-configure-name-label" htmlFor={`name-${agent.slug}`}>
+        <label
+          className="agent-configure-name-label"
+          htmlFor={`name-${agent.slug}`}
+        >
           Display name
         </label>
         <Input
@@ -93,25 +96,37 @@ export function AgentConfigureForm({
       </div>
 
       <div>
-        <Typography.Text type="secondary" className="agent-configure-section-heading">
+        <Typography.Text
+          type="secondary"
+          className="agent-configure-section-heading"
+        >
           Libraries
         </Typography.Text>
-        <Typography.Text type="secondary" className="agent-configure-section-hint">
-          Enter the path each library has on this agent&apos;s machine. Leave one blank if the
-          agent cannot reach it.
+        <Typography.Text
+          type="secondary"
+          className="agent-configure-section-hint"
+        >
+          Enter the path each library has on this agent&apos;s machine. Leave
+          one blank if the agent cannot reach it.
         </Typography.Text>
 
         {scanDirectories.length === 0 ? (
           <Typography.Text type="secondary" italic style={{ fontSize: 14 }}>
-            No scan directories configured yet — add one under Directory Scanner first.
+            No scan directories configured yet — add one under Directory Scanner
+            first.
           </Typography.Text>
         ) : (
           <Space direction="vertical" size={8} style={{ width: '100%' }}>
             {scanDirectories.map((directory) => (
               <div key={directory.scannerSlug} className="agent-configure-row">
                 <div className="agent-configure-row-label">
-                  <div className="agent-configure-row-slug">{directory.scannerSlug}</div>
-                  <div className="agent-configure-row-path" title={directory.directory}>
+                  <div className="agent-configure-row-slug">
+                    {directory.scannerSlug}
+                  </div>
+                  <div
+                    className="agent-configure-row-path"
+                    title={directory.directory}
+                  >
                     {directory.directory}
                   </div>
                 </div>
@@ -150,7 +165,11 @@ export function AgentConfigureForm({
           Cancel
         </Button>
         {agent.configured ? (
-          <Button variant="danger" disabled={saving} onClick={() => void forget()}>
+          <Button
+            variant="danger"
+            disabled={saving}
+            onClick={() => void forget()}
+          >
             Remove agent
           </Button>
         ) : null}

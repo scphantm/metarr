@@ -26,7 +26,8 @@ type DnDContextValue = {
 const DnDContext = createContext<DnDContextValue | null>(null)
 
 export function DnDProvider({ children }: { children: ReactNode }) {
-  const [draggedTemplate, setDraggedTemplate] = useState<DraggedNodeType | null>(null)
+  const [draggedTemplate, setDraggedTemplate] =
+    useState<DraggedNodeType | null>(null)
   return (
     <DnDContext.Provider value={{ draggedTemplate, setDraggedTemplate }}>
       {children}

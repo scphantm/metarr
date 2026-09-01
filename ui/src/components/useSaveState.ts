@@ -18,12 +18,7 @@ import { useQueryClient } from '@tanstack/react-query'
  */
 
 export type SaveState =
-  | 'idle'
-  | 'saving'
-  | 'pending'
-  | 'confirmed'
-  | 'unconfirmed'
-  | 'error'
+  'idle' | 'saving' | 'pending' | 'confirmed' | 'unconfirmed' | 'error'
 
 // How often to re-read while waiting, and for how long before giving up on the
 // write ever landing. The listener normally persists within a second or two;
@@ -69,22 +64,19 @@ export function useSaveState<T>({
     isEqualRef.current = isEqual
   }, [isEqual])
 
-  const save = useCallback(
-    async (next: T, run: () => Promise<unknown>) => {
-      setState('saving')
-      setError(null)
-      setExpected({ value: next })
-      try {
-        await run()
-        setState('pending')
-      } catch (cause) {
-        setState('error')
-        setExpected(null)
-        setError(cause instanceof Error ? cause.message : String(cause))
-      }
-    },
-    [],
-  )
+  const save = useCallback(async (next: T, run: () => Promise<unknown>) => {
+    setState('saving')
+    setError(null)
+    setExpected({ value: next })
+    try {
+      await run()
+      setState('pending')
+    } catch (cause) {
+      setState('error')
+      setExpected(null)
+      setError(cause instanceof Error ? cause.message : String(cause))
+    }
+  }, [])
 
   // Poll while pending, and stop the moment the server reports what was
   // written.

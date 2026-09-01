@@ -112,7 +112,8 @@ export function useRegisterPageContext(
     register({
       pageKey,
       collect: () => collectRef.current(),
-      applyToolResult: (toolName, args) => applyToolResultRef.current?.(toolName, args),
+      applyToolResult: (toolName, args) =>
+        applyToolResultRef.current?.(toolName, args),
     })
     return () => unregister(pageKey)
   }, [pageKey, register, unregister])

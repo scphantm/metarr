@@ -1,6 +1,10 @@
 import { Alert, Typography } from 'antd'
 
-import { queryKeys, useEventBusConfig, useUpdateEventBusConfig } from '../../api/queries'
+import {
+  queryKeys,
+  useEventBusConfig,
+  useUpdateEventBusConfig,
+} from '../../api/queries'
 import type { EventBusConfig } from '../../gen/metarr/v1/event_bus_pb'
 import { Card, Row } from '../../components/Card'
 import { EditableNumber } from '../../components/Editable'
@@ -156,12 +160,13 @@ export function EventBusSidebar() {
         description={
           <>
             <p>
-              The server reads this section once, when it starts. Saving a change here does not
-              reconfigure the running process — restart the server for it to take effect.
+              The server reads this section once, when it starts. Saving a
+              change here does not reconfigure the running process — restart the
+              server for it to take effect.
             </p>
             <p>
-              The agent runs on its own built-in defaults for these values; it does not read this
-              section.
+              The agent runs on its own built-in defaults for these values; it
+              does not read this section.
             </p>
           </>
         }
@@ -170,10 +175,14 @@ export function EventBusSidebar() {
         type="info"
         message="Reading the numbers"
         description={
-          <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 0 }}>
-            A stream is bounded by whichever is larger — its MAXLEN in entries, or the retention
-            window in time. A message whose handler keeps failing past the retry cap is logged at
-            error level with its identifier and then dropped, not parked.
+          <Typography.Paragraph
+            type="secondary"
+            style={{ fontSize: 12, marginBottom: 0 }}
+          >
+            A stream is bounded by whichever is larger — its MAXLEN in entries,
+            or the retention window in time. A message whose handler keeps
+            failing past the retry cap is logged at error level with its
+            identifier and then dropped, not parked.
           </Typography.Paragraph>
         }
       />

@@ -1,4 +1,9 @@
-import { BaseEdge, getBezierPath, type Edge, type EdgeProps } from '@xyflow/react'
+import {
+  BaseEdge,
+  getBezierPath,
+  type Edge,
+  type EdgeProps,
+} from '@xyflow/react'
 
 import { controlHandleId } from '../connectionRules'
 
@@ -33,14 +38,32 @@ export function ControlEdge({
   markerEnd,
   data,
 }: EdgeProps<ControlEdgeType>) {
-  const [path] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
-  const color = sourceHandleId === ERROR_HANDLE ? 'var(--color-red)' : 'var(--color-cyan)'
+  const [path] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  })
+  const color =
+    sourceHandleId === ERROR_HANDLE ? 'var(--color-red)' : 'var(--color-cyan)'
 
   return (
     <g className={data?.diagnosticHighlight ? 'diagnostic-blink' : undefined}>
-      <BaseEdge id={id} path={path} markerEnd={markerEnd} style={{ stroke: color, strokeWidth: 3 }} />
+      <BaseEdge
+        id={id}
+        path={path}
+        markerEnd={markerEnd}
+        style={{ stroke: color, strokeWidth: 3 }}
+      />
       <circle r="4" fill={color}>
-        <animateMotion dur="2s" repeatCount="indefinite" path={path} calcMode="linear" />
+        <animateMotion
+          dur="2s"
+          repeatCount="indefinite"
+          path={path}
+          calcMode="linear"
+        />
       </circle>
     </g>
   )

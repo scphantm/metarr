@@ -6,12 +6,20 @@ import { Alert, Spin } from 'antd'
 export function PageError({ error }: { error: unknown }) {
   return (
     <div className="page-state-body">
-      <Alert type="error" showIcon message={error instanceof Error ? error.message : String(error)} />
+      <Alert
+        type="error"
+        showIcon
+        message={error instanceof Error ? error.message : String(error)}
+      />
     </div>
   )
 }
 
-export function PageLoading({ children = 'Loading configuration…' }: { children?: string }) {
+export function PageLoading({
+  children = 'Loading configuration…',
+}: {
+  children?: string
+}) {
   return (
     <div className="page-state-loading">
       <Spin size="small" /> {children}

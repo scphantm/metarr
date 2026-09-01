@@ -14,14 +14,23 @@ const TYPE_KEY = 'core/parallel'
 export function ParallelNode({ id, data }: NodeProps<Node<CatalogNodeData>>) {
   const nodeType = useCatalogEntry(data.catalogId, TYPE_KEY)
   const handles = useNodeHandles(nodeType)
-  const visibleBranches = useVisibleBranchCount(id, data, nodeType, nodeType?.control?.out ?? [], 'source')
+  const visibleBranches = useVisibleBranchCount(
+    id,
+    data,
+    nodeType,
+    nodeType?.control?.out ?? [],
+    'source',
+  )
 
   return (
     <NodeShell
       id={id}
       data={data}
       typeKey={TYPE_KEY}
-      handles={{ ...handles, bottom: limitBranchPorts(handles.bottom, visibleBranches) }}
+      handles={{
+        ...handles,
+        bottom: limitBranchPorts(handles.bottom, visibleBranches),
+      }}
     />
   )
 }

@@ -1,6 +1,9 @@
 import { useIsFetching, useQueryClient } from '@tanstack/react-query'
 
-import { useDirectoryScannerConfig, useScanDirectories } from '../../api/queries'
+import {
+  useDirectoryScannerConfig,
+  useScanDirectories,
+} from '../../api/queries'
 import { Button } from '../../components/Card'
 import { PageError, PageLoading } from '../../components/PageState'
 import { PageHeader } from '../../layout/AppShell'

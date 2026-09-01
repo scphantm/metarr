@@ -5,6 +5,9 @@ import type { CatalogNodeData } from '../../editorNodeData'
 
 const TYPE_KEY = 'fs/writeTextFile'
 
-export function WriteTextFileNode({ id, data }: NodeProps<Node<CatalogNodeData>>) {
+export function WriteTextFileNode({
+  id,
+  data,
+}: NodeProps<Node<CatalogNodeData>>) {
   return <NodeShell id={id} data={data} typeKey={TYPE_KEY} />
 }

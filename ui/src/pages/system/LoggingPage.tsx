@@ -135,7 +135,10 @@ function ServerLevelCard({ config }: { config: LoggingConfig }) {
         onChange={(level) => void setLevel(level)}
       />
       {error ? (
-        <Typography.Text type="danger" style={{ display: 'block', marginTop: 8, fontSize: 12 }}>
+        <Typography.Text
+          type="danger"
+          style={{ display: 'block', marginTop: 8, fontSize: 12 }}
+        >
           {error}
         </Typography.Text>
       ) : null}
@@ -172,7 +175,9 @@ function AgentLevelRow({
       <Badge status={online ? 'success' : 'default'} />
       <div className="logging-agent-name">
         <div className="logging-agent-name-primary">{displayName || slug}</div>
-        {displayName ? <div className="logging-agent-name-slug">{slug}</div> : null}
+        {displayName ? (
+          <div className="logging-agent-name-slug">{slug}</div>
+        ) : null}
       </div>
       <LevelPill
         value={level}
@@ -224,13 +229,18 @@ function PipelineInfo({
     <div className="logging-pipeline-grid">
       <div>
         <div className="logging-pipeline-label">Sink</div>
-        <div className="logging-pipeline-value" style={{ textTransform: 'capitalize' }}>
+        <div
+          className="logging-pipeline-value"
+          style={{ textTransform: 'capitalize' }}
+        >
           {sink || '—'}
         </div>
       </div>
       <div>
         <div className="logging-pipeline-label">Stream</div>
-        <div className="logging-pipeline-value editable-field-mono">{stream || '—'}</div>
+        <div className="logging-pipeline-value editable-field-mono">
+          {stream || '—'}
+        </div>
       </div>
       <div>
         <div className="logging-pipeline-label">Endpoint</div>
@@ -250,9 +260,17 @@ function PipelineInfo({
 
 function ConnectionIndicator({ status }: { status: string }) {
   const label =
-    status === 'open' ? 'Live' : status === 'connecting' ? 'Connecting' : 'Stale'
+    status === 'open'
+      ? 'Live'
+      : status === 'connecting'
+        ? 'Connecting'
+        : 'Stale'
   const badgeStatus =
-    status === 'open' ? 'success' : status === 'connecting' ? 'processing' : 'warning'
+    status === 'open'
+      ? 'success'
+      : status === 'connecting'
+        ? 'processing'
+        : 'warning'
 
   return <Badge status={badgeStatus} text={label} />
 }
@@ -291,7 +309,9 @@ function TailLine({ entry }: { entry: LogRecord }) {
 
   return (
     <div className="logging-tail-line">
-      <span className="logging-tail-time">{new Date(entry.time).toLocaleTimeString()}</span>
+      <span className="logging-tail-time">
+        {new Date(entry.time).toLocaleTimeString()}
+      </span>
       <span className="logging-tail-level" style={{ color: toneVar }}>
         {entry.level}
       </span>
@@ -307,20 +327,22 @@ export function LoggingSidebar() {
       <div>
         <Typography.Title level={5}>How this works</Typography.Title>
         <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
-          The server and every agent publish structured log records to Redis; Fluent Bit ships
-          them to OpenObserve from there. Neither binary talks to OpenObserve directly.
+          The server and every agent publish structured log records to Redis;
+          Fluent Bit ships them to OpenObserve from there. Neither binary talks
+          to OpenObserve directly.
         </Typography.Paragraph>
         <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
-          Logging never blocks the app: if the pipeline falls behind, records are dropped rather
-          than slowing anything down, and the process reports how many it dropped.
+          Logging never blocks the app: if the pipeline falls behind, records
+          are dropped rather than slowing anything down, and the process reports
+          how many it dropped.
         </Typography.Paragraph>
       </div>
 
       <div>
         <Typography.Title level={5}>Switching vendors</Typography.Title>
         <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
-          Moving to Splunk or ELK is a Fluent Bit configuration change, not a Metarr one —
-          nothing here or in either binary needs to change.
+          Moving to Splunk or ELK is a Fluent Bit configuration change, not a
+          Metarr one — nothing here or in either binary needs to change.
         </Typography.Paragraph>
       </div>
     </div>

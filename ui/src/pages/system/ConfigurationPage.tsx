@@ -13,7 +13,8 @@ const sections = [
   {
     to: '/system/sidecars',
     label: 'Sidecars',
-    description: 'How the scanner classifies non-media files found next to media.',
+    description:
+      'How the scanner classifies non-media files found next to media.',
   },
   {
     to: '/system/interfaces',
@@ -37,12 +38,19 @@ export function ConfigurationPage() {
 
       <div className="page-body">
         {sections.map((section) => (
-          <Link key={section.to} to={section.to} className="configuration-section-link">
+          <Link
+            key={section.to}
+            to={section.to}
+            className="configuration-section-link"
+          >
             <Card hoverable size="small">
               <Typography.Text className="configuration-section-label">
                 {section.label}
               </Typography.Text>
-              <Typography.Text type="secondary" className="configuration-section-description">
+              <Typography.Text
+                type="secondary"
+                className="configuration-section-description"
+              >
                 {section.description}
               </Typography.Text>
             </Card>

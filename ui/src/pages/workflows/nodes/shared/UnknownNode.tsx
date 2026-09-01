@@ -17,7 +17,9 @@ export function UnknownNode({ data }: NodeProps<Node<UnknownNodeData>>) {
     <div className="unknown-node">
       <div className="unknown-node-title">Unknown node type</div>
       <div className="unknown-node-type">{data.catalogType}</div>
-      {data.label ? <div className="unknown-node-label">{data.label}</div> : null}
+      {data.label ? (
+        <div className="unknown-node-label">{data.label}</div>
+      ) : null}
     </div>
   )
 }

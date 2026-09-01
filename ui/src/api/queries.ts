@@ -17,7 +17,13 @@ import {
   workflowCatalogClient,
   workflowClient,
 } from './clients'
-import { mapAsync, registerStream, Stream, useStream, useStreamStatus } from './streams'
+import {
+  mapAsync,
+  registerStream,
+  Stream,
+  useStream,
+  useStreamStatus,
+} from './streams'
 import type { MessageInitShape } from '@bufbuild/protobuf'
 import type { AcceptedResponse as ConnectAcceptedResponse } from '../gen/metarr/v1/common_pb'
 import { SonarrInstanceSchema } from '../gen/metarr/v1/sonarr_interfaces_pb'
@@ -27,7 +33,10 @@ import {
   ConfigServiceUpsertApiKeyRequestSchema,
 } from '../gen/metarr/v1/config_pb'
 import { AgentConfigSchema } from '../gen/metarr/v1/agents_pb'
-import { ScanDirectorySchema, SidecarTypeDefinitionSchema } from '../gen/metarr/v1/directory_scanner_pb'
+import {
+  ScanDirectorySchema,
+  SidecarTypeDefinitionSchema,
+} from '../gen/metarr/v1/directory_scanner_pb'
 import { LoggingConfigSchema } from '../gen/metarr/v1/logging_pb'
 import { EventBusConfigSchema } from '../gen/metarr/v1/event_bus_pb'
 import { WorkflowServiceUpsertRequestSchema } from '../gen/metarr/v1/workflows_pb'
@@ -79,14 +88,16 @@ export function useDirectoryScannerConfig() {
 export function useScanDirectories() {
   return useQuery({
     queryKey: queryKeys.scanDirectories,
-    queryFn: async () => (await directoryScannerClient.listDirectories({})).directories,
+    queryFn: async () =>
+      (await directoryScannerClient.listDirectories({})).directories,
   })
 }
 
 export function useSidecarTypes() {
   return useQuery({
     queryKey: queryKeys.sidecarTypes,
-    queryFn: async () => (await directoryScannerClient.listSidecarTypes({})).types,
+    queryFn: async () =>
+      (await directoryScannerClient.listSidecarTypes({})).types,
   })
 }
 
@@ -112,7 +123,10 @@ export function useSonarrInstances() {
 // sign-out from AuthContext.clearSession) can close all three at once.
 const agentsPresenceStream = registerStream(
   new Stream((signal) =>
-    mapAsync(agentClient.streamPresence({}, { signal }), (response) => response.agents),
+    mapAsync(
+      agentClient.streamPresence({}, { signal }),
+      (response) => response.agents,
+    ),
   ),
 )
 
@@ -132,7 +146,10 @@ export function useAgents() {
 
 // Agents are upserted by slug, like every other config collection here.
 export function useUpsertAgent() {
-  return useConfigMutation<MessageInitShape<typeof AgentConfigSchema>, ConnectAcceptedResponse>(
+  return useConfigMutation<
+    MessageInitShape<typeof AgentConfigSchema>,
+    ConnectAcceptedResponse
+  >(
     (agent) => agentClient.upsert({ agent }),
     [queryKeys.config, queryKeys.agents],
   )
@@ -185,7 +202,9 @@ export function usePurgeStreams() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (target: PurgeStreamsTarget) =>
-      statsClient.purge('all' in target ? { all: true } : { stream: target.stream }),
+      statsClient.purge(
+        'all' in target ? { all: true } : { stream: target.stream },
+      ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.busSnapshot })
     },
@@ -210,7 +229,10 @@ export function useEventBusConfig() {
 // stream frame and the first-paint read land in the same cache entry.
 const logTailStream = registerStream(
   new Stream((signal) =>
-    mapAsync(loggingClient.streamTail({}, { signal }), (response) => response.records),
+    mapAsync(
+      loggingClient.streamTail({}, { signal }),
+      (response) => response.records,
+    ),
   ),
 )
 
@@ -235,8 +257,12 @@ export function useLogTail() {
 // an agent that isn't configured with any yet (the server creates a bare
 // entry) — see SetAgentLogLevel's doc comment on the Go side.
 export function useSetAgentLogLevel() {
-  return useConfigMutation<{ slug: string; log_level: string }, ConnectAcceptedResponse>(
-    ({ slug, log_level }) => agentClient.setLogLevel({ slug, logLevel: log_level }),
+  return useConfigMutation<
+    { slug: string; log_level: string },
+    ConnectAcceptedResponse
+  >(
+    ({ slug, log_level }) =>
+      agentClient.setLogLevel({ slug, logLevel: log_level }),
     [queryKeys.config, queryKeys.agents],
   )
 }
@@ -290,7 +316,10 @@ export function useDeleteApiKey() {
 // A single upsert POST, like the other newer config sections — see the
 // upsert-not-PUT convention in CLAUDE.md.
 export function useUpdateLoggingConfig() {
-  return useConfigMutation<MessageInitShape<typeof LoggingConfigSchema>, ConnectAcceptedResponse>(
+  return useConfigMutation<
+    MessageInitShape<typeof LoggingConfigSchema>,
+    ConnectAcceptedResponse
+  >(
     (config) => loggingClient.updateConfig({ config }),
     [queryKeys.logging, queryKeys.config],
   )
@@ -300,7 +329,10 @@ export function useUpdateLoggingConfig() {
 // scalars, not a collection. The server still applies it as a scoped
 // mutation on cfg.EventBus.
 export function useUpdateEventBusConfig() {
-  return useConfigMutation<MessageInitShape<typeof EventBusConfigSchema>, ConnectAcceptedResponse>(
+  return useConfigMutation<
+    MessageInitShape<typeof EventBusConfigSchema>,
+    ConnectAcceptedResponse
+  >(
     (config) => eventBusClient.updateConfig({ config }),
     [queryKeys.eventBus, queryKeys.config],
   )
@@ -308,13 +340,17 @@ export function useUpdateEventBusConfig() {
 
 export function useUpdateDirectoryScanner() {
   return useConfigMutation<{ parallelCount?: number }, ConnectAcceptedResponse>(
-    (body) => directoryScannerClient.update({ parallelCount: body.parallelCount }),
+    (body) =>
+      directoryScannerClient.update({ parallelCount: body.parallelCount }),
     [queryKeys.directoryScanner, queryKeys.config],
   )
 }
 
 export function useUpsertScanDirectory() {
-  return useConfigMutation<MessageInitShape<typeof ScanDirectorySchema>, ConnectAcceptedResponse>(
+  return useConfigMutation<
+    MessageInitShape<typeof ScanDirectorySchema>,
+    ConnectAcceptedResponse
+  >(
     (directory) => directoryScannerClient.upsertDirectory({ directory }),
     [queryKeys.scanDirectories, queryKeys.directoryScanner, queryKeys.config],
   )
@@ -361,7 +397,10 @@ export function useResetSidecarTypes() {
 }
 
 export function useUpsertSonarrInstance() {
-  return useConfigMutation<MessageInitShape<typeof SonarrInstanceSchema>, ConnectAcceptedResponse>(
+  return useConfigMutation<
+    MessageInitShape<typeof SonarrInstanceSchema>,
+    ConnectAcceptedResponse
+  >(
     (instance) => sonarrInterfaceClient.upsert({ instance }),
     [queryKeys.sonarr, queryKeys.config],
   )
@@ -404,7 +443,10 @@ export function useWorkflowVersion(id: string, version: number | null) {
   return useQuery({
     queryKey: [...queryKeys.workflow(id), 'v', version],
     queryFn: async () => {
-      const { workflow } = await workflowClient.getVersion({ id, version: version ?? 0 })
+      const { workflow } = await workflowClient.getVersion({
+        id,
+        version: version ?? 0,
+      })
       return workflow
     },
     enabled: id !== '' && version != null,
@@ -416,7 +458,10 @@ export function useWorkflowList() {
   return useInfiniteQuery({
     queryKey: queryKeys.workflows,
     queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
-      const response = await workflowClient.list({ limit: 20, cursor: pageParam ?? '' })
+      const response = await workflowClient.list({
+        limit: 20,
+        cursor: pageParam ?? '',
+      })
       return {
         workflows: response.workflows,
         nextCursor: response.nextCursor,
@@ -424,7 +469,8 @@ export function useWorkflowList() {
       }
     },
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.nextCursor : undefined,
   })
 }
 
@@ -447,7 +493,9 @@ export function useWorkflowCatalog() {
 
 // The upsert body is the generated request's init shape — no hand-maintained
 // copy of its fields to keep in step (docs/adr/0005).
-export type SaveWorkflowInput = MessageInitShape<typeof WorkflowServiceUpsertRequestSchema>
+export type SaveWorkflowInput = MessageInitShape<
+  typeof WorkflowServiceUpsertRequestSchema
+>
 
 export function useSaveWorkflow() {
   const queryClient = useQueryClient()

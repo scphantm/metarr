@@ -20,7 +20,7 @@ describe('useDebouncedValue', () => {
   it('debounces value changes', async () => {
     const { result, rerender } = renderHook(
       ({ value }) => useDebouncedValue(value, 100),
-      { initialProps: { value: 'first' } }
+      { initialProps: { value: 'first' } },
     )
 
     expect(result.current).toBe('first')
@@ -38,7 +38,7 @@ describe('useDebouncedValue', () => {
   it('resets debounce timer on rapid changes', async () => {
     const { result, rerender } = renderHook(
       ({ value }) => useDebouncedValue(value, 100),
-      { initialProps: { value: 'a' } }
+      { initialProps: { value: 'a' } },
     )
 
     rerender({ value: 'b' })
@@ -56,7 +56,7 @@ describe('useDebouncedValue', () => {
   it('handles number values', async () => {
     const { result, rerender } = renderHook(
       ({ value }) => useDebouncedValue(value, 100),
-      { initialProps: { value: 1 } }
+      { initialProps: { value: 1 } },
     )
 
     expect(result.current).toBe(1)
@@ -68,7 +68,7 @@ describe('useDebouncedValue', () => {
   it('respects different delay values', async () => {
     const { result, rerender } = renderHook(
       ({ value, delay }) => useDebouncedValue(value, delay),
-      { initialProps: { value: 'first', delay: 200 } }
+      { initialProps: { value: 'first', delay: 200 } },
     )
 
     rerender({ value: 'second', delay: 200 })
@@ -83,7 +83,7 @@ describe('useDebouncedValue', () => {
     const clearSpy = vi.spyOn(window, 'clearTimeout')
     const { unmount, rerender } = renderHook(
       ({ value }) => useDebouncedValue(value, 100),
-      { initialProps: { value: 'initial' } }
+      { initialProps: { value: 'initial' } },
     )
 
     rerender({ value: 'changed' })

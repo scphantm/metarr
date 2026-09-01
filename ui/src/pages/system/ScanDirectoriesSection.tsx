@@ -11,10 +11,7 @@ import type { ScanDirectory } from '../../gen/metarr/v1/directory_scanner_pb'
 import { ScanDirectorySchema } from '../../gen/metarr/v1/directory_scanner_pb'
 import type { MessageInitShape } from '@bufbuild/protobuf'
 import { Button, Card, EmptyState, Row } from '../../components/Card'
-import {
-  EditableSelect,
-  EditableText,
-} from '../../components/Editable'
+import { EditableSelect, EditableText } from '../../components/Editable'
 import './ScanDirectoriesSection.css'
 
 /*
@@ -122,7 +119,9 @@ function NewScanDirectory({
   onCancel,
 }: {
   existingSlugs: string[]
-  onCreate: (entry: MessageInitShape<typeof ScanDirectorySchema>) => Promise<void>
+  onCreate: (
+    entry: MessageInitShape<typeof ScanDirectorySchema>,
+  ) => Promise<void>
   onCancel: () => void
 }) {
   const [slug, setSlug] = useState('')
@@ -136,7 +135,9 @@ function NewScanDirectory({
       return
     }
     if (existingSlugs.includes(slug.trim())) {
-      setError('That slug is already in use; it would replace the existing entry')
+      setError(
+        'That slug is already in use; it would replace the existing entry',
+      )
       return
     }
     if (!directory.startsWith('/')) {

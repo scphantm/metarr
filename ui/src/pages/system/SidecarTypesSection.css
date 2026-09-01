@@ -12,7 +12,11 @@
 }
 
 .sidecar-type-row.is-disabled {
-  border-color: color-mix(in srgb, var(--surface-edge) 50%, transparent) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--surface-edge) 50%,
+    transparent
+  ) !important;
   opacity: 0.6;
 }
 

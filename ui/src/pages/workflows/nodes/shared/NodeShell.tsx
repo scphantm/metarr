@@ -2,7 +2,10 @@ import { useState, type CSSProperties } from 'react'
 import { Handle, Position, useReactFlow } from '@xyflow/react'
 
 import { WorkflowEffects } from '../../../../gen/metarr/v1/workflow_catalog_pb'
-import { iconClassForControlPort, iconClassForType } from '../../../../lib/typeIcons'
+import {
+  iconClassForControlPort,
+  iconClassForType,
+} from '../../../../lib/typeIcons'
 import { controlHandleId } from '../../connectionRules'
 import { useCatalogEntry } from '../../useCatalogEntry'
 import { useIconZoomVisibility } from '../../useIconZoomVisibility'
@@ -16,7 +19,12 @@ import {
   shapeColorClassForAccent,
   type Accent,
 } from './nodeVisual'
-import { errorHandleTitle, handleOffset, useNodeHandles, type ArrangedHandles } from './useNodeHandles'
+import {
+  errorHandleTitle,
+  handleOffset,
+  useNodeHandles,
+  type ArrangedHandles,
+} from './useNodeHandles'
 import './NodeShell.css'
 
 /*
@@ -140,14 +148,17 @@ export function NodeShell({
   // NodeSettingsEditor) — overriding one never touches the other or the
   // node's shape.
   const visual = nodeVisual(nodeType.type)
-  const shapeAccent = (data.shapeColor as Accent | undefined) ?? visual.shapeAccent
+  const shapeAccent =
+    (data.shapeColor as Accent | undefined) ?? visual.shapeAccent
   const shapeColorClass = shapeColorClassForAccent(shapeAccent)
   // The border sits at a neutral base02 at rest and only reveals a
   // 40%-opacity tint of an accent on hover — data.borderColor, when set, is
   // what that hover accent is (still an independent per-instance override),
   // defaulting to the shape's own accent so hovering an unstyled node
   // reveals its shape color.
-  const hoverBorderClass = hoverBorderColorClassForAccent((data.borderColor as Accent | undefined) ?? shapeAccent)
+  const hoverBorderClass = hoverBorderColorClassForAccent(
+    (data.borderColor as Accent | undefined) ?? shapeAccent,
+  )
   const quadrantColors = data.quadrantColors ?? []
 
   return (
@@ -195,7 +206,9 @@ export function NodeShell({
       <div
         className={`box node-shell-shape-box ${shapeColorClass}`}
         style={SHAPE_BOX_SIZE}
-        title={nodeType.description ? `${label} — ${nodeType.description}` : label}
+        title={
+          nodeType.description ? `${label} — ${nodeType.description}` : label
+        }
       >
         {/*
          * Four quadrants behind the shape — invisible unless
@@ -217,9 +230,13 @@ export function NodeShell({
           className={`node-shell-quadrant bottom-right ${quadrantColors[3] ? accentTintClassForAccent(quadrantColors[3] as Accent, 40) : ''}`}
         />
         {visual.shapeIsIcon ? (
-          <div className={`shape-icon ${visual.shapeClassName} ${visual.shapeExtraClassName ?? ''}`} />
+          <div
+            className={`shape-icon ${visual.shapeClassName} ${visual.shapeExtraClassName ?? ''}`}
+          />
         ) : (
-          <div className={`shape ${visual.shapeClassName} ${visual.shapeExtraClassName ?? ''}`} />
+          <div
+            className={`shape ${visual.shapeClassName} ${visual.shapeExtraClassName ?? ''}`}
+          />
         )}
         <div className="node-shell-label-wrap">
           <span className="node-shell-label">{label}</span>

@@ -1,7 +1,20 @@
 import { useState, type CSSProperties } from 'react'
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, Position, useReactFlow, type Edge, type EdgeProps } from '@xyflow/react'
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  getBezierPath,
+  Position,
+  useReactFlow,
+  type Edge,
+  type EdgeProps,
+} from '@xyflow/react'
 
-import { iconClassForType, ITERATE_ICON_CLASS, RECURSIVE_ICON_CLASS, TYPE_UNSAFE_ICON_CLASS } from '../../../lib/typeIcons'
+import {
+  iconClassForType,
+  ITERATE_ICON_CLASS,
+  RECURSIVE_ICON_CLASS,
+  TYPE_UNSAFE_ICON_CLASS,
+} from '../../../lib/typeIcons'
 import { canConnect, parseHandleId } from '../connectionRules'
 import type { CatalogNodeData } from '../editorNodeData'
 import { useCatalogEntry, useTransforms } from '../useCatalogEntry'
@@ -101,19 +114,40 @@ export function DataEdge({
 
   const sourceSocketName = parseHandleId(sourceHandleId)?.name
   const targetSocketName = parseHandleId(targetHandleId)?.name
-  const sourceSocket = sourceNodeType?.dataOut?.find((socket) => socket.name === sourceSocketName)
-  const targetSocket = targetNodeType?.dataIn?.find((socket) => socket.name === targetSocketName)
+  const sourceSocket = sourceNodeType?.dataOut?.find(
+    (socket) => socket.name === sourceSocketName,
+  )
+  const targetSocket = targetNodeType?.dataIn?.find(
+    (socket) => socket.name === targetSocketName,
+  )
 
-  const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
+  const [path, labelX, labelY] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  })
 
-  const connectionInfo = sourceSocket && targetSocket ? canConnect(sourceSocket.type, targetSocket.type, transforms) : undefined
-  const activeTransform = data?.transform ? transforms.find((candidate) => candidate.name === data.transform) : undefined
-  const sourceIconClass = sourceSocket ? iconClassForType(sourceSocket.type) : undefined
-  const targetIconClass = targetSocket ? iconClassForType(targetSocket.type) : undefined
+  const connectionInfo =
+    sourceSocket && targetSocket
+      ? canConnect(sourceSocket.type, targetSocket.type, transforms)
+      : undefined
+  const activeTransform = data?.transform
+    ? transforms.find((candidate) => candidate.name === data.transform)
+    : undefined
+  const sourceIconClass = sourceSocket
+    ? iconClassForType(sourceSocket.type)
+    : undefined
+  const targetIconClass = targetSocket
+    ? iconClassForType(targetSocket.type)
+    : undefined
   const sourceUnit = OUTWARD_UNIT[sourcePosition]
   const targetUnit = OUTWARD_UNIT[targetPosition]
   const targetType = targetSocket?.type
-  const isPathEdge = targetType === 'path' || (targetType?.startsWith('path.') ?? false)
+  const isPathEdge =
+    targetType === 'path' || (targetType?.startsWith('path.') ?? false)
   const isRecursive = Boolean(data?.settings?.recursive)
 
   return (
@@ -131,7 +165,12 @@ export function DataEdge({
       {data?.transform ? (
         <EdgeLabelRenderer>
           <div
-            style={{ '--edge-x': `${labelX}px`, '--edge-y': `${labelY}px` } as CSSProperties}
+            style={
+              {
+                '--edge-x': `${labelX}px`,
+                '--edge-y': `${labelY}px`,
+              } as CSSProperties
+            }
             className="data-edge-transform-chip nodrag nopan pointer-events-auto"
           >
             <button
@@ -149,16 +188,32 @@ export function DataEdge({
         <EdgeLabelRenderer>
           {sourceIconClass ? (
             <div
-              style={{ '--edge-x': `${sourceX}px`, '--edge-y': `${sourceY}px`, '--edge-ux': sourceUnit.ux, '--edge-uy': sourceUnit.uy } as CSSProperties}
+              style={
+                {
+                  '--edge-x': `${sourceX}px`,
+                  '--edge-y': `${sourceY}px`,
+                  '--edge-ux': sourceUnit.ux,
+                  '--edge-uy': sourceUnit.uy,
+                } as CSSProperties
+              }
               className="data-edge-endpoint"
             >
               <span className={`${sourceIconClass} data-edge-icon`} />
-              {activeTransform?.impliesIteration ? <span className={`${ITERATE_ICON_CLASS} data-edge-icon`} /> : null}
+              {activeTransform?.impliesIteration ? (
+                <span className={`${ITERATE_ICON_CLASS} data-edge-icon`} />
+              ) : null}
             </div>
           ) : null}
           {targetIconClass ? (
             <div
-              style={{ '--edge-x': `${targetX}px`, '--edge-y': `${targetY}px`, '--edge-ux': targetUnit.ux, '--edge-uy': targetUnit.uy } as CSSProperties}
+              style={
+                {
+                  '--edge-x': `${targetX}px`,
+                  '--edge-y': `${targetY}px`,
+                  '--edge-ux': targetUnit.ux,
+                  '--edge-uy': targetUnit.uy,
+                } as CSSProperties
+              }
               className="data-edge-endpoint"
             >
               <span className={`${targetIconClass} data-edge-icon`} />
@@ -197,7 +252,9 @@ export function DataEdge({
         <EdgeSettingsEditor
           recursive={isRecursive}
           onSave={(next) => {
-            void updateEdgeData(id, { settings: { ...data?.settings, recursive: next.recursive } })
+            void updateEdgeData(id, {
+              settings: { ...data?.settings, recursive: next.recursive },
+            })
             setSettingsOpen(false)
           }}
           onCancel={() => setSettingsOpen(false)}

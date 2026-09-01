@@ -44,21 +44,32 @@ export function DiagnosticsPanel({
       >
         <span>Diagnostics</span>
         <Space size={6} align="center">
-          {errorCount > 0 ? <Badge count={errorCount} color="var(--color-red)" /> : null}
-          {warningCount > 0 ? <Badge count={warningCount} color="var(--color-yellow)" /> : null}
+          {errorCount > 0 ? (
+            <Badge count={errorCount} color="var(--color-red)" />
+          ) : null}
+          {warningCount > 0 ? (
+            <Badge count={warningCount} color="var(--color-yellow)" />
+          ) : null}
           {diagnostics.length === 0 ? (
             <Typography.Text type="secondary" style={{ fontSize: 10 }}>
               clean
             </Typography.Text>
           ) : null}
-          {open ? <DownOutlined style={{ fontSize: 10 }} /> : <RightOutlined style={{ fontSize: 10 }} />}
+          {open ? (
+            <DownOutlined style={{ fontSize: 10 }} />
+          ) : (
+            <RightOutlined style={{ fontSize: 10 }} />
+          )}
         </Space>
       </button>
 
       {open ? (
         <div className="diagnostics-panel-body">
           {diagnostics.length === 0 ? (
-            <Typography.Text type="secondary" className="diagnostics-panel-empty">
+            <Typography.Text
+              type="secondary"
+              className="diagnostics-panel-empty"
+            >
               No issues.
             </Typography.Text>
           ) : (
@@ -75,13 +86,16 @@ export function DiagnosticsPanel({
                       className="diagnostics-panel-item-dot"
                       style={{
                         backgroundColor:
-                          diagnostic.severity === WorkflowDiagnosticSeverity.ERROR
+                          diagnostic.severity ===
+                          WorkflowDiagnosticSeverity.ERROR
                             ? 'var(--color-red)'
                             : 'var(--color-yellow)',
                       }}
                     />
                     <div className="diagnostics-panel-item-main">
-                      <p className="diagnostics-panel-item-message">{diagnostic.message}</p>
+                      <p className="diagnostics-panel-item-message">
+                        {diagnostic.message}
+                      </p>
                       {diagnostic.nodeIds.length > 0 ? (
                         <div className="diagnostics-panel-node-chips">
                           {diagnostic.nodeIds.map((nodeId) => (
@@ -99,9 +113,15 @@ export function DiagnosticsPanel({
                       {diagnostic.witnessPath.length > 0 ? (
                         <div className="diagnostics-panel-witness-path">
                           {diagnostic.witnessPath.map((nodeId, pathIndex) => (
-                            <span key={`${nodeId}-${pathIndex}`} className="diagnostics-panel-witness-step">
+                            <span
+                              key={`${nodeId}-${pathIndex}`}
+                              className="diagnostics-panel-witness-step"
+                            >
                               {pathIndex > 0 ? <span>→</span> : null}
-                              <Typography.Link onClick={() => onSelectNode(nodeId)} style={{ fontSize: 10 }}>
+                              <Typography.Link
+                                onClick={() => onSelectNode(nodeId)}
+                                style={{ fontSize: 10 }}
+                              >
                                 {nodeLabel(nodeId)}
                               </Typography.Link>
                             </span>

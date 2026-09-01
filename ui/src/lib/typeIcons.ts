@@ -1,4 +1,8 @@
-import { elementType, isListType, type Type } from '../pages/workflows/connectionRules'
+import {
+  elementType,
+  isListType,
+  type Type,
+} from '../pages/workflows/connectionRules'
 
 /*
  * Maps a workflow socket Type to a CSS class from lib/icons/typeIcons.css
@@ -30,8 +34,10 @@ const prefixIcons: [string, string][] = [
 export function iconClassForType(type: Type): string | undefined {
   if (isListType(type)) {
     const inner = elementType(type) ?? ''
-    if (inner === 'path.dir' || inner.startsWith('path.dir.')) return 'icon-list-directory'
-    if (inner === 'path.file' || inner.startsWith('path.file.')) return 'icon-list-file'
+    if (inner === 'path.dir' || inner.startsWith('path.dir.'))
+      return 'icon-list-directory'
+    if (inner === 'path.file' || inner.startsWith('path.file.'))
+      return 'icon-list-file'
     if (inner === 'path' || inner.startsWith('path.')) return 'icon-list'
     return undefined
   }

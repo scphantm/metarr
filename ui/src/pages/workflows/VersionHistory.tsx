@@ -30,7 +30,9 @@ export function VersionHistory({
             <>
               v{version.version}
               <span className="version-history-timestamp">
-                {version.createdAt ? timestampDate(version.createdAt).toLocaleString() : ''}
+                {version.createdAt
+                  ? timestampDate(version.createdAt).toLocaleString()
+                  : ''}
               </span>
             </>
           ),

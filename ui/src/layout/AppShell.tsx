@@ -40,13 +40,19 @@ export function AppShell({
   return (
     <Layout className="app-shell">
       <HoverPinPanel side="left" pinned={navPinned}>
-        <NavColumn pinned={navPinned} onTogglePin={() => setNavPinned((current) => !current)} />
+        <NavColumn
+          pinned={navPinned}
+          onTogglePin={() => setNavPinned((current) => !current)}
+        />
       </HoverPinPanel>
 
       <Layout.Content className="app-shell-main">{children}</Layout.Content>
 
       <HoverPinPanel side="right" pinned={panelPinned}>
-        <Sidebar pinned={panelPinned} onTogglePin={() => setPanelPinned((current) => !current)}>
+        <Sidebar
+          pinned={panelPinned}
+          onTogglePin={() => setPanelPinned((current) => !current)}
+        >
           {sidebar}
         </Sidebar>
       </HoverPinPanel>
@@ -72,7 +78,10 @@ export function PageHeader({
           {title}
         </Typography.Title>
         {description ? (
-          <Typography.Text type="secondary" className="app-page-header-description">
+          <Typography.Text
+            type="secondary"
+            className="app-page-header-description"
+          >
             {description}
           </Typography.Text>
         ) : null}
