@@ -886,6 +886,169 @@ func (x *StatsServiceStreamResponse) GetSnapshot() *BusSnapshot {
 	return nil
 }
 
+// StatsServicePurgeRequest names what to clear: one stream by name, or every
+// discovered durable stream when all is set. Exactly one of the two must be
+// given — an empty stream with all unset, or a stream name with all set, is
+// rejected.
+type StatsServicePurgeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Stream        string                 `protobuf:"bytes,1,opt,name=stream,proto3" json:"stream,omitempty"`
+	All           bool                   `protobuf:"varint,2,opt,name=all,proto3" json:"all,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StatsServicePurgeRequest) Reset() {
+	*x = StatsServicePurgeRequest{}
+	mi := &file_metarr_v1_stats_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StatsServicePurgeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StatsServicePurgeRequest) ProtoMessage() {}
+
+func (x *StatsServicePurgeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_stats_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StatsServicePurgeRequest.ProtoReflect.Descriptor instead.
+func (*StatsServicePurgeRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_stats_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *StatsServicePurgeRequest) GetStream() string {
+	if x != nil {
+		return x.Stream
+	}
+	return ""
+}
+
+func (x *StatsServicePurgeRequest) GetAll() bool {
+	if x != nil {
+		return x.All
+	}
+	return false
+}
+
+// StreamPurgeResult is the outcome for one purged stream: how many entries
+// the approximate trim dropped, and the consumer groups it fast-forwarded
+// to the stream's tail. A stream that had no groups reports an empty list.
+type StreamPurgeResult struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Stream              string                 `protobuf:"bytes,1,opt,name=stream,proto3" json:"stream,omitempty"`
+	Dropped             int64                  `protobuf:"varint,2,opt,name=dropped,proto3" json:"dropped,omitempty"`
+	GroupsFastForwarded []string               `protobuf:"bytes,3,rep,name=groups_fast_forwarded,json=groupsFastForwarded,proto3" json:"groups_fast_forwarded,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *StreamPurgeResult) Reset() {
+	*x = StreamPurgeResult{}
+	mi := &file_metarr_v1_stats_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamPurgeResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamPurgeResult) ProtoMessage() {}
+
+func (x *StreamPurgeResult) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_stats_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamPurgeResult.ProtoReflect.Descriptor instead.
+func (*StreamPurgeResult) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_stats_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *StreamPurgeResult) GetStream() string {
+	if x != nil {
+		return x.Stream
+	}
+	return ""
+}
+
+func (x *StreamPurgeResult) GetDropped() int64 {
+	if x != nil {
+		return x.Dropped
+	}
+	return 0
+}
+
+func (x *StreamPurgeResult) GetGroupsFastForwarded() []string {
+	if x != nil {
+		return x.GroupsFastForwarded
+	}
+	return nil
+}
+
+type StatsServicePurgeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Results       []*StreamPurgeResult   `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StatsServicePurgeResponse) Reset() {
+	*x = StatsServicePurgeResponse{}
+	mi := &file_metarr_v1_stats_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StatsServicePurgeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StatsServicePurgeResponse) ProtoMessage() {}
+
+func (x *StatsServicePurgeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_stats_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StatsServicePurgeResponse.ProtoReflect.Descriptor instead.
+func (*StatsServicePurgeResponse) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_stats_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *StatsServicePurgeResponse) GetResults() []*StreamPurgeResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
 var File_metarr_v1_stats_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_stats_proto_rawDesc = "" +
@@ -962,10 +1125,20 @@ const file_metarr_v1_stats_proto_rawDesc = "" +
 	"\bsnapshot\x18\x01 \x01(\v2\x16.metarr.v1.BusSnapshotR\bsnapshot\"\x1b\n" +
 	"\x19StatsServiceStreamRequest\"P\n" +
 	"\x1aStatsServiceStreamResponse\x122\n" +
-	"\bsnapshot\x18\x01 \x01(\v2\x16.metarr.v1.BusSnapshotR\bsnapshot2\xb5\x01\n" +
+	"\bsnapshot\x18\x01 \x01(\v2\x16.metarr.v1.BusSnapshotR\bsnapshot\"D\n" +
+	"\x18StatsServicePurgeRequest\x12\x16\n" +
+	"\x06stream\x18\x01 \x01(\tR\x06stream\x12\x10\n" +
+	"\x03all\x18\x02 \x01(\bR\x03all\"y\n" +
+	"\x11StreamPurgeResult\x12\x16\n" +
+	"\x06stream\x18\x01 \x01(\tR\x06stream\x12\x18\n" +
+	"\adropped\x18\x02 \x01(\x03R\adropped\x122\n" +
+	"\x15groups_fast_forwarded\x18\x03 \x03(\tR\x13groupsFastForwarded\"S\n" +
+	"\x19StatsServicePurgeResponse\x126\n" +
+	"\aresults\x18\x01 \x03(\v2\x1c.metarr.v1.StreamPurgeResultR\aresults2\x89\x02\n" +
 	"\fStatsService\x12L\n" +
 	"\x03Get\x12!.metarr.v1.StatsServiceGetRequest\x1a\".metarr.v1.StatsServiceGetResponse\x12W\n" +
-	"\x06Stream\x12$.metarr.v1.StatsServiceStreamRequest\x1a%.metarr.v1.StatsServiceStreamResponse0\x01B-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
+	"\x06Stream\x12$.metarr.v1.StatsServiceStreamRequest\x1a%.metarr.v1.StatsServiceStreamResponse0\x01\x12R\n" +
+	"\x05Purge\x12#.metarr.v1.StatsServicePurgeRequest\x1a$.metarr.v1.StatsServicePurgeResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
 
 var (
 	file_metarr_v1_stats_proto_rawDescOnce sync.Once
@@ -979,7 +1152,7 @@ func file_metarr_v1_stats_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_stats_proto_rawDescData
 }
 
-var file_metarr_v1_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_metarr_v1_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_metarr_v1_stats_proto_goTypes = []any{
 	(*BusSnapshot)(nil),                // 0: metarr.v1.BusSnapshot
 	(*BusServerInfo)(nil),              // 1: metarr.v1.BusServerInfo
@@ -991,28 +1164,34 @@ var file_metarr_v1_stats_proto_goTypes = []any{
 	(*StatsServiceGetResponse)(nil),    // 7: metarr.v1.StatsServiceGetResponse
 	(*StatsServiceStreamRequest)(nil),  // 8: metarr.v1.StatsServiceStreamRequest
 	(*StatsServiceStreamResponse)(nil), // 9: metarr.v1.StatsServiceStreamResponse
-	nil,                                // 10: metarr.v1.BusServerInfo.FieldErrorsEntry
-	(*timestamppb.Timestamp)(nil),      // 11: google.protobuf.Timestamp
+	(*StatsServicePurgeRequest)(nil),   // 10: metarr.v1.StatsServicePurgeRequest
+	(*StreamPurgeResult)(nil),          // 11: metarr.v1.StreamPurgeResult
+	(*StatsServicePurgeResponse)(nil),  // 12: metarr.v1.StatsServicePurgeResponse
+	nil,                                // 13: metarr.v1.BusServerInfo.FieldErrorsEntry
+	(*timestamppb.Timestamp)(nil),      // 14: google.protobuf.Timestamp
 }
 var file_metarr_v1_stats_proto_depIdxs = []int32{
-	11, // 0: metarr.v1.BusSnapshot.collected_at:type_name -> google.protobuf.Timestamp
+	14, // 0: metarr.v1.BusSnapshot.collected_at:type_name -> google.protobuf.Timestamp
 	1,  // 1: metarr.v1.BusSnapshot.server:type_name -> metarr.v1.BusServerInfo
 	2,  // 2: metarr.v1.BusSnapshot.streams:type_name -> metarr.v1.BusStreamStat
 	5,  // 3: metarr.v1.BusSnapshot.channels:type_name -> metarr.v1.BusChannelStat
-	10, // 4: metarr.v1.BusServerInfo.field_errors:type_name -> metarr.v1.BusServerInfo.FieldErrorsEntry
+	13, // 4: metarr.v1.BusServerInfo.field_errors:type_name -> metarr.v1.BusServerInfo.FieldErrorsEntry
 	3,  // 5: metarr.v1.BusStreamStat.groups:type_name -> metarr.v1.BusGroupStat
 	4,  // 6: metarr.v1.BusGroupStat.consumer_detail:type_name -> metarr.v1.BusConsumerStat
 	0,  // 7: metarr.v1.StatsServiceGetResponse.snapshot:type_name -> metarr.v1.BusSnapshot
 	0,  // 8: metarr.v1.StatsServiceStreamResponse.snapshot:type_name -> metarr.v1.BusSnapshot
-	6,  // 9: metarr.v1.StatsService.Get:input_type -> metarr.v1.StatsServiceGetRequest
-	8,  // 10: metarr.v1.StatsService.Stream:input_type -> metarr.v1.StatsServiceStreamRequest
-	7,  // 11: metarr.v1.StatsService.Get:output_type -> metarr.v1.StatsServiceGetResponse
-	9,  // 12: metarr.v1.StatsService.Stream:output_type -> metarr.v1.StatsServiceStreamResponse
-	11, // [11:13] is the sub-list for method output_type
-	9,  // [9:11] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	11, // 9: metarr.v1.StatsServicePurgeResponse.results:type_name -> metarr.v1.StreamPurgeResult
+	6,  // 10: metarr.v1.StatsService.Get:input_type -> metarr.v1.StatsServiceGetRequest
+	8,  // 11: metarr.v1.StatsService.Stream:input_type -> metarr.v1.StatsServiceStreamRequest
+	10, // 12: metarr.v1.StatsService.Purge:input_type -> metarr.v1.StatsServicePurgeRequest
+	7,  // 13: metarr.v1.StatsService.Get:output_type -> metarr.v1.StatsServiceGetResponse
+	9,  // 14: metarr.v1.StatsService.Stream:output_type -> metarr.v1.StatsServiceStreamResponse
+	12, // 15: metarr.v1.StatsService.Purge:output_type -> metarr.v1.StatsServicePurgeResponse
+	13, // [13:16] is the sub-list for method output_type
+	10, // [10:13] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_stats_proto_init() }
@@ -1026,7 +1205,7 @@ func file_metarr_v1_stats_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_stats_proto_rawDesc), len(file_metarr_v1_stats_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

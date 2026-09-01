@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/stats.proto.
  */
 export const file_metarr_v1_stats: GenFile = /*@__PURE__*/
-  fileDesc("ChVtZXRhcnIvdjEvc3RhdHMucHJvdG8SCW1ldGFyci52MSLBAQoLQnVzU25hcHNob3QSMAoMY29sbGVjdGVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIoCgZzZXJ2ZXIYAiABKAsyGC5tZXRhcnIudjEuQnVzU2VydmVySW5mbxIpCgdzdHJlYW1zGAMgAygLMhgubWV0YXJyLnYxLkJ1c1N0cmVhbVN0YXQSKwoIY2hhbm5lbHMYBCADKAsyGS5tZXRhcnIudjEuQnVzQ2hhbm5lbFN0YXQinAMKDUJ1c1NlcnZlckluZm8SDwoHdmVyc2lvbhgBIAEoCRIWCg51cHRpbWVfc2Vjb25kcxgCIAEoAxIZChFjb25uZWN0ZWRfY2xpZW50cxgDIAEoAxITCgt1c2VkX21lbW9yeRgEIAEoAxIZChF1c2VkX21lbW9yeV9odW1hbhgFIAEoCRIWCg5vcHNfcGVyX3NlY29uZBgGIAEoAxISCgp0b3RhbF9rZXlzGAcgASgDEiAKGGNvbm5lY3RlZF9jbGllbnRzX3NlcmllcxgIIAMoAxIaChJ1c2VkX21lbW9yeV9zZXJpZXMYCSADKAMSHQoVb3BzX3Blcl9zZWNvbmRfc2VyaWVzGAogAygDEhkKEXRvdGFsX2tleXNfc2VyaWVzGAsgAygDEj8KDGZpZWxkX2Vycm9ycxgMIAMoCzIpLm1ldGFyci52MS5CdXNTZXJ2ZXJJbmZvLkZpZWxkRXJyb3JzRW50cnkaMgoQRmllbGRFcnJvcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIp8CCg1CdXNTdHJlYW1TdGF0Eg4KBnN0cmVhbRgBIAEoCRISCgpldmVudF9uYW1lGAIgASgJEg4KBmxlbmd0aBgDIAEoAxIOCgZleGlzdHMYBCABKAgSJwoGZ3JvdXBzGAUgAygLMhcubWV0YXJyLnYxLkJ1c0dyb3VwU3RhdBINCgVlcnJvchgGIAEoCRIUCgxwdWJsaXNoX3JhdGUYByABKAMSFQoNbGVuZ3RoX3NlcmllcxgIIAMoAxIbChNwdWJsaXNoX3JhdGVfc2VyaWVzGAkgAygDEhsKE2V4cGVjdGVkX2lkZW50aXRpZXMYCiADKAkSDwoHZmxhZ2dlZBgLIAEoCBIaChJtaXNzaW5nX2lkZW50aXRpZXMYDCADKAki5QIKDEJ1c0dyb3VwU3RhdBIMCgRuYW1lGAEgASgJEhEKCWNvbnN1bWVycxgCIAEoAxIPCgdwZW5kaW5nGAMgASgDEgsKA2xhZxgEIAEoAxIZChFsYXN0X2RlbGl2ZXJlZF9pZBgFIAEoCRIzCg9jb25zdW1lcl9kZXRhaWwYBiADKAsyGi5tZXRhcnIudjEuQnVzQ29uc3VtZXJTdGF0EiIKGm9sZGVzdF9wZW5kaW5nX2FnZV9zZWNvbmRzGAcgASgDEhQKDGNvbnN1bWVfcmF0ZRgIIAEoAxIYChBjb25zdW1lcnNfc2VyaWVzGAkgAygDEhYKDnBlbmRpbmdfc2VyaWVzGAogAygDEhIKCmxhZ19zZXJpZXMYCyADKAMSKQohb2xkZXN0X3BlbmRpbmdfYWdlX3NlY29uZHNfc2VyaWVzGAwgAygDEhsKE2NvbnN1bWVfcmF0ZV9zZXJpZXMYDSADKAMiRgoPQnVzQ29uc3VtZXJTdGF0EgwKBG5hbWUYASABKAkSDwoHcGVuZGluZxgCIAEoAxIUCgxpZGxlX3NlY29uZHMYAyABKAMijwEKDkJ1c0NoYW5uZWxTdGF0Eg8KB2NoYW5uZWwYASABKAkSEwoLc3Vic2NyaWJlcnMYAiABKAMSDQoFa25vd24YAyABKAgSGwoTZXhwZWN0ZWRfaWRlbnRpdGllcxgEIAMoCRIPCgdmbGFnZ2VkGAUgASgIEhoKEm1pc3NpbmdfaWRlbnRpdGllcxgGIAMoCSIYChZTdGF0c1NlcnZpY2VHZXRSZXF1ZXN0IkMKF1N0YXRzU2VydmljZUdldFJlc3BvbnNlEigKCHNuYXBzaG90GAEgASgLMhYubWV0YXJyLnYxLkJ1c1NuYXBzaG90IhsKGVN0YXRzU2VydmljZVN0cmVhbVJlcXVlc3QiRgoaU3RhdHNTZXJ2aWNlU3RyZWFtUmVzcG9uc2USKAoIc25hcHNob3QYASABKAsyFi5tZXRhcnIudjEuQnVzU25hcHNob3QytQEKDFN0YXRzU2VydmljZRJMCgNHZXQSIS5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlR2V0UmVxdWVzdBoiLm1ldGFyci52MS5TdGF0c1NlcnZpY2VHZXRSZXNwb25zZRJXCgZTdHJlYW0SJC5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlU3RyZWFtUmVxdWVzdBolLm1ldGFyci52MS5TdGF0c1NlcnZpY2VTdHJlYW1SZXNwb25zZTABQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("ChVtZXRhcnIvdjEvc3RhdHMucHJvdG8SCW1ldGFyci52MSLBAQoLQnVzU25hcHNob3QSMAoMY29sbGVjdGVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIoCgZzZXJ2ZXIYAiABKAsyGC5tZXRhcnIudjEuQnVzU2VydmVySW5mbxIpCgdzdHJlYW1zGAMgAygLMhgubWV0YXJyLnYxLkJ1c1N0cmVhbVN0YXQSKwoIY2hhbm5lbHMYBCADKAsyGS5tZXRhcnIudjEuQnVzQ2hhbm5lbFN0YXQinAMKDUJ1c1NlcnZlckluZm8SDwoHdmVyc2lvbhgBIAEoCRIWCg51cHRpbWVfc2Vjb25kcxgCIAEoAxIZChFjb25uZWN0ZWRfY2xpZW50cxgDIAEoAxITCgt1c2VkX21lbW9yeRgEIAEoAxIZChF1c2VkX21lbW9yeV9odW1hbhgFIAEoCRIWCg5vcHNfcGVyX3NlY29uZBgGIAEoAxISCgp0b3RhbF9rZXlzGAcgASgDEiAKGGNvbm5lY3RlZF9jbGllbnRzX3NlcmllcxgIIAMoAxIaChJ1c2VkX21lbW9yeV9zZXJpZXMYCSADKAMSHQoVb3BzX3Blcl9zZWNvbmRfc2VyaWVzGAogAygDEhkKEXRvdGFsX2tleXNfc2VyaWVzGAsgAygDEj8KDGZpZWxkX2Vycm9ycxgMIAMoCzIpLm1ldGFyci52MS5CdXNTZXJ2ZXJJbmZvLkZpZWxkRXJyb3JzRW50cnkaMgoQRmllbGRFcnJvcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIp8CCg1CdXNTdHJlYW1TdGF0Eg4KBnN0cmVhbRgBIAEoCRISCgpldmVudF9uYW1lGAIgASgJEg4KBmxlbmd0aBgDIAEoAxIOCgZleGlzdHMYBCABKAgSJwoGZ3JvdXBzGAUgAygLMhcubWV0YXJyLnYxLkJ1c0dyb3VwU3RhdBINCgVlcnJvchgGIAEoCRIUCgxwdWJsaXNoX3JhdGUYByABKAMSFQoNbGVuZ3RoX3NlcmllcxgIIAMoAxIbChNwdWJsaXNoX3JhdGVfc2VyaWVzGAkgAygDEhsKE2V4cGVjdGVkX2lkZW50aXRpZXMYCiADKAkSDwoHZmxhZ2dlZBgLIAEoCBIaChJtaXNzaW5nX2lkZW50aXRpZXMYDCADKAki5QIKDEJ1c0dyb3VwU3RhdBIMCgRuYW1lGAEgASgJEhEKCWNvbnN1bWVycxgCIAEoAxIPCgdwZW5kaW5nGAMgASgDEgsKA2xhZxgEIAEoAxIZChFsYXN0X2RlbGl2ZXJlZF9pZBgFIAEoCRIzCg9jb25zdW1lcl9kZXRhaWwYBiADKAsyGi5tZXRhcnIudjEuQnVzQ29uc3VtZXJTdGF0EiIKGm9sZGVzdF9wZW5kaW5nX2FnZV9zZWNvbmRzGAcgASgDEhQKDGNvbnN1bWVfcmF0ZRgIIAEoAxIYChBjb25zdW1lcnNfc2VyaWVzGAkgAygDEhYKDnBlbmRpbmdfc2VyaWVzGAogAygDEhIKCmxhZ19zZXJpZXMYCyADKAMSKQohb2xkZXN0X3BlbmRpbmdfYWdlX3NlY29uZHNfc2VyaWVzGAwgAygDEhsKE2NvbnN1bWVfcmF0ZV9zZXJpZXMYDSADKAMiRgoPQnVzQ29uc3VtZXJTdGF0EgwKBG5hbWUYASABKAkSDwoHcGVuZGluZxgCIAEoAxIUCgxpZGxlX3NlY29uZHMYAyABKAMijwEKDkJ1c0NoYW5uZWxTdGF0Eg8KB2NoYW5uZWwYASABKAkSEwoLc3Vic2NyaWJlcnMYAiABKAMSDQoFa25vd24YAyABKAgSGwoTZXhwZWN0ZWRfaWRlbnRpdGllcxgEIAMoCRIPCgdmbGFnZ2VkGAUgASgIEhoKEm1pc3NpbmdfaWRlbnRpdGllcxgGIAMoCSIYChZTdGF0c1NlcnZpY2VHZXRSZXF1ZXN0IkMKF1N0YXRzU2VydmljZUdldFJlc3BvbnNlEigKCHNuYXBzaG90GAEgASgLMhYubWV0YXJyLnYxLkJ1c1NuYXBzaG90IhsKGVN0YXRzU2VydmljZVN0cmVhbVJlcXVlc3QiRgoaU3RhdHNTZXJ2aWNlU3RyZWFtUmVzcG9uc2USKAoIc25hcHNob3QYASABKAsyFi5tZXRhcnIudjEuQnVzU25hcHNob3QiNwoYU3RhdHNTZXJ2aWNlUHVyZ2VSZXF1ZXN0Eg4KBnN0cmVhbRgBIAEoCRILCgNhbGwYAiABKAgiUwoRU3RyZWFtUHVyZ2VSZXN1bHQSDgoGc3RyZWFtGAEgASgJEg8KB2Ryb3BwZWQYAiABKAMSHQoVZ3JvdXBzX2Zhc3RfZm9yd2FyZGVkGAMgAygJIkoKGVN0YXRzU2VydmljZVB1cmdlUmVzcG9uc2USLQoHcmVzdWx0cxgBIAMoCzIcLm1ldGFyci52MS5TdHJlYW1QdXJnZVJlc3VsdDKJAgoMU3RhdHNTZXJ2aWNlEkwKA0dldBIhLm1ldGFyci52MS5TdGF0c1NlcnZpY2VHZXRSZXF1ZXN0GiIubWV0YXJyLnYxLlN0YXRzU2VydmljZUdldFJlc3BvbnNlElcKBlN0cmVhbRIkLm1ldGFyci52MS5TdGF0c1NlcnZpY2VTdHJlYW1SZXF1ZXN0GiUubWV0YXJyLnYxLlN0YXRzU2VydmljZVN0cmVhbVJlc3BvbnNlMAESUgoFUHVyZ2USIy5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlUHVyZ2VSZXF1ZXN0GiQubWV0YXJyLnYxLlN0YXRzU2VydmljZVB1cmdlUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * BusSnapshot is a point-in-time view of the Redis instance backing the
@@ -508,9 +508,87 @@ export const StatsServiceStreamResponseSchema: GenMessage<StatsServiceStreamResp
   messageDesc(file_metarr_v1_stats, 9);
 
 /**
+ * StatsServicePurgeRequest names what to clear: one stream by name, or every
+ * discovered durable stream when all is set. Exactly one of the two must be
+ * given — an empty stream with all unset, or a stream name with all set, is
+ * rejected.
+ *
+ * @generated from message metarr.v1.StatsServicePurgeRequest
+ */
+export type StatsServicePurgeRequest = Message<"metarr.v1.StatsServicePurgeRequest"> & {
+  /**
+   * @generated from field: string stream = 1;
+   */
+  stream: string;
+
+  /**
+   * @generated from field: bool all = 2;
+   */
+  all: boolean;
+};
+
+/**
+ * Describes the message metarr.v1.StatsServicePurgeRequest.
+ * Use `create(StatsServicePurgeRequestSchema)` to create a new message.
+ */
+export const StatsServicePurgeRequestSchema: GenMessage<StatsServicePurgeRequest> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_stats, 10);
+
+/**
+ * StreamPurgeResult is the outcome for one purged stream: how many entries
+ * the approximate trim dropped, and the consumer groups it fast-forwarded
+ * to the stream's tail. A stream that had no groups reports an empty list.
+ *
+ * @generated from message metarr.v1.StreamPurgeResult
+ */
+export type StreamPurgeResult = Message<"metarr.v1.StreamPurgeResult"> & {
+  /**
+   * @generated from field: string stream = 1;
+   */
+  stream: string;
+
+  /**
+   * @generated from field: int64 dropped = 2;
+   */
+  dropped: bigint;
+
+  /**
+   * @generated from field: repeated string groups_fast_forwarded = 3;
+   */
+  groupsFastForwarded: string[];
+};
+
+/**
+ * Describes the message metarr.v1.StreamPurgeResult.
+ * Use `create(StreamPurgeResultSchema)` to create a new message.
+ */
+export const StreamPurgeResultSchema: GenMessage<StreamPurgeResult> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_stats, 11);
+
+/**
+ * @generated from message metarr.v1.StatsServicePurgeResponse
+ */
+export type StatsServicePurgeResponse = Message<"metarr.v1.StatsServicePurgeResponse"> & {
+  /**
+   * @generated from field: repeated metarr.v1.StreamPurgeResult results = 1;
+   */
+  results: StreamPurgeResult[];
+};
+
+/**
+ * Describes the message metarr.v1.StatsServicePurgeResponse.
+ * Use `create(StatsServicePurgeResponseSchema)` to create a new message.
+ */
+export const StatsServicePurgeResponseSchema: GenMessage<StatsServicePurgeResponse> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_stats, 12);
+
+/**
  * StatsService.Get is the first-paint fallback (a dashboard needs something
  * to paint before its stream connects); Stream is the same snapshot pushed
- * on every sampler tick, fanned out from the shared store.
+ * on every sampler tick, fanned out from the shared store. Purge clears a
+ * jammed durable stream (or all of them): an approximate trim of every
+ * current entry, then a fast-forward of each consumer group to the tail. It
+ * is the one non-read-only method on the service — see docs/adr/0007.
  *
  * @generated from service metarr.v1.StatsService
  */
@@ -530,6 +608,14 @@ export const StatsService: GenService<{
     methodKind: "server_streaming";
     input: typeof StatsServiceStreamRequestSchema;
     output: typeof StatsServiceStreamResponseSchema;
+  },
+  /**
+   * @generated from rpc metarr.v1.StatsService.Purge
+   */
+  purge: {
+    methodKind: "unary";
+    input: typeof StatsServicePurgeRequestSchema;
+    output: typeof StatsServicePurgeResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_metarr_v1_stats, 0);

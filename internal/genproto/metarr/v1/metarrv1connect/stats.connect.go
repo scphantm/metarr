@@ -37,12 +37,15 @@ const (
 	StatsServiceGetProcedure = "/metarr.v1.StatsService/Get"
 	// StatsServiceStreamProcedure is the fully-qualified name of the StatsService's Stream RPC.
 	StatsServiceStreamProcedure = "/metarr.v1.StatsService/Stream"
+	// StatsServicePurgeProcedure is the fully-qualified name of the StatsService's Purge RPC.
+	StatsServicePurgeProcedure = "/metarr.v1.StatsService/Purge"
 )
 
 // StatsServiceClient is a client for the metarr.v1.StatsService service.
 type StatsServiceClient interface {
 	Get(context.Context, *connect.Request[v1.StatsServiceGetRequest]) (*connect.Response[v1.StatsServiceGetResponse], error)
 	Stream(context.Context, *connect.Request[v1.StatsServiceStreamRequest]) (*connect.ServerStreamForClient[v1.StatsServiceStreamResponse], error)
+	Purge(context.Context, *connect.Request[v1.StatsServicePurgeRequest]) (*connect.Response[v1.StatsServicePurgeResponse], error)
 }
 
 // NewStatsServiceClient constructs a client for the metarr.v1.StatsService service. By default, it
@@ -68,6 +71,12 @@ func NewStatsServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(statsServiceMethods.ByName("Stream")),
 			connect.WithClientOptions(opts...),
 		),
+		purge: connect.NewClient[v1.StatsServicePurgeRequest, v1.StatsServicePurgeResponse](
+			httpClient,
+			baseURL+StatsServicePurgeProcedure,
+			connect.WithSchema(statsServiceMethods.ByName("Purge")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -75,6 +84,7 @@ func NewStatsServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 type statsServiceClient struct {
 	get    *connect.Client[v1.StatsServiceGetRequest, v1.StatsServiceGetResponse]
 	stream *connect.Client[v1.StatsServiceStreamRequest, v1.StatsServiceStreamResponse]
+	purge  *connect.Client[v1.StatsServicePurgeRequest, v1.StatsServicePurgeResponse]
 }
 
 // Get calls metarr.v1.StatsService.Get.
@@ -87,10 +97,16 @@ func (c *statsServiceClient) Stream(ctx context.Context, req *connect.Request[v1
 	return c.stream.CallServerStream(ctx, req)
 }
 
+// Purge calls metarr.v1.StatsService.Purge.
+func (c *statsServiceClient) Purge(ctx context.Context, req *connect.Request[v1.StatsServicePurgeRequest]) (*connect.Response[v1.StatsServicePurgeResponse], error) {
+	return c.purge.CallUnary(ctx, req)
+}
+
 // StatsServiceHandler is an implementation of the metarr.v1.StatsService service.
 type StatsServiceHandler interface {
 	Get(context.Context, *connect.Request[v1.StatsServiceGetRequest]) (*connect.Response[v1.StatsServiceGetResponse], error)
 	Stream(context.Context, *connect.Request[v1.StatsServiceStreamRequest], *connect.ServerStream[v1.StatsServiceStreamResponse]) error
+	Purge(context.Context, *connect.Request[v1.StatsServicePurgeRequest]) (*connect.Response[v1.StatsServicePurgeResponse], error)
 }
 
 // NewStatsServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -112,12 +128,20 @@ func NewStatsServiceHandler(svc StatsServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(statsServiceMethods.ByName("Stream")),
 		connect.WithHandlerOptions(opts...),
 	)
+	statsServicePurgeHandler := connect.NewUnaryHandler(
+		StatsServicePurgeProcedure,
+		svc.Purge,
+		connect.WithSchema(statsServiceMethods.ByName("Purge")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/metarr.v1.StatsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case StatsServiceGetProcedure:
 			statsServiceGetHandler.ServeHTTP(w, r)
 		case StatsServiceStreamProcedure:
 			statsServiceStreamHandler.ServeHTTP(w, r)
+		case StatsServicePurgeProcedure:
+			statsServicePurgeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -133,4 +157,8 @@ func (UnimplementedStatsServiceHandler) Get(context.Context, *connect.Request[v1
 
 func (UnimplementedStatsServiceHandler) Stream(context.Context, *connect.Request[v1.StatsServiceStreamRequest], *connect.ServerStream[v1.StatsServiceStreamResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.StatsService.Stream is not implemented"))
+}
+
+func (UnimplementedStatsServiceHandler) Purge(context.Context, *connect.Request[v1.StatsServicePurgeRequest]) (*connect.Response[v1.StatsServicePurgeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.StatsService.Purge is not implemented"))
 }
