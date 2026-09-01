@@ -7,7 +7,7 @@ binaries are *not* in the Compose file yet — you run them yourself.
 == Start the infrastructure
 
 Copy the example environment file and adjust it before the first run. It seeds
-the MongoDB accounts, and those values must match what `config.yaml` connects
+the MongoDB accounts, and those values must match what `config/server.yaml` connects
 with — nothing substitutes between the two files, so they are kept in step by
 hand.
 
