@@ -24,6 +24,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
+	"Metarr/internal/shared/eventbus"
 )
 
 // The snapshot model. Every type here aliases the generated metarr.v1
@@ -61,13 +62,22 @@ var infoBackedFields = []string{
 	"ops_per_second",
 }
 
+// RegisteredSlugsFunc yields the slugs of the registered agents — those
+// configured on the server, online or not. The sampler unions each one's
+// per-agent channels and command stream into the snapshot and cross-checks
+// the live counts against them, so a crashed or disconnected agent shows as a
+// flagged row rather than an absent one. In production it reads
+// appconfig.Get(); a test passes a stub.
+type RegisteredSlugsFunc func(ctx context.Context) []string
+
 // Sampler polls Redis into one shared snapshot and fans it out to Stream
 // subscribers. Construct it with New and drive it with Run.
 type Sampler struct {
-	client   redis.UniversalClient
-	logger   *slog.Logger
-	interval time.Duration
-	history  int
+	client     redis.UniversalClient
+	logger     *slog.Logger
+	interval   time.Duration
+	history    int
+	slugSource RegisteredSlugsFunc
 
 	mu         sync.Mutex
 	snapshot   *Snapshot
@@ -129,6 +139,14 @@ func WithHistory(n int) Option {
 			s.history = n
 		}
 	}
+}
+
+// WithSlugSource gives the sampler the registered agent slugs it needs to
+// derive the expected topology. Without it a pass still samples streams and
+// channels, but no per-agent rows are unioned in and only the fixed known
+// channels are cross-checked.
+func WithSlugSource(fn RegisteredSlugsFunc) Option {
+	return func(s *Sampler) { s.slugSource = fn }
 }
 
 // New wraps client as a Sampler. logger records a pass that reached no Redis;
@@ -236,6 +254,20 @@ func (s *Sampler) pass(ctx context.Context) {
 	// carries its own error rather than failing the pass.
 	streams, published, consumed := s.collectStreams(ctx)
 	channels := s.collectChannels(ctx)
+
+	// The expected-vs-actual layer: derive what should be attached from the
+	// stream-topic list and the registered agents, union in the rows Redis
+	// did not surface (an offline agent's command stream and channels), and
+	// flag every row whose live count falls short — naming which identity is
+	// missing from the agent presence keys.
+	var registered []string
+	if s.slugSource != nil {
+		registered = s.slugSource(ctx)
+	}
+	topology := DeriveTopology(eventbus.StreamTopics(), registered)
+	present := s.collectPresence(ctx)
+	streams = applyStreamTopology(streams, topology, present)
+	channels = applyChannelTopology(channels, topology, present)
 
 	s.mu.Lock()
 	s.appendSeries(server)

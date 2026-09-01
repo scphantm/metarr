@@ -48,17 +48,7 @@ func (s *Sampler) collectChannels(ctx context.Context) []*ChannelStat {
 	for name := range names {
 		ordered = append(ordered, name)
 	}
-	// Declared channels first, then alphabetical within each group, so the
-	// table order is stable across passes regardless of Redis's iteration
-	// order and the reply.* channels sort below the fixed ones.
-	sort.Slice(ordered, func(i, j int) bool {
-		_, iKnown := knownSet[ordered[i]]
-		_, jKnown := knownSet[ordered[j]]
-		if iKnown != jKnown {
-			return iKnown
-		}
-		return ordered[i] < ordered[j]
-	})
+	sort.Strings(ordered)
 
 	counts := map[string]int64{}
 	if len(ordered) > 0 {
@@ -79,5 +69,20 @@ func (s *Sampler) collectChannels(ctx context.Context) []*ChannelStat {
 			Known:       isKnown,
 		})
 	}
+	sortChannelStats(stats)
 	return stats
+}
+
+// sortChannelStats orders the channel rows the way the dashboard shows them:
+// declared channels first, then alphabetical within each group, so the table
+// does not reshuffle between passes regardless of Redis's iteration order and
+// the reply.* channels sort below the fixed ones. applyChannelTopology
+// re-sorts after unioning in per-agent rows.
+func sortChannelStats(stats []*ChannelStat) {
+	sort.Slice(stats, func(i, j int) bool {
+		if stats[i].Known != stats[j].Known {
+			return stats[i].Known
+		}
+		return stats[i].Channel < stats[j].Channel
+	})
 }

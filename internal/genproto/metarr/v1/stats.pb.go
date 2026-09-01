@@ -280,6 +280,21 @@ type BusStreamStat struct {
 	// back the row's inline sparklines.
 	LengthSeries      []int64 `protobuf:"varint,8,rep,packed,name=length_series,json=lengthSeries,proto3" json:"length_series,omitempty"`
 	PublishRateSeries []int64 `protobuf:"varint,9,rep,packed,name=publish_rate_series,json=publishRateSeries,proto3" json:"publish_rate_series,omitempty"`
+	// expected_identities lists the processes that should be reading this
+	// stream's consumer group, derived from the durable stream-topic list and
+	// the registered agents: "metarr-server" for a server-consumed stream,
+	// "metarr-agent-<slug>" for an agent's command stream. Empty for a
+	// reserved stream nothing consumes yet — such a row is never flagged.
+	ExpectedIdentities []string `protobuf:"bytes,10,rep,name=expected_identities,json=expectedIdentities,proto3" json:"expected_identities,omitempty"`
+	// flagged is true when the live consumer count on the expected group is
+	// below the number of expected identities: a consumer that should be
+	// attached is not. A crashed or disconnected agent shows as a flagged row
+	// rather than vanishing.
+	Flagged bool `protobuf:"varint,11,opt,name=flagged,proto3" json:"flagged,omitempty"`
+	// missing_identities names which of expected_identities are absent,
+	// disambiguated by the agent presence keys — an agent identity with no
+	// live presence key. Empty unless flagged.
+	MissingIdentities []string `protobuf:"bytes,12,rep,name=missing_identities,json=missingIdentities,proto3" json:"missing_identities,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -373,6 +388,27 @@ func (x *BusStreamStat) GetLengthSeries() []int64 {
 func (x *BusStreamStat) GetPublishRateSeries() []int64 {
 	if x != nil {
 		return x.PublishRateSeries
+	}
+	return nil
+}
+
+func (x *BusStreamStat) GetExpectedIdentities() []string {
+	if x != nil {
+		return x.ExpectedIdentities
+	}
+	return nil
+}
+
+func (x *BusStreamStat) GetFlagged() bool {
+	if x != nil {
+		return x.Flagged
+	}
+	return false
+}
+
+func (x *BusStreamStat) GetMissingIdentities() []string {
+	if x != nil {
+		return x.MissingIdentities
 	}
 	return nil
 }
@@ -596,14 +632,26 @@ type BusChannelStat struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	Channel     string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
 	Subscribers int64                  `protobuf:"varint,2,opt,name=subscribers,proto3" json:"subscribers,omitempty"`
-	// known marks the application's declared channels (eventbus's fixed
-	// known-channel list). Channels discovered at runtime — the
+	// known marks the application's declared channels: the fixed
+	// known-channel list plus every registered agent's per-agent channels
+	// (config-changed and request). Channels discovered at runtime — the
 	// per-correlation-id reply channels — come back false, so the dashboard
 	// can tell a transient channel from a declared one and flag a declared
-	// channel that has dropped to zero subscribers.
-	Known         bool `protobuf:"varint,3,opt,name=known,proto3" json:"known,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// channel that has dropped below its expected subscriber count.
+	Known bool `protobuf:"varint,3,opt,name=known,proto3" json:"known,omitempty"`
+	// expected_identities lists the processes that should be subscribed to
+	// this channel, derived from topology: "metarr-server" for a fixed
+	// known channel, "metarr-agent-<slug>" for a per-agent channel. Empty
+	// for a transient channel.
+	ExpectedIdentities []string `protobuf:"bytes,4,rep,name=expected_identities,json=expectedIdentities,proto3" json:"expected_identities,omitempty"`
+	// flagged is true when the live subscriber count is below the number of
+	// expected identities: a subscriber that should be attached is not.
+	Flagged bool `protobuf:"varint,5,opt,name=flagged,proto3" json:"flagged,omitempty"`
+	// missing_identities names which of expected_identities are absent,
+	// disambiguated by the agent presence keys. Empty unless flagged.
+	MissingIdentities []string `protobuf:"bytes,6,rep,name=missing_identities,json=missingIdentities,proto3" json:"missing_identities,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *BusChannelStat) Reset() {
@@ -655,6 +703,27 @@ func (x *BusChannelStat) GetKnown() bool {
 		return x.Known
 	}
 	return false
+}
+
+func (x *BusChannelStat) GetExpectedIdentities() []string {
+	if x != nil {
+		return x.ExpectedIdentities
+	}
+	return nil
+}
+
+func (x *BusChannelStat) GetFlagged() bool {
+	if x != nil {
+		return x.Flagged
+	}
+	return false
+}
+
+func (x *BusChannelStat) GetMissingIdentities() []string {
+	if x != nil {
+		return x.MissingIdentities
+	}
+	return nil
 }
 
 type StatsServiceGetRequest struct {
@@ -845,7 +914,7 @@ const file_metarr_v1_stats_proto_rawDesc = "" +
 	"\ffield_errors\x18\f \x03(\v2).metarr.v1.BusServerInfo.FieldErrorsEntryR\vfieldErrors\x1a>\n" +
 	"\x10FieldErrorsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb5\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xaf\x03\n" +
 	"\rBusStreamStat\x12\x16\n" +
 	"\x06stream\x18\x01 \x01(\tR\x06stream\x12\x1d\n" +
 	"\n" +
@@ -856,7 +925,11 @@ const file_metarr_v1_stats_proto_rawDesc = "" +
 	"\x05error\x18\x06 \x01(\tR\x05error\x12!\n" +
 	"\fpublish_rate\x18\a \x01(\x03R\vpublishRate\x12#\n" +
 	"\rlength_series\x18\b \x03(\x03R\flengthSeries\x12.\n" +
-	"\x13publish_rate_series\x18\t \x03(\x03R\x11publishRateSeries\"\xa8\x04\n" +
+	"\x13publish_rate_series\x18\t \x03(\x03R\x11publishRateSeries\x12/\n" +
+	"\x13expected_identities\x18\n" +
+	" \x03(\tR\x12expectedIdentities\x12\x18\n" +
+	"\aflagged\x18\v \x01(\bR\aflagged\x12-\n" +
+	"\x12missing_identities\x18\f \x03(\tR\x11missingIdentities\"\xa8\x04\n" +
 	"\fBusGroupStat\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1c\n" +
 	"\tconsumers\x18\x02 \x01(\x03R\tconsumers\x12\x18\n" +
@@ -876,11 +949,14 @@ const file_metarr_v1_stats_proto_rawDesc = "" +
 	"\x0fBusConsumerStat\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\apending\x18\x02 \x01(\x03R\apending\x12!\n" +
-	"\fidle_seconds\x18\x03 \x01(\x03R\vidleSeconds\"b\n" +
+	"\fidle_seconds\x18\x03 \x01(\x03R\vidleSeconds\"\xdc\x01\n" +
 	"\x0eBusChannelStat\x12\x18\n" +
 	"\achannel\x18\x01 \x01(\tR\achannel\x12 \n" +
 	"\vsubscribers\x18\x02 \x01(\x03R\vsubscribers\x12\x14\n" +
-	"\x05known\x18\x03 \x01(\bR\x05known\"\x18\n" +
+	"\x05known\x18\x03 \x01(\bR\x05known\x12/\n" +
+	"\x13expected_identities\x18\x04 \x03(\tR\x12expectedIdentities\x12\x18\n" +
+	"\aflagged\x18\x05 \x01(\bR\aflagged\x12-\n" +
+	"\x12missing_identities\x18\x06 \x03(\tR\x11missingIdentities\"\x18\n" +
 	"\x16StatsServiceGetRequest\"M\n" +
 	"\x17StatsServiceGetResponse\x122\n" +
 	"\bsnapshot\x18\x01 \x01(\v2\x16.metarr.v1.BusSnapshotR\bsnapshot\"\x1b\n" +

@@ -45,6 +45,26 @@
   margin: 0.25rem 0;
 }
 
+/* A stream/channel name and any inline state marker (the "identity missing"
+   tag) kept on one line. */
+.system-dashboard-namecell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* The expected-identity tag list: wraps rather than stretching the column. */
+.system-dashboard-identities {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.system-dashboard-muted {
+  color: var(--ink-muted);
+}
+
 .system-dashboard-collected {
   font-size: 12px;
 }

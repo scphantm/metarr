@@ -12,6 +12,8 @@
 package eventbus
 
 import (
+	"strings"
+
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -28,8 +30,22 @@ type Event = metarrv1.EventEnvelope
 // `source` convention: one fixed value for the server, one per agent slug.
 const SourceServer = "metarr-server"
 
+// agentSourcePrefix is the fixed lead of every AgentSource value.
+const agentSourcePrefix = "metarr-agent-"
+
 // AgentSource is the envelope Source for events published by the agent slug.
-func AgentSource(slug string) string { return "metarr-agent-" + slug }
+func AgentSource(slug string) string { return agentSourcePrefix + slug }
+
+// SlugFromAgentSource recovers the slug from a Source produced by
+// AgentSource, reporting false for SourceServer or any other value. The
+// dashboard's expected-vs-actual check uses it to map an expected agent
+// identity back to the presence key that says whether that agent is here.
+func SlugFromAgentSource(source string) (string, bool) {
+	if !strings.HasPrefix(source, agentSourcePrefix) || source == agentSourcePrefix {
+		return "", false
+	}
+	return source[len(agentSourcePrefix):], true
+}
 
 // NewEvent builds an envelope stamped with the current time. source is
 // SourceServer or AgentSource(slug); payload is the already-encoded inner

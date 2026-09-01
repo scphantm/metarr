@@ -231,6 +231,45 @@ function MetricCell({
   )
 }
 
+// ExpectedIdentities renders the processes a row's topology says should be
+// attached — one tag each, the ones presence reports missing tinted red. An
+// empty list (a reserved stream, a transient channel) reads as an em dash.
+function ExpectedIdentities({
+  identities,
+  missing,
+}: {
+  identities: string[]
+  missing: string[]
+}) {
+  if (identities.length === 0) return <span className="system-dashboard-muted">—</span>
+  const missingSet = new Set(missing)
+  return (
+    <span className="system-dashboard-identities">
+      {identities.map((identity) => (
+        <Tag key={identity} color={missingSet.has(identity) ? 'error' : undefined}>
+          {identity}
+        </Tag>
+      ))}
+    </span>
+  )
+}
+
+// FlaggedTag is the inline "something that should be here is not" marker shown
+// next to a flagged row's name, its tooltip naming the missing identities.
+function FlaggedTag({ missing }: { missing: string[] }) {
+  return (
+    <Tooltip
+      title={
+        missing.length > 0
+          ? `Not attached: ${missing.join(', ')}`
+          : 'A process that should be attached is not.'
+      }
+    >
+      <Tag color="warning">identity missing</Tag>
+    </Tooltip>
+  )
+}
+
 // rollUp reduces a stream's consumer groups to the single line shown on the
 // stream row: consumer counts, pending and lag add up across groups, and the
 // oldest-pending age is the worst one — the number an operator reacts to.
@@ -252,7 +291,19 @@ function StreamsTable({ streams }: { streams: BusStreamStat[] }) {
       title: 'Stream',
       dataIndex: 'stream',
       render: (_, stream) => (
-        <span className="system-dashboard-mono">{stream.stream}</span>
+        <span className="system-dashboard-namecell">
+          <span className="system-dashboard-mono">{stream.stream}</span>
+          {stream.flagged ? <FlaggedTag missing={stream.missingIdentities} /> : null}
+        </span>
+      ),
+    },
+    {
+      title: 'Expected',
+      render: (_, stream) => (
+        <ExpectedIdentities
+          identities={stream.expectedIdentities}
+          missing={stream.missingIdentities}
+        />
       ),
     },
     {
@@ -335,6 +386,7 @@ function StreamsTable({ streams }: { streams: BusStreamStat[] }) {
         rowExpandable: (stream) => stream.exists && stream.groups.length > 0,
         expandedRowRender: (stream) => <GroupsTable groups={stream.groups} />,
       }}
+      rowClassName={(stream) => (stream.flagged ? 'system-dashboard-row-flagged' : '')}
       locale={{ emptyText: 'No durable streams are registered.' }}
     />
   )
@@ -415,13 +467,13 @@ function GroupsTable({ groups }: { groups: BusGroupStat[] }) {
   )
 }
 
-// A declared channel is one on the application's fixed known-channel list; a
-// transient channel — the per-request reply.* channels — is one the sampler
-// only saw because something was subscribed to it at that instant. A declared
-// channel with no subscriber is flagged: the listener that should be attached
-// has dropped.
+// A declared channel is one on the application's fixed known-channel list or a
+// registered agent's per-agent channels; a transient channel — the per-request
+// reply.* channels — is one the sampler only saw because something was
+// subscribed to it at that instant. The sampler sets `flagged` on a declared
+// channel whose live subscriber count is below what the topology expects.
 function channelIsFlagged(channel: BusChannelStat): boolean {
-  return channel.known && Number(channel.subscribers) === 0
+  return channel.flagged
 }
 
 function ChannelsTable({ channels }: { channels: BusChannelStat[] }) {
@@ -440,11 +492,26 @@ function ChannelsTable({ channels }: { channels: BusChannelStat[] }) {
         channel.known ? <Tag>declared</Tag> : <Tag color="blue">transient</Tag>,
     },
     {
+      title: 'Expected',
+      render: (_, channel) => (
+        <ExpectedIdentities
+          identities={channel.expectedIdentities}
+          missing={channel.missingIdentities}
+        />
+      ),
+    },
+    {
       title: 'Subscribers',
       align: 'right',
       render: (_, channel) =>
         channelIsFlagged(channel) ? (
-          <Tooltip title="A declared channel with no subscriber — the listener that should be attached has dropped.">
+          <Tooltip
+            title={
+              channel.missingIdentities.length > 0
+                ? `A declared channel missing a subscriber: ${channel.missingIdentities.join(', ')}`
+                : 'A declared channel with no subscriber — the listener that should be attached has dropped.'
+            }
+          >
             <Tag color="warning">no subscribers</Tag>
           </Tooltip>
         ) : (
