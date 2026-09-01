@@ -9,9 +9,9 @@ import (
 
 	"Metarr/internal/server/agentregistry"
 	"Metarr/internal/server/appconfigstore"
+	"Metarr/internal/server/busstats"
 	"Metarr/internal/server/logtail"
 	"Metarr/internal/server/mongostore"
-	"Metarr/internal/server/redisstats"
 	"Metarr/internal/server/session"
 	"Metarr/internal/shared/eventbus"
 	"Metarr/internal/shared/workflow"
@@ -26,7 +26,7 @@ type Handlers struct {
 	WorkflowRepo       *mongostore.WorkflowRepo
 	WorkflowCatalog    *workflow.Catalog
 	Sessions           *session.Store
-	Stats              *redisstats.Collector
+	Stats              *busstats.Sampler
 	Agents             *agentregistry.Registry
 	LogTail            *logtail.Buffer
 	Logger             *slog.Logger
@@ -42,7 +42,7 @@ func New(
 	workflowRepo *mongostore.WorkflowRepo,
 	workflowCatalog *workflow.Catalog,
 	sessions *session.Store,
-	stats *redisstats.Collector,
+	stats *busstats.Sampler,
 	agents *agentregistry.Registry,
 	logTail *logtail.Buffer,
 	logger *slog.Logger,

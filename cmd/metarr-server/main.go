@@ -21,13 +21,13 @@ import (
 	"Metarr/internal/server/agentregistry"
 	"Metarr/internal/server/appconfigstore"
 	"Metarr/internal/server/bootstrap"
+	"Metarr/internal/server/busstats"
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/server/httpserver"
 	"Metarr/internal/server/listeners"
 	"Metarr/internal/server/logforward"
 	"Metarr/internal/server/logtail"
 	"Metarr/internal/server/mongostore"
-	"Metarr/internal/server/redisstats"
 	"Metarr/internal/server/services"
 	"Metarr/internal/server/session"
 	"Metarr/internal/server/webui"
@@ -271,7 +271,13 @@ func run() error {
 	// this bounds a low-volume stream by age so nothing outlives the window.
 	go eventbus.NewRetentionSweeper(redisClient, busPolicy.Retention, busPolicy.SweepInterval, logger).Run(ctx)
 
-	statsCollector := redisstats.New(redisClient, logger)
+	// One sampler goroutine per process polls Redis on a fixed cadence into a
+	// shared snapshot; every StatsService.Stream client fans out from it, so a
+	// second dashboard adds no Redis load. Prime once synchronously so the
+	// first Get has a snapshot to return.
+	busSampler := busstats.New(redisClient, logger)
+	busSampler.Prime(ctx)
+	go busSampler.Run(ctx)
 
 	// The live tail on the Logging screen. The buffer holds records from
 	// every process publishing to eventbus.LogChannel — this server included
@@ -303,13 +309,13 @@ func run() error {
 	startRouter("event", eventRouter.Run)
 	startRouter("pubsub", pubsubRouter.Run)
 
-	// The streaming layer: stats.redis, agents.presence and logging.tail all
-	// migrated to their own server-streaming gRPC-Web RPCs — see
+	// The streaming layer: the bus snapshot, agents.presence and logging.tail
+	// all migrated to their own server-streaming gRPC-Web RPCs — see
 	// metarr.v1.StatsService.Stream, metarr.v1.AgentService.StreamPresence,
 	// metarr.v1.LoggingService.StreamTail (internal/server/services), mounted
 	// via connectServices below. wsbus.Hub and GET /api/ws are retired.
 
-	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigStore, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, statsCollector, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
+	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigStore, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, busSampler, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
 	uiFS, uiEmbedded := webui.FS()
 	if uiEmbedded {
 		logger.Info("ui embed", "enabled", true)

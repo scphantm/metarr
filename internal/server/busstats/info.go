@@ -1,4 +1,4 @@
-package redisstats
+package busstats
 
 import (
 	"strconv"
