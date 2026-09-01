@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Alert, Badge, Col, Row as AntRow, Table, Typography } from 'antd'
+import { Alert, Badge, Col, Row as AntRow, Table, Tag, Tooltip, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { timestampDate } from '@bufbuild/protobuf/wkt'
 
@@ -7,6 +7,7 @@ import { useBusSnapshot, useBusSnapshotStreamStatus } from '../../api/queries'
 import type { StreamStatus } from '../../api/streams'
 import type {
   BusChannelStat,
+  BusGroupStat,
   BusServerInfo,
   BusStreamStat,
 } from '../../gen/metarr/v1/stats_pb'
@@ -20,9 +21,9 @@ import './SystemDashboardPage.css'
  *
  * A single server-side sampler polls Redis on a fixed cadence into one shared
  * snapshot and fans it out here; opening a second dashboard adds no Redis
- * load. This walking skeleton renders the six server tiles live off that
- * stream. The stream and channel tables arrive in later tickets and render
- * empty until then.
+ * load. The six server tiles and the durable-stream table render live off
+ * that stream; the Pub/Sub channel table arrives in a later ticket and
+ * renders empty until then.
  */
 
 // A snapshot older than this many milliseconds is stale: the sampler ticks
@@ -72,7 +73,7 @@ export function SystemDashboardPage() {
 
         <Card
           title="Event streams"
-          description="Durable Redis Streams. Events sit on a stream until a consumer group acknowledges them, so depth and pending are real counts."
+          description="Durable Redis Streams. Events sit on a stream until a consumer group acknowledges them, so depth and pending are real counts. Expand a row for its per-group figures."
         >
           <StreamsTable streams={data.streams} />
         </Card>
@@ -152,7 +153,7 @@ function ServerTiles({ server }: { server: BusServerInfo }) {
     { label: 'Version', value: server.version || '—', field: 'version' },
     {
       label: 'Uptime',
-      value: formatUptime(Number(server.uptimeSeconds)),
+      value: formatDuration(Number(server.uptimeSeconds)),
       field: 'uptime_seconds',
     },
     {
@@ -199,6 +200,21 @@ function ServerTiles({ server }: { server: BusServerInfo }) {
   )
 }
 
+// rollUp reduces a stream's consumer groups to the single line shown on the
+// stream row: consumer counts, pending and lag add up across groups, and the
+// oldest-pending age is the worst one — the number an operator reacts to.
+function rollUp(groups: BusGroupStat[]) {
+  return groups.reduce(
+    (acc, group) => ({
+      consumers: acc.consumers + Number(group.consumers),
+      pending: acc.pending + Number(group.pending),
+      lag: acc.lag + Number(group.lag),
+      oldestPendingAge: Math.max(acc.oldestPendingAge, Number(group.oldestPendingAgeSeconds)),
+    }),
+    { consumers: 0, pending: 0, lag: 0, oldestPendingAge: 0 },
+  )
+}
+
 function StreamsTable({ streams }: { streams: BusStreamStat[] }) {
   const columns: ColumnsType<BusStreamStat> = [
     {
@@ -211,7 +227,45 @@ function StreamsTable({ streams }: { streams: BusStreamStat[] }) {
     {
       title: 'Depth',
       align: 'right',
-      render: (_, stream) => (stream.exists ? Number(stream.length).toLocaleString() : '—'),
+      render: (_, stream) => {
+        if (stream.error) {
+          return (
+            <Tooltip title={stream.error}>
+              <span className="system-dashboard-stream-error">unavailable</span>
+            </Tooltip>
+          )
+        }
+        if (!stream.exists) {
+          return <Tag>not created yet</Tag>
+        }
+        return Number(stream.length).toLocaleString()
+      },
+    },
+    {
+      title: 'Consumers',
+      align: 'right',
+      render: (_, stream) =>
+        stream.exists && !stream.error ? rollUp(stream.groups).consumers.toLocaleString() : '—',
+    },
+    {
+      title: 'Pending',
+      align: 'right',
+      render: (_, stream) =>
+        stream.exists && !stream.error ? rollUp(stream.groups).pending.toLocaleString() : '—',
+    },
+    {
+      title: 'Lag',
+      align: 'right',
+      render: (_, stream) =>
+        stream.exists && !stream.error ? rollUp(stream.groups).lag.toLocaleString() : '—',
+    },
+    {
+      title: 'Oldest pending',
+      align: 'right',
+      render: (_, stream) =>
+        stream.exists && !stream.error
+          ? formatDuration(rollUp(stream.groups).oldestPendingAge)
+          : '—',
     },
   ]
 
@@ -222,7 +276,59 @@ function StreamsTable({ streams }: { streams: BusStreamStat[] }) {
       pagination={false}
       columns={columns}
       dataSource={streams}
-      locale={{ emptyText: 'Stream detail lands in a later ticket.' }}
+      expandable={{
+        rowExpandable: (stream) => stream.exists && stream.groups.length > 0,
+        expandedRowRender: (stream) => <GroupsTable groups={stream.groups} />,
+      }}
+      locale={{ emptyText: 'No durable streams are registered.' }}
+    />
+  )
+}
+
+function GroupsTable({ groups }: { groups: BusGroupStat[] }) {
+  const columns: ColumnsType<BusGroupStat> = [
+    {
+      title: 'Consumer group',
+      dataIndex: 'name',
+      render: (_, group) => <span className="system-dashboard-mono">{group.name}</span>,
+    },
+    {
+      title: 'Consumers',
+      align: 'right',
+      render: (_, group) => Number(group.consumers).toLocaleString(),
+    },
+    {
+      title: 'Pending',
+      align: 'right',
+      render: (_, group) => Number(group.pending).toLocaleString(),
+    },
+    {
+      title: 'Lag',
+      align: 'right',
+      render: (_, group) => Number(group.lag).toLocaleString(),
+    },
+    {
+      title: 'Oldest pending',
+      align: 'right',
+      render: (_, group) => formatDuration(Number(group.oldestPendingAgeSeconds)),
+    },
+    {
+      title: 'Last delivered',
+      align: 'right',
+      render: (_, group) => (
+        <span className="system-dashboard-mono">{group.lastDeliveredId || '—'}</span>
+      ),
+    },
+  ]
+
+  return (
+    <Table
+      size="small"
+      rowKey="name"
+      pagination={false}
+      columns={columns}
+      dataSource={groups}
+      className="system-dashboard-groups"
     />
   )
 }
@@ -255,7 +361,10 @@ function ChannelsTable({ channels }: { channels: BusChannelStat[] }) {
   )
 }
 
-function formatUptime(seconds: number): string {
+// formatDuration renders a whole-second span as the largest unit that keeps
+// it a small number: an uptime of days, a pending age of minutes. Zero and
+// nonsense both read as an em dash.
+function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '—'
   if (seconds < 60) return `${seconds}s`
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
