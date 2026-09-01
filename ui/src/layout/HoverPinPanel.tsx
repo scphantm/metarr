@@ -1,6 +1,6 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from "react";
 
-import './HoverPinPanel.css'
+import "./HoverPinPanel.css";
 
 /*
  * Shared hide/reveal-on-hover-with-pin behaviour for the left nav and right
@@ -13,21 +13,21 @@ import './HoverPinPanel.css'
 export function HoverPinPanel({
   side,
   pinned,
-  width = '16rem',
+  width = "16rem",
   children,
 }: {
-  side: 'left' | 'right'
-  pinned: boolean
-  width?: string
-  children: ReactNode
+  side: "left" | "right";
+  pinned: boolean;
+  width?: string;
+  children: ReactNode;
 }) {
-  const [hovering, setHovering] = useState(false)
-  const expanded = pinned || hovering
+  const [hovering, setHovering] = useState(false);
+  const expanded = pinned || hovering;
 
   return (
     <div
-      className={`hover-pin-panel hover-pin-panel-${side} ${pinned ? 'is-pinned' : ''}`}
-      style={{ '--hover-pin-panel-width': width } as CSSProperties}
+      className={`hover-pin-panel hover-pin-panel-${side} ${pinned ? "is-pinned" : ""}`}
+      style={{ "--hover-pin-panel-width": width } as CSSProperties}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
     >
@@ -44,11 +44,11 @@ export function HoverPinPanel({
 
       {expanded ? (
         <div
-          className={`hover-pin-panel-content ${pinned ? 'is-pinned' : 'is-overlay'}`}
+          className={`hover-pin-panel-content ${pinned ? "is-pinned" : "is-overlay"}`}
         >
           {children}
         </div>
       ) : null}
     </div>
-  )
+  );
 }

@@ -1,12 +1,12 @@
-import { useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Alert, Space, Spin, Tag, Typography } from 'antd'
-import { timestampDate } from '@bufbuild/protobuf/wkt'
+import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { Alert, Space, Spin, Tag, Typography } from "antd";
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 
-import { useWorkflowList } from '../../api/queries'
-import { Button, Card, EmptyState } from '../../components/Card'
-import { PageHeader } from '../../layout/AppShell'
-import './WorkflowListPage.css'
+import { useWorkflowList } from "../../api/queries";
+import { Button, Card, EmptyState } from "../../components/Card";
+import { PageHeader } from "../../layout/AppShell";
+import "./WorkflowListPage.css";
 
 /*
  * The first infinite-scroll list in this codebase — everywhere else pages a
@@ -16,7 +16,7 @@ import './WorkflowListPage.css'
  * since there's only this one call site so far.
  */
 export function WorkflowListPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const {
     data,
     fetchNextPage,
@@ -25,24 +25,24 @@ export function WorkflowListPage() {
     isLoading,
     isError,
     error,
-  } = useWorkflowList()
+  } = useWorkflowList();
 
-  const sentinelRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const sentinel = sentinelRef.current
-    if (!sentinel || !hasNextPage) return
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasNextPage) return;
 
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && !isFetchingNextPage) {
-        void fetchNextPage()
+        void fetchNextPage();
       }
-    })
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+    });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const workflows = data?.pages.flatMap((page) => page.workflows) ?? []
+  const workflows = data?.pages.flatMap((page) => page.workflows) ?? [];
 
   return (
     <>
@@ -50,7 +50,12 @@ export function WorkflowListPage() {
         title="Workflows"
         description="Visual pipelines built from nodes and edges."
         actions={
-          <Button variant="primary" onClick={() => navigate('/workflows/add')}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              void navigate("/workflows/add");
+            }}
+          >
             Add Workflow
           </Button>
         }
@@ -64,7 +69,7 @@ export function WorkflowListPage() {
             message={
               error instanceof Error
                 ? error.message
-                : 'Failed to load workflows'
+                : "Failed to load workflows"
             }
           />
         ) : null}
@@ -82,9 +87,9 @@ export function WorkflowListPage() {
             description={workflow.description}
             actions={
               <Button
-                onClick={() =>
-                  navigate(`/workflows/${workflow.documentId}/edit`)
-                }
+                onClick={() => {
+                  void navigate(`/workflows/${workflow.documentId}/edit`);
+                }}
               >
                 Edit
               </Button>
@@ -97,10 +102,10 @@ export function WorkflowListPage() {
                 ))}
               </Space>
               <Typography.Text type="secondary" className="workflow-list-meta">
-                v{workflow.version} ·{' '}
+                v{workflow.version} ·{" "}
                 {workflow.createdAt
                   ? timestampDate(workflow.createdAt).toLocaleString()
-                  : ''}
+                  : ""}
               </Typography.Text>
             </div>
           </Card>
@@ -114,5 +119,5 @@ export function WorkflowListPage() {
         ) : null}
       </div>
     </>
-  )
+  );
 }

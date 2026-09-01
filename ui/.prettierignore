@@ -1,0 +1,12 @@
+# Prettier scope for the web UI workspace. Mirrors the repo-root
+# .prettierignore's ui/ carve-outs so `prettier` behaves the same whether it
+# runs from here or from the repo root.
+
+node_modules/
+dist/
+.vite/
+src/gen/
+**/*.tsbuildinfo
+
+# Match the repo root: Markdown prose isn't written to Prettier's wrap rules.
+*.md

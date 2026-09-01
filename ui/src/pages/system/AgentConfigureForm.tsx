@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import { Input, Space, Typography } from 'antd'
+import { useState } from "react";
+import { Input, Space, Typography } from "antd";
 
-import { useDeleteAgent, useUpsertAgent } from '../../api/queries'
-import type { AgentView } from '../../gen/metarr/v1/agents_pb'
-import { Button } from '../../components/Card'
-import './AgentConfigureForm.css'
+import { useDeleteAgent, useUpsertAgent } from "../../api/queries";
+import type { AgentView } from "../../gen/metarr/v1/agents_pb";
+import { Button } from "../../components/Card";
+import "./AgentConfigureForm.css";
 
 /*
  * Configuring an agent is one question asked once per library: what does this
@@ -20,43 +20,43 @@ export function AgentConfigureForm({
   scanDirectories,
   onDone,
 }: {
-  agent: AgentView
-  scanDirectories: { scannerSlug: string; directory: string }[]
-  onDone: () => void
+  agent: AgentView;
+  scanDirectories: { scannerSlug: string; directory: string }[];
+  onDone: () => void;
 }) {
-  const upsert = useUpsertAgent()
-  const remove = useDeleteAgent()
+  const upsert = useUpsertAgent();
+  const remove = useDeleteAgent();
 
-  const [displayName, setDisplayName] = useState(agent.displayName)
+  const [displayName, setDisplayName] = useState(agent.displayName);
   const [paths, setPaths] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       agent.mappings.map((mapping) => [mapping.scannerSlug, mapping.agentPath]),
     ),
-  )
-  const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   async function save() {
-    setSaving(true)
-    setError(null)
+    setSaving(true);
+    setError(null);
     try {
       await upsert.mutateAsync({
         slug: agent.slug,
         displayName: displayName.trim(),
         mappings: Object.entries(paths)
-          .filter(([, path]) => path.trim() !== '')
+          .filter(([, path]) => path.trim() !== "")
           .map(([scannerSlug, path]) => ({
             scannerSlug,
             agentPath: path.trim(),
           })),
-      })
-      onDone()
+      });
+      onDone();
     } catch (cause) {
       // The server explains rejections properly — an already-claimed library
       // names the agent holding it — so its message is shown verbatim.
-      setError(cause instanceof Error ? cause.message : String(cause))
+      setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
@@ -66,15 +66,15 @@ export function AgentConfigureForm({
         `Remove the configuration for "${agent.slug}"? The agent keeps running and will reappear here as unconfigured.`,
       )
     ) {
-      return
+      return;
     }
-    setSaving(true)
+    setSaving(true);
     try {
-      await remove.mutateAsync(agent.slug)
-      onDone()
+      await remove.mutateAsync(agent.slug);
+      onDone();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
-      setSaving(false)
+      setError(cause instanceof Error ? cause.message : String(cause));
+      setSaving(false);
     }
   }
 
@@ -116,7 +116,7 @@ export function AgentConfigureForm({
             first.
           </Typography.Text>
         ) : (
-          <Space direction="vertical" size={8} style={{ width: '100%' }}>
+          <Space direction="vertical" size={8} style={{ width: "100%" }}>
             {scanDirectories.map((directory) => (
               <div key={directory.scannerSlug} className="agent-configure-row">
                 <div className="agent-configure-row-label">
@@ -134,7 +134,7 @@ export function AgentConfigureForm({
                   →
                 </Typography.Text>
                 <Input
-                  value={paths[directory.scannerSlug] ?? ''}
+                  value={paths[directory.scannerSlug] ?? ""}
                   placeholder="not reachable from this agent"
                   aria-label={`Path for ${directory.scannerSlug} on ${agent.slug}`}
                   className="editable-field-mono agent-configure-row-input"
@@ -159,7 +159,7 @@ export function AgentConfigureForm({
 
       <Space wrap>
         <Button variant="primary" disabled={saving} onClick={() => void save()}>
-          {saving ? 'Saving…' : 'Save'}
+          {saving ? "Saving…" : "Save"}
         </Button>
         <Button variant="ghost" onClick={onDone}>
           Cancel
@@ -175,5 +175,5 @@ export function AgentConfigureForm({
         ) : null}
       </Space>
     </div>
-  )
+  );
 }

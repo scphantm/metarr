@@ -1,18 +1,18 @@
-import { useIsFetching, useQueryClient } from '@tanstack/react-query'
+import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 
-import { useConfig } from '../../api/queries'
-import { Button } from '../../components/Card'
-import { PageError, PageLoading } from '../../components/PageState'
-import { PageHeader } from '../../layout/AppShell'
-import { AdminSection } from './AdminSection'
-import { ApiKeysSection } from './ApiKeysSection'
-import { SavingInfoSidebar } from './SavingInfoSidebar'
+import { useConfig } from "../../api/queries";
+import { Button } from "../../components/Card";
+import { PageError, PageLoading } from "../../components/PageState";
+import { PageHeader } from "../../layout/AppShell";
+import { AdminSection } from "./AdminSection";
+import { ApiKeysSection } from "./ApiKeysSection";
+import { SavingInfoSidebar } from "./SavingInfoSidebar";
 
 export function SecurityPage() {
-  const config = useConfig()
+  const config = useConfig();
 
-  const queryClient = useQueryClient()
-  const fetching = useIsFetching({ queryKey: ['config'] })
+  const queryClient = useQueryClient();
+  const fetching = useIsFetching({ queryKey: ["config"] });
 
   if (config.error) {
     return (
@@ -20,7 +20,7 @@ export function SecurityPage() {
         <PageHeader title="Security" />
         <PageError error={config.error} />
       </>
-    )
+    );
   }
 
   if (config.isLoading || !config.data || !config.data.admin) {
@@ -29,7 +29,7 @@ export function SecurityPage() {
         <PageHeader title="Security" />
         <PageLoading />
       </>
-    )
+    );
   }
 
   return (
@@ -40,11 +40,11 @@ export function SecurityPage() {
         actions={
           <Button
             onClick={() =>
-              void queryClient.invalidateQueries({ queryKey: ['config'] })
+              void queryClient.invalidateQueries({ queryKey: ["config"] })
             }
             title="Re-read every configuration section from the server"
           >
-            {fetching ? 'Refreshing…' : 'Refresh'}
+            {fetching ? "Refreshing…" : "Refresh"}
           </Button>
         }
       />
@@ -55,9 +55,9 @@ export function SecurityPage() {
         <ApiKeysSection config={config.data} />
       </div>
     </>
-  )
+  );
 }
 
 export function SecuritySidebar() {
-  return <SavingInfoSidebar />
+  return <SavingInfoSidebar />;
 }

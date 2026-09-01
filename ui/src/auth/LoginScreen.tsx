@@ -1,34 +1,34 @@
-import { useState } from 'react'
-import { Button, Card, Form, Input, Typography } from 'antd'
+import { useState } from "react";
+import { Button, Card, Form, Input, Typography } from "antd";
 
-import { useTheme } from '../theme/ThemeContext'
-import { useAuth } from './AuthContext'
-import './LoginScreen.css'
+import { useTheme } from "../theme/ThemeContext";
+import { useAuth } from "./AuthContext";
+import "./LoginScreen.css";
 
 type LoginFormValues = {
-  username: string
-  password: string
-}
+  username: string;
+  password: string;
+};
 
 export function LoginScreen() {
-  const { login } = useAuth()
-  const { theme, toggleTheme } = useTheme()
-  const [form] = Form.useForm<LoginFormValues>()
-  const [submitting, setSubmitting] = useState(false)
+  const { login } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const [form] = Form.useForm<LoginFormValues>();
+  const [submitting, setSubmitting] = useState(false);
 
   async function submit(values: LoginFormValues) {
-    setSubmitting(true)
+    setSubmitting(true);
     try {
-      await login(values)
+      await login(values);
     } catch (cause) {
       form.setFields([
         {
-          name: 'password',
+          name: "password",
           errors: [cause instanceof Error ? cause.message : String(cause)],
         },
-      ])
+      ]);
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
   }
 
@@ -53,7 +53,7 @@ export function LoginScreen() {
             <Form.Item
               name="username"
               label="Username"
-              rules={[{ required: true, message: 'Username is required' }]}
+              rules={[{ required: true, message: "Username is required" }]}
             >
               <Input autoComplete="username" autoFocus />
             </Form.Item>
@@ -61,7 +61,7 @@ export function LoginScreen() {
             <Form.Item
               name="password"
               label="Password"
-              rules={[{ required: true, message: 'Password is required' }]}
+              rules={[{ required: true, message: "Password is required" }]}
             >
               <Input.Password autoComplete="current-password" />
             </Form.Item>
@@ -85,9 +85,9 @@ export function LoginScreen() {
           className="login-screen-theme-toggle"
           onClick={toggleTheme}
         >
-          Switch to Solarized {theme === 'dark' ? 'Light' : 'Dark'}
+          Switch to Solarized {theme === "dark" ? "Light" : "Dark"}
         </Button>
       </div>
     </div>
-  )
+  );
 }

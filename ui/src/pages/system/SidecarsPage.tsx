@@ -1,17 +1,17 @@
-import { useIsFetching, useQueryClient } from '@tanstack/react-query'
+import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 
-import { useSidecarTypes } from '../../api/queries'
-import { Button } from '../../components/Card'
-import { PageError, PageLoading } from '../../components/PageState'
-import { PageHeader } from '../../layout/AppShell'
-import { SavingInfoSidebar } from './SavingInfoSidebar'
-import { SidecarTypesSection } from './SidecarTypesSection'
+import { useSidecarTypes } from "../../api/queries";
+import { Button } from "../../components/Card";
+import { PageError, PageLoading } from "../../components/PageState";
+import { PageHeader } from "../../layout/AppShell";
+import { SavingInfoSidebar } from "./SavingInfoSidebar";
+import { SidecarTypesSection } from "./SidecarTypesSection";
 
 export function SidecarsPage() {
-  const sidecarTypes = useSidecarTypes()
+  const sidecarTypes = useSidecarTypes();
 
-  const queryClient = useQueryClient()
-  const fetching = useIsFetching({ queryKey: ['config'] })
+  const queryClient = useQueryClient();
+  const fetching = useIsFetching({ queryKey: ["config"] });
 
   if (sidecarTypes.error) {
     return (
@@ -19,7 +19,7 @@ export function SidecarsPage() {
         <PageHeader title="Sidecars" />
         <PageError error={sidecarTypes.error} />
       </>
-    )
+    );
   }
 
   if (sidecarTypes.isLoading) {
@@ -28,7 +28,7 @@ export function SidecarsPage() {
         <PageHeader title="Sidecars" />
         <PageLoading />
       </>
-    )
+    );
   }
 
   return (
@@ -39,11 +39,11 @@ export function SidecarsPage() {
         actions={
           <Button
             onClick={() =>
-              void queryClient.invalidateQueries({ queryKey: ['config'] })
+              void queryClient.invalidateQueries({ queryKey: ["config"] })
             }
             title="Re-read every configuration section from the server"
           >
-            {fetching ? 'Refreshing…' : 'Refresh'}
+            {fetching ? "Refreshing…" : "Refresh"}
           </Button>
         }
       />
@@ -52,9 +52,9 @@ export function SidecarsPage() {
         <SidecarTypesSection types={sidecarTypes.data ?? []} />
       </div>
     </>
-  )
+  );
 }
 
 export function SidecarsSidebar() {
-  return <SavingInfoSidebar />
+  return <SavingInfoSidebar />;
 }

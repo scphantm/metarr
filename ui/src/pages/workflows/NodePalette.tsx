@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react'
-import { Collapse, Input, Typography } from 'antd'
+import { useMemo, useState } from "react";
+import { Collapse, Input, Typography } from "antd";
 
-import type { WorkflowNodeType as NodeType } from '../../gen/metarr/v1/workflow_catalog_pb'
-import { useWorkflowCatalog } from '../../api/queries'
-import { useDnD } from './DnDContext'
-import './NodePalette.css'
+import type { WorkflowNodeType as NodeType } from "../../gen/metarr/v1/workflow_catalog_pb";
+import { useWorkflowCatalog } from "../../api/queries";
+import { useDnD } from "./DnDContext";
+import "./NodePalette.css";
 
 // Two accordion levels: category (outer) then subcategory (inner). Neither
 // is required on a catalog entry yet — subcategory is only assigned for a
@@ -12,38 +12,38 @@ import './NodePalette.css'
 // both fall back to an 'uncategorized' bucket rather than dropping an
 // entry from the palette while the catalog is mid-migration.
 function groupByCategoryAndSubcategory(entries: NodeType[]) {
-  const groups = new Map<string, Map<string, NodeType[]>>()
+  const groups = new Map<string, Map<string, NodeType[]>>();
   for (const entry of entries) {
-    const category = entry.category ?? ''
-    const subcategory = entry.subcategory ?? ''
-    let subgroups = groups.get(category)
+    const category = entry.category ?? "";
+    const subcategory = entry.subcategory ?? "";
+    let subgroups = groups.get(category);
     if (!subgroups) {
-      subgroups = new Map()
-      groups.set(category, subgroups)
+      subgroups = new Map();
+      groups.set(category, subgroups);
     }
-    const group = subgroups.get(subcategory) ?? []
-    group.push(entry)
-    subgroups.set(subcategory, group)
+    const group = subgroups.get(subcategory) ?? [];
+    group.push(entry);
+    subgroups.set(subcategory, group);
   }
-  return groups
+  return groups;
 }
 
 export function NodePalette() {
-  const { setDraggedTemplate } = useDnD()
-  const { data: catalog, isLoading, isError } = useWorkflowCatalog()
-  const [filter, setFilter] = useState('')
+  const { setDraggedTemplate } = useDnD();
+  const { data: catalog, isLoading, isError } = useWorkflowCatalog();
+  const [filter, setFilter] = useState("");
 
   const filtered = useMemo(() => {
-    const entries = catalog?.nodeTypes ?? []
-    const query = filter.trim().toLowerCase()
-    if (!query) return entries
+    const entries = catalog?.nodeTypes ?? [];
+    const query = filter.trim().toLowerCase();
+    if (!query) return entries;
     return entries.filter(
       (entry) =>
         entry.name.toLowerCase().includes(query) ||
         entry.type.toLowerCase().includes(query),
-    )
-  }, [catalog, filter])
-  const groups = groupByCategoryAndSubcategory(filtered)
+    );
+  }, [catalog, filter]);
+  const groups = groupByCategoryAndSubcategory(filtered);
 
   return (
     <div className="node-palette">
@@ -74,8 +74,8 @@ export function NodePalette() {
         size="small"
         className="node-palette-categories"
         items={[...groups.entries()].map(([category, subgroups]) => ({
-          key: category || 'uncategorized',
-          label: category || 'Uncategorized',
+          key: category || "uncategorized",
+          label: category || "Uncategorized",
           children: (
             <Collapse
               ghost
@@ -83,8 +83,8 @@ export function NodePalette() {
               className="node-palette-subcategories"
               items={[...subgroups.entries()].map(
                 ([subcategory, groupEntries]) => ({
-                  key: subcategory || 'uncategorized',
-                  label: subcategory || 'Uncategorized',
+                  key: subcategory || "uncategorized",
+                  label: subcategory || "Uncategorized",
                   children: (
                     <div className="node-palette-entries">
                       {groupEntries.map((entry) => (
@@ -92,12 +92,12 @@ export function NodePalette() {
                           key={entry.id}
                           draggable
                           onDragStart={(event) => {
-                            setDraggedTemplate({ id: entry.id })
+                            setDraggedTemplate({ id: entry.id });
                             event.dataTransfer.setData(
-                              'application/json',
+                              "application/json",
                               JSON.stringify({ id: entry.id }),
-                            )
-                            event.dataTransfer.effectAllowed = 'move'
+                            );
+                            event.dataTransfer.effectAllowed = "move";
                           }}
                           onDragEnd={() => setDraggedTemplate(null)}
                           title={entry.description}
@@ -156,7 +156,7 @@ export function NodePalette() {
         </div>
       </section>
     </div>
-  )
+  );
 }
 
 function LegendRow({ colorVar, label }: { colorVar: string; label: string }) {
@@ -168,5 +168,5 @@ function LegendRow({ colorVar, label }: { colorVar: string; label: string }) {
       />
       <span>{label}</span>
     </div>
-  )
+  );
 }

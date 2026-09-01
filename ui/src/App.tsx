@@ -1,39 +1,39 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from "react-router-dom";
 
-import { useAuth } from './auth/AuthContext'
-import { LoginScreen } from './auth/LoginScreen'
-import { AppShell } from './layout/AppShell'
-import { PageContextProvider } from './pagecontext/PageContextRegistry'
-import { AgentsPage, AgentsSidebar } from './pages/system/AgentsPage'
-import { LoggingPage, LoggingSidebar } from './pages/system/LoggingPage'
-import { ConfigurationPage } from './pages/system/ConfigurationPage'
+import { useAuth } from "./auth/AuthContext";
+import { LoginScreen } from "./auth/LoginScreen";
+import { AppShell } from "./layout/AppShell";
+import { PageContextProvider } from "./pagecontext/PageContextRegistry";
+import { AgentsPage, AgentsSidebar } from "./pages/system/AgentsPage";
+import { LoggingPage, LoggingSidebar } from "./pages/system/LoggingPage";
+import { ConfigurationPage } from "./pages/system/ConfigurationPage";
 import {
   DirectoryScannerPage,
   DirectoryScannerSidebar,
-} from './pages/system/DirectoryScannerPage'
-import { EventBusPage, EventBusSidebar } from './pages/system/EventBusPage'
+} from "./pages/system/DirectoryScannerPage";
+import { EventBusPage, EventBusSidebar } from "./pages/system/EventBusPage";
 import {
   ExternalToolsPage,
   ExternalToolsSidebar,
-} from './pages/system/ExternalToolsPage'
+} from "./pages/system/ExternalToolsPage";
 import {
   InterfacesPage,
   InterfacesSidebar,
-} from './pages/system/InterfacesPage'
-import { SecurityPage, SecuritySidebar } from './pages/system/SecurityPage'
-import { SidecarsPage, SidecarsSidebar } from './pages/system/SidecarsPage'
+} from "./pages/system/InterfacesPage";
+import { SecurityPage, SecuritySidebar } from "./pages/system/SecurityPage";
+import { SidecarsPage, SidecarsSidebar } from "./pages/system/SidecarsPage";
 import {
   SystemDashboardPage,
   SystemDashboardSidebar,
-} from './pages/system/SystemDashboardPage'
-import { WorkflowEditorPage } from './pages/workflows/WorkflowEditorPage'
-import { WorkflowListPage } from './pages/workflows/WorkflowListPage'
+} from "./pages/system/SystemDashboardPage";
+import { WorkflowEditorPage } from "./pages/workflows/WorkflowEditorPage";
+import { WorkflowListPage } from "./pages/workflows/WorkflowListPage";
 
 export function App() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
-    return <LoginScreen />
+    return <LoginScreen />;
   }
 
   return (
@@ -148,5 +148,5 @@ export function App() {
         <Route path="*" element={<Navigate to="/system" replace />} />
       </Routes>
     </PageContextProvider>
-  )
+  );
 }

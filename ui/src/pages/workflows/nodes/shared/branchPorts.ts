@@ -1,11 +1,11 @@
-import { useEffect, useMemo } from 'react'
-import { useNodeConnections, useUpdateNodeInternals } from '@xyflow/react'
+import { useEffect, useMemo } from "react";
+import { useNodeConnections, useUpdateNodeInternals } from "@xyflow/react";
 
-import { parseHandleId } from '../../connectionRules'
-import type { WorkflowNodeType as NodeType } from '../../../../gen/metarr/v1/workflow_catalog_pb'
-import type { CatalogNodeData } from '../../editorNodeData'
-import { settingDefault } from '../../catalogValue'
-import type { ArrangedHandle } from './useNodeHandles'
+import { parseHandleId } from "../../connectionRules";
+import type { WorkflowNodeType as NodeType } from "../../../../gen/metarr/v1/workflow_catalog_pb";
+import type { CatalogNodeData } from "../../editorNodeData";
+import { settingDefault } from "../../catalogValue";
+import type { ArrangedHandle } from "./useNodeHandles";
 
 /*
  * Parallel's control-out ports and Join's control-in ports are both
@@ -19,11 +19,11 @@ import type { ArrangedHandle } from './useNodeHandles'
  * isn't rendered.
  */
 
-const BRANCH_PORT = /^branch(\d+)$/
+const BRANCH_PORT = /^branch(\d+)$/;
 
 function branchPortIndex(port: string): number | null {
-  const match = BRANCH_PORT.exec(port)
-  return match ? Number(match[1]) : null
+  const match = BRANCH_PORT.exec(port);
+  return match ? Number(match[1]) : null;
 }
 
 export function limitBranchPorts(
@@ -31,28 +31,28 @@ export function limitBranchPorts(
   visibleCount: number,
 ): ArrangedHandle[] {
   return handles.filter((handle) => {
-    const index = branchPortIndex(handle.label)
-    return index === null || index <= visibleCount
-  })
+    const index = branchPortIndex(handle.label);
+    return index === null || index <= visibleCount;
+  });
 }
 
 function declaredBranches(
   data: CatalogNodeData,
   nodeType: NodeType | undefined,
 ): number {
-  const fromSettings = data.settings.branches
-  if (typeof fromSettings === 'number' && Number.isFinite(fromSettings))
-    return fromSettings
-  const setting = nodeType?.settings.find((entry) => entry.name === 'branches')
-  const fallback = settingDefault(setting?.default)
-  return typeof fallback === 'number' ? fallback : 1
+  const fromSettings = data.settings.branches;
+  if (typeof fromSettings === "number" && Number.isFinite(fromSettings))
+    return fromSettings;
+  const setting = nodeType?.settings.find((entry) => entry.name === "branches");
+  const fallback = settingDefault(setting?.default);
+  return typeof fallback === "number" ? fallback : 1;
 }
 
 function maxBranchIndex(ports: string[]): number {
   return ports.reduce(
     (max, port) => Math.max(max, branchPortIndex(port) ?? 0),
     0,
-  )
+  );
 }
 
 // How many branchN handles a Parallel/Join node should render right now:
@@ -64,25 +64,25 @@ export function useVisibleBranchCount(
   data: CatalogNodeData,
   nodeType: NodeType | undefined,
   ports: string[],
-  handleType: 'source' | 'target',
+  handleType: "source" | "target",
 ): number {
-  const connections = useNodeConnections({ id: nodeId, handleType })
-  const updateNodeInternals = useUpdateNodeInternals()
+  const connections = useNodeConnections({ id: nodeId, handleType });
+  const updateNodeInternals = useUpdateNodeInternals();
 
   const visibleCount = useMemo(() => {
-    const declared = declaredBranches(data, nodeType)
+    const declared = declaredBranches(data, nodeType);
     const wiredMax = connections.reduce((max, connection) => {
       const handleId =
-        handleType === 'source'
+        handleType === "source"
           ? connection.sourceHandle
-          : connection.targetHandle
-      const parsed = parseHandleId(handleId)
+          : connection.targetHandle;
+      const parsed = parseHandleId(handleId);
       const index =
-        parsed?.kind === 'control' ? branchPortIndex(parsed.name) : null
-      return index !== null && index > max ? index : max
-    }, 0)
-    return Math.min(maxBranchIndex(ports), Math.max(declared, wiredMax, 1))
-  }, [data, nodeType, connections, handleType, ports])
+        parsed?.kind === "control" ? branchPortIndex(parsed.name) : null;
+      return index !== null && index > max ? index : max;
+    }, 0);
+    return Math.min(maxBranchIndex(ports), Math.max(declared, wiredMax, 1));
+  }, [data, nodeType, connections, handleType, ports]);
 
   // React Flow measures each handle's connection-anchor position once and
   // caches it — it does not re-measure just because a re-render changes
@@ -91,8 +91,8 @@ export function useVisibleBranchCount(
   // stale position. Must run after the new handles have committed to the
   // DOM, hence useEffect rather than doing this inside the useMemo above.
   useEffect(() => {
-    updateNodeInternals(nodeId)
-  }, [nodeId, visibleCount, updateNodeInternals])
+    updateNodeInternals(nodeId);
+  }, [nodeId, visibleCount, updateNodeInternals]);
 
-  return visibleCount
+  return visibleCount;
 }

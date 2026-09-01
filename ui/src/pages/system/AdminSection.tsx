@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { Input, Space, Typography } from 'antd'
+import { useState } from "react";
+import { Input, Space, Typography } from "antd";
 
-import { queryKeys, useUpdateAdmin } from '../../api/queries'
-import type { AdminUser } from '../../gen/metarr/v1/config_pb'
-import { Button, Card, Row } from '../../components/Card'
-import { EditableText } from '../../components/Editable'
-import { SaveIndicator } from '../../components/SaveState'
-import './AdminSection.css'
+import { queryKeys, useUpdateAdmin } from "../../api/queries";
+import type { AdminUser } from "../../gen/metarr/v1/config_pb";
+import { Button, Card, Row } from "../../components/Card";
+import { EditableText } from "../../components/Editable";
+import { SaveIndicator } from "../../components/SaveState";
+import "./AdminSection.css";
 
 /*
  * The admin account. Username and email edit in place; the password does not —
@@ -14,7 +14,7 @@ import './AdminSection.css'
  * needs confirming against a second field before it is sent.
  */
 export function AdminSection({ admin }: { admin: AdminUser }) {
-  const updateAdmin = useUpdateAdmin()
+  const updateAdmin = useUpdateAdmin();
 
   return (
     <Card
@@ -26,7 +26,7 @@ export function AdminSection({ admin }: { admin: AdminUser }) {
           label="Username"
           queryKey={queryKeys.config}
           value={admin.username}
-          validate={(next) => (next ? null : 'Username cannot be empty')}
+          validate={(next) => (next ? null : "Username cannot be empty")}
           onSave={(username) => updateAdmin.mutateAsync({ username })}
         />
       </Row>
@@ -37,7 +37,7 @@ export function AdminSection({ admin }: { admin: AdminUser }) {
           queryKey={queryKeys.config}
           value={admin.email}
           validate={(next) =>
-            next.includes('@') ? null : 'Must be an email address'
+            next.includes("@") ? null : "Must be an email address"
           }
           onSave={(email) => updateAdmin.mutateAsync({ email })}
         />
@@ -50,37 +50,37 @@ export function AdminSection({ admin }: { admin: AdminUser }) {
         <PasswordChanger />
       </Row>
     </Card>
-  )
+  );
 }
 
 function PasswordChanger() {
-  const updateAdmin = useUpdateAdmin()
+  const updateAdmin = useUpdateAdmin();
 
-  const [open, setOpen] = useState(false)
-  const [password, setPassword] = useState('')
-  const [confirmation, setConfirmation] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [done, setDone] = useState(false)
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
 
   async function submit() {
     if (password.length < 8) {
-      setError('Use at least 8 characters')
-      return
+      setError("Use at least 8 characters");
+      return;
     }
     if (password !== confirmation) {
-      setError('The two entries do not match')
-      return
+      setError("The two entries do not match");
+      return;
     }
 
-    setError(null)
+    setError(null);
     try {
-      await updateAdmin.mutateAsync({ password })
-      setDone(true)
-      setOpen(false)
-      setPassword('')
-      setConfirmation('')
+      await updateAdmin.mutateAsync({ password });
+      setDone(true);
+      setOpen(false);
+      setPassword("");
+      setConfirmation("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      setError(cause instanceof Error ? cause.message : String(cause));
     }
   }
 
@@ -96,7 +96,7 @@ function PasswordChanger() {
           </Typography.Text>
         )}
       </Space>
-    )
+    );
   }
 
   return (
@@ -114,8 +114,8 @@ function PasswordChanger() {
         autoComplete="new-password"
         onChange={(event) => setConfirmation(event.target.value)}
         onKeyDown={(event) => {
-          if (event.key === 'Enter') void submit()
-          if (event.key === 'Escape') setOpen(false)
+          if (event.key === "Enter") void submit();
+          if (event.key === "Escape") setOpen(false);
         }}
       />
       {error ? (
@@ -132,5 +132,5 @@ function PasswordChanger() {
         </Button>
       </Space>
     </div>
-  )
+  );
 }

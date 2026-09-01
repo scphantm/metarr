@@ -1,19 +1,19 @@
-import { useState } from 'react'
-import { Alert, Badge, Progress, Space, Typography } from 'antd'
+import { useState } from "react";
+import { Alert, Badge, Progress, Space, Typography } from "antd";
 
-import { timestampDate } from '@bufbuild/protobuf/wkt'
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 
 import {
   useAgents,
   useAgentsPresenceStreamStatus,
   useScanDirectories,
-} from '../../api/queries'
-import type { AgentTelemetry, AgentView } from '../../gen/metarr/v1/agents_pb'
-import { Button, Card, EmptyState } from '../../components/Card'
-import { PageError, PageLoading } from '../../components/PageState'
-import { PageHeader } from '../../layout/AppShell'
-import { AgentConfigureForm } from './AgentConfigureForm'
-import './AgentsPage.css'
+} from "../../api/queries";
+import type { AgentTelemetry, AgentView } from "../../gen/metarr/v1/agents_pb";
+import { Button, Card, EmptyState } from "../../components/Card";
+import { PageError, PageLoading } from "../../components/PageState";
+import { PageHeader } from "../../layout/AppShell";
+import { AgentConfigureForm } from "./AgentConfigureForm";
+import "./AgentsPage.css";
 
 /*
  * System > Agents.
@@ -26,11 +26,11 @@ import './AgentsPage.css'
  * to be set up.
  */
 export function AgentsPage() {
-  const agents = useAgents()
-  const directories = useScanDirectories()
-  const socketStatus = useAgentsPresenceStreamStatus()
+  const agents = useAgents();
+  const directories = useScanDirectories();
+  const socketStatus = useAgentsPresenceStreamStatus();
 
-  const [configuring, setConfiguring] = useState<string | null>(null)
+  const [configuring, setConfiguring] = useState<string | null>(null);
 
   if (agents.error && !agents.data) {
     return (
@@ -38,7 +38,7 @@ export function AgentsPage() {
         <PageHeader title="Agents" />
         <PageError error={agents.error} />
       </>
-    )
+    );
   }
 
   if (!agents.data) {
@@ -47,7 +47,7 @@ export function AgentsPage() {
         <PageHeader title="Agents" />
         <PageLoading>Looking for agents…</PageLoading>
       </>
-    )
+    );
   }
 
   return (
@@ -78,24 +78,24 @@ export function AgentsPage() {
         ))}
       </div>
     </>
-  )
+  );
 }
 
 function ConnectionIndicator({ status }: { status: string }) {
   const label =
-    status === 'open'
-      ? 'Live'
-      : status === 'connecting'
-        ? 'Connecting'
-        : 'Stale'
+    status === "open"
+      ? "Live"
+      : status === "connecting"
+        ? "Connecting"
+        : "Stale";
   const badgeStatus =
-    status === 'open'
-      ? 'success'
-      : status === 'connecting'
-        ? 'processing'
-        : 'warning'
+    status === "open"
+      ? "success"
+      : status === "connecting"
+        ? "processing"
+        : "warning";
 
-  return <Badge status={badgeStatus} text={label} />
+  return <Badge status={badgeStatus} text={label} />;
 }
 
 function AgentCard({
@@ -105,13 +105,13 @@ function AgentCard({
   onConfigure,
   onClose,
 }: {
-  agent: AgentView
-  scanDirectories: { scannerSlug: string; directory: string }[]
-  configuring: boolean
-  onConfigure: () => void
-  onClose: () => void
+  agent: AgentView;
+  scanDirectories: { scannerSlug: string; directory: string }[];
+  configuring: boolean;
+  onConfigure: () => void;
+  onClose: () => void;
 }) {
-  const needsSetup = agent.online && !agent.configured
+  const needsSetup = agent.online && !agent.configured;
 
   return (
     <Card
@@ -122,10 +122,10 @@ function AgentCard({
           <AgentStatus agent={agent} />
           {configuring ? null : (
             <Button
-              variant={needsSetup ? 'primary' : 'default'}
+              variant={needsSetup ? "primary" : "default"}
               onClick={onConfigure}
             >
-              {agent.configured ? 'Edit' : 'Configure this agent'}
+              {agent.configured ? "Edit" : "Configure this agent"}
             </Button>
           )}
         </Space>
@@ -154,7 +154,7 @@ function AgentCard({
         <MappingList agent={agent} />
       )}
     </Card>
-  )
+  );
 }
 
 // Status is a word first and a colour second: an operator scanning a column of
@@ -162,29 +162,29 @@ function AgentCard({
 // nobody who cannot separate the hues.
 function AgentStatus({ agent }: { agent: AgentView }) {
   if (!agent.online) {
-    return <Badge status="default" text="Offline" />
+    return <Badge status="default" text="Offline" />;
   }
   if (!agent.configured) {
-    return <Badge status="warning" text="Needs setup" />
+    return <Badge status="warning" text="Needs setup" />;
   }
-  return <Badge status="success" text="Online" />
+  return <Badge status="success" text="Online" />;
 }
 
 function AgentIdentityGrid({ agent }: { agent: AgentView }) {
-  const identity = agent.identity
-  if (!identity) return null
+  const identity = agent.identity;
+  if (!identity) return null;
 
   const facts: [string, string][] = [
-    ['Host', identity.hostname || '—'],
-    ['Address', identity.ip || '—'],
-    ['Running as', `${identity.username || 'unknown'} (uid ${identity.uid})`],
-    ['Platform', `${identity.os}/${identity.arch}`],
-    ['Version', identity.version],
+    ["Host", identity.hostname || "—"],
+    ["Address", identity.ip || "—"],
+    ["Running as", `${identity.username || "unknown"} (uid ${identity.uid})`],
+    ["Platform", `${identity.os}/${identity.arch}`],
+    ["Version", identity.version],
     [
-      'Up since',
-      identity.started ? timestampDate(identity.started).toLocaleString() : '—',
+      "Up since",
+      identity.started ? timestampDate(identity.started).toLocaleString() : "—",
     ],
-  ]
+  ];
 
   return (
     <div className="agent-identity-grid">
@@ -197,16 +197,16 @@ function AgentIdentityGrid({ agent }: { agent: AgentView }) {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 // CPU and memory are each one value against a known limit, so they are meters —
 // a filled track against the same-hue background. A chart of two numbers would
 // say less than the numbers do.
 function TelemetryMeters({ telemetry }: { telemetry: AgentTelemetry }) {
-  const memoryUsed = Number(telemetry.memoryUsedBytes)
-  const memoryTotal = Number(telemetry.memoryTotalBytes)
-  const memoryPercent = memoryTotal ? (memoryUsed / memoryTotal) * 100 : 0
+  const memoryUsed = Number(telemetry.memoryUsedBytes);
+  const memoryTotal = Number(telemetry.memoryTotalBytes);
+  const memoryPercent = memoryTotal ? (memoryUsed / memoryTotal) * 100 : 0;
 
   return (
     <Space direction="vertical" size={12} className="agent-telemetry-meters">
@@ -222,8 +222,11 @@ function TelemetryMeters({ telemetry }: { telemetry: AgentTelemetry }) {
       />
       {telemetry.gpus.map((gpu, index) => (
         <Meter
+          // Fixed hardware list, never reordered; identical GPUs share a name
+          // so the index disambiguates.
+          // eslint-disable-next-line @eslint-react/no-array-index-key
           key={`${gpu.name}-${index}`}
-          label={gpu.name || 'GPU'}
+          label={gpu.name || "GPU"}
           percent={gpu.utilizationPercent}
           detail={`${gpu.utilizationPercent.toFixed(0)}% · ${formatBytes(
             Number(gpu.memoryUsedBytes),
@@ -231,7 +234,7 @@ function TelemetryMeters({ telemetry }: { telemetry: AgentTelemetry }) {
         />
       ))}
     </Space>
-  )
+  );
 }
 
 function Meter({
@@ -239,11 +242,11 @@ function Meter({
   percent,
   detail,
 }: {
-  label: string
-  percent: number
-  detail: string
+  label: string;
+  percent: number;
+  detail: string;
 }) {
-  const clamped = Math.max(0, Math.min(100, percent))
+  const clamped = Math.max(0, Math.min(100, percent));
 
   return (
     <div>
@@ -260,7 +263,7 @@ function Meter({
         aria-label={label}
       />
     </div>
-  )
+  );
 }
 
 function MappingList({ agent }: { agent: AgentView }) {
@@ -269,11 +272,11 @@ function MappingList({ agent }: { agent: AgentView }) {
       <Typography.Text type="secondary" style={{ fontSize: 14 }}>
         No libraries mapped, so this agent has nothing to scan.
       </Typography.Text>
-    )
+    );
   }
 
   return (
-    <Space direction="vertical" size={4} style={{ width: '100%' }}>
+    <Space direction="vertical" size={4} style={{ width: "100%" }}>
       <Typography.Text type="secondary" className="agent-mapping-heading">
         Mapped libraries
       </Typography.Text>
@@ -281,7 +284,7 @@ function MappingList({ agent }: { agent: AgentView }) {
         <div key={mapping.scannerSlug} className="agent-mapping-row">
           <span className="agent-mapping-slug">{mapping.scannerSlug}</span>
           <span className="agent-mapping-path">
-            {mapping.serverPath || '—'}
+            {mapping.serverPath || "—"}
           </span>
           <Typography.Text type="secondary" aria-hidden="true">
             →
@@ -292,18 +295,18 @@ function MappingList({ agent }: { agent: AgentView }) {
         </div>
       ))}
     </Space>
-  )
+  );
 }
 
 function formatBytes(bytes: number): string {
-  if (!bytes) return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  if (!bytes) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
   const exponent = Math.min(
     units.length - 1,
     Math.floor(Math.log(bytes) / Math.log(1024)),
-  )
-  const value = bytes / 1024 ** exponent
-  return `${value.toFixed(value < 10 && exponent > 0 ? 1 : 0)} ${units[exponent]}`
+  );
+  const value = bytes / 1024 ** exponent;
+  return `${value.toFixed(value < 10 && exponent > 0 ? 1 : 0)} ${units[exponent]}`;
 }
 
 export function AgentsSidebar() {
@@ -348,5 +351,5 @@ export function AgentsSidebar() {
         }
       />
     </div>
-  )
+  );
 }

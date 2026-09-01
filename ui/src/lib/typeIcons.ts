@@ -2,7 +2,7 @@ import {
   elementType,
   isListType,
   type Type,
-} from '../pages/workflows/connectionRules'
+} from "../pages/workflows/connectionRules";
 
 /*
  * Maps a workflow socket Type to a CSS class from lib/icons/typeIcons.css
@@ -23,28 +23,28 @@ import {
 // any path.* subtype not already claimed by a more specific entry above it
 // (e.g. path.dir, path.file), so it must stay last.
 const prefixIcons: [string, string][] = [
-  ['path.dir', 'icon-directory'],
-  ['path.file', 'icon-file'],
-  ['path', 'icon-tree'],
+  ["path.dir", "icon-directory"],
+  ["path.file", "icon-file"],
+  ["path", "icon-tree"],
   // A Mongo-backed record (scanmodel.MediaFile in the local_directory
   // collection), not a filesystem location — see design.md §4.1.
-  ['media', 'icon-media'],
-]
+  ["media", "icon-media"],
+];
 
 export function iconClassForType(type: Type): string | undefined {
   if (isListType(type)) {
-    const inner = elementType(type) ?? ''
-    if (inner === 'path.dir' || inner.startsWith('path.dir.'))
-      return 'icon-list-directory'
-    if (inner === 'path.file' || inner.startsWith('path.file.'))
-      return 'icon-list-file'
-    if (inner === 'path' || inner.startsWith('path.')) return 'icon-list'
-    return undefined
+    const inner = elementType(type) ?? "";
+    if (inner === "path.dir" || inner.startsWith("path.dir."))
+      return "icon-list-directory";
+    if (inner === "path.file" || inner.startsWith("path.file."))
+      return "icon-list-file";
+    if (inner === "path" || inner.startsWith("path.")) return "icon-list";
+    return undefined;
   }
   for (const [prefix, className] of prefixIcons) {
-    if (type === prefix || type.startsWith(`${prefix}.`)) return className
+    if (type === prefix || type.startsWith(`${prefix}.`)) return className;
   }
-  return undefined
+  return undefined;
 }
 
 // Control-flow port icons, keyed by exact port name rather than by prefix —
@@ -54,29 +54,29 @@ export function iconClassForType(type: Type): string | undefined {
 // ForEach's "body"/"done") renders no icon, same fallback behavior as
 // iconClassForType above.
 const controlPortIcons: Record<string, string> = {
-  in: 'icon-control-in',
-  error: 'icon-control-error',
-  next: 'icon-control-next',
-  yes: 'icon-control-yes',
-  no: 'icon-control-no',
-}
+  in: "icon-control-in",
+  error: "icon-control-error",
+  next: "icon-control-next",
+  yes: "icon-control-yes",
+  no: "icon-control-no",
+};
 
 export function iconClassForControlPort(port: string): string | undefined {
-  return controlPortIcons[port]
+  return controlPortIcons[port];
 }
 
 // The badge shown next to a data edge's source-end icon when its active
 // transform implies an iterator (Transform.implies_iteration) — see
 // edges/DataEdge.tsx.
-export const ITERATE_ICON_CLASS = 'icon-iterate'
+export const ITERATE_ICON_CLASS = "icon-iterate";
 
 // The badge shown next to a data edge's target-end icon when the connection
 // is a type-unsafe narrowing (Connection.typeUnsafe) — see
 // connectionRules.ts and edges/DataEdge.tsx. Generic: fires for any
 // supertype -> subtype pair, not scoped to the path family.
-export const TYPE_UNSAFE_ICON_CLASS = 'icon-type-unsafe'
+export const TYPE_UNSAFE_ICON_CLASS = "icon-type-unsafe";
 
 // The badge shown next to a path edge's target-end icon when that edge's
 // settings.recursive is set (edges/EdgeSettingsEditor.tsx, opened by
 // double-clicking the edge) — see edges/DataEdge.tsx.
-export const RECURSIVE_ICON_CLASS = 'icon-recursive'
+export const RECURSIVE_ICON_CLASS = "icon-recursive";

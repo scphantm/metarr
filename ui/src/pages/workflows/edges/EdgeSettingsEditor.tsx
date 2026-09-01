@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Checkbox, Modal, Typography } from 'antd'
+import { useState } from "react";
+import { Checkbox, Modal, Typography } from "antd";
 
 /*
  * The edit form for one data edge's settings, opened by double-clicking a
@@ -19,11 +19,11 @@ export function EdgeSettingsEditor({
   onSave,
   onCancel,
 }: {
-  recursive: boolean
-  onSave: (next: { recursive: boolean }) => void
-  onCancel: () => void
+  recursive: boolean;
+  onSave: (next: { recursive: boolean }) => void;
+  onCancel: () => void;
 }) {
-  const [recursiveDraft, setRecursiveDraft] = useState(recursive)
+  const [recursiveDraft, setRecursiveDraft] = useState(recursive);
 
   return (
     <Modal
@@ -41,11 +41,11 @@ export function EdgeSettingsEditor({
       </Checkbox>
       <Typography.Text
         type="secondary"
-        style={{ display: 'block', marginTop: 4, fontSize: 11 }}
+        style={{ display: "block", marginTop: 4, fontSize: 11 }}
       >
         Include subdirectories when this connection&rsquo;s path destination is
         used.
       </Typography.Text>
     </Modal>
-  )
+  );
 }

@@ -1,7 +1,7 @@
-import type { NodeProps, Node } from '@xyflow/react'
+import type { NodeProps, Node } from "@xyflow/react";
 
-import type { UnknownNodeData } from '../../editorNodeData'
-import './UnknownNode.css'
+import type { UnknownNodeData } from "../../editorNodeData";
+import "./UnknownNode.css";
 
 /*
  * Catalog drift, design.md §9: a saved node whose type isn't in the loaded
@@ -21,5 +21,5 @@ export function UnknownNode({ data }: NodeProps<Node<UnknownNodeData>>) {
         <div className="unknown-node-label">{data.label}</div>
       ) : null}
     </div>
-  )
+  );
 }

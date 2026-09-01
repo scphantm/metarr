@@ -1,4 +1,4 @@
-import { Alert } from 'antd'
+import { Alert } from "antd";
 
 // Shared explanation for pages under System whose fields save through the
 // same queued/saved model — Configuration and Security both edit fields this
@@ -18,17 +18,17 @@ export function SavingInfoSidebar() {
             </p>
             <ul>
               <li>
-                <span style={{ color: 'var(--color-yellow)' }}>◌ Queued</span> —
+                <span style={{ color: "var(--color-yellow)" }}>◌ Queued</span> —
                 accepted, not yet stored
               </li>
               <li>
-                <span style={{ color: 'var(--color-green)' }}>✓ Saved</span> —
+                <span style={{ color: "var(--color-green)" }}>✓ Saved</span> —
                 confirmed by the server
               </li>
               <li>
-                <span style={{ color: 'var(--color-orange)' }}>
+                <span style={{ color: "var(--color-orange)" }}>
                   ! Not confirmed
-                </span>{' '}
+                </span>{" "}
                 — no read-back after 20s
               </li>
             </ul>
@@ -41,12 +41,12 @@ export function SavingInfoSidebar() {
         message="Editing"
         description={
           <>
-            Edit a field directly. <kbd>Enter</kbd> or clicking away saves,{' '}
+            Edit a field directly. <kbd>Enter</kbd> or clicking away saves,{" "}
             <kbd>Escape</kbd> reverts. Slugs and ids are fixed once created —
             the API keys records by them.
           </>
         }
       />
     </div>
-  )
+  );
 }
