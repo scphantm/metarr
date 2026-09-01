@@ -274,8 +274,17 @@ func run() error {
 	// One sampler goroutine per process polls Redis on a fixed cadence into a
 	// shared snapshot; every StatsService.Stream client fans out from it, so a
 	// second dashboard adds no Redis load. Prime once synchronously so the
-	// first Get has a snapshot to return.
-	busSampler := busstats.New(redisClient, logger)
+	// first Get has a snapshot to return. The slug source is the live
+	// in-memory config, so an agent configured but offline still shows on the
+	// dashboard as a broken row.
+	busSampler := busstats.New(redisClient, logger, busstats.WithSlugSource(func(context.Context) []string {
+		agents := appconfig.Get().Agents
+		slugs := make([]string, 0, len(agents))
+		for _, agent := range agents {
+			slugs = append(slugs, agent.Slug)
+		}
+		return slugs
+	}))
 	busSampler.Prime(ctx)
 	go busSampler.Run(ctx)
 

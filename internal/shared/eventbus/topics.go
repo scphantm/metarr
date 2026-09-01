@@ -141,6 +141,17 @@ func AgentConfigChangedChannel(slug string) string { return "agent.config.change
 // be the wrong shape. Replies go to the correlation-scoped ReplyChannel.
 func AgentRequestChannel(slug string) string { return "agent." + slug + ".request" }
 
+// AgentPubSubChannels lists the per-agent Pub/Sub channels addressed to
+// slug: the config-changed notification the agent subscribes to, and the
+// agent's request channel its responder subscribes to. It is the Pub/Sub
+// counterpart to AgentCommandTopic — the family the expected-topology
+// derivation enumerates for every registered agent, so an offline agent's
+// channels still show as rows on the dashboard rather than vanishing. Both
+// carry the agent as their one expected subscriber.
+func AgentPubSubChannels(slug string) []string {
+	return []string{AgentConfigChangedChannel(slug), AgentRequestChannel(slug)}
+}
+
 // StreamTopic is one durable Redis Stream in the system, and the single
 // representation of it. Every inventory that used to keep its own list —
 // the statistics dashboard, the retention sweep, the publish cap, per-agent
