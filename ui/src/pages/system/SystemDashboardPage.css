@@ -30,6 +30,14 @@
   color: var(--ink-strong);
 }
 
+.system-dashboard-stream-error {
+  color: var(--color-orange);
+}
+
+.system-dashboard-groups {
+  margin: 0.25rem 0;
+}
+
 .system-dashboard-collected {
   font-size: 12px;
 }

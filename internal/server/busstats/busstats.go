@@ -201,6 +201,12 @@ func (s *Sampler) pass(ctx context.Context) {
 		return
 	}
 
+	// The connection is up (collectServer reached it), so the stream reads
+	// run outside the lock: a slow XINFO must not stall Get or the fan-out.
+	// Each call inside is time-boxed on its own, and an unreadable stream
+	// carries its own error rather than failing the pass.
+	streams := s.collectStreams(ctx)
+
 	s.mu.Lock()
 	s.appendSeries(server)
 	server.ConnectedClientsSeries = slices.Clone(s.series.connectedClients)
@@ -211,7 +217,7 @@ func (s *Sampler) pass(ctx context.Context) {
 	snapshot := &Snapshot{
 		CollectedAt: timestamppb.New(time.Now().UTC()),
 		Server:      server,
-		Streams:     []*StreamStat{},
+		Streams:     streams,
 		Channels:    []*ChannelStat{},
 	}
 	s.snapshot = snapshot

@@ -25,8 +25,10 @@ option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 message BusSnapshot {
   google.protobuf.Timestamp collected_at = 1;
   BusServerInfo server = 2;
-  // Empty until the stream and channel tables land (scphantm/metarr#62,
-  // scphantm/metarr#64). The walking skeleton fills server only.
+  // streams carries one row per durable stream the event bus knows about —
+  // the static stream-topic rows plus the per-agent command streams
+  // discovered against live Redis. channels is empty until the Pub/Sub
+  // table lands (scphantm/metarr#64).
   repeated BusStreamStat streams = 3;
   repeated BusChannelStat channels = 4;
 }
@@ -83,6 +85,10 @@ message BusGroupStat {
   int64 lag = 4;
   string last_delivered_id = 5;
   repeated BusConsumerStat consumer_detail = 6;
+  // oldest_pending_age_seconds is how long the group's oldest unacknowledged
+  // entry has been waiting, derived from the entry ID's timestamp. Zero when
+  // the group has nothing pending.
+  int64 oldest_pending_age_seconds = 7;
 }
 
 // BusConsumerStat is a single consumer within a group.
