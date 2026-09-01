@@ -8,7 +8,10 @@ import {
   useUpsertSonarrInstance,
 } from '../../api/queries'
 import { storageModes } from '../../api/vocab'
-import { SonarrInstanceSchema, type SonarrInstance } from '../../gen/metarr/v1/sonarr_interfaces_pb'
+import {
+  SonarrInstanceSchema,
+  type SonarrInstance,
+} from '../../gen/metarr/v1/sonarr_interfaces_pb'
 import { Button, Card, EmptyState, Row } from '../../components/Card'
 import {
   EditableNumber,
@@ -34,11 +37,7 @@ type SonarrInstanceInit = MessageInitShape<typeof SonarrInstanceSchema>
  * this machine — the pair only means something together, so they are edited as
  * rows rather than as two independent lists.
  */
-export function SonarrSection({
-  instances,
-}: {
-  instances: SonarrInstance[]
-}) {
+export function SonarrSection({ instances }: { instances: SonarrInstance[] }) {
   const upsert = useUpsertSonarrInstance()
   const remove = useDeleteSonarrInstance()
   const [adding, setAdding] = useState(false)
@@ -191,7 +190,17 @@ function InstanceCard({
           queryKey={key}
           value={instance.storage?.mode ?? 'cache'}
           options={storageModes}
-          onSave={(mode) => onSave(nextInstance({ storage: { mode, ttl: instance.storage?.ttl ?? '', maxCount: instance.storage?.maxCount ?? 0 } }))}
+          onSave={(mode) =>
+            onSave(
+              nextInstance({
+                storage: {
+                  mode,
+                  ttl: instance.storage?.ttl ?? '',
+                  maxCount: instance.storage?.maxCount ?? 0,
+                },
+              }),
+            )
+          }
         />
       </Row>
 
@@ -206,7 +215,15 @@ function InstanceCard({
             value={instance.storage?.maxCount ?? 0}
             min={1}
             onSave={(maxCount) =>
-              onSave(nextInstance({ storage: { mode: instance.storage?.mode ?? 'cache', ttl: instance.storage?.ttl ?? '', maxCount } }))
+              onSave(
+                nextInstance({
+                  storage: {
+                    mode: instance.storage?.mode ?? 'cache',
+                    ttl: instance.storage?.ttl ?? '',
+                    maxCount,
+                  },
+                }),
+              )
             }
           />
         </Row>
@@ -221,7 +238,17 @@ function InstanceCard({
             value={instance.storage?.ttl ?? ''}
             monospace
             placeholder="24h"
-            onSave={(ttl) => onSave(nextInstance({ storage: { mode: instance.storage?.mode ?? 'cache', ttl, maxCount: instance.storage?.maxCount ?? 0 } }))}
+            onSave={(ttl) =>
+              onSave(
+                nextInstance({
+                  storage: {
+                    mode: instance.storage?.mode ?? 'cache',
+                    ttl,
+                    maxCount: instance.storage?.maxCount ?? 0,
+                  },
+                }),
+              )
+            }
           />
         </Row>
       )}
@@ -251,7 +278,9 @@ function RootDirMap({
   // Built field-by-field rather than {...instance, rootDirMap} — see
   // InstanceCard's nextInstance for why spreading the branded instance
   // defeats the loose-init-shape typing for nested fields.
-  function write(rootDirMap: { sonarrPath: string; localPath: string }[]): Promise<unknown> {
+  function write(
+    rootDirMap: { sonarrPath: string; localPath: string }[],
+  ): Promise<unknown> {
     return onSave({
       instanceSlug: instance.instanceSlug,
       instanceName: instance.instanceName ?? '',
@@ -384,7 +413,9 @@ function NewInstance({
       return
     }
     if (existingSlugs.includes(slug.trim())) {
-      setError('That slug is already in use; it would replace the existing instance')
+      setError(
+        'That slug is already in use; it would replace the existing instance',
+      )
       return
     }
     setError(null)

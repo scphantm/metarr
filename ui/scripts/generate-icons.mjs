@@ -12,7 +12,13 @@ import { writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { FaList, FaRegThumbsUp, FaCopy, FaNoteSticky, FaFolderTree } from 'react-icons/fa6'
+import {
+  FaList,
+  FaRegThumbsUp,
+  FaCopy,
+  FaNoteSticky,
+  FaFolderTree,
+} from 'react-icons/fa6'
 import { FaFileAlt } from 'react-icons/fa'
 import { PiFolders, PiFiles, PiTreeView } from 'react-icons/pi'
 import { GoIterations, GoFileDirectoryFill } from 'react-icons/go'
@@ -31,13 +37,28 @@ import {
   MdCheckCircle,
   MdReport,
 } from 'react-icons/md'
-import { TbBinaryTreeFilled, TbArrowsJoin, TbDeviceImacQuestion, TbFileDatabase } from 'react-icons/tb'
+import {
+  TbBinaryTreeFilled,
+  TbArrowsJoin,
+  TbDeviceImacQuestion,
+  TbFileDatabase,
+} from 'react-icons/tb'
 import { BiSolidMessageSquareError } from 'react-icons/bi'
 import { GiMagicSwirl, GiLightningBranches, GiMatchTip } from 'react-icons/gi'
-import { RiLoopRightAiFill, RiDeleteBack2Fill, RiTranslate } from 'react-icons/ri'
+import {
+  RiLoopRightAiFill,
+  RiDeleteBack2Fill,
+  RiTranslate,
+} from 'react-icons/ri'
 import { HiCollection } from 'react-icons/hi'
 import { FcParallelTasks } from 'react-icons/fc'
-import { BsStoplights, BsListColumnsReverse, BsFillSignpostSplitFill, BsDatabaseFillUp, BsDatabaseFillCheck } from 'react-icons/bs'
+import {
+  BsStoplights,
+  BsListColumnsReverse,
+  BsFillSignpostSplitFill,
+  BsDatabaseFillUp,
+  BsDatabaseFillCheck,
+} from 'react-icons/bs'
 import { ImMoveDown } from 'react-icons/im'
 import { SiReadme } from 'react-icons/si'
 import { TfiWrite } from 'react-icons/tfi'
@@ -103,7 +124,9 @@ const icons = [
 ]
 
 function toMaskDataURI(svgMarkup) {
-  const encoded = encodeURIComponent(svgMarkup).replace(/'/g, '%27').replace(/"/g, '%22')
+  const encoded = encodeURIComponent(svgMarkup)
+    .replace(/'/g, '%27')
+    .replace(/"/g, '%22')
   return `url("data:image/svg+xml,${encoded}")`
 }
 
@@ -135,6 +158,8 @@ for (const { className, Component } of icons) {
 `
 }
 
-const outPath = fileURLToPath(new URL('../src/lib/icons/typeIcons.css', import.meta.url))
+const outPath = fileURLToPath(
+  new URL('../src/lib/icons/typeIcons.css', import.meta.url),
+)
 writeFileSync(outPath, css)
 console.log(`Wrote ${icons.length} icon classes to ${outPath}`)

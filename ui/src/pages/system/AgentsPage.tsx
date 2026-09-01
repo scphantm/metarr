@@ -3,7 +3,11 @@ import { Alert, Badge, Progress, Space, Typography } from 'antd'
 
 import { timestampDate } from '@bufbuild/protobuf/wkt'
 
-import { useAgents, useAgentsPresenceStreamStatus, useScanDirectories } from '../../api/queries'
+import {
+  useAgents,
+  useAgentsPresenceStreamStatus,
+  useScanDirectories,
+} from '../../api/queries'
 import type { AgentTelemetry, AgentView } from '../../gen/metarr/v1/agents_pb'
 import { Button, Card, EmptyState } from '../../components/Card'
 import { PageError, PageLoading } from '../../components/PageState'
@@ -79,9 +83,17 @@ export function AgentsPage() {
 
 function ConnectionIndicator({ status }: { status: string }) {
   const label =
-    status === 'open' ? 'Live' : status === 'connecting' ? 'Connecting' : 'Stale'
+    status === 'open'
+      ? 'Live'
+      : status === 'connecting'
+        ? 'Connecting'
+        : 'Stale'
   const badgeStatus =
-    status === 'open' ? 'success' : status === 'connecting' ? 'processing' : 'warning'
+    status === 'open'
+      ? 'success'
+      : status === 'connecting'
+        ? 'processing'
+        : 'warning'
 
   return <Badge status={badgeStatus} text={label} />
 }
@@ -109,7 +121,10 @@ function AgentCard({
         <Space align="center">
           <AgentStatus agent={agent} />
           {configuring ? null : (
-            <Button variant={needsSetup ? 'primary' : 'default'} onClick={onConfigure}>
+            <Button
+              variant={needsSetup ? 'primary' : 'default'}
+              onClick={onConfigure}
+            >
               {agent.configured ? 'Edit' : 'Configure this agent'}
             </Button>
           )}
@@ -165,7 +180,10 @@ function AgentIdentityGrid({ agent }: { agent: AgentView }) {
     ['Running as', `${identity.username || 'unknown'} (uid ${identity.uid})`],
     ['Platform', `${identity.os}/${identity.arch}`],
     ['Version', identity.version],
-    ['Up since', identity.started ? timestampDate(identity.started).toLocaleString() : '—'],
+    [
+      'Up since',
+      identity.started ? timestampDate(identity.started).toLocaleString() : '—',
+    ],
   ]
 
   return (
@@ -235,7 +253,12 @@ function Meter({
           {detail}
         </Typography.Text>
       </div>
-      <Progress percent={clamped} showInfo={false} size="small" aria-label={label} />
+      <Progress
+        percent={clamped}
+        showInfo={false}
+        size="small"
+        aria-label={label}
+      />
     </div>
   )
 }
@@ -257,11 +280,15 @@ function MappingList({ agent }: { agent: AgentView }) {
       {agent.mappings.map((mapping) => (
         <div key={mapping.scannerSlug} className="agent-mapping-row">
           <span className="agent-mapping-slug">{mapping.scannerSlug}</span>
-          <span className="agent-mapping-path">{mapping.serverPath || '—'}</span>
+          <span className="agent-mapping-path">
+            {mapping.serverPath || '—'}
+          </span>
           <Typography.Text type="secondary" aria-hidden="true">
             →
           </Typography.Text>
-          <span className="agent-mapping-path is-local">{mapping.agentPath}</span>
+          <span className="agent-mapping-path is-local">
+            {mapping.agentPath}
+          </span>
         </div>
       ))}
     </Space>
@@ -288,14 +315,15 @@ export function AgentsSidebar() {
         description={
           <>
             <p>
-              An agent is configured locally with only two things: how to reach Redis, and its
-              own name. Everything else — which libraries it can see and where they live on its
-              machine — is published to it from here.
+              An agent is configured locally with only two things: how to reach
+              Redis, and its own name. Everything else — which libraries it can
+              see and where they live on its machine — is published to it from
+              here.
             </p>
             <p>
-              It never connects to the database. Scan results travel back over the event bus and
-              are stored under this server&apos;s paths, so the library reads the same however
-              many agents produced it.
+              It never connects to the database. Scan results travel back over
+              the event bus and are stored under this server&apos;s paths, so
+              the library reads the same however many agents produced it.
             </p>
           </>
         }
@@ -307,13 +335,14 @@ export function AgentsSidebar() {
         description={
           <>
             <p>
-              A mapping says what this machine calls a library you have configured under
-              Directory Scanner. Leave one blank when the agent cannot reach it — agents sit on
-              different machines and are not expected to see everything.
+              A mapping says what this machine calls a library you have
+              configured under Directory Scanner. Leave one blank when the agent
+              cannot reach it — agents sit on different machines and are not
+              expected to see everything.
             </p>
             <p>
-              Each library belongs to one agent. Two agents scanning the same files would each
-              overwrite the other&apos;s records.
+              Each library belongs to one agent. Two agents scanning the same
+              files would each overwrite the other&apos;s records.
             </p>
           </>
         }

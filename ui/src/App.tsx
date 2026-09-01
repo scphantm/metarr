@@ -16,7 +16,10 @@ import {
   ExternalToolsPage,
   ExternalToolsSidebar,
 } from './pages/system/ExternalToolsPage'
-import { InterfacesPage, InterfacesSidebar } from './pages/system/InterfacesPage'
+import {
+  InterfacesPage,
+  InterfacesSidebar,
+} from './pages/system/InterfacesPage'
 import { SecurityPage, SecuritySidebar } from './pages/system/SecurityPage'
 import { SidecarsPage, SidecarsSidebar } from './pages/system/SidecarsPage'
 import {

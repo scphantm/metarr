@@ -28,10 +28,14 @@ export function TagsInput({
   return (
     <Space size={6} wrap align="center">
       {value.map((tag) => (
-        <Tag key={tag} closable onClose={(event) => {
-          event.preventDefault()
-          onChange(value.filter((t) => t !== tag))
-        }}>
+        <Tag
+          key={tag}
+          closable
+          onClose={(event) => {
+            event.preventDefault()
+            onChange(value.filter((t) => t !== tag))
+          }}
+        >
           {tag}
         </Tag>
       ))}

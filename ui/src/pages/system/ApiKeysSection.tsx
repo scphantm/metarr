@@ -64,8 +64,13 @@ export function ApiKeysSection({ config }: { config: Config }) {
             <div key={group}>
               <div className="api-key-group-header">
                 <div>
-                  <Typography.Text className="api-key-group-label">{label}</Typography.Text>
-                  <Typography.Text type="secondary" className="api-key-group-hint">
+                  <Typography.Text className="api-key-group-label">
+                    {label}
+                  </Typography.Text>
+                  <Typography.Text
+                    type="secondary"
+                    className="api-key-group-hint"
+                  >
                     {hint}
                   </Typography.Text>
                 </div>
@@ -94,7 +99,11 @@ export function ApiKeysSection({ config }: { config: Config }) {
                           onSave={(name) =>
                             upsertApiKey.mutateAsync({
                               group: groupOnWire,
-                              entry: { id: entry.id, name, apiKey: entry.apiKey },
+                              entry: {
+                                id: entry.id,
+                                name,
+                                apiKey: entry.apiKey,
+                              },
                             })
                           }
                         />
@@ -119,7 +128,10 @@ export function ApiKeysSection({ config }: { config: Config }) {
                         variant="danger"
                         title={`Remove ${entry.name || 'this key'}`}
                         onClick={() =>
-                          void deleteApiKey.mutateAsync({ group: groupOnWire, id: entry.id })
+                          void deleteApiKey.mutateAsync({
+                            group: groupOnWire,
+                            id: entry.id,
+                          })
                         }
                       >
                         Remove

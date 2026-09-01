@@ -43,7 +43,8 @@
 }
 
 .diagnostics-panel-item {
-  border-bottom: 1px solid color-mix(in srgb, var(--surface-edge) 60%, transparent);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--surface-edge) 60%, transparent);
   padding: 0.5rem 0.75rem;
 }
 

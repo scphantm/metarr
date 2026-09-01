@@ -109,7 +109,11 @@ function wrapTransform(from: Type, to: Type): Transform | null {
   })
 }
 
-export function canConnect(from: Type, to: Type, transforms: Transform[]): TypeConnection {
+export function canConnect(
+  from: Type,
+  to: Type,
+  transforms: Transform[],
+): TypeConnection {
   if (isSubtypeOf(from, to)) {
     return { direct: true, candidates: [] }
   }
@@ -122,7 +126,8 @@ export function canConnect(from: Type, to: Type, transforms: Transform[]): TypeC
     return { direct: true, candidates: [] }
   }
   const candidates = transforms.filter(
-    (transform) => isSubtypeOf(from, transform.from) && isSubtypeOf(transform.to, to),
+    (transform) =>
+      isSubtypeOf(from, transform.from) && isSubtypeOf(transform.to, to),
   )
   const wrap = wrapTransform(from, to)
   if (wrap) candidates.push(wrap)
@@ -136,7 +141,9 @@ export function connectionAllowed(connection: TypeConnection): boolean {
 // The single transform the editor may attach without asking — exactly one
 // unambiguous candidate. Anything else (zero, several, or the one candidate
 // marked ambiguous) means the picker has to prompt.
-export function autoApplyTransform(connection: TypeConnection): Transform | null {
+export function autoApplyTransform(
+  connection: TypeConnection,
+): Transform | null {
   if (connection.direct || connection.candidates.length !== 1) return null
   const [only] = connection.candidates
   return only.ambiguous ? null : only
@@ -164,10 +171,14 @@ export const dataHandleId = (name: string) => `d:${name}`
 
 export type ParsedHandle = { kind: 'control' | 'data'; name: string }
 
-export function parseHandleId(handleId: string | null | undefined): ParsedHandle | null {
+export function parseHandleId(
+  handleId: string | null | undefined,
+): ParsedHandle | null {
   if (!handleId) return null
-  if (handleId.startsWith('c:')) return { kind: 'control', name: handleId.slice(2) }
-  if (handleId.startsWith('d:')) return { kind: 'data', name: handleId.slice(2) }
+  if (handleId.startsWith('c:'))
+    return { kind: 'control', name: handleId.slice(2) }
+  if (handleId.startsWith('d:'))
+    return { kind: 'data', name: handleId.slice(2) }
   return null
 }
 
@@ -175,7 +186,13 @@ export function parseHandleId(handleId: string | null | undefined): ParsedHandle
 
 export type ConnectionVerdict =
   | { allowed: true; kind: 'control' }
-  | { allowed: true; kind: 'data'; connection: TypeConnection; fromType: Type; toType: Type }
+  | {
+      allowed: true
+      kind: 'data'
+      connection: TypeConnection
+      fromType: Type
+      toType: Type
+    }
   | { allowed: false; reason: string }
 
 // Everything isValidConnection and onConnect need to resolve a candidate
@@ -205,7 +222,11 @@ export function evaluateConnection(
     return { allowed: false, reason: 'Malformed handle.' }
   }
   if (sourceHandle.kind !== targetHandle.kind) {
-    return { allowed: false, reason: 'Control ports connect only to control ports, data sockets only to data sockets.' }
+    return {
+      allowed: false,
+      reason:
+        'Control ports connect only to control ports, data sockets only to data sockets.',
+    }
   }
 
   if (sourceHandle.kind === 'control') {
@@ -213,36 +234,62 @@ export function evaluateConnection(
       sourceHandle.name === 'error'
         ? Boolean(sourceType.control?.error)
         : Boolean(sourceType.control?.out.includes(sourceHandle.name))
-    const targetIsIn = Boolean(targetType.control?.in.includes(targetHandle.name))
+    const targetIsIn = Boolean(
+      targetType.control?.in.includes(targetHandle.name),
+    )
     if (!sourceIsOut || !targetIsIn) {
       return { allowed: false, reason: 'Not a valid control connection.' }
     }
     // A control out-port takes exactly one outgoing edge.
     const alreadyWired = existingEdges.some(
-      (edge) => edge.source === candidate.source && edge.sourceHandle === candidate.sourceHandle,
+      (edge) =>
+        edge.source === candidate.source &&
+        edge.sourceHandle === candidate.sourceHandle,
     )
     if (alreadyWired) {
-      return { allowed: false, reason: 'This control output already has a connection.' }
+      return {
+        allowed: false,
+        reason: 'This control output already has a connection.',
+      }
     }
     return { allowed: true, kind: 'control' }
   }
 
-  const sourceSocket = sourceType.dataOut?.find((socket) => socket.name === sourceHandle.name)
-  const targetSocket = targetType.dataIn?.find((socket) => socket.name === targetHandle.name)
+  const sourceSocket = sourceType.dataOut?.find(
+    (socket) => socket.name === sourceHandle.name,
+  )
+  const targetSocket = targetType.dataIn?.find(
+    (socket) => socket.name === targetHandle.name,
+  )
   if (!sourceSocket || !targetSocket) {
     return { allowed: false, reason: 'Not a valid data connection.' }
   }
   // A data in-socket takes exactly one incoming edge.
   const alreadyWired = existingEdges.some(
-    (edge) => edge.target === candidate.target && edge.targetHandle === candidate.targetHandle,
+    (edge) =>
+      edge.target === candidate.target &&
+      edge.targetHandle === candidate.targetHandle,
   )
   if (alreadyWired) {
     return { allowed: false, reason: 'This input already has a connection.' }
   }
 
-  const connection = canConnect(sourceSocket.type, targetSocket.type, transforms)
+  const connection = canConnect(
+    sourceSocket.type,
+    targetSocket.type,
+    transforms,
+  )
   if (!connectionAllowed(connection)) {
-    return { allowed: false, reason: explainIncompatible(sourceSocket.type, targetSocket.type) }
+    return {
+      allowed: false,
+      reason: explainIncompatible(sourceSocket.type, targetSocket.type),
+    }
   }
-  return { allowed: true, kind: 'data', connection, fromType: sourceSocket.type, toType: targetSocket.type }
+  return {
+    allowed: true,
+    kind: 'data',
+    connection,
+    fromType: sourceSocket.type,
+    toType: targetSocket.type,
+  }
 }

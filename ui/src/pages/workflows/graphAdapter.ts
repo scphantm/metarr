@@ -29,7 +29,10 @@ import { controlHandleId, dataHandleId, parseHandleId } from './connectionRules'
 
 export const UNKNOWN_NODE_TYPE = 'unknownNode'
 
-function extraString(extra: WorkflowGraphNode['extra'], key: string): string | undefined {
+function extraString(
+  extra: WorkflowGraphNode['extra'],
+  key: string,
+): string | undefined {
   const value = extra?.[key]
   return typeof value === 'string' ? value : undefined
 }
@@ -38,7 +41,10 @@ function extraString(extra: WorkflowGraphNode['extra'], key: string): string | u
 // component for. A saved node whose type isn't in it — catalog drift,
 // design.md §9 — renders through UnknownNode instead: the node and its
 // settings/label are never dropped, just made visible as unrenderable.
-export function toRFNode(node: WorkflowGraphNode, registeredTypes: ReadonlySet<string>): RFNode {
+export function toRFNode(
+  node: WorkflowGraphNode,
+  registeredTypes: ReadonlySet<string>,
+): RFNode {
   const data: CatalogNodeData = {
     settings: node.settings ?? {},
     promoted: node.promoted ?? [],
@@ -93,12 +99,16 @@ export function toRFEdge(edge: WorkflowGraphEdge): RFEdge {
   const fromPort = edge.from?.port ?? ''
   const toPort = edge.to?.port ?? ''
   const data =
-    edge.transform || edge.settings ? { transform: edge.transform || undefined, settings: edge.settings } : undefined
+    edge.transform || edge.settings
+      ? { transform: edge.transform || undefined, settings: edge.settings }
+      : undefined
   return {
     id: edge.id,
     type: isControl ? 'controlEdge' : 'dataEdge',
     source: edge.from?.node ?? '',
-    sourceHandle: isControl ? controlHandleId(fromPort) : dataHandleId(fromPort),
+    sourceHandle: isControl
+      ? controlHandleId(fromPort)
+      : dataHandleId(fromPort),
     target: edge.to?.node ?? '',
     targetHandle: isControl ? controlHandleId(toPort) : dataHandleId(toPort),
     data,
@@ -112,11 +122,15 @@ export function fromRFEdge(edge: RFEdge): WorkflowGraphEdge | null {
 
   const graphEdge = create(WorkflowGraphEdgeSchema, {
     id: edge.id,
-    kind: from.kind === 'control' ? WorkflowEdgeKind.CONTROL : WorkflowEdgeKind.DATA,
+    kind:
+      from.kind === 'control'
+        ? WorkflowEdgeKind.CONTROL
+        : WorkflowEdgeKind.DATA,
     from: { node: edge.source, port: from.name },
     to: { node: edge.target, port: to.name },
   })
-  const data = edge.data as { transform?: string; settings?: Record<string, unknown> } | undefined
+  const data = edge.data as
+    { transform?: string; settings?: Record<string, unknown> } | undefined
   if (data?.transform) graphEdge.transform = data.transform
   if (data?.settings && Object.keys(data.settings).length > 0) {
     graphEdge.settings = data.settings as WorkflowGraphEdge['settings']
@@ -134,11 +148,17 @@ export function toRFGraph(
   }
 }
 
-export function fromRFGraph(nodes: RFNode[], edges: RFEdge[], viewport: Viewport): WorkflowGraph {
+export function fromRFGraph(
+  nodes: RFNode[],
+  edges: RFEdge[],
+  viewport: Viewport,
+): WorkflowGraph {
   return create(WorkflowGraphSchema, {
     schemaVersion: SchemaVersion,
     nodes: nodes.map(fromRFNode),
-    edges: edges.map(fromRFEdge).filter((edge): edge is WorkflowGraphEdge => edge != null),
+    edges: edges
+      .map(fromRFEdge)
+      .filter((edge): edge is WorkflowGraphEdge => edge != null),
     viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
   })
 }

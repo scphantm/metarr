@@ -102,7 +102,10 @@ class Stream<T> {
   private scheduleReconnect(generation: number): void {
     if (this.subscribers.size === 0) return
 
-    const delay = Math.min(reconnectBaseDelay * 2 ** this.reconnectAttempts, reconnectMaxDelay)
+    const delay = Math.min(
+      reconnectBaseDelay * 2 ** this.reconnectAttempts,
+      reconnectMaxDelay,
+    )
     this.reconnectAttempts += 1
 
     this.reconnectTimer = setTimeout(() => {
@@ -143,7 +146,10 @@ function useStreamStatus<T>(stream: Stream<T>): StreamStatus {
 /** Transforms each item of a server-streaming RPC's AsyncIterable, so a
  * Stream can decode wire messages (e.g. opaque JSON bytes) into the shape
  * its subscribers actually want. */
-async function* mapAsync<I, O>(source: AsyncIterable<I>, transform: (value: I) => O): AsyncIterable<O> {
+async function* mapAsync<I, O>(
+  source: AsyncIterable<I>,
+  transform: (value: I) => O,
+): AsyncIterable<O> {
   for await (const value of source) {
     yield transform(value)
   }

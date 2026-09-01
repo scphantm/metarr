@@ -38,7 +38,9 @@ export function NodePalette() {
     const query = filter.trim().toLowerCase()
     if (!query) return entries
     return entries.filter(
-      (entry) => entry.name.toLowerCase().includes(query) || entry.type.toLowerCase().includes(query),
+      (entry) =>
+        entry.name.toLowerCase().includes(query) ||
+        entry.type.toLowerCase().includes(query),
     )
   }, [catalog, filter])
   const groups = groupByCategoryAndSubcategory(filtered)
@@ -79,51 +81,78 @@ export function NodePalette() {
               ghost
               size="small"
               className="node-palette-subcategories"
-              items={[...subgroups.entries()].map(([subcategory, groupEntries]) => ({
-                key: subcategory || 'uncategorized',
-                label: subcategory || 'Uncategorized',
-                children: (
-                  <div className="node-palette-entries">
-                    {groupEntries.map((entry) => (
-                      <div
-                        key={entry.id}
-                        draggable
-                        onDragStart={(event) => {
-                          setDraggedTemplate({ id: entry.id })
-                          event.dataTransfer.setData('application/json', JSON.stringify({ id: entry.id }))
-                          event.dataTransfer.effectAllowed = 'move'
-                        }}
-                        onDragEnd={() => setDraggedTemplate(null)}
-                        title={entry.description}
-                        className="node-palette-entry"
-                      >
-                        <div className="node-palette-entry-name">{entry.name}</div>
-                        <div className="node-palette-entry-type">{entry.type}</div>
-                      </div>
-                    ))}
-                  </div>
-                ),
-              }))}
+              items={[...subgroups.entries()].map(
+                ([subcategory, groupEntries]) => ({
+                  key: subcategory || 'uncategorized',
+                  label: subcategory || 'Uncategorized',
+                  children: (
+                    <div className="node-palette-entries">
+                      {groupEntries.map((entry) => (
+                        <div
+                          key={entry.id}
+                          draggable
+                          onDragStart={(event) => {
+                            setDraggedTemplate({ id: entry.id })
+                            event.dataTransfer.setData(
+                              'application/json',
+                              JSON.stringify({ id: entry.id }),
+                            )
+                            event.dataTransfer.effectAllowed = 'move'
+                          }}
+                          onDragEnd={() => setDraggedTemplate(null)}
+                          title={entry.description}
+                          className="node-palette-entry"
+                        >
+                          <div className="node-palette-entry-name">
+                            {entry.name}
+                          </div>
+                          <div className="node-palette-entry-type">
+                            {entry.type}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ),
+                }),
+              )}
             />
           ),
         }))}
       />
 
       <section className="node-palette-legend">
-        <Typography.Text type="secondary" className="node-palette-legend-heading">
+        <Typography.Text
+          type="secondary"
+          className="node-palette-legend-heading"
+        >
           Color legend
         </Typography.Text>
         <div className="node-palette-legend-rows">
-          <LegendRow colorVar="var(--color-cyan)" label="Input / output / control flow / notes" />
+          <LegendRow
+            colorVar="var(--color-cyan)"
+            label="Input / output / control flow / notes"
+          />
           <LegendRow colorVar="var(--color-red)" label="Errors" />
           <LegendRow colorVar="var(--color-yellow)" label="Decisions" />
-          <Typography.Text type="secondary" className="node-palette-legend-subheading">
+          <Typography.Text
+            type="secondary"
+            className="node-palette-legend-subheading"
+          >
             Processes
           </Typography.Text>
           <LegendRow colorVar="var(--color-blue)" label="Neutral (e.g. list)" />
-          <LegendRow colorVar="var(--color-green)" label="Creation (e.g. copy)" />
-          <LegendRow colorVar="var(--color-magenta)" label="Destructive (move, delete, update)" />
-          <LegendRow colorVar="var(--color-violet)" label="Create + destroy (complex)" />
+          <LegendRow
+            colorVar="var(--color-green)"
+            label="Creation (e.g. copy)"
+          />
+          <LegendRow
+            colorVar="var(--color-magenta)"
+            label="Destructive (move, delete, update)"
+          />
+          <LegendRow
+            colorVar="var(--color-violet)"
+            label="Create + destroy (complex)"
+          />
         </div>
       </section>
     </div>
@@ -133,7 +162,10 @@ export function NodePalette() {
 function LegendRow({ colorVar, label }: { colorVar: string; label: string }) {
   return (
     <div className="node-palette-legend-row">
-      <span className="node-palette-legend-dot" style={{ backgroundColor: colorVar }} />
+      <span
+        className="node-palette-legend-dot"
+        style={{ backgroundColor: colorVar }}
+      />
       <span>{label}</span>
     </div>
   )

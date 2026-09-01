@@ -26,23 +26,33 @@ function branchPortIndex(port: string): number | null {
   return match ? Number(match[1]) : null
 }
 
-export function limitBranchPorts(handles: ArrangedHandle[], visibleCount: number): ArrangedHandle[] {
+export function limitBranchPorts(
+  handles: ArrangedHandle[],
+  visibleCount: number,
+): ArrangedHandle[] {
   return handles.filter((handle) => {
     const index = branchPortIndex(handle.label)
     return index === null || index <= visibleCount
   })
 }
 
-function declaredBranches(data: CatalogNodeData, nodeType: NodeType | undefined): number {
+function declaredBranches(
+  data: CatalogNodeData,
+  nodeType: NodeType | undefined,
+): number {
   const fromSettings = data.settings.branches
-  if (typeof fromSettings === 'number' && Number.isFinite(fromSettings)) return fromSettings
+  if (typeof fromSettings === 'number' && Number.isFinite(fromSettings))
+    return fromSettings
   const setting = nodeType?.settings.find((entry) => entry.name === 'branches')
   const fallback = settingDefault(setting?.default)
   return typeof fallback === 'number' ? fallback : 1
 }
 
 function maxBranchIndex(ports: string[]): number {
-  return ports.reduce((max, port) => Math.max(max, branchPortIndex(port) ?? 0), 0)
+  return ports.reduce(
+    (max, port) => Math.max(max, branchPortIndex(port) ?? 0),
+    0,
+  )
 }
 
 // How many branchN handles a Parallel/Join node should render right now:
@@ -62,9 +72,13 @@ export function useVisibleBranchCount(
   const visibleCount = useMemo(() => {
     const declared = declaredBranches(data, nodeType)
     const wiredMax = connections.reduce((max, connection) => {
-      const handleId = handleType === 'source' ? connection.sourceHandle : connection.targetHandle
+      const handleId =
+        handleType === 'source'
+          ? connection.sourceHandle
+          : connection.targetHandle
       const parsed = parseHandleId(handleId)
-      const index = parsed?.kind === 'control' ? branchPortIndex(parsed.name) : null
+      const index =
+        parsed?.kind === 'control' ? branchPortIndex(parsed.name) : null
       return index !== null && index > max ? index : max
     }, 0)
     return Math.min(maxBranchIndex(ports), Math.max(declared, wiredMax, 1))

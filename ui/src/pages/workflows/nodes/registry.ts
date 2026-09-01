@@ -36,8 +36,8 @@ import { FormatNode } from './string/FormatNode'
 import { ParseNumberNode } from './string/ParseNumberNode'
 import { RegexMatchNode } from './string/RegexMatchNode'
 import { TrimNode } from './string/TrimNode'
-import {IsDirNode} from "@/pages/workflows/nodes/fs/IsDirNode.tsx";
-import {IsFileNode} from "@/pages/workflows/nodes/fs/IsFileNode.tsx";
+import { IsDirNode } from '@/pages/workflows/nodes/fs/IsDirNode.tsx'
+import { IsFileNode } from '@/pages/workflows/nodes/fs/IsFileNode.tsx'
 
 /*
  * Every catalog entry gets its own registered React Flow node component —
@@ -49,7 +49,10 @@ import {IsFileNode} from "@/pages/workflows/nodes/fs/IsFileNode.tsx";
  * TYPE_KEY constant, so those constants can stay unexported — keeping every
  * node file down to a single component export.
  */
-export const nodeTypes: Record<string, ComponentType<NodeProps<Node<CatalogNodeData>>>> = {
+export const nodeTypes: Record<
+  string,
+  ComponentType<NodeProps<Node<CatalogNodeData>>>
+> = {
   'core/start': StartNode,
   'core/writeChanges': WriteChangesNode,
   'core/errorOutput': ErrorOutputNode,
@@ -95,8 +98,13 @@ export const nodeTypes: Record<string, ComponentType<NodeProps<Node<CatalogNodeD
 // — kept out of `nodeTypes` above since it takes UnknownNodeData, not
 // CatalogNodeData, and registered separately wherever `nodeTypes` is spread
 // into React Flow's own `nodeTypes` prop.
-export const unknownNodeType: Record<string, ComponentType<NodeProps<Node<UnknownNodeData>>>> = {
+export const unknownNodeType: Record<
+  string,
+  ComponentType<NodeProps<Node<UnknownNodeData>>>
+> = {
   unknownNode: UnknownNode,
 }
 
-export const registeredTypes: ReadonlySet<string> = new Set(Object.keys(nodeTypes))
+export const registeredTypes: ReadonlySet<string> = new Set(
+  Object.keys(nodeTypes),
+)

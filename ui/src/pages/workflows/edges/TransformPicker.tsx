@@ -29,10 +29,18 @@ export function TransformPicker({
   onClose: () => void
 }) {
   return (
-    <Modal open title="Choose a conversion" onCancel={onClose} footer={null} width={384}>
+    <Modal
+      open
+      title="Choose a conversion"
+      onCancel={onClose}
+      footer={null}
+      width={384}
+    >
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        <span className="transform-picker-type">{fromType}</span> does not connect directly to{' '}
-        <span className="transform-picker-type">{toType}</span>. Pick how to convert it:
+        <span className="transform-picker-type">{fromType}</span> does not
+        connect directly to{' '}
+        <span className="transform-picker-type">{toType}</span>. Pick how to
+        convert it:
       </Typography.Text>
 
       <div className="transform-picker-list">
@@ -45,7 +53,9 @@ export function TransformPicker({
           >
             <div className="transform-picker-option-name">{transform.name}</div>
             {transform.summary ? (
-              <div className="transform-picker-option-summary">{transform.summary}</div>
+              <div className="transform-picker-option-summary">
+                {transform.summary}
+              </div>
             ) : null}
           </button>
         ))}

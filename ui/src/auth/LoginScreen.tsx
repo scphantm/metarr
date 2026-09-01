@@ -39,11 +39,17 @@ export function LoginScreen() {
           <Typography.Title level={2} className="login-screen-title">
             Metarr
           </Typography.Title>
-          <Typography.Text type="secondary">Sign in with the admin account</Typography.Text>
+          <Typography.Text type="secondary">
+            Sign in with the admin account
+          </Typography.Text>
         </div>
 
         <Card>
-          <Form form={form} layout="vertical" onFinish={(values) => void submit(values)}>
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={(values) => void submit(values)}
+          >
             <Form.Item
               name="username"
               label="Username"
@@ -61,14 +67,24 @@ export function LoginScreen() {
             </Form.Item>
 
             <Form.Item style={{ marginBottom: 0 }}>
-              <Button type="primary" htmlType="submit" block loading={submitting}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                block
+                loading={submitting}
+              >
                 Sign in
               </Button>
             </Form.Item>
           </Form>
         </Card>
 
-        <Button type="text" block className="login-screen-theme-toggle" onClick={toggleTheme}>
+        <Button
+          type="text"
+          block
+          className="login-screen-theme-toggle"
+          onClick={toggleTheme}
+        >
           Switch to Solarized {theme === 'dark' ? 'Light' : 'Dark'}
         </Button>
       </div>

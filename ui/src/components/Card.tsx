@@ -1,5 +1,11 @@
 import type { ReactNode } from 'react'
-import { Button as AntButton, Card as AntCard, Empty, Space, Typography } from 'antd'
+import {
+  Button as AntButton,
+  Card as AntCard,
+  Empty,
+  Space,
+  Typography,
+} from 'antd'
 
 import './Card.css'
 

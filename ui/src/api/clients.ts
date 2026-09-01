@@ -15,13 +15,22 @@ import { transport } from './transport'
 // One generated client per service, all sharing the one transport (and so
 // the one auth interceptor) from transport.ts. Added here as each domain
 // migrates off REST — see the migration plan's per-step ordering.
-export const sonarrInterfaceClient = createClient(SonarrInterfaceService, transport)
+export const sonarrInterfaceClient = createClient(
+  SonarrInterfaceService,
+  transport,
+)
 export const authClient = createClient(AuthService, transport)
 export const configClient = createClient(ConfigService, transport)
 export const agentClient = createClient(AgentService, transport)
-export const directoryScannerClient = createClient(DirectoryScannerService, transport)
+export const directoryScannerClient = createClient(
+  DirectoryScannerService,
+  transport,
+)
 export const loggingClient = createClient(LoggingService, transport)
 export const eventBusClient = createClient(EventBusService, transport)
-export const workflowCatalogClient = createClient(WorkflowCatalogService, transport)
+export const workflowCatalogClient = createClient(
+  WorkflowCatalogService,
+  transport,
+)
 export const workflowClient = createClient(WorkflowService, transport)
 export const statsClient = createClient(StatsService, transport)

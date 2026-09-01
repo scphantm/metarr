@@ -22,7 +22,8 @@ const queryClient = new QueryClient({
         // start working; everything else gets two more attempts.
         if (
           error instanceof ConnectError &&
-          (error.code === Code.Unauthenticated || error.code === Code.PermissionDenied)
+          (error.code === Code.Unauthenticated ||
+            error.code === Code.PermissionDenied)
         ) {
           return false
         }

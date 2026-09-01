@@ -33,11 +33,18 @@ export function EdgeSettingsEditor({
       onOk={() => onSave({ recursive: recursiveDraft })}
       okText="Save"
     >
-      <Checkbox checked={recursiveDraft} onChange={(event) => setRecursiveDraft(event.target.checked)}>
+      <Checkbox
+        checked={recursiveDraft}
+        onChange={(event) => setRecursiveDraft(event.target.checked)}
+      >
         Recursive
       </Checkbox>
-      <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4, fontSize: 11 }}>
-        Include subdirectories when this connection&rsquo;s path destination is used.
+      <Typography.Text
+        type="secondary"
+        style={{ display: 'block', marginTop: 4, fontSize: 11 }}
+      >
+        Include subdirectories when this connection&rsquo;s path destination is
+        used.
       </Typography.Text>
     </Modal>
   )

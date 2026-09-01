@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 
 import { SystemDashboardPage } from '../SystemDashboardPage'
 
@@ -169,8 +175,23 @@ describe('SystemDashboardPage', () => {
   it('renders one row per durable stream with rolled-up group figures', () => {
     useBusSnapshot.mockReturnValue({
       data: snapshot({}, [
-        stream({ stream: 'events.system_config_update', groups: [group({ name: 'system_config_update_group', consumers: 1, pending: 0, lag: 0, oldestPendingAgeSeconds: 0 })] }),
-        stream({ stream: 'events.agent_node_results', exists: false, groups: [] }),
+        stream({
+          stream: 'events.system_config_update',
+          groups: [
+            group({
+              name: 'system_config_update_group',
+              consumers: 1,
+              pending: 0,
+              lag: 0,
+              oldestPendingAgeSeconds: 0,
+            }),
+          ],
+        }),
+        stream({
+          stream: 'events.agent_node_results',
+          exists: false,
+          groups: [],
+        }),
       ]),
       error: null,
       dataUpdatedAt: Date.now(),
@@ -202,7 +223,11 @@ describe('SystemDashboardPage', () => {
     expect(screen.getByText('agent_scan_results_group')).toBeDefined()
     expect(screen.getByText('Consumer group')).toBeDefined()
     // The oldest-pending age is rendered as a compact duration (90s -> 1m).
-    expect(within(screen.getByText('agent_scan_results_group').closest('tr')!).getByText('1m')).toBeDefined()
+    expect(
+      within(
+        screen.getByText('agent_scan_results_group').closest('tr')!,
+      ).getByText('1m'),
+    ).toBeDefined()
   })
 
   it('shows the publish rate on the stream row', () => {
@@ -221,7 +246,11 @@ describe('SystemDashboardPage', () => {
   it('draws an inline sparkline from a metric series with no charting library', () => {
     useBusSnapshot.mockReturnValue({
       data: snapshot({}, [
-        stream({ length: 9, lengthSeries: [1n, 4n, 2n, 9n], publishRateSeries: [0n, 1n, 0n, 3n] }),
+        stream({
+          length: 9,
+          lengthSeries: [1n, 4n, 2n, 9n],
+          publishRateSeries: [0n, 1n, 0n, 3n],
+        }),
       ]),
       error: null,
       dataUpdatedAt: Date.now(),
@@ -229,7 +258,9 @@ describe('SystemDashboardPage', () => {
 
     const view = render(<SystemDashboardPage />)
 
-    const sparklines = view.container.querySelectorAll('svg.system-dashboard-sparkline polyline')
+    const sparklines = view.container.querySelectorAll(
+      'svg.system-dashboard-sparkline polyline',
+    )
     expect(sparklines.length).toBeGreaterThan(0)
     // The polyline carries one point per sample in the series.
     const depthLine = view.container.querySelector(
@@ -240,19 +271,27 @@ describe('SystemDashboardPage', () => {
 
   it('omits the sparkline until the series has at least two samples', () => {
     useBusSnapshot.mockReturnValue({
-      data: snapshot({}, [stream({ lengthSeries: [], publishRateSeries: [5n] })]),
+      data: snapshot({}, [
+        stream({ lengthSeries: [], publishRateSeries: [5n] }),
+      ]),
       error: null,
       dataUpdatedAt: Date.now(),
     })
 
     const view = render(<SystemDashboardPage />)
 
-    expect(view.container.querySelector('svg.system-dashboard-sparkline')).toBeNull()
+    expect(
+      view.container.querySelector('svg.system-dashboard-sparkline'),
+    ).toBeNull()
   })
 
   it('renders a Pub/Sub channel row with its subscriber count and a declared tag', () => {
     useBusSnapshot.mockReturnValue({
-      data: snapshot({}, [], [channel({ channel: 'logs.app', subscribers: 4, known: true })]),
+      data: snapshot(
+        {},
+        [],
+        [channel({ channel: 'logs.app', subscribers: 4, known: true })],
+      ),
       error: null,
       dataUpdatedAt: Date.now(),
     })
@@ -266,16 +305,20 @@ describe('SystemDashboardPage', () => {
 
   it('flags a declared channel that has dropped to zero subscribers', () => {
     useBusSnapshot.mockReturnValue({
-      data: snapshot({}, [], [
-        channel({
-          channel: 'heartbeat.request',
-          subscribers: 0,
-          known: true,
-          flagged: true,
-          expectedIdentities: ['metarr-server'],
-          missingIdentities: ['metarr-server'],
-        }),
-      ]),
+      data: snapshot(
+        {},
+        [],
+        [
+          channel({
+            channel: 'heartbeat.request',
+            subscribers: 0,
+            known: true,
+            flagged: true,
+            expectedIdentities: ['metarr-server'],
+            missingIdentities: ['metarr-server'],
+          }),
+        ],
+      ),
       error: null,
       dataUpdatedAt: Date.now(),
     })
@@ -307,23 +350,29 @@ describe('SystemDashboardPage', () => {
 
     const row = screen.getByText('events.agent.nas-01.commands').closest('tr')!
     // The expected identity is shown, and the row is flagged as broken.
-    expect(within(row).getAllByText('metarr-agent-nas-01').length).toBeGreaterThan(0)
+    expect(
+      within(row).getAllByText('metarr-agent-nas-01').length,
+    ).toBeGreaterThan(0)
     expect(within(row).getByText('identity missing')).toBeDefined()
     expect(row.className).toContain('system-dashboard-row-flagged')
   })
 
   it('lists a per-agent channel row for an offline registered agent', () => {
     useBusSnapshot.mockReturnValue({
-      data: snapshot({}, [], [
-        channel({
-          channel: 'agent.config.changed.nas-01',
-          subscribers: 0,
-          known: true,
-          expectedIdentities: ['metarr-agent-nas-01'],
-          flagged: true,
-          missingIdentities: ['metarr-agent-nas-01'],
-        }),
-      ]),
+      data: snapshot(
+        {},
+        [],
+        [
+          channel({
+            channel: 'agent.config.changed.nas-01',
+            subscribers: 0,
+            known: true,
+            expectedIdentities: ['metarr-agent-nas-01'],
+            flagged: true,
+            missingIdentities: ['metarr-agent-nas-01'],
+          }),
+        ],
+      ),
       error: null,
       dataUpdatedAt: Date.now(),
     })
@@ -338,10 +387,18 @@ describe('SystemDashboardPage', () => {
 
   it('distinguishes a transient channel from a declared one', () => {
     useBusSnapshot.mockReturnValue({
-      data: snapshot({}, [], [
-        channel({ channel: 'heartbeat.request', subscribers: 1, known: true }),
-        channel({ channel: 'reply.corr-1234', subscribers: 1, known: false }),
-      ]),
+      data: snapshot(
+        {},
+        [],
+        [
+          channel({
+            channel: 'heartbeat.request',
+            subscribers: 1,
+            known: true,
+          }),
+          channel({ channel: 'reply.corr-1234', subscribers: 1, known: false }),
+        ],
+      ),
       error: null,
       dataUpdatedAt: Date.now(),
     })
@@ -375,39 +432,51 @@ describe('SystemDashboardPage', () => {
         screen.getByRole('button', { name: 'Purge events.agent_scan_results' }),
       ).toBeDefined()
       expect(
-        screen.getByRole('button', { name: 'Purge events.system_config_update' }),
+        screen.getByRole('button', {
+          name: 'Purge events.system_config_update',
+        }),
       ).toBeDefined()
       expect(screen.getByRole('button', { name: 'Purge all' })).toBeDefined()
     })
 
     it('names the stream and shows the depth it will drop before confirmation', async () => {
-      renderWithStreams([stream({ stream: 'events.agent_scan_results', length: 42 })])
+      renderWithStreams([
+        stream({ stream: 'events.agent_scan_results', length: 42 }),
+      ])
 
       fireEvent.click(
         screen.getByRole('button', { name: 'Purge events.agent_scan_results' }),
       )
 
       const dialog = await screen.findByRole('dialog')
-      expect(within(dialog).getAllByText('events.agent_scan_results').length).toBeGreaterThan(0)
+      expect(
+        within(dialog).getAllByText('events.agent_scan_results').length,
+      ).toBeGreaterThan(0)
       expect(within(dialog).getByText('42 messages')).toBeDefined()
     })
 
     it('keeps the single-stream confirm disabled until the stream name is typed exactly', async () => {
-      renderWithStreams([stream({ stream: 'events.agent_scan_results', length: 5 })])
+      renderWithStreams([
+        stream({ stream: 'events.agent_scan_results', length: 5 }),
+      ])
 
       fireEvent.click(
         screen.getByRole('button', { name: 'Purge events.agent_scan_results' }),
       )
 
       const dialog = await screen.findByRole('dialog')
-      const confirm = within(dialog).getByRole('button', { name: 'Purge stream' })
+      const confirm = within(dialog).getByRole('button', {
+        name: 'Purge stream',
+      })
       expect(disabled(confirm)).toBe(true)
 
       const input = within(dialog).getByLabelText('Purge confirmation')
       fireEvent.change(input, { target: { value: 'events.agent_scan_result' } })
       expect(disabled(confirm)).toBe(true)
 
-      fireEvent.change(input, { target: { value: 'events.agent_scan_results' } })
+      fireEvent.change(input, {
+        target: { value: 'events.agent_scan_results' },
+      })
       expect(disabled(confirm)).toBe(false)
 
       fireEvent.click(confirm)
@@ -426,12 +495,16 @@ describe('SystemDashboardPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Purge all' }))
 
       const dialog = await screen.findByRole('dialog')
-      const confirm = within(dialog).getByRole('button', { name: 'Purge all streams' })
+      const confirm = within(dialog).getByRole('button', {
+        name: 'Purge all streams',
+      })
       expect(disabled(confirm)).toBe(true)
 
       const input = within(dialog).getByLabelText('Purge confirmation')
       // Typing one of the stream names is not enough for the all-streams flow.
-      fireEvent.change(input, { target: { value: 'events.agent_scan_results' } })
+      fireEvent.change(input, {
+        target: { value: 'events.agent_scan_results' },
+      })
       expect(disabled(confirm)).toBe(true)
 
       fireEvent.change(input, { target: { value: 'PURGE ALL' } })
@@ -446,7 +519,8 @@ describe('SystemDashboardPage', () => {
 
     it('closes the modal and resets the mutation when the purge succeeds', async () => {
       purgeMutate.mockImplementation(
-        (_req: unknown, opts?: { onSuccess?: () => void }) => opts?.onSuccess?.(),
+        (_req: unknown, opts?: { onSuccess?: () => void }) =>
+          opts?.onSuccess?.(),
       )
       renderWithStreams([stream({ stream: 'events.agent_scan_results' })])
 
@@ -457,7 +531,9 @@ describe('SystemDashboardPage', () => {
       fireEvent.change(within(dialog).getByLabelText('Purge confirmation'), {
         target: { value: 'events.agent_scan_results' },
       })
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Purge stream' }))
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: 'Purge stream' }),
+      )
 
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
       expect(purgeReset).toHaveBeenCalled()

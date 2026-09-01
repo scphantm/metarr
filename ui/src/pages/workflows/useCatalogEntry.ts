@@ -15,7 +15,10 @@ import { useWorkflowCatalog } from '../../api/queries'
  * catalog refetch reaches every node on the canvas for free through
  * TanStack Query's shared cache.
  */
-export function useCatalogEntry(id: string | undefined, type: string): NodeType | undefined {
+export function useCatalogEntry(
+  id: string | undefined,
+  type: string,
+): NodeType | undefined {
   const { data } = useWorkflowCatalog()
   return useMemo(() => {
     if (id) {

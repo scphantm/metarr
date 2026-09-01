@@ -38,7 +38,9 @@ function readStored(key: string): string | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
-  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getApiKey()))
+  const [isAuthenticated, setIsAuthenticated] = useState(() =>
+    Boolean(getApiKey()),
+  )
   const [username, setUsername] = useState<string | null>(() =>
     readStored(usernameKey),
   )
@@ -70,24 +72,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // than leaving a shell that silently fails every read.
   useEffect(() => onUnauthorized(clearSession), [clearSession])
 
-  const login = useCallback(
-    async (credentials: LoginCredentials) => {
-      const response = await authClient.login(credentials)
+  const login = useCallback(async (credentials: LoginCredentials) => {
+    const response = await authClient.login(credentials)
 
-      setApiKey(response.apiKey)
-      const expiry = Date.now() + response.expiresInSeconds * 1000
-      setIsAuthenticated(true)
-      setUsername(credentials.username)
-      setExpiresAt(expiry)
-      try {
-        sessionStorage.setItem(usernameKey, credentials.username)
-        sessionStorage.setItem(expiresAtKey, String(expiry))
-      } catch {
-        // Session still works; only the reload-survival is lost.
-      }
-    },
-    [],
-  )
+    setApiKey(response.apiKey)
+    const expiry = Date.now() + response.expiresInSeconds * 1000
+    setIsAuthenticated(true)
+    setUsername(credentials.username)
+    setExpiresAt(expiry)
+    try {
+      sessionStorage.setItem(usernameKey, credentials.username)
+      sessionStorage.setItem(expiresAtKey, String(expiry))
+    } catch {
+      // Session still works; only the reload-survival is lost.
+    }
+  }, [])
 
   const logout = useCallback(async () => {
     try {

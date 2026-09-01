@@ -74,8 +74,9 @@ export function EditableText({
     setValidationError(null)
   }
 
-  const onChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setDraft(event.target.value)
+  const onChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => setDraft(event.target.value)
 
   const monospaceClass = monospace ? 'editable-field-mono' : ''
 
@@ -141,7 +142,11 @@ export function EditableText({
             }}
           />
         )}
-        <SaveIndicator state={state} error={error} onDismissError={dismissError} />
+        <SaveIndicator
+          state={state}
+          error={error}
+          onDismissError={dismissError}
+        />
       </Space>
     </Form.Item>
   )
@@ -217,7 +222,11 @@ export function EditableNumber({
             }
           }}
         />
-        <SaveIndicator state={state} error={error} onDismissError={dismissError} />
+        <SaveIndicator
+          state={state}
+          error={error}
+          onDismissError={dismissError}
+        />
       </Space>
     </Form.Item>
   )
@@ -262,7 +271,11 @@ export function EditableSelect({
             }
           }}
         />
-        <SaveIndicator state={state} error={error} onDismissError={dismissError} />
+        <SaveIndicator
+          state={state}
+          error={error}
+          onDismissError={dismissError}
+        />
       </Space>
     </Form.Item>
   )

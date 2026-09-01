@@ -1,5 +1,14 @@
 import { useMemo, useState } from 'react'
-import { Button as AntButton, Input, List, Select, Space, Switch, Tag, Typography } from 'antd'
+import {
+  Button as AntButton,
+  Input,
+  List,
+  Select,
+  Space,
+  Switch,
+  Tag,
+  Typography,
+} from 'antd'
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons'
 
 import {
@@ -59,8 +68,9 @@ export function SidecarTypesSection({
   // would otherwise always fail, since its stored order is non-zero. The server
   // keeps the entry's existing order when updating, so zero loses nothing.
   const upsert = {
-    mutateAsync: (entry: MessageInitShape<typeof SidecarTypeDefinitionSchema>) =>
-      upsertMutation.mutateAsync({ ...entry, order: 0 }),
+    mutateAsync: (
+      entry: MessageInitShape<typeof SidecarTypeDefinitionSchema>,
+    ) => upsertMutation.mutateAsync({ ...entry, order: 0 }),
   }
 
   // Enabled entries in evaluation order, then the disabled ones — which have no
@@ -155,12 +165,18 @@ export function SidecarTypesSection({
             .findIndex((item) => item.id === entry.id)
 
           return (
-            <List.Item className={`sidecar-type-row ${isEnabled ? '' : 'is-disabled'}`}>
+            <List.Item
+              className={`sidecar-type-row ${isEnabled ? '' : 'is-disabled'}`}
+            >
               <div className="sidecar-type-row-main">
                 {/* Stacked with a gap and their own hit areas: butted together
                     the two arrows read as a single glyph, and the reorder
                     affordance disappears. */}
-                <Space direction="vertical" size={0} className="sidecar-type-reorder">
+                <Space
+                  direction="vertical"
+                  size={0}
+                  className="sidecar-type-reorder"
+                >
                   <AntButton
                     type="text"
                     size="small"
@@ -179,22 +195,31 @@ export function SidecarTypesSection({
                   />
                 </Space>
 
-                <Typography.Text type="secondary" className="sidecar-type-order">
+                <Typography.Text
+                  type="secondary"
+                  className="sidecar-type-order"
+                >
                   {isEnabled ? entry.order : '—'}
                 </Typography.Text>
 
                 <AntButton
                   type="link"
                   className="sidecar-type-name"
-                  onClick={() => setExpanded(expanded === entry.id ? null : entry.id)}
+                  onClick={() =>
+                    setExpanded(expanded === entry.id ? null : entry.id)
+                  }
                 >
                   {entry.type}
                 </AntButton>
 
                 <Tag>{entry.category}</Tag>
 
-                <Typography.Text type="secondary" className="sidecar-type-pattern-count">
-                  {entry.patterns.length} pattern{entry.patterns.length === 1 ? '' : 's'}
+                <Typography.Text
+                  type="secondary"
+                  className="sidecar-type-pattern-count"
+                >
+                  {entry.patterns.length} pattern
+                  {entry.patterns.length === 1 ? '' : 's'}
                 </Typography.Text>
 
                 <label className="sidecar-type-enabled">
@@ -208,7 +233,9 @@ export function SidecarTypesSection({
 
                 <Button
                   variant="ghost"
-                  onClick={() => setExpanded(expanded === entry.id ? null : entry.id)}
+                  onClick={() =>
+                    setExpanded(expanded === entry.id ? null : entry.id)
+                  }
                 >
                   {expanded === entry.id ? 'Close' : 'Edit'}
                 </Button>
@@ -347,7 +374,9 @@ function NewSidecarType({
   onCancel,
 }: {
   existingTypes: string[]
-  onCreate: (entry: MessageInitShape<typeof SidecarTypeDefinitionSchema>) => Promise<void>
+  onCreate: (
+    entry: MessageInitShape<typeof SidecarTypeDefinitionSchema>,
+  ) => Promise<void>
   onCancel: () => void
 }) {
   const [type, setType] = useState('')
@@ -397,7 +426,10 @@ function NewSidecarType({
         value={category}
         style={{ width: 224 }}
         onChange={setCategory}
-        options={sidecarCategories.map((option) => ({ value: option, label: option }))}
+        options={sidecarCategories.map((option) => ({
+          value: option,
+          label: option,
+        }))}
       />
       <Input
         value={pattern}
@@ -412,7 +444,8 @@ function NewSidecarType({
         </Typography.Text>
       ) : null}
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        Added disabled. Enable it once you have placed it in the evaluation order.
+        Added disabled. Enable it once you have placed it in the evaluation
+        order.
       </Typography.Text>
 
       <Space>

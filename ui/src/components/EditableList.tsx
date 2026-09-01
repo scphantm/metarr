@@ -132,7 +132,12 @@ export function EditableList({
           size="small"
           variant="borderless"
           className={monospaceClass}
-          style={{ width: 140, borderStyle: 'dashed', borderWidth: 1, borderColor: 'var(--surface-edge-strong)' }}
+          style={{
+            width: 140,
+            borderStyle: 'dashed',
+            borderWidth: 1,
+            borderColor: 'var(--surface-edge-strong)',
+          }}
           value={draft}
           placeholder={placeholder}
           aria-label={`Add to ${label}`}
@@ -150,14 +155,20 @@ export function EditableList({
       </Flex>
 
       <Space size={12} align="center">
-        <SaveIndicator state={state} error={error} onDismissError={dismissError} />
+        <SaveIndicator
+          state={state}
+          error={error}
+          onDismissError={dismissError}
+        />
         {entryError ? (
           <Typography.Text type="danger" style={{ fontSize: 12 }}>
             {entryError}
           </Typography.Text>
         ) : null}
         {displayValue.length === 0 && emptyWarning ? (
-          <Typography.Text style={{ fontSize: 12, color: 'var(--color-orange)' }}>
+          <Typography.Text
+            style={{ fontSize: 12, color: 'var(--color-orange)' }}
+          >
             {emptyWarning}
           </Typography.Text>
         ) : null}

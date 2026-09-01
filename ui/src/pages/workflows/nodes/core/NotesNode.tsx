@@ -16,13 +16,18 @@ import './NotesNode.css'
  */
 export function NotesNode({ id, data }: NodeProps<Node<CatalogNodeData>>) {
   const { updateNodeData } = useReactFlow()
-  const notes = typeof data.settings.notes === 'string' ? data.settings.notes : ''
+  const notes =
+    typeof data.settings.notes === 'string' ? data.settings.notes : ''
 
   return (
     <div className="notes-node">
       <textarea
         value={notes}
-        onChange={(event) => updateNodeData(id, { settings: { ...data.settings, notes: event.target.value } })}
+        onChange={(event) =>
+          updateNodeData(id, {
+            settings: { ...data.settings, notes: event.target.value },
+          })
+        }
         placeholder="Note…"
         disabled={data.readOnly}
         rows={3}
