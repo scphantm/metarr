@@ -46,6 +46,12 @@ function group(overrides: Record<string, unknown> = {}) {
     lastDeliveredId: '1700000000000-0',
     consumerDetail: [],
     oldestPendingAgeSeconds: 90,
+    consumeRate: 4,
+    consumersSeries: [],
+    pendingSeries: [],
+    lagSeries: [],
+    oldestPendingAgeSecondsSeries: [],
+    consumeRateSeries: [],
     ...overrides,
   }
 }
@@ -58,6 +64,9 @@ function stream(overrides: Record<string, unknown> = {}) {
     exists: true,
     groups: [group()],
     error: '',
+    publishRate: 7,
+    lengthSeries: [],
+    publishRateSeries: [],
     ...overrides,
   }
 }
@@ -165,5 +174,50 @@ describe('SystemDashboardPage', () => {
     expect(screen.getByText('Consumer group')).toBeDefined()
     // The oldest-pending age is rendered as a compact duration (90s -> 1m).
     expect(within(screen.getByText('agent_scan_results_group').closest('tr')!).getByText('1m')).toBeDefined()
+  })
+
+  it('shows the publish rate on the stream row', () => {
+    useBusSnapshot.mockReturnValue({
+      data: snapshot({}, [stream({ publishRate: 12 })]),
+      error: null,
+      dataUpdatedAt: Date.now(),
+    })
+
+    render(<SystemDashboardPage />)
+
+    expect(screen.getByText('Publish rate')).toBeDefined()
+    expect(screen.getByText('12')).toBeDefined()
+  })
+
+  it('draws an inline sparkline from a metric series with no charting library', () => {
+    useBusSnapshot.mockReturnValue({
+      data: snapshot({}, [
+        stream({ length: 9, lengthSeries: [1n, 4n, 2n, 9n], publishRateSeries: [0n, 1n, 0n, 3n] }),
+      ]),
+      error: null,
+      dataUpdatedAt: Date.now(),
+    })
+
+    const view = render(<SystemDashboardPage />)
+
+    const sparklines = view.container.querySelectorAll('svg.system-dashboard-sparkline polyline')
+    expect(sparklines.length).toBeGreaterThan(0)
+    // The polyline carries one point per sample in the series.
+    const depthLine = view.container.querySelector(
+      'svg.system-dashboard-sparkline polyline',
+    ) as SVGPolylineElement
+    expect(depthLine.getAttribute('points')?.trim().split(/\s+/).length).toBe(4)
+  })
+
+  it('omits the sparkline until the series has at least two samples', () => {
+    useBusSnapshot.mockReturnValue({
+      data: snapshot({}, [stream({ lengthSeries: [], publishRateSeries: [5n] })]),
+      error: null,
+      dataUpdatedAt: Date.now(),
+    })
+
+    const view = render(<SystemDashboardPage />)
+
+    expect(view.container.querySelector('svg.system-dashboard-sparkline')).toBeNull()
   })
 })

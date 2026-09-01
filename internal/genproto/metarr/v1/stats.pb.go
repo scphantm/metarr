@@ -267,9 +267,19 @@ type BusStreamStat struct {
 	Groups []*BusGroupStat `protobuf:"bytes,5,rep,name=groups,proto3" json:"groups,omitempty"`
 	// error records a per-stream failure; one unreadable stream should not
 	// cost the caller the rest of the snapshot.
-	Error         string `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Error string `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
+	// publish_rate is entries added to the stream since the previous sampler
+	// pass — the delta of Redis's total entries-added counter, not an absolute
+	// count. It is zero on the first pass that sees a stream (no prior sample
+	// to subtract) and when Redis does not report the counter.
+	PublishRate int64 `protobuf:"varint,7,opt,name=publish_rate,json=publishRate,proto3" json:"publish_rate,omitempty"`
+	// Rolling per-metric history, oldest sample first, one entry per sampler
+	// pass, capped at the ring-buffer window (~150 samples, ~5 min). These
+	// back the row's inline sparklines.
+	LengthSeries      []int64 `protobuf:"varint,8,rep,packed,name=length_series,json=lengthSeries,proto3" json:"length_series,omitempty"`
+	PublishRateSeries []int64 `protobuf:"varint,9,rep,packed,name=publish_rate_series,json=publishRateSeries,proto3" json:"publish_rate_series,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *BusStreamStat) Reset() {
@@ -344,6 +354,27 @@ func (x *BusStreamStat) GetError() string {
 	return ""
 }
 
+func (x *BusStreamStat) GetPublishRate() int64 {
+	if x != nil {
+		return x.PublishRate
+	}
+	return 0
+}
+
+func (x *BusStreamStat) GetLengthSeries() []int64 {
+	if x != nil {
+		return x.LengthSeries
+	}
+	return nil
+}
+
+func (x *BusStreamStat) GetPublishRateSeries() []int64 {
+	if x != nil {
+		return x.PublishRateSeries
+	}
+	return nil
+}
+
 // BusGroupStat is one consumer group's position on a stream.
 type BusGroupStat struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
@@ -357,8 +388,21 @@ type BusGroupStat struct {
 	// entry has been waiting, derived from the entry ID's timestamp. Zero when
 	// the group has nothing pending.
 	OldestPendingAgeSeconds int64 `protobuf:"varint,7,opt,name=oldest_pending_age_seconds,json=oldestPendingAgeSeconds,proto3" json:"oldest_pending_age_seconds,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// consume_rate is entries read by the group since the previous sampler
+	// pass — the delta of Redis's per-group entries-read counter, not an
+	// absolute count. Zero on the first pass that sees a group and when Redis
+	// does not report the counter.
+	ConsumeRate int64 `protobuf:"varint,8,opt,name=consume_rate,json=consumeRate,proto3" json:"consume_rate,omitempty"`
+	// Rolling per-metric history, oldest sample first, one entry per sampler
+	// pass, capped at the ring-buffer window. These back the expanded row's
+	// inline sparklines.
+	ConsumersSeries               []int64 `protobuf:"varint,9,rep,packed,name=consumers_series,json=consumersSeries,proto3" json:"consumers_series,omitempty"`
+	PendingSeries                 []int64 `protobuf:"varint,10,rep,packed,name=pending_series,json=pendingSeries,proto3" json:"pending_series,omitempty"`
+	LagSeries                     []int64 `protobuf:"varint,11,rep,packed,name=lag_series,json=lagSeries,proto3" json:"lag_series,omitempty"`
+	OldestPendingAgeSecondsSeries []int64 `protobuf:"varint,12,rep,packed,name=oldest_pending_age_seconds_series,json=oldestPendingAgeSecondsSeries,proto3" json:"oldest_pending_age_seconds_series,omitempty"`
+	ConsumeRateSeries             []int64 `protobuf:"varint,13,rep,packed,name=consume_rate_series,json=consumeRateSeries,proto3" json:"consume_rate_series,omitempty"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *BusGroupStat) Reset() {
@@ -438,6 +482,48 @@ func (x *BusGroupStat) GetOldestPendingAgeSeconds() int64 {
 		return x.OldestPendingAgeSeconds
 	}
 	return 0
+}
+
+func (x *BusGroupStat) GetConsumeRate() int64 {
+	if x != nil {
+		return x.ConsumeRate
+	}
+	return 0
+}
+
+func (x *BusGroupStat) GetConsumersSeries() []int64 {
+	if x != nil {
+		return x.ConsumersSeries
+	}
+	return nil
+}
+
+func (x *BusGroupStat) GetPendingSeries() []int64 {
+	if x != nil {
+		return x.PendingSeries
+	}
+	return nil
+}
+
+func (x *BusGroupStat) GetLagSeries() []int64 {
+	if x != nil {
+		return x.LagSeries
+	}
+	return nil
+}
+
+func (x *BusGroupStat) GetOldestPendingAgeSecondsSeries() []int64 {
+	if x != nil {
+		return x.OldestPendingAgeSecondsSeries
+	}
+	return nil
+}
+
+func (x *BusGroupStat) GetConsumeRateSeries() []int64 {
+	if x != nil {
+		return x.ConsumeRateSeries
+	}
+	return nil
 }
 
 // BusConsumerStat is a single consumer within a group.
@@ -753,7 +839,7 @@ const file_metarr_v1_stats_proto_rawDesc = "" +
 	"\ffield_errors\x18\f \x03(\v2).metarr.v1.BusServerInfo.FieldErrorsEntryR\vfieldErrors\x1a>\n" +
 	"\x10FieldErrorsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xbd\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb5\x02\n" +
 	"\rBusStreamStat\x12\x16\n" +
 	"\x06stream\x18\x01 \x01(\tR\x06stream\x12\x1d\n" +
 	"\n" +
@@ -761,7 +847,10 @@ const file_metarr_v1_stats_proto_rawDesc = "" +
 	"\x06length\x18\x03 \x01(\x03R\x06length\x12\x16\n" +
 	"\x06exists\x18\x04 \x01(\bR\x06exists\x12/\n" +
 	"\x06groups\x18\x05 \x03(\v2\x17.metarr.v1.BusGroupStatR\x06groups\x12\x14\n" +
-	"\x05error\x18\x06 \x01(\tR\x05error\"\x9a\x02\n" +
+	"\x05error\x18\x06 \x01(\tR\x05error\x12!\n" +
+	"\fpublish_rate\x18\a \x01(\x03R\vpublishRate\x12#\n" +
+	"\rlength_series\x18\b \x03(\x03R\flengthSeries\x12.\n" +
+	"\x13publish_rate_series\x18\t \x03(\x03R\x11publishRateSeries\"\xa8\x04\n" +
 	"\fBusGroupStat\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1c\n" +
 	"\tconsumers\x18\x02 \x01(\x03R\tconsumers\x12\x18\n" +
@@ -769,7 +858,15 @@ const file_metarr_v1_stats_proto_rawDesc = "" +
 	"\x03lag\x18\x04 \x01(\x03R\x03lag\x12*\n" +
 	"\x11last_delivered_id\x18\x05 \x01(\tR\x0flastDeliveredId\x12C\n" +
 	"\x0fconsumer_detail\x18\x06 \x03(\v2\x1a.metarr.v1.BusConsumerStatR\x0econsumerDetail\x12;\n" +
-	"\x1aoldest_pending_age_seconds\x18\a \x01(\x03R\x17oldestPendingAgeSeconds\"b\n" +
+	"\x1aoldest_pending_age_seconds\x18\a \x01(\x03R\x17oldestPendingAgeSeconds\x12!\n" +
+	"\fconsume_rate\x18\b \x01(\x03R\vconsumeRate\x12)\n" +
+	"\x10consumers_series\x18\t \x03(\x03R\x0fconsumersSeries\x12%\n" +
+	"\x0epending_series\x18\n" +
+	" \x03(\x03R\rpendingSeries\x12\x1d\n" +
+	"\n" +
+	"lag_series\x18\v \x03(\x03R\tlagSeries\x12H\n" +
+	"!oldest_pending_age_seconds_series\x18\f \x03(\x03R\x1doldestPendingAgeSecondsSeries\x12.\n" +
+	"\x13consume_rate_series\x18\r \x03(\x03R\x11consumeRateSeries\"b\n" +
 	"\x0fBusConsumerStat\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\apending\x18\x02 \x01(\x03R\apending\x12!\n" +

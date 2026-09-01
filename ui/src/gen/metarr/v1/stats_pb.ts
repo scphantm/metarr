@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/stats.proto.
  */
 export const file_metarr_v1_stats: GenFile = /*@__PURE__*/
-  fileDesc("ChVtZXRhcnIvdjEvc3RhdHMucHJvdG8SCW1ldGFyci52MSLBAQoLQnVzU25hcHNob3QSMAoMY29sbGVjdGVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIoCgZzZXJ2ZXIYAiABKAsyGC5tZXRhcnIudjEuQnVzU2VydmVySW5mbxIpCgdzdHJlYW1zGAMgAygLMhgubWV0YXJyLnYxLkJ1c1N0cmVhbVN0YXQSKwoIY2hhbm5lbHMYBCADKAsyGS5tZXRhcnIudjEuQnVzQ2hhbm5lbFN0YXQinAMKDUJ1c1NlcnZlckluZm8SDwoHdmVyc2lvbhgBIAEoCRIWCg51cHRpbWVfc2Vjb25kcxgCIAEoAxIZChFjb25uZWN0ZWRfY2xpZW50cxgDIAEoAxITCgt1c2VkX21lbW9yeRgEIAEoAxIZChF1c2VkX21lbW9yeV9odW1hbhgFIAEoCRIWCg5vcHNfcGVyX3NlY29uZBgGIAEoAxISCgp0b3RhbF9rZXlzGAcgASgDEiAKGGNvbm5lY3RlZF9jbGllbnRzX3NlcmllcxgIIAMoAxIaChJ1c2VkX21lbW9yeV9zZXJpZXMYCSADKAMSHQoVb3BzX3Blcl9zZWNvbmRfc2VyaWVzGAogAygDEhkKEXRvdGFsX2tleXNfc2VyaWVzGAsgAygDEj8KDGZpZWxkX2Vycm9ycxgMIAMoCzIpLm1ldGFyci52MS5CdXNTZXJ2ZXJJbmZvLkZpZWxkRXJyb3JzRW50cnkaMgoQRmllbGRFcnJvcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIosBCg1CdXNTdHJlYW1TdGF0Eg4KBnN0cmVhbRgBIAEoCRISCgpldmVudF9uYW1lGAIgASgJEg4KBmxlbmd0aBgDIAEoAxIOCgZleGlzdHMYBCABKAgSJwoGZ3JvdXBzGAUgAygLMhcubWV0YXJyLnYxLkJ1c0dyb3VwU3RhdBINCgVlcnJvchgGIAEoCSLBAQoMQnVzR3JvdXBTdGF0EgwKBG5hbWUYASABKAkSEQoJY29uc3VtZXJzGAIgASgDEg8KB3BlbmRpbmcYAyABKAMSCwoDbGFnGAQgASgDEhkKEWxhc3RfZGVsaXZlcmVkX2lkGAUgASgJEjMKD2NvbnN1bWVyX2RldGFpbBgGIAMoCzIaLm1ldGFyci52MS5CdXNDb25zdW1lclN0YXQSIgoab2xkZXN0X3BlbmRpbmdfYWdlX3NlY29uZHMYByABKAMiRgoPQnVzQ29uc3VtZXJTdGF0EgwKBG5hbWUYASABKAkSDwoHcGVuZGluZxgCIAEoAxIUCgxpZGxlX3NlY29uZHMYAyABKAMiRQoOQnVzQ2hhbm5lbFN0YXQSDwoHY2hhbm5lbBgBIAEoCRITCgtzdWJzY3JpYmVycxgCIAEoAxINCgVrbm93bhgDIAEoCCIYChZTdGF0c1NlcnZpY2VHZXRSZXF1ZXN0IkMKF1N0YXRzU2VydmljZUdldFJlc3BvbnNlEigKCHNuYXBzaG90GAEgASgLMhYubWV0YXJyLnYxLkJ1c1NuYXBzaG90IhsKGVN0YXRzU2VydmljZVN0cmVhbVJlcXVlc3QiRgoaU3RhdHNTZXJ2aWNlU3RyZWFtUmVzcG9uc2USKAoIc25hcHNob3QYASABKAsyFi5tZXRhcnIudjEuQnVzU25hcHNob3QytQEKDFN0YXRzU2VydmljZRJMCgNHZXQSIS5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlR2V0UmVxdWVzdBoiLm1ldGFyci52MS5TdGF0c1NlcnZpY2VHZXRSZXNwb25zZRJXCgZTdHJlYW0SJC5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlU3RyZWFtUmVxdWVzdBolLm1ldGFyci52MS5TdGF0c1NlcnZpY2VTdHJlYW1SZXNwb25zZTABQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("ChVtZXRhcnIvdjEvc3RhdHMucHJvdG8SCW1ldGFyci52MSLBAQoLQnVzU25hcHNob3QSMAoMY29sbGVjdGVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIoCgZzZXJ2ZXIYAiABKAsyGC5tZXRhcnIudjEuQnVzU2VydmVySW5mbxIpCgdzdHJlYW1zGAMgAygLMhgubWV0YXJyLnYxLkJ1c1N0cmVhbVN0YXQSKwoIY2hhbm5lbHMYBCADKAsyGS5tZXRhcnIudjEuQnVzQ2hhbm5lbFN0YXQinAMKDUJ1c1NlcnZlckluZm8SDwoHdmVyc2lvbhgBIAEoCRIWCg51cHRpbWVfc2Vjb25kcxgCIAEoAxIZChFjb25uZWN0ZWRfY2xpZW50cxgDIAEoAxITCgt1c2VkX21lbW9yeRgEIAEoAxIZChF1c2VkX21lbW9yeV9odW1hbhgFIAEoCRIWCg5vcHNfcGVyX3NlY29uZBgGIAEoAxISCgp0b3RhbF9rZXlzGAcgASgDEiAKGGNvbm5lY3RlZF9jbGllbnRzX3NlcmllcxgIIAMoAxIaChJ1c2VkX21lbW9yeV9zZXJpZXMYCSADKAMSHQoVb3BzX3Blcl9zZWNvbmRfc2VyaWVzGAogAygDEhkKEXRvdGFsX2tleXNfc2VyaWVzGAsgAygDEj8KDGZpZWxkX2Vycm9ycxgMIAMoCzIpLm1ldGFyci52MS5CdXNTZXJ2ZXJJbmZvLkZpZWxkRXJyb3JzRW50cnkaMgoQRmllbGRFcnJvcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBItUBCg1CdXNTdHJlYW1TdGF0Eg4KBnN0cmVhbRgBIAEoCRISCgpldmVudF9uYW1lGAIgASgJEg4KBmxlbmd0aBgDIAEoAxIOCgZleGlzdHMYBCABKAgSJwoGZ3JvdXBzGAUgAygLMhcubWV0YXJyLnYxLkJ1c0dyb3VwU3RhdBINCgVlcnJvchgGIAEoCRIUCgxwdWJsaXNoX3JhdGUYByABKAMSFQoNbGVuZ3RoX3NlcmllcxgIIAMoAxIbChNwdWJsaXNoX3JhdGVfc2VyaWVzGAkgAygDIuUCCgxCdXNHcm91cFN0YXQSDAoEbmFtZRgBIAEoCRIRCgljb25zdW1lcnMYAiABKAMSDwoHcGVuZGluZxgDIAEoAxILCgNsYWcYBCABKAMSGQoRbGFzdF9kZWxpdmVyZWRfaWQYBSABKAkSMwoPY29uc3VtZXJfZGV0YWlsGAYgAygLMhoubWV0YXJyLnYxLkJ1c0NvbnN1bWVyU3RhdBIiChpvbGRlc3RfcGVuZGluZ19hZ2Vfc2Vjb25kcxgHIAEoAxIUCgxjb25zdW1lX3JhdGUYCCABKAMSGAoQY29uc3VtZXJzX3NlcmllcxgJIAMoAxIWCg5wZW5kaW5nX3NlcmllcxgKIAMoAxISCgpsYWdfc2VyaWVzGAsgAygDEikKIW9sZGVzdF9wZW5kaW5nX2FnZV9zZWNvbmRzX3NlcmllcxgMIAMoAxIbChNjb25zdW1lX3JhdGVfc2VyaWVzGA0gAygDIkYKD0J1c0NvbnN1bWVyU3RhdBIMCgRuYW1lGAEgASgJEg8KB3BlbmRpbmcYAiABKAMSFAoMaWRsZV9zZWNvbmRzGAMgASgDIkUKDkJ1c0NoYW5uZWxTdGF0Eg8KB2NoYW5uZWwYASABKAkSEwoLc3Vic2NyaWJlcnMYAiABKAMSDQoFa25vd24YAyABKAgiGAoWU3RhdHNTZXJ2aWNlR2V0UmVxdWVzdCJDChdTdGF0c1NlcnZpY2VHZXRSZXNwb25zZRIoCghzbmFwc2hvdBgBIAEoCzIWLm1ldGFyci52MS5CdXNTbmFwc2hvdCIbChlTdGF0c1NlcnZpY2VTdHJlYW1SZXF1ZXN0IkYKGlN0YXRzU2VydmljZVN0cmVhbVJlc3BvbnNlEigKCHNuYXBzaG90GAEgASgLMhYubWV0YXJyLnYxLkJ1c1NuYXBzaG90MrUBCgxTdGF0c1NlcnZpY2USTAoDR2V0EiEubWV0YXJyLnYxLlN0YXRzU2VydmljZUdldFJlcXVlc3QaIi5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlR2V0UmVzcG9uc2USVwoGU3RyZWFtEiQubWV0YXJyLnYxLlN0YXRzU2VydmljZVN0cmVhbVJlcXVlc3QaJS5tZXRhcnIudjEuU3RhdHNTZXJ2aWNlU3RyZWFtUmVzcG9uc2UwAUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * BusSnapshot is a point-in-time view of the Redis instance backing the
@@ -197,6 +197,30 @@ export type BusStreamStat = Message<"metarr.v1.BusStreamStat"> & {
    * @generated from field: string error = 6;
    */
   error: string;
+
+  /**
+   * publish_rate is entries added to the stream since the previous sampler
+   * pass — the delta of Redis's total entries-added counter, not an absolute
+   * count. It is zero on the first pass that sees a stream (no prior sample
+   * to subtract) and when Redis does not report the counter.
+   *
+   * @generated from field: int64 publish_rate = 7;
+   */
+  publishRate: bigint;
+
+  /**
+   * Rolling per-metric history, oldest sample first, one entry per sampler
+   * pass, capped at the ring-buffer window (~150 samples, ~5 min). These
+   * back the row's inline sparklines.
+   *
+   * @generated from field: repeated int64 length_series = 8;
+   */
+  lengthSeries: bigint[];
+
+  /**
+   * @generated from field: repeated int64 publish_rate_series = 9;
+   */
+  publishRateSeries: bigint[];
 };
 
 /**
@@ -250,6 +274,45 @@ export type BusGroupStat = Message<"metarr.v1.BusGroupStat"> & {
    * @generated from field: int64 oldest_pending_age_seconds = 7;
    */
   oldestPendingAgeSeconds: bigint;
+
+  /**
+   * consume_rate is entries read by the group since the previous sampler
+   * pass — the delta of Redis's per-group entries-read counter, not an
+   * absolute count. Zero on the first pass that sees a group and when Redis
+   * does not report the counter.
+   *
+   * @generated from field: int64 consume_rate = 8;
+   */
+  consumeRate: bigint;
+
+  /**
+   * Rolling per-metric history, oldest sample first, one entry per sampler
+   * pass, capped at the ring-buffer window. These back the expanded row's
+   * inline sparklines.
+   *
+   * @generated from field: repeated int64 consumers_series = 9;
+   */
+  consumersSeries: bigint[];
+
+  /**
+   * @generated from field: repeated int64 pending_series = 10;
+   */
+  pendingSeries: bigint[];
+
+  /**
+   * @generated from field: repeated int64 lag_series = 11;
+   */
+  lagSeries: bigint[];
+
+  /**
+   * @generated from field: repeated int64 oldest_pending_age_seconds_series = 12;
+   */
+  oldestPendingAgeSecondsSeries: bigint[];
+
+  /**
+   * @generated from field: repeated int64 consume_rate_series = 13;
+   */
+  consumeRateSeries: bigint[];
 };
 
 /**
