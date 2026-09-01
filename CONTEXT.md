@@ -99,6 +99,38 @@ stamps the correlation id so the reply lands on the caller's correlation-scoped
 channel.
 _Avoid_: listener, handler, callback
 
+**Bus snapshot**:
+The single in-process record of the bus's live state: per durable stream its
+depth, consumer groups, lag, pending count, oldest-pending age and
+publish/consume rate; per Pub/Sub channel its subscriber count; plus Redis
+server counters. Each numeric metric carries a few minutes of rolling history.
+One snapshot exists per server process and every dashboard viewer reads it, so
+Redis load does not grow with the number of viewers.
+_Avoid_: metrics, stats dump, dashboard state
+
+**Sampler**:
+The one background loop on the server that polls Redis on a fixed interval and
+writes the bus snapshot. It is the only thing that reads Redis for dashboard
+data — the streaming dashboard fans the shared snapshot out to viewers rather
+than each connection polling.
+_Avoid_: poller, collector, scraper, metrics agent
+
+**Expected subscriber**:
+An identity — the server, or `agent-<slug>` — that the derived topology says
+should be attached to a channel or stream, computed from the list of stream
+topics and the agent registry, not observed from Redis. A row whose live count
+is below its expected subscribers is flagged and kept on screen instead of
+vanishing; presence keys say which expected agent is missing.
+_Avoid_: listener count, connected client, actual subscriber
+
+**Purge**:
+The operator action that clears a jammed durable stream from the dashboard: an
+approximate trim of every current entry, then a fast-forward of each consumer
+group to `$`. The stream key and its groups stay in place, so consumers resume
+with no redelivery and nothing left pending. Streams only — Pub/Sub buffers
+nothing, so a channel cannot be purged.
+_Avoid_: flush, drain, delete stream, clear queue
+
 ### Identity
 
 Two idioms exist, and which one a thing uses is a decision, not an accident.
