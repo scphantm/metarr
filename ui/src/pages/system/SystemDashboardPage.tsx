@@ -1,9 +1,25 @@
 import { useEffect, useState } from 'react'
-import { Alert, Badge, Col, Row as AntRow, Table, Tag, Tooltip, Typography } from 'antd'
+import {
+  Alert,
+  Badge,
+  Button,
+  Col,
+  Input,
+  Modal,
+  Row as AntRow,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { timestampDate } from '@bufbuild/protobuf/wkt'
 
-import { useBusSnapshot, useBusSnapshotStreamStatus } from '../../api/queries'
+import {
+  useBusSnapshot,
+  useBusSnapshotStreamStatus,
+  usePurgeStreams,
+} from '../../api/queries'
 import type { StreamStatus } from '../../api/streams'
 import type {
   BusChannelStat,
@@ -71,12 +87,7 @@ export function SystemDashboardPage() {
       <div className="page-body">
         {data.server ? <ServerTiles server={data.server} /> : null}
 
-        <Card
-          title="Event streams"
-          description="Durable Redis Streams. Events sit on a stream until a consumer group acknowledges them, so depth and pending are real counts. Expand a row for its per-group figures."
-        >
-          <StreamsTable streams={data.streams} />
-        </Card>
+        <StreamsCard streams={data.streams} />
 
         <Card
           title="Pub/Sub channels"
@@ -285,7 +296,169 @@ function rollUp(groups: BusGroupStat[]) {
   )
 }
 
-function StreamsTable({ streams }: { streams: BusStreamStat[] }) {
+// What a pending purge is aimed at: one stream, or every stream on the card.
+// The all-streams case keeps the full list so the modal can total their depth
+// and name how many it will touch.
+type PurgeTarget =
+  | { kind: 'one'; stream: BusStreamStat }
+  | { kind: 'all'; streams: BusStreamStat[] }
+
+// The fixed word an operator types to arm "purge all" — deliberately not any
+// one stream's name so it can't be reached by muscle memory from the
+// single-stream flow.
+const PURGE_ALL_WORD = 'PURGE ALL'
+
+// StreamsCard wraps the streams table with its purge controls: a "purge all"
+// action on the card header and a per-row action inside the table, both
+// routed through one typed-confirmation modal. Purge is config-admin work and
+// the whole dashboard already sits behind the admin sign-in, so the controls
+// are always present here — the server refuses the RPC for a read-only key
+// regardless (docs/adr/0007).
+function StreamsCard({ streams }: { streams: BusStreamStat[] }) {
+  const [target, setTarget] = useState<PurgeTarget | null>(null)
+  const purge = usePurgeStreams()
+
+  const close = () => {
+    setTarget(null)
+    purge.reset()
+  }
+
+  const confirm = () => {
+    if (!target) return
+    const request =
+      target.kind === 'all'
+        ? ({ all: true } as const)
+        : ({ stream: target.stream.stream } as const)
+    purge.mutate(request, { onSuccess: close })
+  }
+
+  return (
+    <Card
+      title="Event streams"
+      description="Durable Redis Streams. Events sit on a stream until a consumer group acknowledges them, so depth and pending are real counts. Expand a row for its per-group figures."
+      actions={
+        <Button
+          size="small"
+          danger
+          disabled={streams.length === 0}
+          onClick={() => setTarget({ kind: 'all', streams })}
+        >
+          Purge all
+        </Button>
+      }
+    >
+      <StreamsTable
+        streams={streams}
+        onPurge={(stream) => setTarget({ kind: 'one', stream })}
+      />
+      {target ? (
+        <PurgeModal
+          key={target.kind === 'all' ? '*all*' : target.stream.stream}
+          target={target}
+          pending={purge.isPending}
+          error={purge.error}
+          onCancel={close}
+          onConfirm={confirm}
+        />
+      ) : null}
+    </Card>
+  )
+}
+
+// PurgeModal names the target and shows the depth it will drop, and keeps the
+// confirm button disarmed until the operator types an exact match: the
+// stream's own name for a single purge, the fixed PURGE_ALL_WORD for a
+// purge-all.
+function PurgeModal({
+  target,
+  pending,
+  error,
+  onCancel,
+  onConfirm,
+}: {
+  target: PurgeTarget
+  pending: boolean
+  error: Error | null
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  const [typed, setTyped] = useState('')
+
+  const isAll = target.kind === 'all'
+  const requiredText = isAll ? PURGE_ALL_WORD : target.stream.stream
+  const armed = typed === requiredText
+
+  // A stream that does not exist or could not be read has no depth to count,
+  // and purge-all skips it server-side, so it does not add to the total.
+  const purgeable =
+    isAll ? target.streams.filter((s) => s.exists && !s.error) : [target.stream]
+  const totalDepth = purgeable.reduce((sum, s) => sum + Number(s.length), 0)
+  const depthLabel = `${totalDepth.toLocaleString()} message${totalDepth === 1 ? '' : 's'}`
+
+  return (
+    <Modal
+      open
+      title={isAll ? 'Purge all streams' : `Purge ${target.stream.stream}`}
+      okText={isAll ? 'Purge all streams' : 'Purge stream'}
+      okButtonProps={{ danger: true, disabled: !armed || pending, loading: pending }}
+      cancelButtonProps={{ disabled: pending }}
+      maskClosable={!pending}
+      closable={!pending}
+      onOk={onConfirm}
+      onCancel={onCancel}
+    >
+      <p className="system-dashboard-purge-body">
+        {isAll ? (
+          <>
+            This drops <strong>{depthLabel}</strong> from{' '}
+            <strong>
+              {purgeable.length} stream{purgeable.length === 1 ? '' : 's'}
+            </strong>
+            . The consumer groups stay in place, fast-forwarded past the drop.
+          </>
+        ) : (
+          <>
+            This drops <strong>{depthLabel}</strong> from{' '}
+            <span className="system-dashboard-mono">{target.stream.stream}</span>. The
+            consumer groups stay in place, fast-forwarded past the drop.
+          </>
+        )}
+      </p>
+      <label className="system-dashboard-purge-field">
+        <span>
+          Type <span className="system-dashboard-mono">{requiredText}</span> to confirm
+        </span>
+        <Input
+          autoFocus
+          value={typed}
+          disabled={pending}
+          onChange={(event) => setTyped(event.target.value)}
+          onPressEnter={() => {
+            if (armed && !pending) onConfirm()
+          }}
+          aria-label="Purge confirmation"
+        />
+      </label>
+      {error ? (
+        <Alert
+          type="error"
+          showIcon
+          message="Purge failed"
+          description={error.message}
+          className="system-dashboard-purge-error"
+        />
+      ) : null}
+    </Modal>
+  )
+}
+
+function StreamsTable({
+  streams,
+  onPurge,
+}: {
+  streams: BusStreamStat[]
+  onPurge: (stream: BusStreamStat) => void
+}) {
   const columns: ColumnsType<BusStreamStat> = [
     {
       title: 'Stream',
@@ -372,6 +545,20 @@ function StreamsTable({ streams }: { streams: BusStreamStat[] }) {
         stream.exists && !stream.error
           ? formatDuration(rollUp(stream.groups).oldestPendingAge)
           : '—',
+    },
+    {
+      title: '',
+      align: 'right',
+      render: (_, stream) => (
+        <Button
+          size="small"
+          danger
+          onClick={() => onPurge(stream)}
+          aria-label={`Purge ${stream.stream}`}
+        >
+          Purge
+        </Button>
+      ),
     },
   ]
 

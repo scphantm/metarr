@@ -172,6 +172,26 @@ export function useBusSnapshot() {
   })
 }
 
+// StatsService.Purge is the one write on the service: it clears a jammed
+// durable stream (one by name, or every discovered one) server-side — an
+// approximate trim plus a consumer-group fast-forward. There is no
+// system_config_update event behind it, so like the workflow mutations it
+// gets a plain useMutation rather than useConfigMutation. On success the bus
+// snapshot is invalidated so the drained depth shows on the next frame
+// without waiting for the sampler's own cadence.
+export type PurgeStreamsTarget = { stream: string } | { all: true }
+
+export function usePurgeStreams() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (target: PurgeStreamsTarget) =>
+      statsClient.purge('all' in target ? { all: true } : { stream: target.stream }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.busSnapshot })
+    },
+  })
+}
+
 export function useLoggingConfig() {
   return useQuery({
     queryKey: queryKeys.logging,

@@ -1,14 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
 import { SystemDashboardPage } from '../SystemDashboardPage'
 
 const useBusSnapshot = vi.fn()
 const useBusSnapshotStreamStatus = vi.fn()
+const usePurgeStreams = vi.fn()
+const purgeMutate = vi.fn()
+const purgeReset = vi.fn()
 
 vi.mock('../../../api/queries', () => ({
   useBusSnapshot: () => useBusSnapshot(),
   useBusSnapshotStreamStatus: () => useBusSnapshotStreamStatus(),
+  usePurgeStreams: () => usePurgeStreams(),
 }))
 
 function snapshot(
@@ -92,6 +96,15 @@ describe('SystemDashboardPage', () => {
     useBusSnapshot.mockReset()
     useBusSnapshotStreamStatus.mockReset()
     useBusSnapshotStreamStatus.mockReturnValue('open')
+    purgeMutate.mockReset()
+    purgeReset.mockReset()
+    usePurgeStreams.mockReset()
+    usePurgeStreams.mockReturnValue({
+      mutate: purgeMutate,
+      reset: purgeReset,
+      isPending: false,
+      error: null,
+    })
   })
 
   it('renders the six server tiles from a snapshot', () => {
@@ -338,5 +351,116 @@ describe('SystemDashboardPage', () => {
     const transientRow = screen.getByText('reply.corr-1234').closest('tr')!
     expect(within(transientRow).getByText('transient')).toBeDefined()
     expect(transientRow.className).not.toContain('system-dashboard-row-flagged')
+  })
+
+  describe('purge controls', () => {
+    function renderWithStreams(streams: Array<Record<string, unknown>>) {
+      useBusSnapshot.mockReturnValue({
+        data: snapshot({}, streams),
+        error: null,
+        dataUpdatedAt: Date.now(),
+      })
+      return render(<SystemDashboardPage />)
+    }
+
+    const disabled = (el: HTMLElement) => (el as HTMLButtonElement).disabled
+
+    it('puts a purge action on every stream row and a purge-all action on the card', () => {
+      renderWithStreams([
+        stream({ stream: 'events.agent_scan_results' }),
+        stream({ stream: 'events.system_config_update' }),
+      ])
+
+      expect(
+        screen.getByRole('button', { name: 'Purge events.agent_scan_results' }),
+      ).toBeDefined()
+      expect(
+        screen.getByRole('button', { name: 'Purge events.system_config_update' }),
+      ).toBeDefined()
+      expect(screen.getByRole('button', { name: 'Purge all' })).toBeDefined()
+    })
+
+    it('names the stream and shows the depth it will drop before confirmation', async () => {
+      renderWithStreams([stream({ stream: 'events.agent_scan_results', length: 42 })])
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Purge events.agent_scan_results' }),
+      )
+
+      const dialog = await screen.findByRole('dialog')
+      expect(within(dialog).getAllByText('events.agent_scan_results').length).toBeGreaterThan(0)
+      expect(within(dialog).getByText('42 messages')).toBeDefined()
+    })
+
+    it('keeps the single-stream confirm disabled until the stream name is typed exactly', async () => {
+      renderWithStreams([stream({ stream: 'events.agent_scan_results', length: 5 })])
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Purge events.agent_scan_results' }),
+      )
+
+      const dialog = await screen.findByRole('dialog')
+      const confirm = within(dialog).getByRole('button', { name: 'Purge stream' })
+      expect(disabled(confirm)).toBe(true)
+
+      const input = within(dialog).getByLabelText('Purge confirmation')
+      fireEvent.change(input, { target: { value: 'events.agent_scan_result' } })
+      expect(disabled(confirm)).toBe(true)
+
+      fireEvent.change(input, { target: { value: 'events.agent_scan_results' } })
+      expect(disabled(confirm)).toBe(false)
+
+      fireEvent.click(confirm)
+      expect(purgeMutate).toHaveBeenCalledWith(
+        { stream: 'events.agent_scan_results' },
+        expect.objectContaining({ onSuccess: expect.any(Function) }),
+      )
+    })
+
+    it('keeps the purge-all confirm disabled until the fixed word is typed', async () => {
+      renderWithStreams([
+        stream({ stream: 'events.agent_scan_results', length: 4 }),
+        stream({ stream: 'events.system_config_update', length: 6 }),
+      ])
+
+      fireEvent.click(screen.getByRole('button', { name: 'Purge all' }))
+
+      const dialog = await screen.findByRole('dialog')
+      const confirm = within(dialog).getByRole('button', { name: 'Purge all streams' })
+      expect(disabled(confirm)).toBe(true)
+
+      const input = within(dialog).getByLabelText('Purge confirmation')
+      // Typing one of the stream names is not enough for the all-streams flow.
+      fireEvent.change(input, { target: { value: 'events.agent_scan_results' } })
+      expect(disabled(confirm)).toBe(true)
+
+      fireEvent.change(input, { target: { value: 'PURGE ALL' } })
+      expect(disabled(confirm)).toBe(false)
+
+      fireEvent.click(confirm)
+      expect(purgeMutate).toHaveBeenCalledWith(
+        { all: true },
+        expect.objectContaining({ onSuccess: expect.any(Function) }),
+      )
+    })
+
+    it('closes the modal and resets the mutation when the purge succeeds', async () => {
+      purgeMutate.mockImplementation(
+        (_req: unknown, opts?: { onSuccess?: () => void }) => opts?.onSuccess?.(),
+      )
+      renderWithStreams([stream({ stream: 'events.agent_scan_results' })])
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Purge events.agent_scan_results' }),
+      )
+      const dialog = await screen.findByRole('dialog')
+      fireEvent.change(within(dialog).getByLabelText('Purge confirmation'), {
+        target: { value: 'events.agent_scan_results' },
+      })
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Purge stream' }))
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      expect(purgeReset).toHaveBeenCalled()
+    })
   })
 })
