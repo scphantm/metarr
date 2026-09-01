@@ -92,8 +92,8 @@ Configuration changes also require:
 
 4. **Build and serve locally**
    ```bash
-   make docs_build                  # Fast rebuild (~3–5s)
-   make docs_serve                  # Start live preview at http://localhost:5252
+   make docs-build                  # Fast rebuild (~3–5s)
+   make docs-serve                  # Start live preview at http://localhost:5252
    ```
 
 ### Code Style & Conventions

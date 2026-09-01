@@ -7,6 +7,8 @@ description: Cut AI tells from any writing or chat agent interaction. Must alway
 
 Edit text to remove AI patterns and add human voice.
 
+Applies to your own chat replies, not just documents you are asked to edit. Item 13 especially: no em dashes in anything you send, conversational messages included.
+
 ## Process
 
 1. Scan for the patterns below.

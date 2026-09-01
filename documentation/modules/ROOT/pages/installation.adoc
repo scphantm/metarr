@@ -135,8 +135,8 @@ The API's own interactive documentation is at
 
 [source,bash]
 ----
-make docs_initialize   # once
-make docs_build        # output in build/site
+make docs-initialize   # once
+make docs-build        # output in build/site
 ----
 
 Architecture and pipeline diagrams are rendered at build time by

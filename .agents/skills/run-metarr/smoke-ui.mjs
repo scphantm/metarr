@@ -79,7 +79,7 @@ async function main() {
     try {
       await page.screenshot({ path: errorScreenshotPath });
       console.error(`Error screenshot saved to ${errorScreenshotPath}`);
-    } catch (e) {
+    } catch {
       // ignore
     }
     process.exit(1);

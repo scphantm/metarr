@@ -1,0 +1,21 @@
+# Prettier's scope is the web UI plus the repo-level JS/JSON tooling files.
+# Everything else is Go, generated output, Antora docs, agent tooling, or
+# infra config owned by another toolchain — Prettier does not touch it.
+
+# Ignore the whole tree, then re-include what Prettier owns.
+/*
+
+!/ui
+!/package.json
+!/eslint.config.mjs
+!/.prettierrc.json
+
+# ...but never these, even inside ui/
+ui/node_modules/
+ui/dist/
+ui/.vite/
+ui/src/gen/
+**/*.tsbuildinfo
+
+# Leave Markdown prose formatting alone (repo docs weren't written to Prettier).
+*.md

@@ -123,3 +123,36 @@ func TestStreamBusPublishRejectsPatternTopic(t *testing.T) {
 		t.Fatal("Publish to a pattern topic returned nil, want an error")
 	}
 }
+
+// Close must not touch the shared Redis client. metarr-server builds one
+// StreamBus for bootstrap, then Close()s it and builds another against the
+// same client with the configured retention policy; the pub/sub router, the
+// presence watcher and the stats sampler all keep using that client after
+// the swap. A Close that reached through to redis.Client.Close would leave
+// every one of them talking to a dead connection for the life of the
+// process.
+func TestStreamBusCloseLeavesSharedClientUsable(t *testing.T) {
+	bus, client := newStreamBusOnRedis(t)
+
+	if err := bus.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	if err := client.Ping(context.Background()).Err(); err != nil {
+		t.Fatalf("shared client unusable after StreamBus.Close: %v", err)
+	}
+
+	// A fresh bus on the same client still publishes — the exact move main
+	// makes right after Close.
+	next, err := NewStreamBus(client, DefaultBusPolicy().Retention, NewSlogAdapter(discardSlog()))
+	if err != nil {
+		t.Fatalf("NewStreamBus after Close: %v", err)
+	}
+	topic := AgentScanResultTopic()
+	if err := next.Publish(context.Background(), topic, NewEvent(SourceServer, AgentScanResultEventName, "corr-close", []byte(`{}`))); err != nil {
+		t.Fatalf("Publish after Close + rebuild: %v", err)
+	}
+	if got := xlen(t, client, topic.Name); got != 1 {
+		t.Errorf("%s length = %d, want 1", topic.Name, got)
+	}
+}
