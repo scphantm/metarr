@@ -1,7 +1,7 @@
-import { createGrpcWebTransport } from '@connectrpc/connect-web'
-import { Code, ConnectError, type Interceptor } from '@connectrpc/connect'
+import { createGrpcWebTransport } from "@connectrpc/connect-web";
+import { Code, ConnectError, type Interceptor } from "@connectrpc/connect";
 
-import { getApiKey, notifyUnauthorized, setApiKey } from './client'
+import { getApiKey, notifyUnauthorized, setApiKey } from "./client";
 
 /*
  * The gRPC-Web transport every generated service client shares. Mirrors
@@ -14,22 +14,22 @@ import { getApiKey, notifyUnauthorized, setApiKey } from './client'
  *    change at all as domains migrate off REST.
  */
 const authInterceptor: Interceptor = (next) => async (req) => {
-  const apiKey = getApiKey()
+  const apiKey = getApiKey();
   if (apiKey) {
-    req.header.set('X-Api-Key', apiKey)
+    req.header.set("X-Api-Key", apiKey);
   }
   try {
-    return await next(req)
+    return await next(req);
   } catch (cause) {
     if (cause instanceof ConnectError && cause.code === Code.Unauthenticated) {
-      setApiKey(null)
-      notifyUnauthorized()
+      setApiKey(null);
+      notifyUnauthorized();
     }
-    throw cause
+    throw cause;
   }
-}
+};
 
 export const transport = createGrpcWebTransport({
   baseUrl: window.location.origin,
   interceptors: [authInterceptor],
-})
+});

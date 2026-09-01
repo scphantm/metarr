@@ -1,32 +1,32 @@
-import { Link } from 'react-router-dom'
-import { Card, Typography } from 'antd'
+import { Link } from "react-router-dom";
+import { Card, Typography } from "antd";
 
-import { PageHeader } from '../../layout/AppShell'
-import './ConfigurationPage.css'
+import { PageHeader } from "../../layout/AppShell";
+import "./ConfigurationPage.css";
 
 const sections = [
   {
-    to: '/system/directory-scanner',
-    label: 'Directory Scanner',
-    description: 'How the background scanner walks the configured libraries.',
+    to: "/system/directory-scanner",
+    label: "Directory Scanner",
+    description: "How the background scanner walks the configured libraries.",
   },
   {
-    to: '/system/sidecars',
-    label: 'Sidecars',
+    to: "/system/sidecars",
+    label: "Sidecars",
     description:
-      'How the scanner classifies non-media files found next to media.',
+      "How the scanner classifies non-media files found next to media.",
   },
   {
-    to: '/system/interfaces',
-    label: 'Interfaces',
-    description: 'External services Metarr integrates with, like Sonarr.',
+    to: "/system/interfaces",
+    label: "Interfaces",
+    description: "External services Metarr integrates with, like Sonarr.",
   },
   {
-    to: '/system/security',
-    label: 'Security',
-    description: 'The administrator account and API keys.',
+    to: "/system/security",
+    label: "Security",
+    description: "The administrator account and API keys.",
   },
-]
+];
 
 export function ConfigurationPage() {
   return (
@@ -58,5 +58,5 @@ export function ConfigurationPage() {
         ))}
       </div>
     </>
-  )
+  );
 }

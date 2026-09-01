@@ -1,15 +1,15 @@
-import { Alert, Typography } from 'antd'
+import { Alert, Typography } from "antd";
 
 import {
   queryKeys,
   useEventBusConfig,
   useUpdateEventBusConfig,
-} from '../../api/queries'
-import type { EventBusConfig } from '../../gen/metarr/v1/event_bus_pb'
-import { Card, Row } from '../../components/Card'
-import { EditableNumber } from '../../components/Editable'
-import { PageError, PageLoading } from '../../components/PageState'
-import { PageHeader } from '../../layout/AppShell'
+} from "../../api/queries";
+import type { EventBusConfig } from "../../gen/metarr/v1/event_bus_pb";
+import { Card, Row } from "../../components/Card";
+import { EditableNumber } from "../../components/Editable";
+import { PageError, PageLoading } from "../../components/PageState";
+import { PageHeader } from "../../layout/AppShell";
 
 /*
  * System > Event Bus.
@@ -24,7 +24,7 @@ import { PageHeader } from '../../layout/AppShell'
  * combination (a max backoff below the base, a non-positive stream cap).
  */
 export function EventBusPage() {
-  const eventBus = useEventBusConfig()
+  const eventBus = useEventBusConfig();
 
   if (eventBus.error && !eventBus.data) {
     return (
@@ -32,7 +32,7 @@ export function EventBusPage() {
         <PageHeader title="Event Bus" />
         <PageError error={eventBus.error} />
       </>
-    )
+    );
   }
 
   if (!eventBus.data) {
@@ -41,7 +41,7 @@ export function EventBusPage() {
         <PageHeader title="Event Bus" />
         <PageLoading />
       </>
-    )
+    );
   }
 
   return (
@@ -55,12 +55,12 @@ export function EventBusPage() {
         <EventBusFields config={eventBus.data} />
       </div>
     </>
-  )
+  );
 }
 
 // One field is a Row + EditableNumber that saves the whole section with this
 // one value replaced; the server validates the combination.
-type SaveField = (patch: Partial<EventBusConfig>) => Promise<unknown>
+type SaveField = (patch: Partial<EventBusConfig>) => Promise<unknown>;
 
 function NumberField({
   label,
@@ -70,12 +70,12 @@ function NumberField({
   field,
   save,
 }: {
-  label: string
-  hint: string
-  value: number
-  min: number
-  field: keyof EventBusConfig
-  save: SaveField
+  label: string;
+  hint: string;
+  value: number;
+  min: number;
+  field: keyof EventBusConfig;
+  save: SaveField;
 }) {
   return (
     <Row label={label} hint={hint}>
@@ -87,12 +87,13 @@ function NumberField({
         onSave={(next) => save({ [field]: next })}
       />
     </Row>
-  )
+  );
 }
 
 function EventBusFields({ config }: { config: EventBusConfig }) {
-  const update = useUpdateEventBusConfig()
-  const save: SaveField = (patch) => update.mutateAsync({ ...config, ...patch })
+  const update = useUpdateEventBusConfig();
+  const save: SaveField = (patch) =>
+    update.mutateAsync({ ...config, ...patch });
 
   return (
     <>
@@ -148,7 +149,7 @@ function EventBusFields({ config }: { config: EventBusConfig }) {
         />
       </Card>
     </>
-  )
+  );
 }
 
 export function EventBusSidebar() {
@@ -187,5 +188,5 @@ export function EventBusSidebar() {
         }
       />
     </div>
-  )
+  );
 }

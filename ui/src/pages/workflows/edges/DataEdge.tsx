@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react'
+import { useState, type CSSProperties } from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -7,21 +7,21 @@ import {
   useReactFlow,
   type Edge,
   type EdgeProps,
-} from '@xyflow/react'
+} from "@xyflow/react";
 
 import {
   iconClassForType,
   ITERATE_ICON_CLASS,
   RECURSIVE_ICON_CLASS,
   TYPE_UNSAFE_ICON_CLASS,
-} from '../../../lib/typeIcons'
-import { canConnect, parseHandleId } from '../connectionRules'
-import type { CatalogNodeData } from '../editorNodeData'
-import { useCatalogEntry, useTransforms } from '../useCatalogEntry'
-import { useIconZoomVisibility } from '../useIconZoomVisibility'
-import { EdgeSettingsEditor } from './EdgeSettingsEditor'
-import { TransformPicker } from './TransformPicker'
-import './DataEdge.css'
+} from "../../../lib/typeIcons";
+import { canConnect, parseHandleId } from "../connectionRules";
+import type { CatalogNodeData } from "../editorNodeData";
+import { useCatalogEntry, useTransforms } from "../useCatalogEntry";
+import { useIconZoomVisibility } from "../useIconZoomVisibility";
+import { EdgeSettingsEditor } from "./EdgeSettingsEditor";
+import { TransformPicker } from "./TransformPicker";
+import "./DataEdge.css";
 
 // The unit direction a handle's own position "faces" — used to slide an
 // endpoint icon along the edge, away from its node, toward the middle (see
@@ -33,7 +33,7 @@ const OUTWARD_UNIT: Record<Position, { ux: number; uy: number }> = {
   [Position.Bottom]: { ux: 0, uy: 1 },
   [Position.Left]: { ux: -1, uy: 0 },
   [Position.Right]: { ux: 1, uy: 0 },
-}
+};
 
 /*
  * The one shared data-edge component: thin, static, theme orange (the wire
@@ -73,11 +73,11 @@ const OUTWARD_UNIT: Record<Position, { ux: number; uy: number }> = {
 // diagnostic naming this edge — see DiagnosticsPanel.tsx — never persisted
 // (graphAdapter.ts's fromRFEdge doesn't read it).
 export type DataEdgeData = {
-  transform?: string
-  diagnosticHighlight?: boolean
-  settings?: Record<string, unknown>
-}
-export type DataEdgeType = Edge<DataEdgeData, 'dataEdge'>
+  transform?: string;
+  diagnosticHighlight?: boolean;
+  settings?: Record<string, unknown>;
+};
+export type DataEdgeType = Edge<DataEdgeData, "dataEdge">;
 
 export function DataEdge({
   id,
@@ -95,31 +95,31 @@ export function DataEdge({
   markerEnd,
   selected,
 }: EdgeProps<DataEdgeType>) {
-  const { getNode, updateEdgeData } = useReactFlow()
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const transforms = useTransforms()
-  const showSmallIcons = useIconZoomVisibility()
+  const { getNode, updateEdgeData } = useReactFlow();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const transforms = useTransforms();
+  const showSmallIcons = useIconZoomVisibility();
 
-  const sourceNode = getNode(source)
-  const targetNode = getNode(target)
+  const sourceNode = getNode(source);
+  const targetNode = getNode(target);
   const sourceNodeType = useCatalogEntry(
     (sourceNode?.data as CatalogNodeData | undefined)?.catalogId,
-    sourceNode?.type ?? '',
-  )
+    sourceNode?.type ?? "",
+  );
   const targetNodeType = useCatalogEntry(
     (targetNode?.data as CatalogNodeData | undefined)?.catalogId,
-    targetNode?.type ?? '',
-  )
+    targetNode?.type ?? "",
+  );
 
-  const sourceSocketName = parseHandleId(sourceHandleId)?.name
-  const targetSocketName = parseHandleId(targetHandleId)?.name
+  const sourceSocketName = parseHandleId(sourceHandleId)?.name;
+  const targetSocketName = parseHandleId(targetHandleId)?.name;
   const sourceSocket = sourceNodeType?.dataOut?.find(
     (socket) => socket.name === sourceSocketName,
-  )
+  );
   const targetSocket = targetNodeType?.dataIn?.find(
     (socket) => socket.name === targetSocketName,
-  )
+  );
 
   const [path, labelX, labelY] = getBezierPath({
     sourceX,
@@ -128,38 +128,38 @@ export function DataEdge({
     targetX,
     targetY,
     targetPosition,
-  })
+  });
 
   const connectionInfo =
     sourceSocket && targetSocket
       ? canConnect(sourceSocket.type, targetSocket.type, transforms)
-      : undefined
+      : undefined;
   const activeTransform = data?.transform
     ? transforms.find((candidate) => candidate.name === data.transform)
-    : undefined
+    : undefined;
   const sourceIconClass = sourceSocket
     ? iconClassForType(sourceSocket.type)
-    : undefined
+    : undefined;
   const targetIconClass = targetSocket
     ? iconClassForType(targetSocket.type)
-    : undefined
-  const sourceUnit = OUTWARD_UNIT[sourcePosition]
-  const targetUnit = OUTWARD_UNIT[targetPosition]
-  const targetType = targetSocket?.type
+    : undefined;
+  const sourceUnit = OUTWARD_UNIT[sourcePosition];
+  const targetUnit = OUTWARD_UNIT[targetPosition];
+  const targetType = targetSocket?.type;
   const isPathEdge =
-    targetType === 'path' || (targetType?.startsWith('path.') ?? false)
-  const isRecursive = Boolean(data?.settings?.recursive)
+    targetType === "path" || (targetType?.startsWith("path.") ?? false);
+  const isRecursive = Boolean(data?.settings?.recursive);
 
   return (
     <g
-      className={data?.diagnosticHighlight ? 'diagnostic-blink' : undefined}
+      className={data?.diagnosticHighlight ? "diagnostic-blink" : undefined}
       onDoubleClick={isPathEdge ? () => setSettingsOpen(true) : undefined}
     >
       <BaseEdge
         id={id}
         path={path}
         markerEnd={markerEnd}
-        className={`data-edge-path${data?.transform ? ' is-transformed' : ''}${selected ? ' is-selected' : ''}`}
+        className={`data-edge-path${data?.transform ? " is-transformed" : ""}${selected ? " is-selected" : ""}`}
       />
 
       {data?.transform ? (
@@ -167,8 +167,8 @@ export function DataEdge({
           <div
             style={
               {
-                '--edge-x': `${labelX}px`,
-                '--edge-y': `${labelY}px`,
+                "--edge-x": `${labelX}px`,
+                "--edge-y": `${labelY}px`,
               } as CSSProperties
             }
             className="data-edge-transform-chip nodrag nopan pointer-events-auto"
@@ -190,10 +190,10 @@ export function DataEdge({
             <div
               style={
                 {
-                  '--edge-x': `${sourceX}px`,
-                  '--edge-y': `${sourceY}px`,
-                  '--edge-ux': sourceUnit.ux,
-                  '--edge-uy': sourceUnit.uy,
+                  "--edge-x": `${sourceX}px`,
+                  "--edge-y": `${sourceY}px`,
+                  "--edge-ux": sourceUnit.ux,
+                  "--edge-uy": sourceUnit.uy,
                 } as CSSProperties
               }
               className="data-edge-endpoint"
@@ -208,10 +208,10 @@ export function DataEdge({
             <div
               style={
                 {
-                  '--edge-x': `${targetX}px`,
-                  '--edge-y': `${targetY}px`,
-                  '--edge-ux': targetUnit.ux,
-                  '--edge-uy': targetUnit.uy,
+                  "--edge-x": `${targetX}px`,
+                  "--edge-y": `${targetY}px`,
+                  "--edge-ux": targetUnit.ux,
+                  "--edge-uy": targetUnit.uy,
                 } as CSSProperties
               }
               className="data-edge-endpoint"
@@ -241,8 +241,8 @@ export function DataEdge({
           candidates={connectionInfo.candidates}
           current={data?.transform}
           onPick={(name) => {
-            void updateEdgeData(id, { transform: name })
-            setPickerOpen(false)
+            void updateEdgeData(id, { transform: name });
+            setPickerOpen(false);
           }}
           onClose={() => setPickerOpen(false)}
         />
@@ -254,12 +254,12 @@ export function DataEdge({
           onSave={(next) => {
             void updateEdgeData(id, {
               settings: { ...data?.settings, recursive: next.recursive },
-            })
-            setSettingsOpen(false)
+            });
+            setSettingsOpen(false);
           }}
           onCancel={() => setSettingsOpen(false)}
         />
       ) : null}
     </g>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, use, useState, type ReactNode } from "react";
 
 /*
  * Shares which catalog entry is currently being dragged from the palette
@@ -16,29 +16,29 @@ import { createContext, useContext, useState, type ReactNode } from 'react'
  * different dataOut shapes).
  */
 
-export type DraggedNodeType = { id: string }
+export type DraggedNodeType = { id: string };
 
 type DnDContextValue = {
-  draggedTemplate: DraggedNodeType | null
-  setDraggedTemplate: (template: DraggedNodeType | null) => void
-}
+  draggedTemplate: DraggedNodeType | null;
+  setDraggedTemplate: (template: DraggedNodeType | null) => void;
+};
 
-const DnDContext = createContext<DnDContextValue | null>(null)
+const DnDContext = createContext<DnDContextValue | null>(null);
 
 export function DnDProvider({ children }: { children: ReactNode }) {
   const [draggedTemplate, setDraggedTemplate] =
-    useState<DraggedNodeType | null>(null)
+    useState<DraggedNodeType | null>(null);
   return (
-    <DnDContext.Provider value={{ draggedTemplate, setDraggedTemplate }}>
+    <DnDContext value={{ draggedTemplate, setDraggedTemplate }}>
       {children}
-    </DnDContext.Provider>
-  )
+    </DnDContext>
+  );
 }
 
 export function useDnD() {
-  const context = useContext(DnDContext)
+  const context = use(DnDContext);
   if (!context) {
-    throw new Error('useDnD must be used within a DnDProvider')
+    throw new Error("useDnD must be used within a DnDProvider");
   }
-  return context
+  return context;
 }

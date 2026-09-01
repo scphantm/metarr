@@ -1,9 +1,9 @@
-import { queryKeys, useUpdateDirectoryScanner } from '../../api/queries'
-import { Card, Row } from '../../components/Card'
-import { EditableNumber } from '../../components/Editable'
+import { queryKeys, useUpdateDirectoryScanner } from "../../api/queries";
+import { Card, Row } from "../../components/Card";
+import { EditableNumber } from "../../components/Editable";
 
 export function ScannerSection({ parallelCount }: { parallelCount: number }) {
-  const updateScanner = useUpdateDirectoryScanner()
+  const updateScanner = useUpdateDirectoryScanner();
 
   return (
     <Card
@@ -25,5 +25,5 @@ export function ScannerSection({ parallelCount }: { parallelCount: number }) {
         />
       </Row>
     </Card>
-  )
+  );
 }

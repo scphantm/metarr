@@ -1,24 +1,24 @@
-import { useState } from 'react'
-import type { MessageInitShape } from '@bufbuild/protobuf'
-import { Input, Space, Typography } from 'antd'
+import { useState } from "react";
+import type { MessageInitShape } from "@bufbuild/protobuf";
+import { Input, Space, Typography } from "antd";
 
 import {
   queryKeys,
   useDeleteSonarrInstance,
   useUpsertSonarrInstance,
-} from '../../api/queries'
-import { storageModes } from '../../api/vocab'
+} from "../../api/queries";
+import { storageModes } from "../../api/vocab";
 import {
   SonarrInstanceSchema,
   type SonarrInstance,
-} from '../../gen/metarr/v1/sonarr_interfaces_pb'
-import { Button, Card, EmptyState, Row } from '../../components/Card'
+} from "../../gen/metarr/v1/sonarr_interfaces_pb";
+import { Button, Card, EmptyState, Row } from "../../components/Card";
 import {
   EditableNumber,
   EditableSelect,
   EditableText,
-} from '../../components/Editable'
-import './SonarrSection.css'
+} from "../../components/Editable";
+import "./SonarrSection.css";
 
 // onSave/onCreate below hand off to useUpsertSonarrInstance, whose
 // parameter is MessageInitShape<typeof SonarrInstanceSchema> (a plain
@@ -27,7 +27,7 @@ import './SonarrSection.css'
 // branded message keeps each nested field a single concrete type rather
 // than the (Message | plain-init-shape) union MessageInitShape produces,
 // which otherwise stops TS from simplifying `{...instance, field}` spreads.
-type SonarrInstanceInit = MessageInitShape<typeof SonarrInstanceSchema>
+type SonarrInstanceInit = MessageInitShape<typeof SonarrInstanceSchema>;
 
 /*
  * Sonarr instances. Like scan directories these are keyed by a slug the upsert
@@ -38,9 +38,9 @@ type SonarrInstanceInit = MessageInitShape<typeof SonarrInstanceSchema>
  * rows rather than as two independent lists.
  */
 export function SonarrSection({ instances }: { instances: SonarrInstance[] }) {
-  const upsert = useUpsertSonarrInstance()
-  const remove = useDeleteSonarrInstance()
-  const [adding, setAdding] = useState(false)
+  const upsert = useUpsertSonarrInstance();
+  const remove = useDeleteSonarrInstance();
+  const [adding, setAdding] = useState(false);
 
   return (
     <Card
@@ -56,7 +56,7 @@ export function SonarrSection({ instances }: { instances: SonarrInstance[] }) {
         <EmptyState>No Sonarr instances configured</EmptyState>
       ) : null}
 
-      <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <Space direction="vertical" size={16} style={{ width: "100%" }}>
         {instances.map((instance) => (
           <InstanceCard
             key={instance.instanceSlug}
@@ -68,7 +68,7 @@ export function SonarrSection({ instances }: { instances: SonarrInstance[] }) {
                   `Remove the Sonarr instance "${instance.instanceName || instance.instanceSlug}"?`,
                 )
               ) {
-                void remove.mutateAsync(instance.instanceSlug)
+                void remove.mutateAsync(instance.instanceSlug);
               }
             }}
           />
@@ -80,13 +80,13 @@ export function SonarrSection({ instances }: { instances: SonarrInstance[] }) {
           existingSlugs={instances.map((entry) => entry.instanceSlug)}
           onCancel={() => setAdding(false)}
           onCreate={async (entry) => {
-            await upsert.mutateAsync(entry)
-            setAdding(false)
+            await upsert.mutateAsync(entry);
+            setAdding(false);
           }}
         />
       ) : null}
     </Card>
-  )
+  );
 }
 
 function InstanceCard({
@@ -94,11 +94,11 @@ function InstanceCard({
   onSave,
   onRemove,
 }: {
-  instance: SonarrInstance
-  onSave: (next: SonarrInstanceInit) => Promise<unknown>
-  onRemove: () => void
+  instance: SonarrInstance;
+  onSave: (next: SonarrInstanceInit) => Promise<unknown>;
+  onRemove: () => void;
 }) {
-  const key = queryKeys.sonarr
+  const key = queryKeys.sonarr;
 
   // A plain object built field-by-field, never {...instance, field}: once a
   // spread carries instance's own literal $typeName, TS resolves
@@ -110,26 +110,26 @@ function InstanceCard({
   // a plain field-only object fine.
   function nextInstance(
     fields: Partial<{
-      instanceName: string
-      sonarrUrl: string
-      sonarrApiKey: string
-      storage: { mode: string; ttl: string; maxCount: number }
-      rootDirMap: { sonarrPath: string; localPath: string }[]
+      instanceName: string;
+      sonarrUrl: string;
+      sonarrApiKey: string;
+      storage: { mode: string; ttl: string; maxCount: number };
+      rootDirMap: { sonarrPath: string; localPath: string }[];
     }>,
   ): SonarrInstanceInit {
     return {
       instanceSlug: instance.instanceSlug,
-      instanceName: instance.instanceName ?? '',
-      sonarrUrl: instance.sonarrUrl ?? '',
-      sonarrApiKey: instance.sonarrApiKey ?? '',
+      instanceName: instance.instanceName ?? "",
+      sonarrUrl: instance.sonarrUrl ?? "",
+      sonarrApiKey: instance.sonarrApiKey ?? "",
       rootDirMap: instance.rootDirMap ?? [],
       storage: {
-        mode: instance.storage?.mode ?? 'cache',
-        ttl: instance.storage?.ttl ?? '',
+        mode: instance.storage?.mode ?? "cache",
+        ttl: instance.storage?.ttl ?? "",
         maxCount: instance.storage?.maxCount ?? 0,
       },
       ...fields,
-    }
+    };
   }
 
   return (
@@ -147,7 +147,7 @@ function InstanceCard({
         <EditableText
           label="Instance name"
           queryKey={key}
-          value={instance.instanceName ?? ''}
+          value={instance.instanceName ?? ""}
           placeholder="Unnamed instance"
           onSave={(instanceName) => onSave(nextInstance({ instanceName }))}
         />
@@ -157,13 +157,13 @@ function InstanceCard({
         <EditableText
           label="Sonarr URL"
           queryKey={key}
-          value={instance.sonarrUrl ?? ''}
+          value={instance.sonarrUrl ?? ""}
           monospace
           placeholder="http://localhost:8989"
           validate={(next) =>
-            next.startsWith('http://') || next.startsWith('https://')
+            next.startsWith("http://") || next.startsWith("https://")
               ? null
-              : 'Must start with http:// or https://'
+              : "Must start with http:// or https://"
           }
           onSave={(sonarrUrl) => onSave(nextInstance({ sonarrUrl }))}
         />
@@ -173,7 +173,7 @@ function InstanceCard({
         <EditableText
           label="Sonarr API key"
           queryKey={key}
-          value={instance.sonarrApiKey ?? ''}
+          value={instance.sonarrApiKey ?? ""}
           monospace
           secret
           placeholder="No key set"
@@ -188,14 +188,14 @@ function InstanceCard({
         <EditableSelect
           label="Storage mode"
           queryKey={key}
-          value={instance.storage?.mode ?? 'cache'}
+          value={instance.storage?.mode ?? "cache"}
           options={storageModes}
           onSave={(mode) =>
             onSave(
               nextInstance({
                 storage: {
                   mode,
-                  ttl: instance.storage?.ttl ?? '',
+                  ttl: instance.storage?.ttl ?? "",
                   maxCount: instance.storage?.maxCount ?? 0,
                 },
               }),
@@ -207,7 +207,7 @@ function InstanceCard({
       {/* Only the field belonging to the active mode is meaningful, so only
           that one is offered — showing both invites setting a value that is
           silently ignored. */}
-      {instance.storage?.mode === 'versioned' ? (
+      {instance.storage?.mode === "versioned" ? (
         <Row label="Max revisions">
           <EditableNumber
             label="Max count"
@@ -218,8 +218,8 @@ function InstanceCard({
               onSave(
                 nextInstance({
                   storage: {
-                    mode: instance.storage?.mode ?? 'cache',
-                    ttl: instance.storage?.ttl ?? '',
+                    mode: instance.storage?.mode ?? "cache",
+                    ttl: instance.storage?.ttl ?? "",
                     maxCount,
                   },
                 }),
@@ -235,14 +235,14 @@ function InstanceCard({
           <EditableText
             label="TTL"
             queryKey={key}
-            value={instance.storage?.ttl ?? ''}
+            value={instance.storage?.ttl ?? ""}
             monospace
             placeholder="24h"
             onSave={(ttl) =>
               onSave(
                 nextInstance({
                   storage: {
-                    mode: instance.storage?.mode ?? 'cache',
+                    mode: instance.storage?.mode ?? "cache",
                     ttl,
                     maxCount: instance.storage?.maxCount ?? 0,
                   },
@@ -260,20 +260,20 @@ function InstanceCard({
         <RootDirMap instance={instance} onSave={onSave} />
       </Row>
     </div>
-  )
+  );
 }
 
 function RootDirMap({
   instance,
   onSave,
 }: {
-  instance: SonarrInstance
-  onSave: (next: SonarrInstanceInit) => Promise<unknown>
+  instance: SonarrInstance;
+  onSave: (next: SonarrInstanceInit) => Promise<unknown>;
 }) {
-  const mappings = instance.rootDirMap ?? []
-  const [adding, setAdding] = useState(false)
-  const [sonarrPath, setSonarrPath] = useState('')
-  const [localPath, setLocalPath] = useState('')
+  const mappings = instance.rootDirMap ?? [];
+  const [adding, setAdding] = useState(false);
+  const [sonarrPath, setSonarrPath] = useState("");
+  const [localPath, setLocalPath] = useState("");
 
   // Built field-by-field rather than {...instance, rootDirMap} — see
   // InstanceCard's nextInstance for why spreading the branded instance
@@ -283,20 +283,20 @@ function RootDirMap({
   ): Promise<unknown> {
     return onSave({
       instanceSlug: instance.instanceSlug,
-      instanceName: instance.instanceName ?? '',
-      sonarrUrl: instance.sonarrUrl ?? '',
-      sonarrApiKey: instance.sonarrApiKey ?? '',
+      instanceName: instance.instanceName ?? "",
+      sonarrUrl: instance.sonarrUrl ?? "",
+      sonarrApiKey: instance.sonarrApiKey ?? "",
       storage: {
-        mode: instance.storage?.mode ?? 'cache',
-        ttl: instance.storage?.ttl ?? '',
+        mode: instance.storage?.mode ?? "cache",
+        ttl: instance.storage?.ttl ?? "",
         maxCount: instance.storage?.maxCount ?? 0,
       },
       rootDirMap,
-    })
+    });
   }
 
   return (
-    <Space direction="vertical" size={8} style={{ width: '100%' }}>
+    <Space direction="vertical" size={8} style={{ width: "100%" }}>
       {mappings.length === 0 && !adding ? (
         <Typography.Text type="secondary" italic style={{ fontSize: 14 }}>
           No mappings
@@ -304,17 +304,20 @@ function RootDirMap({
       ) : null}
 
       {mappings.map((mapping, index) => (
+        // Mapping rows have no id and a row's paths can be blank mid-add, so
+        // index is the only stable key here.
+        // eslint-disable-next-line @eslint-react/no-array-index-key
         <div key={index} className="sonarr-root-dir-row">
           <div className="sonarr-root-dir-field">
             <EditableText
               label="Sonarr path"
               queryKey={queryKeys.sonarr}
-              value={mapping.sonarrPath ?? ''}
+              value={mapping.sonarrPath ?? ""}
               monospace
               onSave={(sonarrPath) => {
-                const next = [...mappings]
-                next[index] = { ...mapping, sonarrPath }
-                return write(next)
+                const next = [...mappings];
+                next[index] = { ...mapping, sonarrPath };
+                return write(next);
               }}
             />
           </div>
@@ -325,12 +328,12 @@ function RootDirMap({
             <EditableText
               label="Local path"
               queryKey={queryKeys.sonarr}
-              value={mapping.localPath ?? ''}
+              value={mapping.localPath ?? ""}
               monospace
               onSave={(localPath) => {
-                const next = [...mappings]
-                next[index] = { ...mapping, localPath }
-                return write(next)
+                const next = [...mappings];
+                next[index] = { ...mapping, localPath };
+                return write(next);
               }}
             />
           </div>
@@ -371,10 +374,10 @@ function RootDirMap({
                   sonarrPath: sonarrPath.trim(),
                   localPath: localPath.trim(),
                 },
-              ])
-              setSonarrPath('')
-              setLocalPath('')
-              setAdding(false)
+              ]);
+              setSonarrPath("");
+              setLocalPath("");
+              setAdding(false);
             }}
           >
             Add
@@ -389,7 +392,7 @@ function RootDirMap({
         </div>
       )}
     </Space>
-  )
+  );
 }
 
 function NewInstance({
@@ -397,36 +400,38 @@ function NewInstance({
   onCreate,
   onCancel,
 }: {
-  existingSlugs: string[]
-  onCreate: (entry: SonarrInstanceInit) => Promise<void>
-  onCancel: () => void
+  existingSlugs: string[];
+  onCreate: (entry: SonarrInstanceInit) => Promise<void>;
+  onCancel: () => void;
 }) {
-  const [slug, setSlug] = useState('')
-  const [name, setName] = useState('')
-  const [url, setUrl] = useState('')
-  const [apiKey, setApiKey] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [slug, setSlug] = useState("");
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   async function submit() {
     if (!slug.trim()) {
-      setError('A slug is required — it is how the API addresses this instance')
-      return
+      setError(
+        "A slug is required — it is how the API addresses this instance",
+      );
+      return;
     }
     if (existingSlugs.includes(slug.trim())) {
       setError(
-        'That slug is already in use; it would replace the existing instance',
-      )
-      return
+        "That slug is already in use; it would replace the existing instance",
+      );
+      return;
     }
-    setError(null)
+    setError(null);
     await onCreate({
       instanceSlug: slug.trim(),
       instanceName: name.trim() || slug.trim(),
       sonarrUrl: url.trim(),
       sonarrApiKey: apiKey.trim(),
       rootDirMap: [],
-      storage: { mode: 'cache', ttl: '24h' },
-    })
+      storage: { mode: "cache", ttl: "24h" },
+    });
   }
 
   return (
@@ -471,5 +476,5 @@ function NewInstance({
         </Button>
       </Space>
     </div>
-  )
+  );
 }

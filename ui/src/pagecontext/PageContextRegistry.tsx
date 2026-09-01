@@ -1,13 +1,13 @@
 import {
   createContext,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
-} from 'react'
+} from "react";
 
 /*
  * A generic mechanism by which whichever page is currently mounted can
@@ -37,52 +37,52 @@ import {
  */
 
 type ActiveEntry = {
-  pageKey: string
-  collect: () => unknown
-  applyToolResult?: (toolName: string, args: unknown) => void
-}
+  pageKey: string;
+  collect: () => unknown;
+  applyToolResult?: (toolName: string, args: unknown) => void;
+};
 
 type Registry = {
-  active: ActiveEntry | null
-  register: (entry: ActiveEntry) => void
-  unregister: (pageKey: string) => void
-}
+  active: ActiveEntry | null;
+  register: (entry: ActiveEntry) => void;
+  unregister: (pageKey: string) => void;
+};
 
-const PageContextRegistryContext = createContext<Registry | null>(null)
+const PageContextRegistryContext = createContext<Registry | null>(null);
 
 export function PageContextProvider({ children }: { children: ReactNode }) {
-  const [active, setActive] = useState<ActiveEntry | null>(null)
+  const [active, setActive] = useState<ActiveEntry | null>(null);
 
   // Stable across renders (useCallback, empty deps), and each is called at
   // most once per real page mount/unmount by useRegisterPageContext's
   // properly-scoped effect below — so this never fires on every render of
   // whichever page is registering.
   const register = useCallback((entry: ActiveEntry) => {
-    setActive(entry)
-  }, [])
+    setActive(entry);
+  }, []);
 
   const unregister = useCallback((pageKey: string) => {
-    setActive((current) => (current?.pageKey === pageKey ? null : current))
-  }, [])
+    setActive((current) => (current?.pageKey === pageKey ? null : current));
+  }, []);
 
   const registry = useMemo<Registry>(
     () => ({ active, register, unregister }),
     [active, register, unregister],
-  )
+  );
 
   return (
-    <PageContextRegistryContext.Provider value={registry}>
+    <PageContextRegistryContext value={registry}>
       {children}
-    </PageContextRegistryContext.Provider>
-  )
+    </PageContextRegistryContext>
+  );
 }
 
 function useRegistry(): Registry {
-  const registry = useContext(PageContextRegistryContext)
+  const registry = use(PageContextRegistryContext);
   if (!registry) {
-    throw new Error('this hook must be used within a PageContextProvider')
+    throw new Error("this hook must be used within a PageContextProvider");
   }
-  return registry
+  return registry;
 }
 
 /**
@@ -99,14 +99,14 @@ export function useRegisterPageContext(
   collect: () => unknown,
   applyToolResult?: (toolName: string, args: unknown) => void,
 ) {
-  const { register, unregister } = useRegistry()
-  const collectRef = useRef(collect)
-  const applyToolResultRef = useRef(applyToolResult)
+  const { register, unregister } = useRegistry();
+  const collectRef = useRef(collect);
+  const applyToolResultRef = useRef(applyToolResult);
 
   useEffect(() => {
-    collectRef.current = collect
-    applyToolResultRef.current = applyToolResult
-  })
+    collectRef.current = collect;
+    applyToolResultRef.current = applyToolResult;
+  });
 
   useEffect(() => {
     register({
@@ -114,12 +114,12 @@ export function useRegisterPageContext(
       collect: () => collectRef.current(),
       applyToolResult: (toolName, args) =>
         applyToolResultRef.current?.(toolName, args),
-    })
-    return () => unregister(pageKey)
-  }, [pageKey, register, unregister])
+    });
+    return () => unregister(pageKey);
+  }, [pageKey, register, unregister]);
 }
 
 /** Called by the chat widget to know what's available right now. */
 export function useActivePageContext(): ActiveEntry | null {
-  return useRegistry().active
+  return useRegistry().active;
 }

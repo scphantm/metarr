@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 import {
   Alert,
   Badge,
@@ -11,27 +11,27 @@ import {
   Tag,
   Tooltip,
   Typography,
-} from 'antd'
-import type { ColumnsType } from 'antd/es/table'
-import { timestampDate } from '@bufbuild/protobuf/wkt'
+} from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 
 import {
   useBusSnapshot,
   useBusSnapshotStreamStatus,
   usePurgeStreams,
-} from '../../api/queries'
-import type { StreamStatus } from '../../api/streams'
+} from "../../api/queries";
+import type { StreamStatus } from "../../api/streams";
 import type {
   BusChannelStat,
   BusGroupStat,
   BusServerInfo,
   BusStreamStat,
-} from '../../gen/metarr/v1/stats_pb'
-import { Card } from '../../components/Card'
-import { PageError, PageLoading } from '../../components/PageState'
-import { PageHeader } from '../../layout/AppShell'
-import { Sparkline } from './Sparkline'
-import './SystemDashboardPage.css'
+} from "../../gen/metarr/v1/stats_pb";
+import { Card } from "../../components/Card";
+import { PageError, PageLoading } from "../../components/PageState";
+import { PageHeader } from "../../layout/AppShell";
+import { Sparkline } from "./Sparkline";
+import "./SystemDashboardPage.css";
 
 /*
  * The system dashboard — the landing screen.
@@ -45,11 +45,11 @@ import './SystemDashboardPage.css'
 // A snapshot older than this many milliseconds is stale: the sampler ticks
 // every ~2s, so four missed passes means the picture can no longer be
 // trusted as live.
-const STALE_AFTER_MS = 8_000
+const STALE_AFTER_MS = 8_000;
 
 export function SystemDashboardPage() {
-  const snapshot = useBusSnapshot()
-  const streamStatus = useBusSnapshotStreamStatus()
+  const snapshot = useBusSnapshot();
+  const streamStatus = useBusSnapshotStreamStatus();
 
   // Only a failure with nothing cached is fatal to the page. Once a snapshot
   // has arrived, a dropped stream keeps showing it and says so, because a
@@ -60,7 +60,7 @@ export function SystemDashboardPage() {
         <PageHeader title="System" />
         <PageError error={snapshot.error} />
       </>
-    )
+    );
   }
 
   if (!snapshot.data) {
@@ -69,10 +69,10 @@ export function SystemDashboardPage() {
         <PageHeader title="System" />
         <PageLoading>Connecting to the event bus…</PageLoading>
       </>
-    )
+    );
   }
 
-  const data = snapshot.data
+  const data = snapshot.data;
 
   return (
     <>
@@ -103,17 +103,17 @@ export function SystemDashboardPage() {
           type="secondary"
           className="system-dashboard-collected"
         >
-          Last collected{' '}
+          Last collected{" "}
           {data.collectedAt
             ? timestampDate(data.collectedAt).toLocaleTimeString()
-            : '—'}
+            : "—"}
         </Typography.Text>
       </div>
     </>
-  )
+  );
 }
 
-type Liveness = 'live' | 'reconnecting' | 'stale'
+type Liveness = "live" | "reconnecting" | "stale";
 
 // The connection state is worth showing plainly: a frozen dashboard and idle
 // infrastructure look identical otherwise. A brief drop shows "Reconnecting"
@@ -128,99 +128,99 @@ function LivenessBadge({
   status,
   lastFrameAt,
 }: {
-  status: StreamStatus
-  lastFrameAt: number
+  status: StreamStatus;
+  lastFrameAt: number;
 }) {
-  const now = useNow(2_000)
+  const now = useNow(2_000);
 
-  const fresh = lastFrameAt > 0 && now - lastFrameAt < STALE_AFTER_MS
+  const fresh = lastFrameAt > 0 && now - lastFrameAt < STALE_AFTER_MS;
 
-  let liveness: Liveness
-  if (status === 'open' && fresh) {
-    liveness = 'live'
-  } else if (status === 'connecting') {
-    liveness = 'reconnecting'
+  let liveness: Liveness;
+  if (status === "open" && fresh) {
+    liveness = "live";
+  } else if (status === "connecting") {
+    liveness = "reconnecting";
   } else {
-    liveness = 'stale'
+    liveness = "stale";
   }
 
   const label =
-    liveness === 'live'
-      ? 'Live'
-      : liveness === 'reconnecting'
-        ? 'Reconnecting'
-        : 'Stale'
+    liveness === "live"
+      ? "Live"
+      : liveness === "reconnecting"
+        ? "Reconnecting"
+        : "Stale";
   const badgeStatus =
-    liveness === 'live'
-      ? 'success'
-      : liveness === 'reconnecting'
-        ? 'processing'
-        : 'warning'
+    liveness === "live"
+      ? "success"
+      : liveness === "reconnecting"
+        ? "processing"
+        : "warning";
 
-  return <Badge status={badgeStatus} text={label} />
+  return <Badge status={badgeStatus} text={label} />;
 }
 
 // Re-render on an interval so a snapshot ageing past the stale threshold is
 // noticed even while no new frame is arriving to trigger one.
 function useNow(intervalMs: number): number {
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), intervalMs)
-    return () => clearInterval(id)
-  }, [intervalMs])
-  return now
+    const id = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+  return now;
 }
 
 function ServerTiles({ server }: { server: BusServerInfo }) {
-  const errored = (field: string) => server.fieldErrors[field]
+  const errored = (field: string) => server.fieldErrors[field];
 
   const tiles: {
-    label: string
-    value: string
-    field?: string
-    series?: bigint[]
+    label: string;
+    value: string;
+    field?: string;
+    series?: bigint[];
   }[] = [
-    { label: 'Version', value: server.version || '—', field: 'version' },
+    { label: "Version", value: server.version || "—", field: "version" },
     {
-      label: 'Uptime',
+      label: "Uptime",
       value: formatDuration(Number(server.uptimeSeconds)),
-      field: 'uptime_seconds',
+      field: "uptime_seconds",
     },
     {
-      label: 'Connected clients',
+      label: "Connected clients",
       value: Number(server.connectedClients).toLocaleString(),
-      field: 'connected_clients',
+      field: "connected_clients",
       series: server.connectedClientsSeries,
     },
     {
-      label: 'Memory used',
+      label: "Memory used",
       value: server.usedMemoryHuman || formatBytes(Number(server.usedMemory)),
-      field: 'used_memory',
+      field: "used_memory",
       series: server.usedMemorySeries,
     },
     {
-      label: 'Ops / second',
+      label: "Ops / second",
       value: Number(server.opsPerSecond).toLocaleString(),
-      field: 'ops_per_second',
+      field: "ops_per_second",
       series: server.opsPerSecondSeries,
     },
     {
-      label: 'Keys',
+      label: "Keys",
       value: Number(server.totalKeys).toLocaleString(),
-      field: 'total_keys',
+      field: "total_keys",
       series: server.totalKeysSeries,
     },
-  ]
+  ];
 
   return (
     <AntRow gutter={[12, 12]}>
       {tiles.map((tile) => {
-        const error = tile.field ? errored(tile.field) : undefined
+        const error = tile.field ? errored(tile.field) : undefined;
         return (
           <Col key={tile.label} xs={12} sm={8} lg={4}>
             <div className="system-dashboard-tile">
               <div className="system-dashboard-tile-value">
-                {error ? '—' : tile.value}
+                {error ? "—" : tile.value}
               </div>
               <div className="system-dashboard-tile-label">{tile.label}</div>
               {error ? (
@@ -232,10 +232,10 @@ function ServerTiles({ server }: { server: BusServerInfo }) {
               ) : null}
             </div>
           </Col>
-        )
+        );
       })}
     </AntRow>
-  )
+  );
 }
 
 // MetricCell pairs a right-aligned numeric value with the inline sparkline of
@@ -246,16 +246,16 @@ function MetricCell({
   series,
   label,
 }: {
-  value: string
-  series: bigint[]
-  label: string
+  value: string;
+  series: bigint[];
+  label: string;
 }) {
   return (
     <span className="system-dashboard-metric">
       {value}
       <Sparkline values={series} title={label} />
     </span>
-  )
+  );
 }
 
 // ExpectedIdentities renders the processes a row's topology says should be
@@ -265,24 +265,24 @@ function ExpectedIdentities({
   identities,
   missing,
 }: {
-  identities: string[]
-  missing: string[]
+  identities: string[];
+  missing: string[];
 }) {
   if (identities.length === 0)
-    return <span className="system-dashboard-muted">—</span>
-  const missingSet = new Set(missing)
+    return <span className="system-dashboard-muted">—</span>;
+  const missingSet = new Set(missing);
   return (
     <span className="system-dashboard-identities">
       {identities.map((identity) => (
         <Tag
           key={identity}
-          color={missingSet.has(identity) ? 'error' : undefined}
+          color={missingSet.has(identity) ? "error" : undefined}
         >
           {identity}
         </Tag>
       ))}
     </span>
-  )
+  );
 }
 
 // FlaggedTag is the inline "something that should be here is not" marker shown
@@ -292,13 +292,13 @@ function FlaggedTag({ missing }: { missing: string[] }) {
     <Tooltip
       title={
         missing.length > 0
-          ? `Not attached: ${missing.join(', ')}`
-          : 'A process that should be attached is not.'
+          ? `Not attached: ${missing.join(", ")}`
+          : "A process that should be attached is not."
       }
     >
       <Tag color="warning">identity missing</Tag>
     </Tooltip>
-  )
+  );
 }
 
 // rollUp reduces a stream's consumer groups to the single line shown on the
@@ -316,20 +316,20 @@ function rollUp(groups: BusGroupStat[]) {
       ),
     }),
     { consumers: 0, pending: 0, lag: 0, oldestPendingAge: 0 },
-  )
+  );
 }
 
 // What a pending purge is aimed at: one stream, or every stream on the card.
 // The all-streams case keeps the full list so the modal can total their depth
 // and name how many it will touch.
 type PurgeTarget =
-  | { kind: 'one'; stream: BusStreamStat }
-  | { kind: 'all'; streams: BusStreamStat[] }
+  | { kind: "one"; stream: BusStreamStat }
+  | { kind: "all"; streams: BusStreamStat[] };
 
 // The fixed word an operator types to arm "purge all" — deliberately not any
 // one stream's name so it can't be reached by muscle memory from the
 // single-stream flow.
-const PURGE_ALL_WORD = 'PURGE ALL'
+const PURGE_ALL_WORD = "PURGE ALL";
 
 // StreamsCard wraps the streams table with its purge controls: a "purge all"
 // action on the card header and a per-row action inside the table, both
@@ -338,22 +338,22 @@ const PURGE_ALL_WORD = 'PURGE ALL'
 // are always present here — the server refuses the RPC for a read-only key
 // regardless (docs/adr/0007).
 function StreamsCard({ streams }: { streams: BusStreamStat[] }) {
-  const [target, setTarget] = useState<PurgeTarget | null>(null)
-  const purge = usePurgeStreams()
+  const [target, setTarget] = useState<PurgeTarget | null>(null);
+  const purge = usePurgeStreams();
 
   const close = () => {
-    setTarget(null)
-    purge.reset()
-  }
+    setTarget(null);
+    purge.reset();
+  };
 
   const confirm = () => {
-    if (!target) return
+    if (!target) return;
     const request =
-      target.kind === 'all'
+      target.kind === "all"
         ? ({ all: true } as const)
-        : ({ stream: target.stream.stream } as const)
-    purge.mutate(request, { onSuccess: close })
-  }
+        : ({ stream: target.stream.stream } as const);
+    purge.mutate(request, { onSuccess: close });
+  };
 
   return (
     <Card
@@ -364,7 +364,7 @@ function StreamsCard({ streams }: { streams: BusStreamStat[] }) {
           size="small"
           danger
           disabled={streams.length === 0}
-          onClick={() => setTarget({ kind: 'all', streams })}
+          onClick={() => setTarget({ kind: "all", streams })}
         >
           Purge all
         </Button>
@@ -372,11 +372,11 @@ function StreamsCard({ streams }: { streams: BusStreamStat[] }) {
     >
       <StreamsTable
         streams={streams}
-        onPurge={(stream) => setTarget({ kind: 'one', stream })}
+        onPurge={(stream) => setTarget({ kind: "one", stream })}
       />
       {target ? (
         <PurgeModal
-          key={target.kind === 'all' ? '*all*' : target.stream.stream}
+          key={target.kind === "all" ? "*all*" : target.stream.stream}
           target={target}
           pending={purge.isPending}
           error={purge.error}
@@ -385,7 +385,7 @@ function StreamsCard({ streams }: { streams: BusStreamStat[] }) {
         />
       ) : null}
     </Card>
-  )
+  );
 }
 
 // PurgeModal names the target and shows the depth it will drop, and keeps the
@@ -399,31 +399,31 @@ function PurgeModal({
   onCancel,
   onConfirm,
 }: {
-  target: PurgeTarget
-  pending: boolean
-  error: Error | null
-  onCancel: () => void
-  onConfirm: () => void
+  target: PurgeTarget;
+  pending: boolean;
+  error: Error | null;
+  onCancel: () => void;
+  onConfirm: () => void;
 }) {
-  const [typed, setTyped] = useState('')
+  const [typed, setTyped] = useState("");
 
-  const isAll = target.kind === 'all'
-  const requiredText = isAll ? PURGE_ALL_WORD : target.stream.stream
-  const armed = typed === requiredText
+  const isAll = target.kind === "all";
+  const requiredText = isAll ? PURGE_ALL_WORD : target.stream.stream;
+  const armed = typed === requiredText;
 
   // A stream that does not exist or could not be read has no depth to count,
   // and purge-all skips it server-side, so it does not add to the total.
   const purgeable = isAll
     ? target.streams.filter((s) => s.exists && !s.error)
-    : [target.stream]
-  const totalDepth = purgeable.reduce((sum, s) => sum + Number(s.length), 0)
-  const depthLabel = `${totalDepth.toLocaleString()} message${totalDepth === 1 ? '' : 's'}`
+    : [target.stream];
+  const totalDepth = purgeable.reduce((sum, s) => sum + Number(s.length), 0);
+  const depthLabel = `${totalDepth.toLocaleString()} message${totalDepth === 1 ? "" : "s"}`;
 
   return (
     <Modal
       open
-      title={isAll ? 'Purge all streams' : `Purge ${target.stream.stream}`}
-      okText={isAll ? 'Purge all streams' : 'Purge stream'}
+      title={isAll ? "Purge all streams" : `Purge ${target.stream.stream}`}
+      okText={isAll ? "Purge all streams" : "Purge stream"}
       okButtonProps={{
         danger: true,
         disabled: !armed || pending,
@@ -438,15 +438,15 @@ function PurgeModal({
       <p className="system-dashboard-purge-body">
         {isAll ? (
           <>
-            This drops <strong>{depthLabel}</strong> from{' '}
+            This drops <strong>{depthLabel}</strong> from{" "}
             <strong>
-              {purgeable.length} stream{purgeable.length === 1 ? '' : 's'}
+              {purgeable.length} stream{purgeable.length === 1 ? "" : "s"}
             </strong>
             . The consumer groups stay in place, fast-forwarded past the drop.
           </>
         ) : (
           <>
-            This drops <strong>{depthLabel}</strong> from{' '}
+            This drops <strong>{depthLabel}</strong> from{" "}
             <span className="system-dashboard-mono">
               {target.stream.stream}
             </span>
@@ -465,7 +465,7 @@ function PurgeModal({
           disabled={pending}
           onChange={(event) => setTyped(event.target.value)}
           onPressEnter={() => {
-            if (armed && !pending) onConfirm()
+            if (armed && !pending) onConfirm();
           }}
           aria-label="Purge confirmation"
         />
@@ -480,20 +480,20 @@ function PurgeModal({
         />
       ) : null}
     </Modal>
-  )
+  );
 }
 
 function StreamsTable({
   streams,
   onPurge,
 }: {
-  streams: BusStreamStat[]
-  onPurge: (stream: BusStreamStat) => void
+  streams: BusStreamStat[];
+  onPurge: (stream: BusStreamStat) => void;
 }) {
   const columns: ColumnsType<BusStreamStat> = [
     {
-      title: 'Stream',
-      dataIndex: 'stream',
+      title: "Stream",
+      dataIndex: "stream",
       render: (_, stream) => (
         <span className="system-dashboard-namecell">
           <span className="system-dashboard-mono">{stream.stream}</span>
@@ -504,7 +504,7 @@ function StreamsTable({
       ),
     },
     {
-      title: 'Expected',
+      title: "Expected",
       render: (_, stream) => (
         <ExpectedIdentities
           identities={stream.expectedIdentities}
@@ -513,18 +513,18 @@ function StreamsTable({
       ),
     },
     {
-      title: 'Depth',
-      align: 'right',
+      title: "Depth",
+      align: "right",
       render: (_, stream) => {
         if (stream.error) {
           return (
             <Tooltip title={stream.error}>
               <span className="system-dashboard-stream-error">unavailable</span>
             </Tooltip>
-          )
+          );
         }
         if (!stream.exists) {
-          return <Tag>not created yet</Tag>
+          return <Tag>not created yet</Tag>;
         }
         return (
           <MetricCell
@@ -532,7 +532,7 @@ function StreamsTable({
             series={stream.lengthSeries}
             label="Depth trend"
           />
-        )
+        );
       },
     },
     {
@@ -541,7 +541,7 @@ function StreamsTable({
           Publish rate
         </Tooltip>
       ),
-      align: 'right',
+      align: "right",
       render: (_, stream) =>
         stream.exists && !stream.error ? (
           <MetricCell
@@ -550,44 +550,44 @@ function StreamsTable({
             label="Publish rate trend"
           />
         ) : (
-          '—'
+          "—"
         ),
     },
     {
-      title: 'Consumers',
-      align: 'right',
+      title: "Consumers",
+      align: "right",
       render: (_, stream) =>
         stream.exists && !stream.error
           ? rollUp(stream.groups).consumers.toLocaleString()
-          : '—',
+          : "—",
     },
     {
-      title: 'Pending',
-      align: 'right',
+      title: "Pending",
+      align: "right",
       render: (_, stream) =>
         stream.exists && !stream.error
           ? rollUp(stream.groups).pending.toLocaleString()
-          : '—',
+          : "—",
     },
     {
-      title: 'Lag',
-      align: 'right',
+      title: "Lag",
+      align: "right",
       render: (_, stream) =>
         stream.exists && !stream.error
           ? rollUp(stream.groups).lag.toLocaleString()
-          : '—',
+          : "—",
     },
     {
-      title: 'Oldest pending',
-      align: 'right',
+      title: "Oldest pending",
+      align: "right",
       render: (_, stream) =>
         stream.exists && !stream.error
           ? formatDuration(rollUp(stream.groups).oldestPendingAge)
-          : '—',
+          : "—",
     },
     {
-      title: '',
-      align: 'right',
+      title: "",
+      align: "right",
       render: (_, stream) => (
         <Button
           size="small"
@@ -599,7 +599,7 @@ function StreamsTable({
         </Button>
       ),
     },
-  ]
+  ];
 
   return (
     <Table
@@ -613,30 +613,30 @@ function StreamsTable({
         expandedRowRender: (stream) => <GroupsTable groups={stream.groups} />,
       }}
       rowClassName={(stream) =>
-        stream.flagged ? 'system-dashboard-row-flagged' : ''
+        stream.flagged ? "system-dashboard-row-flagged" : ""
       }
-      locale={{ emptyText: 'No durable streams are registered.' }}
+      locale={{ emptyText: "No durable streams are registered." }}
     />
-  )
+  );
 }
 
 function GroupsTable({ groups }: { groups: BusGroupStat[] }) {
   const columns: ColumnsType<BusGroupStat> = [
     {
-      title: 'Consumer group',
-      dataIndex: 'name',
+      title: "Consumer group",
+      dataIndex: "name",
       render: (_, group) => (
         <span className="system-dashboard-mono">{group.name}</span>
       ),
     },
     {
-      title: 'Consumers',
-      align: 'right',
+      title: "Consumers",
+      align: "right",
       render: (_, group) => Number(group.consumers).toLocaleString(),
     },
     {
-      title: 'Pending',
-      align: 'right',
+      title: "Pending",
+      align: "right",
       render: (_, group) => (
         <MetricCell
           value={Number(group.pending).toLocaleString()}
@@ -646,8 +646,8 @@ function GroupsTable({ groups }: { groups: BusGroupStat[] }) {
       ),
     },
     {
-      title: 'Lag',
-      align: 'right',
+      title: "Lag",
+      align: "right",
       render: (_, group) => (
         <MetricCell
           value={Number(group.lag).toLocaleString()}
@@ -662,7 +662,7 @@ function GroupsTable({ groups }: { groups: BusGroupStat[] }) {
           Consume rate
         </Tooltip>
       ),
-      align: 'right',
+      align: "right",
       render: (_, group) => (
         <MetricCell
           value={Number(group.consumeRate).toLocaleString()}
@@ -672,21 +672,21 @@ function GroupsTable({ groups }: { groups: BusGroupStat[] }) {
       ),
     },
     {
-      title: 'Oldest pending',
-      align: 'right',
+      title: "Oldest pending",
+      align: "right",
       render: (_, group) =>
         formatDuration(Number(group.oldestPendingAgeSeconds)),
     },
     {
-      title: 'Last delivered',
-      align: 'right',
+      title: "Last delivered",
+      align: "right",
       render: (_, group) => (
         <span className="system-dashboard-mono">
-          {group.lastDeliveredId || '—'}
+          {group.lastDeliveredId || "—"}
         </span>
       ),
     },
-  ]
+  ];
 
   return (
     <Table
@@ -697,7 +697,7 @@ function GroupsTable({ groups }: { groups: BusGroupStat[] }) {
       dataSource={groups}
       className="system-dashboard-groups"
     />
-  )
+  );
 }
 
 // A declared channel is one on the application's fixed known-channel list or a
@@ -706,26 +706,26 @@ function GroupsTable({ groups }: { groups: BusGroupStat[] }) {
 // subscribed to it at that instant. The sampler sets `flagged` on a declared
 // channel whose live subscriber count is below what the topology expects.
 function channelIsFlagged(channel: BusChannelStat): boolean {
-  return channel.flagged
+  return channel.flagged;
 }
 
 function ChannelsTable({ channels }: { channels: BusChannelStat[] }) {
   const columns: ColumnsType<BusChannelStat> = [
     {
-      title: 'Channel',
-      dataIndex: 'channel',
+      title: "Channel",
+      dataIndex: "channel",
       render: (_, channel) => (
         <span className="system-dashboard-mono">{channel.channel}</span>
       ),
     },
     {
-      title: 'Type',
-      align: 'center',
+      title: "Type",
+      align: "center",
       render: (_, channel) =>
         channel.known ? <Tag>declared</Tag> : <Tag color="blue">transient</Tag>,
     },
     {
-      title: 'Expected',
+      title: "Expected",
       render: (_, channel) => (
         <ExpectedIdentities
           identities={channel.expectedIdentities}
@@ -734,15 +734,15 @@ function ChannelsTable({ channels }: { channels: BusChannelStat[] }) {
       ),
     },
     {
-      title: 'Subscribers',
-      align: 'right',
+      title: "Subscribers",
+      align: "right",
       render: (_, channel) =>
         channelIsFlagged(channel) ? (
           <Tooltip
             title={
               channel.missingIdentities.length > 0
-                ? `A declared channel missing a subscriber: ${channel.missingIdentities.join(', ')}`
-                : 'A declared channel with no subscriber — the listener that should be attached has dropped.'
+                ? `A declared channel missing a subscriber: ${channel.missingIdentities.join(", ")}`
+                : "A declared channel with no subscriber — the listener that should be attached has dropped."
             }
           >
             <Tag color="warning">no subscribers</Tag>
@@ -751,7 +751,7 @@ function ChannelsTable({ channels }: { channels: BusChannelStat[] }) {
           Number(channel.subscribers).toLocaleString()
         ),
     },
-  ]
+  ];
 
   return (
     <Table
@@ -761,34 +761,34 @@ function ChannelsTable({ channels }: { channels: BusChannelStat[] }) {
       columns={columns}
       dataSource={channels}
       rowClassName={(channel) =>
-        channelIsFlagged(channel) ? 'system-dashboard-row-flagged' : ''
+        channelIsFlagged(channel) ? "system-dashboard-row-flagged" : ""
       }
-      locale={{ emptyText: 'No Pub/Sub channels are declared or active.' }}
+      locale={{ emptyText: "No Pub/Sub channels are declared or active." }}
     />
-  )
+  );
 }
 
 // formatDuration renders a whole-second span as the largest unit that keeps
 // it a small number: an uptime of days, a pending age of minutes. Zero and
 // nonsense both read as an em dash.
 function formatDuration(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return '—'
-  if (seconds < 60) return `${seconds}s`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`
-  return `${Math.floor(seconds / 86400)}d`
+  if (!Number.isFinite(seconds) || seconds <= 0) return "—";
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+  return `${Math.floor(seconds / 86400)}d`;
 }
 
 function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return '—'
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  let value = bytes
-  let unit = 0
+  if (!Number.isFinite(bytes) || bytes <= 0) return "—";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = bytes;
+  let unit = 0;
   while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024
-    unit += 1
+    value /= 1024;
+    unit += 1;
   }
-  return `${value.toFixed(unit === 0 ? 0 : 1)}${units[unit]}`
+  return `${value.toFixed(unit === 0 ? 0 : 1)}${units[unit]}`;
 }
 
 export function SystemDashboardSidebar() {
@@ -819,5 +819,5 @@ export function SystemDashboardSidebar() {
         }
       />
     </div>
-  )
+  );
 }

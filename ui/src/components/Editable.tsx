@@ -1,8 +1,8 @@
-import { useEffect, useState, type ChangeEvent } from 'react'
-import { Form, Input, InputNumber, Select, Space } from 'antd'
+import { useEffect, useState, type ChangeEvent } from "react";
+import { Form, Input, InputNumber, Select, Space } from "antd";
 
-import { SaveIndicator } from './SaveState'
-import { useSaveState } from './useSaveState'
+import { SaveIndicator } from "./SaveState";
+import { useSaveState } from "./useSaveState";
 
 /*
  * Edit-in-place fields, each a genuine antd form control at all times rather
@@ -13,80 +13,82 @@ import { useSaveState } from './useSaveState'
  */
 
 type CommonProps = {
-  label: string
-  queryKey: readonly unknown[]
-  disabled?: boolean
-}
+  label: string;
+  queryKey: readonly unknown[];
+  disabled?: boolean;
+};
 
 export function EditableText({
   value,
   onSave,
   label,
   queryKey,
-  placeholder = 'Not set',
+  placeholder = "Not set",
   monospace = false,
   secret = false,
   multiline = false,
   validate,
   disabled,
 }: CommonProps & {
-  value: string
-  onSave: (next: string) => Promise<unknown>
-  placeholder?: string
-  monospace?: boolean
+  value: string;
+  onSave: (next: string) => Promise<unknown>;
+  placeholder?: string;
+  monospace?: boolean;
   // secret masks the value behind antd Input.Password's own reveal toggle.
   // The config API returns API keys in cleartext, so anything
   // credential-shaped is masked by default rather than sitting on screen for
   // whoever walks past.
-  secret?: boolean
-  multiline?: boolean
-  validate?: (next: string) => string | null
+  secret?: boolean;
+  multiline?: boolean;
+  validate?: (next: string) => string | null;
 }) {
   const { state, error, displayValue, save, dismissError } =
-    useSaveState<string>({ serverValue: value, queryKey })
+    useSaveState<string>({ serverValue: value, queryKey });
 
-  const [draft, setDraft] = useState(displayValue)
-  const [focused, setFocused] = useState(false)
-  const [validationError, setValidationError] = useState<string | null>(null)
+  const [draft, setDraft] = useState(displayValue);
+  const [focused, setFocused] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Kept in sync when the confirmed server value changes underneath an
   // untouched field (e.g. another tab wrote it) — but never while the user
-  // has the field open with unsaved keystrokes.
+  // has the field open with unsaved keystrokes. Reconciling external state
+  // into the draft is exactly what this effect is for.
   useEffect(() => {
-    if (!focused) setDraft(displayValue)
-  }, [displayValue, focused])
+    // eslint-disable-next-line @eslint-react/set-state-in-effect
+    if (!focused) setDraft(displayValue);
+  }, [displayValue, focused]);
 
   async function commit() {
-    const next = draft.trim()
-    if (next === displayValue) return
+    const next = draft.trim();
+    if (next === displayValue) return;
 
-    const problem = validate?.(next) ?? null
+    const problem = validate?.(next) ?? null;
     if (problem) {
-      setValidationError(problem)
-      return
+      setValidationError(problem);
+      return;
     }
-    setValidationError(null)
-    await save(next, () => onSave(next))
+    setValidationError(null);
+    await save(next, () => onSave(next));
   }
 
   function revert() {
-    setDraft(displayValue)
-    setValidationError(null)
+    setDraft(displayValue);
+    setValidationError(null);
   }
 
   const onChange = (
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => setDraft(event.target.value)
+  ) => setDraft(event.target.value);
 
-  const monospaceClass = monospace ? 'editable-field-mono' : ''
+  const monospaceClass = monospace ? "editable-field-mono" : "";
 
   return (
     <Form.Item
-      validateStatus={validationError ? 'error' : undefined}
+      validateStatus={validationError ? "error" : undefined}
       help={validationError ?? undefined}
       style={{ marginBottom: 0 }}
     >
-      <Space direction="vertical" size={2} style={{ width: '100%' }}>
+      <Space direction="vertical" size={2} style={{ width: "100%" }}>
         {multiline ? (
           <Input.TextArea
             aria-label={label}
@@ -98,11 +100,11 @@ export function EditableText({
             onChange={onChange}
             onFocus={() => setFocused(true)}
             onBlur={() => {
-              setFocused(false)
-              void commit()
+              setFocused(false);
+              void commit();
             }}
             onKeyDown={(event) => {
-              if (event.key === 'Escape') revert()
+              if (event.key === "Escape") revert();
             }}
           />
         ) : secret ? (
@@ -115,12 +117,12 @@ export function EditableText({
             onChange={onChange}
             onFocus={() => setFocused(true)}
             onBlur={() => {
-              setFocused(false)
-              void commit()
+              setFocused(false);
+              void commit();
             }}
             onPressEnter={() => void commit()}
             onKeyDown={(event) => {
-              if (event.key === 'Escape') revert()
+              if (event.key === "Escape") revert();
             }}
           />
         ) : (
@@ -133,12 +135,12 @@ export function EditableText({
             onChange={onChange}
             onFocus={() => setFocused(true)}
             onBlur={() => {
-              setFocused(false)
-              void commit()
+              setFocused(false);
+              void commit();
             }}
             onPressEnter={() => void commit()}
             onKeyDown={(event) => {
-              if (event.key === 'Escape') revert()
+              if (event.key === "Escape") revert();
             }}
           />
         )}
@@ -149,7 +151,7 @@ export function EditableText({
         />
       </Space>
     </Form.Item>
-  )
+  );
 }
 
 export function EditableNumber({
@@ -161,44 +163,47 @@ export function EditableNumber({
   disabled,
   validate,
 }: CommonProps & {
-  value: number
-  onSave: (next: number) => Promise<unknown>
-  min?: number
-  validate?: (next: number) => string | null
+  value: number;
+  onSave: (next: number) => Promise<unknown>;
+  min?: number;
+  validate?: (next: number) => string | null;
 }) {
   const { state, error, displayValue, save, dismissError } =
-    useSaveState<number>({ serverValue: value, queryKey })
+    useSaveState<number>({ serverValue: value, queryKey });
 
-  const [draft, setDraft] = useState<number>(displayValue)
-  const [focused, setFocused] = useState(false)
-  const [validationError, setValidationError] = useState<string | null>(null)
+  const [draft, setDraft] = useState<number>(displayValue);
+  const [focused, setFocused] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
+  // Same external-state reconciliation as EditableText above: adopt a new
+  // server value only while the field is untouched.
   useEffect(() => {
-    if (!focused) setDraft(displayValue)
-  }, [displayValue, focused])
+    // eslint-disable-next-line @eslint-react/set-state-in-effect
+    if (!focused) setDraft(displayValue);
+  }, [displayValue, focused]);
 
   async function commit() {
     if (!Number.isFinite(draft) || !Number.isInteger(draft)) {
-      setValidationError('Must be a whole number')
-      return
+      setValidationError("Must be a whole number");
+      return;
     }
     if (min !== undefined && draft < min) {
-      setValidationError(`Must be ${min} or more`)
-      return
+      setValidationError(`Must be ${min} or more`);
+      return;
     }
-    const problem = validate?.(draft) ?? null
+    const problem = validate?.(draft) ?? null;
     if (problem) {
-      setValidationError(problem)
-      return
+      setValidationError(problem);
+      return;
     }
-    setValidationError(null)
-    if (draft === displayValue) return
-    await save(draft, () => onSave(draft))
+    setValidationError(null);
+    if (draft === displayValue) return;
+    await save(draft, () => onSave(draft));
   }
 
   return (
     <Form.Item
-      validateStatus={validationError ? 'error' : undefined}
+      validateStatus={validationError ? "error" : undefined}
       help={validationError ?? undefined}
       style={{ marginBottom: 0 }}
     >
@@ -211,14 +216,14 @@ export function EditableNumber({
           onChange={(next) => setDraft(next ?? 0)}
           onFocus={() => setFocused(true)}
           onBlur={() => {
-            setFocused(false)
-            void commit()
+            setFocused(false);
+            void commit();
           }}
           onPressEnter={() => void commit()}
           onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              setDraft(displayValue)
-              setValidationError(null)
+            if (event.key === "Escape") {
+              setDraft(displayValue);
+              setValidationError(null);
             }
           }}
         />
@@ -229,7 +234,7 @@ export function EditableNumber({
         />
       </Space>
     </Form.Item>
-  )
+  );
 }
 
 export function EditableSelect({
@@ -240,18 +245,18 @@ export function EditableSelect({
   queryKey,
   disabled,
 }: CommonProps & {
-  value: string
-  options: readonly string[]
-  onSave: (next: string) => Promise<unknown>
+  value: string;
+  options: readonly string[];
+  onSave: (next: string) => Promise<unknown>;
 }) {
   const { state, error, displayValue, save, dismissError } =
-    useSaveState<string>({ serverValue: value, queryKey })
+    useSaveState<string>({ serverValue: value, queryKey });
 
   // A stored value outside the vocabulary still has to be selectable, or the
   // select would silently rewrite it on the next save.
   const selectOptions = options.includes(displayValue)
     ? options
-    : [displayValue, ...options]
+    : [displayValue, ...options];
 
   return (
     <Form.Item style={{ marginBottom: 0 }}>
@@ -263,11 +268,11 @@ export function EditableSelect({
           style={{ minWidth: 160 }}
           options={selectOptions.map((option) => ({
             value: option,
-            label: option || '—',
+            label: option || "—",
           }))}
           onChange={(next) => {
             if (next !== displayValue) {
-              void save(next, () => onSave(next))
+              void save(next, () => onSave(next));
             }
           }}
         />
@@ -278,5 +283,5 @@ export function EditableSelect({
         />
       </Space>
     </Form.Item>
-  )
+  );
 }

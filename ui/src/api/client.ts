@@ -6,32 +6,32 @@
  * isn't called from the frontend).
  */
 
-const sessionStorageKey = 'metarr.apiKey'
+const sessionStorageKey = "metarr.apiKey";
 
 // The key lives in memory for the session and is mirrored to sessionStorage so
 // a page reload does not force a new login. sessionStorage rather than
 // localStorage: the key is a session credential and should not outlive the tab.
-let apiKey: string | null = readStoredKey()
+let apiKey: string | null = readStoredKey();
 
 function readStoredKey(): string | null {
   try {
-    return sessionStorage.getItem(sessionStorageKey)
+    return sessionStorage.getItem(sessionStorageKey);
   } catch {
-    return null
+    return null;
   }
 }
 
 export function getApiKey(): string | null {
-  return apiKey
+  return apiKey;
 }
 
 export function setApiKey(key: string | null): void {
-  apiKey = key
+  apiKey = key;
   try {
     if (key) {
-      sessionStorage.setItem(sessionStorageKey, key)
+      sessionStorage.setItem(sessionStorageKey, key);
     } else {
-      sessionStorage.removeItem(sessionStorageKey)
+      sessionStorage.removeItem(sessionStorageKey);
     }
   } catch {
     // Storage refused; the key still works for this page's lifetime.
@@ -41,16 +41,16 @@ export function setApiKey(key: string | null): void {
 // unauthorizedHandlers lets the auth layer react to a key going stale mid-
 // session — any Code.Unauthenticated response, not just the next explicit
 // auth call.
-const unauthorizedHandlers = new Set<() => void>()
+const unauthorizedHandlers = new Set<() => void>();
 
 export function onUnauthorized(handler: () => void): () => void {
-  unauthorizedHandlers.add(handler)
-  return () => unauthorizedHandlers.delete(handler)
+  unauthorizedHandlers.add(handler);
+  return () => unauthorizedHandlers.delete(handler);
 }
 
 // Fires every registered onUnauthorized handler. transport.ts's Connect
 // interceptor calls this on a Code.Unauthenticated error (see
 // AuthContext.tsx's onUnauthorized(clearSession)).
 export function notifyUnauthorized(): void {
-  unauthorizedHandlers.forEach((handler) => handler())
+  unauthorizedHandlers.forEach((handler) => handler());
 }

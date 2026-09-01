@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Input, Space, Tag } from 'antd'
+import { useState } from "react";
+import { Input, Space, Tag } from "antd";
 
 /*
  * A plain controlled multi-value input, visually modeled on
@@ -12,16 +12,16 @@ export function TagsInput({
   value,
   onChange,
 }: {
-  value: string[]
-  onChange: (next: string[]) => void
+  value: string[];
+  onChange: (next: string[]) => void;
 }) {
-  const [draft, setDraft] = useState('')
+  const [draft, setDraft] = useState("");
 
   function add() {
-    const tag = draft.trim()
-    setDraft('')
+    const tag = draft.trim();
+    setDraft("");
     if (tag && !value.includes(tag)) {
-      onChange([...value, tag])
+      onChange([...value, tag]);
     }
   }
 
@@ -32,8 +32,8 @@ export function TagsInput({
           key={tag}
           closable
           onClose={(event) => {
-            event.preventDefault()
-            onChange(value.filter((t) => t !== tag))
+            event.preventDefault();
+            onChange(value.filter((t) => t !== tag));
           }}
         >
           {tag}
@@ -48,21 +48,21 @@ export function TagsInput({
         variant="borderless"
         style={{
           width: 112,
-          borderStyle: 'dashed',
+          borderStyle: "dashed",
           borderWidth: 1,
-          borderColor: 'var(--surface-edge-strong)',
+          borderColor: "var(--surface-edge-strong)",
         }}
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault()
-            add()
+          if (event.key === "Enter") {
+            event.preventDefault();
+            add();
           }
         }}
         onBlur={() => {
-          if (draft.trim()) add()
+          if (draft.trim()) add();
         }}
       />
     </Space>
-  )
+  );
 }

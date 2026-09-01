@@ -1,15 +1,15 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { Layout, Space, Typography } from 'antd'
+import { useEffect, useState, type ReactNode } from "react";
+import { Layout, Space, Typography } from "antd";
 
-import { HoverPinPanel } from './HoverPinPanel'
-import { NavColumn } from './NavColumn'
-import { Sidebar } from './Sidebar'
-import './AppShell.css'
+import { HoverPinPanel } from "./HoverPinPanel";
+import { NavColumn } from "./NavColumn";
+import { Sidebar } from "./Sidebar";
+import "./AppShell.css";
 
 // Persisted across sessions — pinning a panel open is a standing preference,
 // not something to re-choose every time the app loads.
-const NAV_PINNED_KEY = 'metarr.nav.pinned'
-const PANEL_PINNED_KEY = 'metarr.panel.pinned'
+const NAV_PINNED_KEY = "metarr.nav.pinned";
+const PANEL_PINNED_KEY = "metarr.panel.pinned";
 
 // The whole app is one centre panel: no header, no footer. The left nav and
 // right panel hide to a thin strip and reveal on hover (or tap, for touch),
@@ -19,23 +19,23 @@ export function AppShell({
   children,
   sidebar,
 }: {
-  children: ReactNode
-  sidebar?: ReactNode
+  children: ReactNode;
+  sidebar?: ReactNode;
 }) {
   const [navPinned, setNavPinned] = useState(
-    () => localStorage.getItem(NAV_PINNED_KEY) === 'true',
-  )
+    () => localStorage.getItem(NAV_PINNED_KEY) === "true",
+  );
   const [panelPinned, setPanelPinned] = useState(
-    () => localStorage.getItem(PANEL_PINNED_KEY) === 'true',
-  )
+    () => localStorage.getItem(PANEL_PINNED_KEY) === "true",
+  );
 
   useEffect(() => {
-    localStorage.setItem(NAV_PINNED_KEY, String(navPinned))
-  }, [navPinned])
+    localStorage.setItem(NAV_PINNED_KEY, String(navPinned));
+  }, [navPinned]);
 
   useEffect(() => {
-    localStorage.setItem(PANEL_PINNED_KEY, String(panelPinned))
-  }, [panelPinned])
+    localStorage.setItem(PANEL_PINNED_KEY, String(panelPinned));
+  }, [panelPinned]);
 
   return (
     <Layout className="app-shell">
@@ -57,7 +57,7 @@ export function AppShell({
         </Sidebar>
       </HoverPinPanel>
     </Layout>
-  )
+  );
 }
 
 // PageHeader is the top of the centre column, kept here so every page
@@ -67,9 +67,9 @@ export function PageHeader({
   description,
   actions,
 }: {
-  title: string
-  description?: string
-  actions?: ReactNode
+  title: string;
+  description?: string;
+  actions?: ReactNode;
 }) {
   return (
     <div className="app-page-header">
@@ -88,5 +88,5 @@ export function PageHeader({
       </div>
       {actions ? <Space>{actions}</Space> : null}
     </div>
-  )
+  );
 }

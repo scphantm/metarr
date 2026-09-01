@@ -1,8 +1,8 @@
-import type { ReactNode } from 'react'
-import { Alert, Card, Col, Row, Typography } from 'antd'
+import type { ReactNode } from "react";
+import { Alert, Card, Col, Row, Typography } from "antd";
 
-import { PageHeader } from '../../layout/AppShell'
-import './ExternalToolsPage.css'
+import { PageHeader } from "../../layout/AppShell";
+import "./ExternalToolsPage.css";
 
 /*
  * System > External Tools.
@@ -20,60 +20,60 @@ import './ExternalToolsPage.css'
  */
 
 type Tool = {
-  name: string
-  href: string
-  description: string
-  credential: string
-  icon: ReactNode
-  color: string
-}
+  name: string;
+  href: string;
+  description: string;
+  credential: string;
+  icon: ReactNode;
+  color: string;
+};
 
 function tools(hostname: string): Tool[] {
   return [
     {
-      name: 'Mongo Express',
+      name: "Mongo Express",
       href: `http://${hostname}:6969/`,
       description:
-        'Browse the MongoDB database directly — collections, documents, indexes.',
+        "Browse the MongoDB database directly — collections, documents, indexes.",
       credential:
-        'Sign in with MONGO_EXPRESS_USERNAME / MONGO_EXPRESS_PASSWORD from .env (default admin / admin). It arrives already connected to MongoDB.',
+        "Sign in with MONGO_EXPRESS_USERNAME / MONGO_EXPRESS_PASSWORD from .env (default admin / admin). It arrives already connected to MongoDB.",
       icon: <MongoIcon />,
-      color: '#00684A',
+      color: "#00684A",
     },
     {
-      name: 'OpenObserve',
+      name: "OpenObserve",
       href: `http://${hostname}:5080/`,
       description:
-        'Search and filter the centralized log stream from every process.',
+        "Search and filter the centralized log stream from every process.",
       credential:
-        'Sign in with OPENOBSERVE_ROOT_EMAIL / OPENOBSERVE_ROOT_PASSWORD from .env.',
+        "Sign in with OPENOBSERVE_ROOT_EMAIL / OPENOBSERVE_ROOT_PASSWORD from .env.",
       icon: <OpenObserveIcon />,
-      color: '#5960F2',
+      color: "#5960F2",
     },
     {
-      name: 'Redis Insight',
+      name: "Redis Insight",
       href: `http://${hostname}:5540/`,
       description:
-        'Inspect keys, streams, and Pub/Sub channels on the Redis instance.',
+        "Inspect keys, streams, and Pub/Sub channels on the Redis instance.",
       credential:
-        'Pre-connects to Redis automatically using REDIS_PASSWORD from .env — nothing to enter.',
+        "Pre-connects to Redis automatically using REDIS_PASSWORD from .env — nothing to enter.",
       icon: <RedisIcon />,
-      color: '#DC382D',
+      color: "#DC382D",
     },
     {
-      name: 'Swagger',
+      name: "Swagger",
       href: `http://${hostname}:8080/swagger/index.html`,
       description: "The API's own interactive documentation.",
       credential:
-        'Click Authorize and paste an API key from System > Security.',
+        "Click Authorize and paste an API key from System > Security.",
       icon: <SwaggerIcon />,
-      color: '#85C742',
+      color: "#85C742",
     },
-  ]
+  ];
 }
 
 export function ExternalToolsPage() {
-  const cards = tools(window.location.hostname)
+  const cards = tools(window.location.hostname);
 
   return (
     <>
@@ -131,7 +131,7 @@ export function ExternalToolsPage() {
         </Row>
       </div>
     </>
-  )
+  );
 }
 
 // Small brand-colored marks rather than fetched logo assets — recognizable at
@@ -158,7 +158,7 @@ function MongoIcon() {
         strokeLinecap="round"
       />
     </svg>
-  )
+  );
 }
 
 function RedisIcon() {
@@ -184,7 +184,7 @@ function RedisIcon() {
         fill="none"
       />
     </svg>
-  )
+  );
 }
 
 function OpenObserveIcon() {
@@ -206,7 +206,7 @@ function OpenObserveIcon() {
         fill="currentColor"
       />
     </svg>
-  )
+  );
 }
 
 function SwaggerIcon() {
@@ -226,7 +226,7 @@ function SwaggerIcon() {
         fill="none"
       />
     </svg>
-  )
+  );
 }
 
 export function ExternalToolsSidebar() {
@@ -252,5 +252,5 @@ export function ExternalToolsSidebar() {
         }
       />
     </div>
-  )
+  );
 }

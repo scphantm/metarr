@@ -1,7 +1,7 @@
-import { useReactFlow, type Node, type NodeProps } from '@xyflow/react'
+import { useReactFlow, type Node, type NodeProps } from "@xyflow/react";
 
-import type { CatalogNodeData } from '../../editorNodeData'
-import './NotesNode.css'
+import type { CatalogNodeData } from "../../editorNodeData";
+import "./NotesNode.css";
 
 /*
  * core/note declares zero ports in the catalog — notes are stripped before
@@ -15,9 +15,9 @@ import './NotesNode.css'
  * annotation now, not a node other nodes wire through.
  */
 export function NotesNode({ id, data }: NodeProps<Node<CatalogNodeData>>) {
-  const { updateNodeData } = useReactFlow()
+  const { updateNodeData } = useReactFlow();
   const notes =
-    typeof data.settings.notes === 'string' ? data.settings.notes : ''
+    typeof data.settings.notes === "string" ? data.settings.notes : "";
 
   return (
     <div className="notes-node">
@@ -34,5 +34,5 @@ export function NotesNode({ id, data }: NodeProps<Node<CatalogNodeData>>) {
         className="nodrag notes-node-textarea"
       />
     </div>
-  )
+  );
 }

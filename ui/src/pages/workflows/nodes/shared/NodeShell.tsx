@@ -1,31 +1,31 @@
-import { useState, type CSSProperties } from 'react'
-import { Handle, Position, useReactFlow } from '@xyflow/react'
+import { useState, type CSSProperties } from "react";
+import { Handle, Position, useReactFlow } from "@xyflow/react";
 
-import { WorkflowEffects } from '../../../../gen/metarr/v1/workflow_catalog_pb'
+import { WorkflowEffects } from "../../../../gen/metarr/v1/workflow_catalog_pb";
 import {
   iconClassForControlPort,
   iconClassForType,
-} from '../../../../lib/typeIcons'
-import { controlHandleId } from '../../connectionRules'
-import { useCatalogEntry } from '../../useCatalogEntry'
-import { useIconZoomVisibility } from '../../useIconZoomVisibility'
-import type { CatalogNodeData } from '../../editorNodeData'
-import { EditIcon } from './EditIcon'
-import { NodeSettingsEditor } from './NodeSettingsEditor'
+} from "../../../../lib/typeIcons";
+import { controlHandleId } from "../../connectionRules";
+import { useCatalogEntry } from "../../useCatalogEntry";
+import { useIconZoomVisibility } from "../../useIconZoomVisibility";
+import type { CatalogNodeData } from "../../editorNodeData";
+import { EditIcon } from "./EditIcon";
+import { NodeSettingsEditor } from "./NodeSettingsEditor";
 import {
   accentTintClassForAccent,
   hoverBorderColorClassForAccent,
   nodeVisual,
   shapeColorClassForAccent,
   type Accent,
-} from './nodeVisual'
+} from "./nodeVisual";
 import {
   errorHandleTitle,
   handleOffset,
   useNodeHandles,
   type ArrangedHandles,
-} from './useNodeHandles'
-import './NodeShell.css'
+} from "./useNodeHandles";
+import "./NodeShell.css";
 
 /*
  * The common chrome every catalog-driven node is built on: a transparent,
@@ -49,7 +49,7 @@ import './NodeShell.css'
 // control-edge color, so a control socket and the wire it connects to read
 // as one visual family. The error control port is styled separately, below
 // (red, matching ControlEdge.tsx's error-branch color).
-const controlHandleClass = 'node-handle-control'
+const controlHandleClass = "node-handle-control";
 
 // Orange, matching DataEdge.tsx's data-edge-path color, same reasoning as
 // controlHandleClass above. Flat rather than colored per type
@@ -80,9 +80,9 @@ const controlHandleClass = 'node-handle-control'
 // default, since a library default silently changing shape out from under
 // us would be easy to miss: square/rounded whenever the icon mask is
 // visible, circular only when zoomed out and there's no icon to protect.
-const dataHandleClass = 'node-handle-data'
-const dataHandleIconShape = 'is-icon-shape'
-const dataHandleDotShape = 'is-dot-shape'
+const dataHandleClass = "node-handle-data";
+const dataHandleIconShape = "is-icon-shape";
+const dataHandleDotShape = "is-dot-shape";
 
 // A data handle's flat color (dataHandleClass) and, when its type has one
 // registered, an icon mask on top (iconClassForType) — see lib/typeIcons.ts.
@@ -91,18 +91,18 @@ const dataHandleDotShape = 'is-dot-shape'
 // only shows at maximum zoom, leaving just the plain color dot otherwise;
 // see that hook's comment for why.
 function dataHandleAppearance(type: string, showIcon: boolean): string {
-  const shape = showIcon ? dataHandleIconShape : dataHandleDotShape
-  return `${dataHandleClass} ${shape} ${showIcon ? (iconClassForType(type) ?? '') : ''}`.trim()
+  const shape = showIcon ? dataHandleIconShape : dataHandleDotShape;
+  return `${dataHandleClass} ${shape} ${showIcon ? (iconClassForType(type) ?? "") : ""}`.trim();
 }
 
 // Same pattern as dataHandleAppearance, but for a control port — keyed by
 // port name (iconClassForControlPort) rather than data Type. A port name
 // with no icon composes to just controlHandleClass, unchanged.
 function controlHandleAppearance(port: string, showIcon: boolean): string {
-  return `${controlHandleClass} ${showIcon ? (iconClassForControlPort(port) ?? '') : ''}`.trim()
+  return `${controlHandleClass} ${showIcon ? (iconClassForControlPort(port) ?? "") : ""}`.trim();
 }
 
-const SHAPE_BOX_SIZE: CSSProperties = { width: 80, height: 52 }
+const SHAPE_BOX_SIZE: CSSProperties = { width: 80, height: 52 };
 
 export function NodeShell({
   id,
@@ -110,36 +110,36 @@ export function NodeShell({
   typeKey,
   handles: handlesOverride,
 }: {
-  id: string
-  data: CatalogNodeData
-  typeKey: string
+  id: string;
+  data: CatalogNodeData;
+  typeKey: string;
   // Pre-arranged handles to render instead of the catalog's full set — used
   // by node types whose visible port count depends on their own settings
   // rather than being fixed by the catalog alone (Parallel, Join; see
   // nodes/shared/branchPorts.ts).
-  handles?: ArrangedHandles
+  handles?: ArrangedHandles;
 }) {
-  const { updateNodeData } = useReactFlow()
-  const [editing, setEditing] = useState(false)
-  const nodeType = useCatalogEntry(data.catalogId, typeKey)
-  const catalogHandles = useNodeHandles(nodeType)
-  const handles = handlesOverride ?? catalogHandles
-  const showSmallIcons = useIconZoomVisibility()
+  const { updateNodeData } = useReactFlow();
+  const [editing, setEditing] = useState(false);
+  const nodeType = useCatalogEntry(data.catalogId, typeKey);
+  const catalogHandles = useNodeHandles(nodeType);
+  const handles = handlesOverride ?? catalogHandles;
+  const showSmallIcons = useIconZoomVisibility();
 
   if (!nodeType) {
     // The catalog hasn't loaded yet, or (should not happen if
     // nodes/registry.ts is generated from the same catalog) this type has
     // vanished from it since the page loaded.
-    return <div className="node-shell-fallback">{typeKey}</div>
+    return <div className="node-shell-fallback">{typeKey}</div>;
   }
 
-  const label = data.label ?? nodeType.name
-  const settings = nodeType.settings
+  const label = data.label ?? nodeType.name;
+  const settings = nodeType.settings;
   // Every non-readonly node is editable now, not just ones with catalog
   // settings — color is a per-instance property of the node, not the node
   // type, so even a settings-less node (e.g. core/collect) still needs a
   // way to reach NodeSettingsEditor's color picker.
-  const canEdit = !data.readOnly
+  const canEdit = !data.readOnly;
   // The node's declared visual identity — shape, shape-fill accent, border
   // accent — resolved from its catalog type alone (see nodeVisual.ts), one
   // explicit entry per type, nothing shared or derived. Shape color and
@@ -147,10 +147,10 @@ export function NodeShell({
   // per-instance override (data.shapeColor / data.borderColor, set via
   // NodeSettingsEditor) — overriding one never touches the other or the
   // node's shape.
-  const visual = nodeVisual(nodeType.type)
+  const visual = nodeVisual(nodeType.type);
   const shapeAccent =
-    (data.shapeColor as Accent | undefined) ?? visual.shapeAccent
-  const shapeColorClass = shapeColorClassForAccent(shapeAccent)
+    (data.shapeColor as Accent | undefined) ?? visual.shapeAccent;
+  const shapeColorClass = shapeColorClassForAccent(shapeAccent);
   // The border sits at a neutral base02 at rest and only reveals a
   // 40%-opacity tint of an accent on hover — data.borderColor, when set, is
   // what that hover accent is (still an independent per-instance override),
@@ -158,8 +158,8 @@ export function NodeShell({
   // reveals its shape color.
   const hoverBorderClass = hoverBorderColorClassForAccent(
     (data.borderColor as Accent | undefined) ?? shapeAccent,
-  )
-  const quadrantColors = data.quadrantColors ?? []
+  );
+  const quadrantColors = data.quadrantColors ?? [];
 
   return (
     <div className={`node-shell ${hoverBorderClass}`}>
@@ -171,9 +171,9 @@ export function NodeShell({
           position={Position.Top}
           style={{ left: handleOffset(index, handles.top.length) }}
           className={
-            handle.kind === 'control'
+            handle.kind === "control"
               ? controlHandleAppearance(handle.label, showSmallIcons)
-              : dataHandleAppearance(handle.type ?? 'any', showSmallIcons)
+              : dataHandleAppearance(handle.type ?? "any", showSmallIcons)
           }
           title={handle.title}
         />
@@ -186,19 +186,19 @@ export function NodeShell({
           position={Position.Bottom}
           style={{ left: handleOffset(index, handles.bottom.length) }}
           className={
-            handle.kind === 'control'
+            handle.kind === "control"
               ? controlHandleAppearance(handle.label, showSmallIcons)
-              : dataHandleAppearance(handle.type ?? 'any', showSmallIcons)
+              : dataHandleAppearance(handle.type ?? "any", showSmallIcons)
           }
           title={handle.title}
         />
       ))}
       {handles.hasError ? (
         <Handle
-          id={controlHandleId('error')}
+          id={controlHandleId("error")}
           type="source"
           position={Position.Right}
-          className={`node-handle-error ${showSmallIcons ? (iconClassForControlPort('error') ?? '') : ''}`.trim()}
+          className={`node-handle-error ${showSmallIcons ? (iconClassForControlPort("error") ?? "") : ""}`.trim()}
           title={errorHandleTitle}
         />
       ) : null}
@@ -218,24 +218,24 @@ export function NodeShell({
          * for the shape, edit button, or the box's own title tooltip.
          */}
         <div
-          className={`node-shell-quadrant top-left ${quadrantColors[0] ? accentTintClassForAccent(quadrantColors[0] as Accent, 40) : ''}`}
+          className={`node-shell-quadrant top-left ${quadrantColors[0] ? accentTintClassForAccent(quadrantColors[0] as Accent, 40) : ""}`}
         />
         <div
-          className={`node-shell-quadrant top-right ${quadrantColors[1] ? accentTintClassForAccent(quadrantColors[1] as Accent, 40) : ''}`}
+          className={`node-shell-quadrant top-right ${quadrantColors[1] ? accentTintClassForAccent(quadrantColors[1] as Accent, 40) : ""}`}
         />
         <div
-          className={`node-shell-quadrant bottom-left ${quadrantColors[2] ? accentTintClassForAccent(quadrantColors[2] as Accent, 40) : ''}`}
+          className={`node-shell-quadrant bottom-left ${quadrantColors[2] ? accentTintClassForAccent(quadrantColors[2] as Accent, 40) : ""}`}
         />
         <div
-          className={`node-shell-quadrant bottom-right ${quadrantColors[3] ? accentTintClassForAccent(quadrantColors[3] as Accent, 40) : ''}`}
+          className={`node-shell-quadrant bottom-right ${quadrantColors[3] ? accentTintClassForAccent(quadrantColors[3] as Accent, 40) : ""}`}
         />
         {visual.shapeIsIcon ? (
           <div
-            className={`shape-icon ${visual.shapeClassName} ${visual.shapeExtraClassName ?? ''}`}
+            className={`shape-icon ${visual.shapeClassName} ${visual.shapeExtraClassName ?? ""}`}
           />
         ) : (
           <div
-            className={`shape ${visual.shapeClassName} ${visual.shapeExtraClassName ?? ''}`}
+            className={`shape ${visual.shapeClassName} ${visual.shapeExtraClassName ?? ""}`}
           />
         )}
         <div className="node-shell-label-wrap">
@@ -269,12 +269,12 @@ export function NodeShell({
           shapeColor={data.shapeColor}
           borderColor={data.borderColor}
           onSave={(next) => {
-            updateNodeData(id, next)
-            setEditing(false)
+            updateNodeData(id, next);
+            setEditing(false);
           }}
           onCancel={() => setEditing(false)}
         />
       ) : null}
     </div>
-  )
+  );
 }
