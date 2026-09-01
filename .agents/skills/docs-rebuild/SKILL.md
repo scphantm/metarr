@@ -5,7 +5,7 @@ Metarr's documentation is built with Antora from AsciiDoc sources under `documen
 ## Setup (one-time only)
 
 ```bash
-make docs_initialize
+make docs-initialize
 ```
 
 Downloads Node dependencies and the UI theme bundle. Only needed once, or after deleting `node_modules/` or `documentation-theme/`.
@@ -13,7 +13,7 @@ Downloads Node dependencies and the UI theme bundle. Only needed once, or after 
 ## Build
 
 ```bash
-make docs_build
+make docs-build
 ```
 
 Regenerates all HTML from `documentation/modules/*/pages/*.adoc`, including xref resolution across modules. Fast (~3–5s on a warm build). Antora reports warnings (e.g., stale xrefs) but does not fail on them.
@@ -21,7 +21,7 @@ Regenerates all HTML from `documentation/modules/*/pages/*.adoc`, including xref
 ## Clean + rebuild (force fresh)
 
 ```bash
-rm -rf build/site && make docs_build
+rm -rf build/site && make docs-build
 ```
 
 Useful after:
@@ -29,11 +29,11 @@ Useful after:
 - Switching between branches with incompatible doc structure
 - Debugging a suspected cache corruption in Antora's intermediate state
 
-A plain `make docs_build` (without the `rm`) is sufficient for regular edits — Antora re-renders pages incrementally.
+A plain `make docs-build` (without the `rm`) is sufficient for regular edits — Antora re-renders pages incrementally.
 
 ## Verify the build
 
-After running `make docs_build`, check:
+After running `make docs-build`, check:
 - Exit code is 0 (no fatal errors)
 - No `"level":"error"` or `"level":"fatal"` lines in the output
 - `build/site/index.html` exists

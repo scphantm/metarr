@@ -6,7 +6,7 @@ Media collection metadata management system.
 
 **[📖 Read the full documentation](https://scphantm.github.io/metarr/)** — built and published automatically to GitHub Pages.
 
-For a local build: Full documentation — growing into the complete user manual — lives in [`documentation/`](documentation/), built with [Antora](https://antora.org/) from AsciiDoc. Run `make docs_initialize` once, then `make docs_build`, and open `build/site/index.html`.
+For a local build: Full documentation — growing into the complete user manual — lives in [`documentation/`](documentation/), built with [Antora](https://antora.org/) from AsciiDoc. Run `make docs-initialize` once, then `make docs-build`, and open `build/site/index.html`.
 
 ## Why Metarr
 
@@ -113,7 +113,7 @@ graph, not by convention — see [Architecture](documentation/modules/ROOT/pages
 ## Documentation
 
 The pages below live in [`documentation/`](documentation/) and build into a
-searchable site with `make docs_build`.
+searchable site with `make docs-build`.
 
 | Page | What it covers |
 | --- | --- |

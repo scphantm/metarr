@@ -61,8 +61,12 @@ func (b *StreamBus) Publish(ctx context.Context, topic StreamTopic, event *Event
 	return b.publisher.Publish(topic.Name, msg)
 }
 
-// Close releases the underlying publisher. The shared Redis client is not
-// closed here — its owner does that.
+// Close releases resources owned by this bus. The watermill-redisstream
+// publisher's only resource is the Redis client, and that client is shared
+// and owned by whoever constructed this bus — not by the bus. Delegating to
+// publisher.Close() here would call redis.Client.Close() on that shared
+// client, cutting off every other user of it (the config store, the router,
+// the presence watcher, the stats sampler). So this is deliberately a no-op.
 func (b *StreamBus) Close() error {
-	return b.publisher.Close()
+	return nil
 }
