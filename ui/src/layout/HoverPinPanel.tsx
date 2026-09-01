@@ -43,7 +43,9 @@ export function HoverPinPanel({
       ) : null}
 
       {expanded ? (
-        <div className={`hover-pin-panel-content ${pinned ? 'is-pinned' : 'is-overlay'}`}>
+        <div
+          className={`hover-pin-panel-content ${pinned ? 'is-pinned' : 'is-overlay'}`}
+        >
           {children}
         </div>
       ) : null}

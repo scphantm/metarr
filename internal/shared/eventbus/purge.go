@@ -17,8 +17,8 @@ const pelDrainBatch = 500
 // the approximate trim dropped, and the consumer groups it fast-forwarded to
 // the stream's tail.
 type StreamPurge struct {
-	Stream           string
-	Dropped          int64
+	Stream              string
+	Dropped             int64
 	GroupsFastForwarded []string
 }
 

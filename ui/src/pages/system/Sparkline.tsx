@@ -33,14 +33,17 @@ export function Sparkline({ values, className, title }: SparklineProps) {
     .map((value, index) => {
       const x = index * stepX
       // A flat series sits on the mid-line rather than pinning to an edge.
-      const y = span === 0 ? VIEW_H / 2 : VIEW_H - ((value - min) / span) * VIEW_H
+      const y =
+        span === 0 ? VIEW_H / 2 : VIEW_H - ((value - min) / span) * VIEW_H
       return `${x.toFixed(2)},${y.toFixed(2)}`
     })
     .join(' ')
 
   return (
     <svg
-      className={['system-dashboard-sparkline', className].filter(Boolean).join(' ')}
+      className={['system-dashboard-sparkline', className]
+        .filter(Boolean)
+        .join(' ')}
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
       preserveAspectRatio="none"
       role="img"

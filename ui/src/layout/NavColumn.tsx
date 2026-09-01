@@ -33,7 +33,11 @@ const items: MenuProps['items'] = [
     ],
   },
   { key: 'group-searches', label: comingSoonLabel('Searches'), disabled: true },
-  { key: 'group-automations', label: comingSoonLabel('Automations'), disabled: true },
+  {
+    key: 'group-automations',
+    label: comingSoonLabel('Automations'),
+    disabled: true,
+  },
   { key: 'group-tasks', label: comingSoonLabel('Tasks'), disabled: true },
   {
     key: 'group-system',
@@ -60,7 +64,11 @@ const items: MenuProps['items'] = [
 
 // Walks the item tree to find every group whose descendants include
 // pathname, so the tree auto-expands to reveal whichever page is active.
-function ancestorGroupKeys(nodes: MenuProps['items'], pathname: string, trail: string[] = []): string[] {
+function ancestorGroupKeys(
+  nodes: MenuProps['items'],
+  pathname: string,
+  trail: string[] = [],
+): string[] {
   for (const node of nodes ?? []) {
     if (!node || !('key' in node) || node.key == null) continue
     const key = String(node.key)
@@ -92,7 +100,9 @@ export function NavColumn({
 
   useEffect(() => {
     setOpenKeys((current) =>
-      Array.from(new Set([...current, ...ancestorGroupKeys(items, location.pathname)])),
+      Array.from(
+        new Set([...current, ...ancestorGroupKeys(items, location.pathname)]),
+      ),
     )
   }, [location.pathname])
 

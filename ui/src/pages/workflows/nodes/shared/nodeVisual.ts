@@ -36,7 +36,8 @@
  * entry yet, resolving to an unstyled .shape rectangle via index.css.
  */
 
-export type Accent = 'red' | 'orange' | 'yellow' | 'green' | 'cyan' | 'blue' | 'violet' | 'magenta'
+export type Accent =
+  'red' | 'orange' | 'yellow' | 'green' | 'cyan' | 'blue' | 'violet' | 'magenta'
 
 export type NodeVisual = {
   shapeClassName: string
@@ -70,7 +71,10 @@ export function hoverBorderColorClassForAccent(accent: Accent): string {
 // The 32 accent-<accent>-<opacity> tints defined in index.css — for a
 // layer that needs to sit visibly *under* other content (the quadrant
 // notification layer) rather than read as a solid fill.
-export function accentTintClassForAccent(accent: Accent, opacity: 20 | 40 | 60 | 80): string {
+export function accentTintClassForAccent(
+  accent: Accent,
+  opacity: 20 | 40 | 60 | 80,
+): string {
   return `accent-${accent}-${opacity}`
 }
 
@@ -94,7 +98,11 @@ function visual(
 
 // Same contract as visual(), for the icon-backed shapes (shapeIsIcon: true)
 // — see the file header and index.css's .shape-icon.
-function iconVisual(shapeClassName: string, shapeAccent: Accent, options?: { border?: Accent }): NodeVisual {
+function iconVisual(
+  shapeClassName: string,
+  shapeAccent: Accent,
+  options?: { border?: Accent },
+): NodeVisual {
   return {
     shapeClassName,
     shapeAccent,

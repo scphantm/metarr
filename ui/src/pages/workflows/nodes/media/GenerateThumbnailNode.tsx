@@ -5,6 +5,9 @@ import type { CatalogNodeData } from '../../editorNodeData'
 
 const TYPE_KEY = 'media/generateThumbnail'
 
-export function GenerateThumbnailNode({ id, data }: NodeProps<Node<CatalogNodeData>>) {
+export function GenerateThumbnailNode({
+  id,
+  data,
+}: NodeProps<Node<CatalogNodeData>>) {
   return <NodeShell id={id} data={data} typeKey={TYPE_KEY} />
 }

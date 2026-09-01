@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  isListType,
-  elementType,
-  isSubtypeOf,
-} from '../connectionRules'
+import { isListType, elementType, isSubtypeOf } from '../connectionRules'
 
 describe('isListType', () => {
   it('detects list types', () => {

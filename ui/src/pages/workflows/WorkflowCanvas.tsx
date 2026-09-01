@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type DragEvent,
+} from 'react'
 import {
   addEdge,
   Background,
@@ -26,7 +32,11 @@ import { ControlEdge } from './edges/ControlEdge'
 import { DataEdge } from './edges/DataEdge'
 import { TransformPicker } from './edges/TransformPicker'
 import { fromRFGraph, toRFNode } from './graphAdapter'
-import { nodeTypes as catalogNodeTypes, registeredTypes, unknownNodeType } from './nodes/registry'
+import {
+  nodeTypes as catalogNodeTypes,
+  registeredTypes,
+  unknownNodeType,
+} from './nodes/registry'
 import type { Accent } from './nodes/shared/nodeVisual'
 import { useWorkflowValidation } from './useWorkflowValidation'
 import { settingDefault } from './catalogValue'
@@ -42,7 +52,16 @@ const edgeTypes = { controlEdge: ControlEdge, dataEdge: DataEdge }
 // The same 8 accents nodeVisual.ts resolves node colors from — see that
 // file's ACCENT-keyed maps. Order here is just the cycle order, not
 // meaningful otherwise.
-const ACCENTS: Accent[] = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet', 'magenta']
+const ACCENTS: Accent[] = [
+  'red',
+  'orange',
+  'yellow',
+  'green',
+  'cyan',
+  'blue',
+  'violet',
+  'magenta',
+]
 
 type PendingPicker = {
   connection: Connection
@@ -94,15 +113,25 @@ export function WorkflowCanvas({
   useEffect(() => {
     if (!testAnimate) {
       setNodes((current) =>
-        current.map((node) => ({ ...node, data: { ...node.data, quadrantColors: undefined } })),
+        current.map((node) => ({
+          ...node,
+          data: { ...node.data, quadrantColors: undefined },
+        })),
       )
       return
     }
     let tick = 0
     const interval = window.setInterval(() => {
       tick += 1
-      const quadrantColors = [0, 1, 2, 3].map((quadrant) => ACCENTS[(tick + quadrant * 2) % ACCENTS.length])
-      setNodes((current) => current.map((node) => ({ ...node, data: { ...node.data, quadrantColors } })))
+      const quadrantColors = [0, 1, 2, 3].map(
+        (quadrant) => ACCENTS[(tick + quadrant * 2) % ACCENTS.length],
+      )
+      setNodes((current) =>
+        current.map((node) => ({
+          ...node,
+          data: { ...node.data, quadrantColors },
+        })),
+      )
     }, 600)
     return () => window.clearInterval(interval)
   }, [testAnimate, setNodes])
@@ -118,13 +147,15 @@ export function WorkflowCanvas({
   }, [catalog])
   const catalogFirstByType = useMemo(() => {
     const map = new Map<string, NodeType>()
-    for (const entry of catalog?.nodeTypes ?? []) if (!map.has(entry.type)) map.set(entry.type, entry)
+    for (const entry of catalog?.nodeTypes ?? [])
+      if (!map.has(entry.type)) map.set(entry.type, entry)
     return map
   }, [catalog])
   const resolveCatalogEntry = useCallback(
     (node: Node | undefined): NodeType | undefined => {
       if (!node) return undefined
-      const catalogId = (node.data as { catalogId?: string } | undefined)?.catalogId
+      const catalogId = (node.data as { catalogId?: string } | undefined)
+        ?.catalogId
       if (catalogId) {
         const byId = catalogById.get(catalogId)
         if (byId) return byId
@@ -151,7 +182,13 @@ export function WorkflowCanvas({
     (candidate: Connection | Edge) => {
       const connection = candidate as Connection
       const { sourceType, targetType } = endpointTypes(connection)
-      return evaluateConnection(connection, sourceType, targetType, edges, transforms).allowed
+      return evaluateConnection(
+        connection,
+        sourceType,
+        targetType,
+        edges,
+        transforms,
+      ).allowed
     },
     [edges, transforms, endpointTypes],
   )
@@ -159,25 +196,46 @@ export function WorkflowCanvas({
   const onConnect = useCallback(
     (connection: Connection) => {
       const { sourceType, targetType } = endpointTypes(connection)
-      const verdict = evaluateConnection(connection, sourceType, targetType, edges, transforms)
+      const verdict = evaluateConnection(
+        connection,
+        sourceType,
+        targetType,
+        edges,
+        transforms,
+      )
 
       if (!verdict.allowed) {
         setConnectionError(verdict.reason)
         return
       }
       if (verdict.kind === 'control') {
-        setEdges((current) => addEdge({ ...connection, id: crypto.randomUUID(), type: 'controlEdge' }, current))
+        setEdges((current) =>
+          addEdge(
+            { ...connection, id: crypto.randomUUID(), type: 'controlEdge' },
+            current,
+          ),
+        )
         return
       }
       if (verdict.connection.direct) {
-        setEdges((current) => addEdge({ ...connection, id: crypto.randomUUID(), type: 'dataEdge' }, current))
+        setEdges((current) =>
+          addEdge(
+            { ...connection, id: crypto.randomUUID(), type: 'dataEdge' },
+            current,
+          ),
+        )
         return
       }
       const auto = autoApplyTransform(verdict.connection)
       if (auto) {
         setEdges((current) =>
           addEdge(
-            { ...connection, id: crypto.randomUUID(), type: 'dataEdge', data: { transform: auto.name } },
+            {
+              ...connection,
+              id: crypto.randomUUID(),
+              type: 'dataEdge',
+              data: { transform: auto.name },
+            },
             current,
           ),
         )
@@ -211,7 +269,10 @@ export function WorkflowCanvas({
       const nodeType = catalogById.get(dragged.id)
       if (!nodeType) return
 
-      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      })
       const defaultSettings: Record<string, unknown> = {}
       for (const setting of nodeType.settings) {
         const fallback = settingDefault(setting.default)
@@ -239,11 +300,17 @@ export function WorkflowCanvas({
   // nodesDraggable/elementsSelectable already apply below, but those don't
   // reach into a custom node's own interactive controls.
   const displayNodes = useMemo(
-    () => (readOnly ? nodes.map((node) => ({ ...node, data: { ...node.data, readOnly } })) : nodes),
+    () =>
+      readOnly
+        ? nodes.map((node) => ({ ...node, data: { ...node.data, readOnly } }))
+        : nodes,
     [nodes, readOnly],
   )
 
-  const graph = useMemo(() => fromRFGraph(nodes, edges, { x: 0, y: 0, zoom: 1 }), [nodes, edges])
+  const graph = useMemo(
+    () => fromRFGraph(nodes, edges, { x: 0, y: 0, zoom: 1 }),
+    [nodes, edges],
+  )
   const validation = useWorkflowValidation(graph, !readOnly)
 
   const nodeLabel = useCallback(
@@ -268,7 +335,9 @@ export function WorkflowCanvas({
   // renders, kept out of `edges` itself so hovering never touches the
   // state a save reads from (same reasoning as displayNodes' readOnly
   // stamp above).
-  const [hoveredDiagnosticEdgeIds, setHoveredDiagnosticEdgeIds] = useState<Set<string>>(new Set())
+  const [hoveredDiagnosticEdgeIds, setHoveredDiagnosticEdgeIds] = useState<
+    Set<string>
+  >(new Set())
   const onHoverDiagnostic = useCallback((edgeIds: string[]) => {
     setHoveredDiagnosticEdgeIds(new Set(edgeIds))
   }, [])
@@ -342,7 +411,12 @@ export function WorkflowCanvas({
           onPick={(name) => {
             setEdges((current) =>
               addEdge(
-                { ...pendingPicker.connection, id: crypto.randomUUID(), type: 'dataEdge', data: { transform: name } },
+                {
+                  ...pendingPicker.connection,
+                  id: crypto.randomUUID(),
+                  type: 'dataEdge',
+                  data: { transform: name },
+                },
                 current,
               ),
             )

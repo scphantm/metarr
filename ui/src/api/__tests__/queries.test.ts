@@ -28,7 +28,10 @@ describe('queryKeys', () => {
     })
 
     it('defines nested config keys', () => {
-      expect(queryKeys.directoryScanner).toEqual(['config', 'directory-scanner'])
+      expect(queryKeys.directoryScanner).toEqual([
+        'config',
+        'directory-scanner',
+      ])
       expect(queryKeys.scanDirectories).toEqual(['config', 'scan-directories'])
       expect(queryKeys.sidecarTypes).toEqual(['config', 'sidecar-types'])
     })
@@ -65,7 +68,10 @@ describe('queryKeys', () => {
 describe('usePurgeStreams', () => {
   function harness() {
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     })
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
     const wrapper = ({ children }: { children: ReactNode }) =>

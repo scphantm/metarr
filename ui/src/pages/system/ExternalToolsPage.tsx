@@ -33,7 +33,8 @@ function tools(hostname: string): Tool[] {
     {
       name: 'Mongo Express',
       href: `http://${hostname}:6969/`,
-      description: 'Browse the MongoDB database directly — collections, documents, indexes.',
+      description:
+        'Browse the MongoDB database directly — collections, documents, indexes.',
       credential:
         'Sign in with MONGO_EXPRESS_USERNAME / MONGO_EXPRESS_PASSWORD from .env (default admin / admin). It arrives already connected to MongoDB.',
       icon: <MongoIcon />,
@@ -42,7 +43,8 @@ function tools(hostname: string): Tool[] {
     {
       name: 'OpenObserve',
       href: `http://${hostname}:5080/`,
-      description: 'Search and filter the centralized log stream from every process.',
+      description:
+        'Search and filter the centralized log stream from every process.',
       credential:
         'Sign in with OPENOBSERVE_ROOT_EMAIL / OPENOBSERVE_ROOT_PASSWORD from .env.',
       icon: <OpenObserveIcon />,
@@ -51,7 +53,8 @@ function tools(hostname: string): Tool[] {
     {
       name: 'Redis Insight',
       href: `http://${hostname}:5540/`,
-      description: 'Inspect keys, streams, and Pub/Sub channels on the Redis instance.',
+      description:
+        'Inspect keys, streams, and Pub/Sub channels on the Redis instance.',
       credential:
         'Pre-connects to Redis automatically using REDIS_PASSWORD from .env — nothing to enter.',
       icon: <RedisIcon />,
@@ -83,7 +86,12 @@ export function ExternalToolsPage() {
         <Row gutter={[16, 16]}>
           {cards.map((tool) => (
             <Col key={tool.name} xs={24} sm={12}>
-              <a href={tool.href} target="_blank" rel="noreferrer" className="external-tool-link">
+              <a
+                href={tool.href}
+                target="_blank"
+                rel="noreferrer"
+                className="external-tool-link"
+              >
                 <Card hoverable size="small">
                   <div className="external-tool-header">
                     <span
@@ -97,17 +105,25 @@ export function ExternalToolsPage() {
                       <Typography.Text className="external-tool-name">
                         {tool.name}
                       </Typography.Text>
-                      <Typography.Text type="secondary" className="external-tool-href">
+                      <Typography.Text
+                        type="secondary"
+                        className="external-tool-href"
+                      >
                         {tool.href}
                       </Typography.Text>
                     </div>
                   </div>
 
-                  <Typography.Text type="secondary" className="external-tool-description">
+                  <Typography.Text
+                    type="secondary"
+                    className="external-tool-description"
+                  >
                     {tool.description}
                   </Typography.Text>
 
-                  <div className="external-tool-credential">{tool.credential}</div>
+                  <div className="external-tool-credential">
+                    {tool.credential}
+                  </div>
                 </Card>
               </a>
             </Col>
@@ -124,19 +140,36 @@ export function ExternalToolsPage() {
 
 function MongoIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+      fill="none"
+      aria-hidden="true"
+    >
       <path
         d="M12 2c2.5 3 4 6.5 4 10.5 0 4-1.8 7-4 9.5-2.2-2.5-4-5.5-4-9.5C8 8.5 9.5 5 12 2Z"
         fill="currentColor"
       />
-      <path d="M12 15v7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path
+        d="M12 15v7"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
     </svg>
   )
 }
 
 function RedisIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+      fill="none"
+      aria-hidden="true"
+    >
       <ellipse cx="12" cy="6" rx="8" ry="3" fill="currentColor" />
       <path
         d="M4 6v5c0 1.66 3.58 3 8 3s8-1.34 8-3V6"
@@ -156,7 +189,13 @@ function RedisIcon() {
 
 function OpenObserveIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+      fill="none"
+      aria-hidden="true"
+    >
       <rect
         x="4"
         y="4"
@@ -172,7 +211,13 @@ function OpenObserveIcon() {
 
 function SwaggerIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+      fill="none"
+      aria-hidden="true"
+    >
       <path
         d="M8 4c-2 0-3 1-3 3v2c0 1.5-1 2-2 2 1 0 2 .5 2 2v2c0 2 1 3 3 3M16 4c2 0 3 1 3 3v2c0 1.5 1 2 2 2-1 0-2 .5-2 2v2c0 2-1 3-3 3"
         stroke="currentColor"
@@ -193,13 +238,15 @@ export function ExternalToolsSidebar() {
         description={
           <>
             <p>
-              Each panel links to infrastructure Metarr runs alongside itself — the database,
-              the cache, the log pipeline, and the API&apos;s own docs. None of them check your
-              Metarr login; each has its own credential, noted on its card.
+              Each panel links to infrastructure Metarr runs alongside itself —
+              the database, the cache, the log pipeline, and the API&apos;s own
+              docs. None of them check your Metarr login; each has its own
+              credential, noted on its card.
             </p>
             <p>
-              These addresses assume the tool is reachable on the same host you&apos;re viewing
-              Metarr from, at the port docker-compose publishes it on.
+              These addresses assume the tool is reachable on the same host
+              you&apos;re viewing Metarr from, at the port docker-compose
+              publishes it on.
             </p>
           </>
         }

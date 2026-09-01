@@ -67,7 +67,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--surface-edge) 60%, transparent);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--surface-edge) 60%, transparent);
   padding: 0.375rem 0.75rem;
 }
 

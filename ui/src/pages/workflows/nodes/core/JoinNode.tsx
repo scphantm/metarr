@@ -14,14 +14,23 @@ const TYPE_KEY = 'core/join'
 export function JoinNode({ id, data }: NodeProps<Node<CatalogNodeData>>) {
   const nodeType = useCatalogEntry(data.catalogId, TYPE_KEY)
   const handles = useNodeHandles(nodeType)
-  const visibleBranches = useVisibleBranchCount(id, data, nodeType, nodeType?.control?.in ?? [], 'target')
+  const visibleBranches = useVisibleBranchCount(
+    id,
+    data,
+    nodeType,
+    nodeType?.control?.in ?? [],
+    'target',
+  )
 
   return (
     <NodeShell
       id={id}
       data={data}
       typeKey={TYPE_KEY}
-      handles={{ ...handles, top: limitBranchPorts(handles.top, visibleBranches) }}
+      handles={{
+        ...handles,
+        top: limitBranchPorts(handles.top, visibleBranches),
+      }}
     />
   )
 }

@@ -48,11 +48,20 @@ export function Sidebar({
         <div className="sidebar-session-card">
           <div className="sidebar-session-name">{username ?? 'Signed in'}</div>
           {expiresAt ? (
-            <Typography.Text type="secondary" className="sidebar-session-expiry">
+            <Typography.Text
+              type="secondary"
+              className="sidebar-session-expiry"
+            >
               Expires {new Date(expiresAt).toLocaleTimeString()}
             </Typography.Text>
           ) : null}
-          <Button type="link" size="small" danger onClick={() => void logout()} className="sidebar-signout">
+          <Button
+            type="link"
+            size="small"
+            danger
+            onClick={() => void logout()}
+            className="sidebar-signout"
+          >
             Sign out
           </Button>
         </div>

@@ -29,7 +29,16 @@ import './NodeSettingsEditor.css'
 // The app's 8 real Solarized accents — never a raw hex, matching every
 // other color in this codebase. Excludes 'base1', which is a neutral
 // fallback used for data handles, not a semantic accent a user would pick.
-const COLOR_TOKENS = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet', 'magenta'] as const
+const COLOR_TOKENS = [
+  'red',
+  'orange',
+  'yellow',
+  'green',
+  'cyan',
+  'blue',
+  'violet',
+  'magenta',
+] as const
 
 // No antd component picks from a fixed palette of semantic tokens (its own
 // ColorPicker is a full HSB dialog) — this stays a small bespoke swatch row.
@@ -89,12 +98,20 @@ export function NodeSettingsEditor({
   values: Record<string, unknown>
   shapeColor?: string
   borderColor?: string
-  onSave: (next: { settings: Record<string, unknown>; shapeColor?: string; borderColor?: string }) => void
+  onSave: (next: {
+    settings: Record<string, unknown>
+    shapeColor?: string
+    borderColor?: string
+  }) => void
   onCancel: () => void
 }) {
   const [draft, setDraft] = useState<Record<string, unknown>>(values)
-  const [shapeColorDraft, setShapeColorDraft] = useState<string | undefined>(shapeColor)
-  const [borderColorDraft, setBorderColorDraft] = useState<string | undefined>(borderColor)
+  const [shapeColorDraft, setShapeColorDraft] = useState<string | undefined>(
+    shapeColor,
+  )
+  const [borderColorDraft, setBorderColorDraft] = useState<string | undefined>(
+    borderColor,
+  )
 
   function setValue(name: string, value: unknown) {
     setDraft((current) => ({ ...current, [name]: value }))
@@ -117,7 +134,13 @@ export function NodeSettingsEditor({
         </div>
       }
       onCancel={onCancel}
-      onOk={() => onSave({ settings: draft, shapeColor: shapeColorDraft, borderColor: borderColorDraft })}
+      onOk={() =>
+        onSave({
+          settings: draft,
+          shapeColor: shapeColorDraft,
+          borderColor: borderColorDraft,
+        })
+      }
       okText="Save"
     >
       {description ? (
@@ -127,8 +150,16 @@ export function NodeSettingsEditor({
       ) : null}
 
       <div className="node-settings-section">
-        <ColorPicker label="Shape color" value={shapeColorDraft} onChange={setShapeColorDraft} />
-        <ColorPicker label="Border color" value={borderColorDraft} onChange={setBorderColorDraft} />
+        <ColorPicker
+          label="Shape color"
+          value={shapeColorDraft}
+          onChange={setShapeColorDraft}
+        />
+        <ColorPicker
+          label="Border color"
+          value={borderColorDraft}
+          onChange={setBorderColorDraft}
+        />
       </div>
 
       <div className="node-settings-section">
@@ -140,7 +171,9 @@ export function NodeSettingsEditor({
         {settings.map((setting) => {
           const fieldId = `setting-${setting.name}`
           const widget = setting.ui?.widget as string | undefined
-          const options = Array.isArray(setting.ui?.options) ? (setting.ui?.options as string[]) : []
+          const options = Array.isArray(setting.ui?.options)
+            ? (setting.ui?.options as string[])
+            : []
           const value = valueFor(setting)
 
           return (
@@ -153,20 +186,27 @@ export function NodeSettingsEditor({
                 <Checkbox
                   id={fieldId}
                   checked={Boolean(value)}
-                  onChange={(event) => setValue(setting.name, event.target.checked)}
+                  onChange={(event) =>
+                    setValue(setting.name, event.target.checked)
+                  }
                 />
               ) : widget === 'dropdown' && options.length > 0 ? (
                 <Select
                   id={fieldId}
                   value={value == null ? '' : String(value)}
                   onChange={(next) => setValue(setting.name, next)}
-                  options={options.map((option) => ({ value: option, label: option }))}
+                  options={options.map((option) => ({
+                    value: option,
+                    label: option,
+                  }))}
                 />
               ) : widget === 'textarea' ? (
                 <Input.TextArea
                   id={fieldId}
                   value={value == null ? '' : String(value)}
-                  onChange={(event) => setValue(setting.name, event.target.value)}
+                  onChange={(event) =>
+                    setValue(setting.name, event.target.value)
+                  }
                   rows={3}
                 />
               ) : (
@@ -178,7 +218,8 @@ export function NodeSettingsEditor({
                   // type keeps former-number.int settings (tile width,
                   // branch count, ...) rendering as a number input rather
                   // than regressing to plain text.
-                  const isNumeric = setting.type === 'number' || typeof value === 'number'
+                  const isNumeric =
+                    setting.type === 'number' || typeof value === 'number'
                   return isNumeric ? (
                     <InputNumber
                       id={fieldId}
@@ -190,14 +231,19 @@ export function NodeSettingsEditor({
                     <Input
                       id={fieldId}
                       value={value == null ? '' : String(value)}
-                      onChange={(event) => setValue(setting.name, event.target.value)}
+                      onChange={(event) =>
+                        setValue(setting.name, event.target.value)
+                      }
                     />
                   )
                 })()
               )}
 
               {setting.description ? (
-                <Typography.Text type="secondary" className="node-settings-field-hint">
+                <Typography.Text
+                  type="secondary"
+                  className="node-settings-field-hint"
+                >
                   {setting.description}
                 </Typography.Text>
               ) : null}

@@ -12,21 +12,24 @@ export function SavingInfoSidebar() {
         description={
           <>
             <p>
-              Metarr is eventually consistent. Saving fires an event and returns immediately; a
-              background listener writes it to the database a moment later.
+              Metarr is eventually consistent. Saving fires an event and returns
+              immediately; a background listener writes it to the database a
+              moment later.
             </p>
             <ul>
               <li>
-                <span style={{ color: 'var(--color-yellow)' }}>◌ Queued</span> — accepted, not yet
-                stored
+                <span style={{ color: 'var(--color-yellow)' }}>◌ Queued</span> —
+                accepted, not yet stored
               </li>
               <li>
-                <span style={{ color: 'var(--color-green)' }}>✓ Saved</span> — confirmed by the
-                server
+                <span style={{ color: 'var(--color-green)' }}>✓ Saved</span> —
+                confirmed by the server
               </li>
               <li>
-                <span style={{ color: 'var(--color-orange)' }}>! Not confirmed</span> — no
-                read-back after 20s
+                <span style={{ color: 'var(--color-orange)' }}>
+                  ! Not confirmed
+                </span>{' '}
+                — no read-back after 20s
               </li>
             </ul>
           </>
@@ -38,8 +41,9 @@ export function SavingInfoSidebar() {
         message="Editing"
         description={
           <>
-            Edit a field directly. <kbd>Enter</kbd> or clicking away saves, <kbd>Escape</kbd>{' '}
-            reverts. Slugs and ids are fixed once created — the API keys records by them.
+            Edit a field directly. <kbd>Enter</kbd> or clicking away saves,{' '}
+            <kbd>Escape</kbd> reverts. Slugs and ids are fixed once created —
+            the API keys records by them.
           </>
         }
       />

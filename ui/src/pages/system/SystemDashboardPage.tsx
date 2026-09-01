@@ -80,7 +80,10 @@ export function SystemDashboardPage() {
         title="System"
         description="Live statistics for the Redis instance behind the event bus."
         actions={
-          <LivenessBadge status={streamStatus} lastFrameAt={snapshot.dataUpdatedAt} />
+          <LivenessBadge
+            status={streamStatus}
+            lastFrameAt={snapshot.dataUpdatedAt}
+          />
         }
       />
 
@@ -96,7 +99,10 @@ export function SystemDashboardPage() {
           <ChannelsTable channels={data.channels} />
         </Card>
 
-        <Typography.Text type="secondary" className="system-dashboard-collected">
+        <Typography.Text
+          type="secondary"
+          className="system-dashboard-collected"
+        >
           Last collected{' '}
           {data.collectedAt
             ? timestampDate(data.collectedAt).toLocaleTimeString()
@@ -139,9 +145,17 @@ function LivenessBadge({
   }
 
   const label =
-    liveness === 'live' ? 'Live' : liveness === 'reconnecting' ? 'Reconnecting' : 'Stale'
+    liveness === 'live'
+      ? 'Live'
+      : liveness === 'reconnecting'
+        ? 'Reconnecting'
+        : 'Stale'
   const badgeStatus =
-    liveness === 'live' ? 'success' : liveness === 'reconnecting' ? 'processing' : 'warning'
+    liveness === 'live'
+      ? 'success'
+      : liveness === 'reconnecting'
+        ? 'processing'
+        : 'warning'
 
   return <Badge status={badgeStatus} text={label} />
 }
@@ -205,7 +219,9 @@ function ServerTiles({ server }: { server: BusServerInfo }) {
         return (
           <Col key={tile.label} xs={12} sm={8} lg={4}>
             <div className="system-dashboard-tile">
-              <div className="system-dashboard-tile-value">{error ? '—' : tile.value}</div>
+              <div className="system-dashboard-tile-value">
+                {error ? '—' : tile.value}
+              </div>
               <div className="system-dashboard-tile-label">{tile.label}</div>
               {error ? (
                 <div className="system-dashboard-tile-error" title={error}>
@@ -252,12 +268,16 @@ function ExpectedIdentities({
   identities: string[]
   missing: string[]
 }) {
-  if (identities.length === 0) return <span className="system-dashboard-muted">—</span>
+  if (identities.length === 0)
+    return <span className="system-dashboard-muted">—</span>
   const missingSet = new Set(missing)
   return (
     <span className="system-dashboard-identities">
       {identities.map((identity) => (
-        <Tag key={identity} color={missingSet.has(identity) ? 'error' : undefined}>
+        <Tag
+          key={identity}
+          color={missingSet.has(identity) ? 'error' : undefined}
+        >
           {identity}
         </Tag>
       ))}
@@ -290,7 +310,10 @@ function rollUp(groups: BusGroupStat[]) {
       consumers: acc.consumers + Number(group.consumers),
       pending: acc.pending + Number(group.pending),
       lag: acc.lag + Number(group.lag),
-      oldestPendingAge: Math.max(acc.oldestPendingAge, Number(group.oldestPendingAgeSeconds)),
+      oldestPendingAge: Math.max(
+        acc.oldestPendingAge,
+        Number(group.oldestPendingAgeSeconds),
+      ),
     }),
     { consumers: 0, pending: 0, lag: 0, oldestPendingAge: 0 },
   )
@@ -390,8 +413,9 @@ function PurgeModal({
 
   // A stream that does not exist or could not be read has no depth to count,
   // and purge-all skips it server-side, so it does not add to the total.
-  const purgeable =
-    isAll ? target.streams.filter((s) => s.exists && !s.error) : [target.stream]
+  const purgeable = isAll
+    ? target.streams.filter((s) => s.exists && !s.error)
+    : [target.stream]
   const totalDepth = purgeable.reduce((sum, s) => sum + Number(s.length), 0)
   const depthLabel = `${totalDepth.toLocaleString()} message${totalDepth === 1 ? '' : 's'}`
 
@@ -400,7 +424,11 @@ function PurgeModal({
       open
       title={isAll ? 'Purge all streams' : `Purge ${target.stream.stream}`}
       okText={isAll ? 'Purge all streams' : 'Purge stream'}
-      okButtonProps={{ danger: true, disabled: !armed || pending, loading: pending }}
+      okButtonProps={{
+        danger: true,
+        disabled: !armed || pending,
+        loading: pending,
+      }}
       cancelButtonProps={{ disabled: pending }}
       maskClosable={!pending}
       closable={!pending}
@@ -419,14 +447,17 @@ function PurgeModal({
         ) : (
           <>
             This drops <strong>{depthLabel}</strong> from{' '}
-            <span className="system-dashboard-mono">{target.stream.stream}</span>. The
-            consumer groups stay in place, fast-forwarded past the drop.
+            <span className="system-dashboard-mono">
+              {target.stream.stream}
+            </span>
+            . The consumer groups stay in place, fast-forwarded past the drop.
           </>
         )}
       </p>
       <label className="system-dashboard-purge-field">
         <span>
-          Type <span className="system-dashboard-mono">{requiredText}</span> to confirm
+          Type <span className="system-dashboard-mono">{requiredText}</span> to
+          confirm
         </span>
         <Input
           autoFocus
@@ -466,7 +497,9 @@ function StreamsTable({
       render: (_, stream) => (
         <span className="system-dashboard-namecell">
           <span className="system-dashboard-mono">{stream.stream}</span>
-          {stream.flagged ? <FlaggedTag missing={stream.missingIdentities} /> : null}
+          {stream.flagged ? (
+            <FlaggedTag missing={stream.missingIdentities} />
+          ) : null}
         </span>
       ),
     },
@@ -524,19 +557,25 @@ function StreamsTable({
       title: 'Consumers',
       align: 'right',
       render: (_, stream) =>
-        stream.exists && !stream.error ? rollUp(stream.groups).consumers.toLocaleString() : '—',
+        stream.exists && !stream.error
+          ? rollUp(stream.groups).consumers.toLocaleString()
+          : '—',
     },
     {
       title: 'Pending',
       align: 'right',
       render: (_, stream) =>
-        stream.exists && !stream.error ? rollUp(stream.groups).pending.toLocaleString() : '—',
+        stream.exists && !stream.error
+          ? rollUp(stream.groups).pending.toLocaleString()
+          : '—',
     },
     {
       title: 'Lag',
       align: 'right',
       render: (_, stream) =>
-        stream.exists && !stream.error ? rollUp(stream.groups).lag.toLocaleString() : '—',
+        stream.exists && !stream.error
+          ? rollUp(stream.groups).lag.toLocaleString()
+          : '—',
     },
     {
       title: 'Oldest pending',
@@ -573,7 +612,9 @@ function StreamsTable({
         rowExpandable: (stream) => stream.exists && stream.groups.length > 0,
         expandedRowRender: (stream) => <GroupsTable groups={stream.groups} />,
       }}
-      rowClassName={(stream) => (stream.flagged ? 'system-dashboard-row-flagged' : '')}
+      rowClassName={(stream) =>
+        stream.flagged ? 'system-dashboard-row-flagged' : ''
+      }
       locale={{ emptyText: 'No durable streams are registered.' }}
     />
   )
@@ -584,7 +625,9 @@ function GroupsTable({ groups }: { groups: BusGroupStat[] }) {
     {
       title: 'Consumer group',
       dataIndex: 'name',
-      render: (_, group) => <span className="system-dashboard-mono">{group.name}</span>,
+      render: (_, group) => (
+        <span className="system-dashboard-mono">{group.name}</span>
+      ),
     },
     {
       title: 'Consumers',
@@ -631,13 +674,16 @@ function GroupsTable({ groups }: { groups: BusGroupStat[] }) {
     {
       title: 'Oldest pending',
       align: 'right',
-      render: (_, group) => formatDuration(Number(group.oldestPendingAgeSeconds)),
+      render: (_, group) =>
+        formatDuration(Number(group.oldestPendingAgeSeconds)),
     },
     {
       title: 'Last delivered',
       align: 'right',
       render: (_, group) => (
-        <span className="system-dashboard-mono">{group.lastDeliveredId || '—'}</span>
+        <span className="system-dashboard-mono">
+          {group.lastDeliveredId || '—'}
+        </span>
       ),
     },
   ]
@@ -760,14 +806,14 @@ export function SystemDashboardSidebar() {
         description={
           <>
             <p>
-              <strong>Streams</strong> are durable. An event stays on the stream until a
-              consumer group acknowledges it, so a listener that is down loses nothing — the
-              backlog waits for it.
+              <strong>Streams</strong> are durable. An event stays on the stream
+              until a consumer group acknowledges it, so a listener that is down
+              loses nothing — the backlog waits for it.
             </p>
             <p>
-              <strong>Pub/Sub</strong> is not. A message goes to whoever is connected at that
-              instant and is then gone, which is why those channels report subscribers but no
-              depth.
+              <strong>Pub/Sub</strong> is not. A message goes to whoever is
+              connected at that instant and is then gone, which is why those
+              channels report subscribers but no depth.
             </p>
           </>
         }

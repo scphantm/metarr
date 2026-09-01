@@ -10,7 +10,8 @@
 }
 
 .transform-picker-option {
-  border: 1px solid color-mix(in srgb, var(--surface-edge-strong) 40%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--surface-edge-strong) 40%, transparent);
   border-radius: 6px;
   background: transparent;
   padding: 0.375rem 0.625rem;

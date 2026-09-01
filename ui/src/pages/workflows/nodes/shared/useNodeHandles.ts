@@ -32,20 +32,34 @@ const emptyHandles: ArrangedHandles = { top: [], bottom: [], hasError: false }
 // Hover text for the error handle is identical on every node type — it's
 // not sourced from the catalog — so it's a constant rather than something
 // useNodeHandles computes per call.
-export const errorHandleTitle = 'Error — control flow taken when this node fails'
+export const errorHandleTitle =
+  'Error — control flow taken when this node fails'
 
 function controlTitle(direction: 'in' | 'out', port: string): string {
   return direction === 'in' ? `Control in — ${port}` : `Control out — ${port}`
 }
 
-function dataTitle(direction: 'in' | 'out', socket: { label?: string; name: string; type: Type; required?: boolean; description?: string }): string {
+function dataTitle(
+  direction: 'in' | 'out',
+  socket: {
+    label?: string
+    name: string
+    type: Type
+    required?: boolean
+    description?: string
+  },
+): string {
   const label = socket.label || socket.name
-  const parts = [`Data ${direction} — ${label}: ${socket.type}${socket.required ? ' (required)' : ''}`]
+  const parts = [
+    `Data ${direction} — ${label}: ${socket.type}${socket.required ? ' (required)' : ''}`,
+  ]
   if (socket.description) parts.push(socket.description)
   return parts.join(' — ')
 }
 
-export function useNodeHandles(nodeType: NodeType | undefined): ArrangedHandles {
+export function useNodeHandles(
+  nodeType: NodeType | undefined,
+): ArrangedHandles {
   return useMemo(() => {
     if (!nodeType) return emptyHandles
 

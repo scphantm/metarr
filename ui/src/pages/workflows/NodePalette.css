@@ -32,7 +32,8 @@
 
 .node-palette-entry {
   cursor: grab;
-  border: 1px solid color-mix(in srgb, var(--surface-edge-strong) 40%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--surface-edge-strong) 40%, transparent);
   border-radius: 6px;
   background: var(--surface-canvas);
   padding: 0.5rem 0.625rem;
@@ -60,7 +61,8 @@
 }
 
 .node-palette-legend {
-  border-top: 1px solid color-mix(in srgb, var(--surface-edge-strong) 40%, transparent);
+  border-top: 1px solid
+    color-mix(in srgb, var(--surface-edge-strong) 40%, transparent);
   padding-top: 0.75rem;
 }
 
