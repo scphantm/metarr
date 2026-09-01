@@ -62,6 +62,9 @@ function channel(overrides: Record<string, unknown> = {}) {
     channel: 'heartbeat.request',
     subscribers: 1,
     known: true,
+    expectedIdentities: [],
+    flagged: false,
+    missingIdentities: [],
     ...overrides,
   }
 }
@@ -77,6 +80,9 @@ function stream(overrides: Record<string, unknown> = {}) {
     publishRate: 7,
     lengthSeries: [],
     publishRateSeries: [],
+    expectedIdentities: [],
+    flagged: false,
+    missingIdentities: [],
     ...overrides,
   }
 }
@@ -247,7 +253,16 @@ describe('SystemDashboardPage', () => {
 
   it('flags a declared channel that has dropped to zero subscribers', () => {
     useBusSnapshot.mockReturnValue({
-      data: snapshot({}, [], [channel({ channel: 'heartbeat.request', subscribers: 0, known: true })]),
+      data: snapshot({}, [], [
+        channel({
+          channel: 'heartbeat.request',
+          subscribers: 0,
+          known: true,
+          flagged: true,
+          expectedIdentities: ['metarr-server'],
+          missingIdentities: ['metarr-server'],
+        }),
+      ]),
       error: null,
       dataUpdatedAt: Date.now(),
     })
@@ -255,6 +270,55 @@ describe('SystemDashboardPage', () => {
     render(<SystemDashboardPage />)
 
     const row = screen.getByText('heartbeat.request').closest('tr')!
+    expect(within(row).getByText('no subscribers')).toBeDefined()
+    expect(row.className).toContain('system-dashboard-row-flagged')
+  })
+
+  it('shows a stream row its expected identities and flags a missing one', () => {
+    useBusSnapshot.mockReturnValue({
+      data: snapshot({}, [
+        stream({
+          stream: 'events.agent.nas-01.commands',
+          exists: false,
+          groups: [],
+          expectedIdentities: ['metarr-agent-nas-01'],
+          flagged: true,
+          missingIdentities: ['metarr-agent-nas-01'],
+        }),
+      ]),
+      error: null,
+      dataUpdatedAt: Date.now(),
+    })
+
+    render(<SystemDashboardPage />)
+
+    const row = screen.getByText('events.agent.nas-01.commands').closest('tr')!
+    // The expected identity is shown, and the row is flagged as broken.
+    expect(within(row).getAllByText('metarr-agent-nas-01').length).toBeGreaterThan(0)
+    expect(within(row).getByText('identity missing')).toBeDefined()
+    expect(row.className).toContain('system-dashboard-row-flagged')
+  })
+
+  it('lists a per-agent channel row for an offline registered agent', () => {
+    useBusSnapshot.mockReturnValue({
+      data: snapshot({}, [], [
+        channel({
+          channel: 'agent.config.changed.nas-01',
+          subscribers: 0,
+          known: true,
+          expectedIdentities: ['metarr-agent-nas-01'],
+          flagged: true,
+          missingIdentities: ['metarr-agent-nas-01'],
+        }),
+      ]),
+      error: null,
+      dataUpdatedAt: Date.now(),
+    })
+
+    render(<SystemDashboardPage />)
+
+    const row = screen.getByText('agent.config.changed.nas-01').closest('tr')!
+    expect(within(row).getByText('metarr-agent-nas-01')).toBeDefined()
     expect(within(row).getByText('no subscribers')).toBeDefined()
     expect(row.className).toContain('system-dashboard-row-flagged')
   })

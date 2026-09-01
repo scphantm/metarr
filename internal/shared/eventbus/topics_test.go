@@ -169,6 +169,35 @@ func TestAgentNameBuildersAreStable(t *testing.T) {
 	}
 }
 
+// AgentPubSubChannels enumerates the per-agent Pub/Sub family the
+// expected-topology derivation reads for each registered agent: exactly the
+// config-changed notification and the request channel, in that order.
+func TestAgentPubSubChannels(t *testing.T) {
+	got := AgentPubSubChannels("nas-01")
+	want := []string{"agent.config.changed.nas-01", "agent.nas-01.request"}
+	if len(got) != len(want) {
+		t.Fatalf("AgentPubSubChannels = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("AgentPubSubChannels = %v, want %v", got, want)
+		}
+	}
+}
+
+// SlugFromAgentSource is the inverse of AgentSource and rejects the server
+// identity and a bare prefix.
+func TestSlugFromAgentSource(t *testing.T) {
+	if slug, ok := SlugFromAgentSource(AgentSource("nas-01")); !ok || slug != "nas-01" {
+		t.Errorf("SlugFromAgentSource(%q) = %q, %v; want nas-01, true", AgentSource("nas-01"), slug, ok)
+	}
+	for _, bad := range []string{SourceServer, "metarr-agent-", "nas-01", ""} {
+		if slug, ok := SlugFromAgentSource(bad); ok || slug != "" {
+			t.Errorf("SlugFromAgentSource(%q) = %q, %v; want \"\", false", bad, slug, ok)
+		}
+	}
+}
+
 func containsTopic(topics []StreamTopic, name string) bool {
 	for _, topic := range topics {
 		if topic.Name == name {

@@ -88,6 +88,22 @@ message BusStreamStat {
   // back the row's inline sparklines.
   repeated int64 length_series = 8;
   repeated int64 publish_rate_series = 9;
+
+  // expected_identities lists the processes that should be reading this
+  // stream's consumer group, derived from the durable stream-topic list and
+  // the registered agents: "metarr-server" for a server-consumed stream,
+  // "metarr-agent-<slug>" for an agent's command stream. Empty for a
+  // reserved stream nothing consumes yet — such a row is never flagged.
+  repeated string expected_identities = 10;
+  // flagged is true when the live consumer count on the expected group is
+  // below the number of expected identities: a consumer that should be
+  // attached is not. A crashed or disconnected agent shows as a flagged row
+  // rather than vanishing.
+  bool flagged = 11;
+  // missing_identities names which of expected_identities are absent,
+  // disambiguated by the agent presence keys — an agent identity with no
+  // live presence key. Empty unless flagged.
+  repeated string missing_identities = 12;
 }
 
 // BusGroupStat is one consumer group's position on a stream.
@@ -131,12 +147,25 @@ message BusConsumerStat {
 message BusChannelStat {
   string channel = 1;
   int64 subscribers = 2;
-  // known marks the application's declared channels (eventbus's fixed
-  // known-channel list). Channels discovered at runtime — the
+  // known marks the application's declared channels: the fixed
+  // known-channel list plus every registered agent's per-agent channels
+  // (config-changed and request). Channels discovered at runtime — the
   // per-correlation-id reply channels — come back false, so the dashboard
   // can tell a transient channel from a declared one and flag a declared
-  // channel that has dropped to zero subscribers.
+  // channel that has dropped below its expected subscriber count.
   bool known = 3;
+
+  // expected_identities lists the processes that should be subscribed to
+  // this channel, derived from topology: "metarr-server" for a fixed
+  // known channel, "metarr-agent-<slug>" for a per-agent channel. Empty
+  // for a transient channel.
+  repeated string expected_identities = 4;
+  // flagged is true when the live subscriber count is below the number of
+  // expected identities: a subscriber that should be attached is not.
+  bool flagged = 5;
+  // missing_identities names which of expected_identities are absent,
+  // disambiguated by the agent presence keys. Empty unless flagged.
+  repeated string missing_identities = 6;
 }
 
 message StatsServiceGetRequest {}
