@@ -348,7 +348,7 @@ explicitly so their presence in the source is not mistaken for a working feature
   client both exist. Nothing imports the caching client except the Sonarr client,
   and nothing imports the Sonarr client. No Sonarr request is ever issued, and
   consequently no HTTP response caching happens at runtime.
-* *A read-only database credential.* `config.yaml` carries a `readonly_uri` with
+* *A read-only database credential.* `config/server.yaml` carries a `readonly_uri` with
   a comment about a Search screen. It is not parsed and not used; there is no
   Search screen.
 * *A webhook route.* The `webhook` role and group exist and are honored by the

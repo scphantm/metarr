@@ -101,7 +101,7 @@ informational — change the destination in configuration, not there.
 
 == Configuring forwarding
 
-Forwarding is controlled by a single key in `config.yaml`:
+Forwarding is controlled by a single key in `config/server.yaml`:
 
 [source,yaml]
 ----
@@ -118,6 +118,6 @@ Neither binary talks to OpenObserve. They talk to Fluent Bit, which talks to
 OpenObserve — which means swapping log stores is a Fluent Bit configuration
 change and nothing else.
 
-Edit the `OUTPUT` block in `fluent-bit/fluent-bit.conf`. No Go code changes, no
+Edit the `OUTPUT` block in `config/fluent-bit.conf`. No Go code changes, no
 rebuild, no redeploy of either binary. The shipped configuration notes the
 Splunk and Elasticsearch equivalents inline.
