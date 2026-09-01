@@ -1,6 +1,6 @@
 ---
 name: config-structure-change
-description: The full checklist for any change to Metarr's config structure (the appconfig struct / config.yaml shape) — CRUD router methods, UI, the builtin_defaults.json + bootstrap startup default, and the agent projection. Use whenever adding, renaming, or removing a config field or section, instead of editing the struct and stopping there.
+description: The full checklist for any change to Metarr's config structure (the appconfig struct / config/server.yaml shape) — CRUD router methods, UI, the builtin_defaults.json + bootstrap startup default, and the agent projection. Use whenever adding, renaming, or removing a config field or section, instead of editing the struct and stopping there.
 ---
 
 # Config structure changes

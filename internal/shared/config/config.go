@@ -1,7 +1,7 @@
 // Package config loads runtime configuration for the API from a YAML file
-// at the project root (config.yaml by default), so it shares a single
-// source of connection info with the rest of the project. The file path
-// can be overridden with the METARR_CONFIG_FILE environment variable.
+// (config/server.yaml by default), so it shares a single source of
+// connection info with the rest of the project. The file path can be
+// overridden with the METARR_CONFIG_FILE environment variable.
 package config
 
 import (
@@ -13,14 +13,14 @@ import (
 )
 
 const (
-	defaultConfigPath = "config.yaml"
+	defaultConfigPath = "config/server.yaml"
 	configFileEnvVar  = "METARR_CONFIG_FILE"
 
 	defaultHeartbeatTimeout = 5 * time.Second
 )
 
 // Config is the application's runtime configuration, loaded from the
-// project's config.yaml (or the file named by METARR_CONFIG_FILE).
+// project's config/server.yaml (or the file named by METARR_CONFIG_FILE).
 type Config struct {
 	// HTTP server
 	Host string
@@ -55,7 +55,7 @@ type Config struct {
 	HeartbeatTimeout time.Duration
 }
 
-// fileConfig mirrors the shared config.yaml schema.
+// fileConfig mirrors the shared config/server.yaml schema.
 type fileConfig struct {
 	MongoDB struct {
 		AppURI   string `yaml:"app_uri"`
@@ -77,8 +77,8 @@ type fileConfig struct {
 }
 
 // defaultWorkflowCatalogPath is where the catalog lives when the config file
-// does not say otherwise — the repo root, alongside config.yaml.
-const defaultWorkflowCatalogPath = "catalog.json"
+// does not say otherwise — the config/ directory, alongside server.yaml.
+const defaultWorkflowCatalogPath = "config/catalog.json"
 
 // Load reads and validates the config file, failing fast with a
 // path-naming error if it's missing, unparseable, or missing required

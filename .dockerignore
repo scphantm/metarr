@@ -11,8 +11,11 @@ ui/.vite/
 # Secrets. .env carries live credentials and is consumed by docker-compose on
 # the host, not by anything inside an image.
 .env
-http-client.private.env.json
+.http/
 
 .git/
 .github/
+# Packaging definitions build the image; they are never needed inside one.
+deploy/
+docker-compose.yml
 *.md

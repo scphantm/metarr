@@ -18,7 +18,7 @@ const guidPlaceholder = "{guid}"
 
 // apiKeysSeedStep generates the four default API key categories the first
 // time the app starts against a database with none configured — mirroring
-// how this used to be seeded by mongo/init/init-mongo.js. seeded is set to
+// how this used to be seeded by config/mongo-init.js. seeded is set to
 // true iff this call actually generated keys, since Run needs that to know
 // whether to report them (an ordinary restart must not re-report keys that
 // were already shown once).

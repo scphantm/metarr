@@ -49,7 +49,7 @@ import (
 // allowed maps "<repo-relative file>::<TypeName>" to why that hand-written
 // type is not a mirror of the generated message it shares a name with.
 var allowed = map[string]string{
-	"internal/shared/config/config.go::Config":                    "infra wiring loaded from config.yaml (Mongo URI, Redis, log forward URL) — unrelated to metarr.v1.Config, the stored application config",
+	"internal/shared/config/config.go::Config":                    "infra wiring loaded from config/server.yaml (Mongo URI, Redis, log forward URL) — unrelated to metarr.v1.Config, the stored application config",
 	"internal/shared/config/agent.go::AgentConfig":                "the agent's tiny local file (Redis connection + slug) — unrelated to metarr.v1.AgentConfig, the server-side agent record",
 	"internal/shared/scanmodel/sidecar.go::SidecarTypeDefinition": "the compiled, typed form (closed category vocabulary + compiled regexps) derived from the stored metarr.v1.SidecarTypeDefinition, not a wire or storage shape",
 	"internal/server/mongostore/workflow_repo.go::Workflow":       "the versioned storage envelope; the graph it holds rides as the generated metarr.v1.WorkflowGraph, converted in the workflow service",
@@ -128,7 +128,12 @@ func TestNoHandWrittenGoTypeMirrorsAGeneratedMessage(t *testing.T) {
 				return err
 			}
 			if d.IsDir() {
-				if d.Name() == "genproto" {
+				// Generated trees: genproto is the Metarr proto surface;
+				// internal/gen holds generated third-party API clients
+				// (e.g. the oapi-codegen Sonarr client), whose type names
+				// come from someone else's schema and are not mirrors.
+				rel, _ := filepath.Rel(root, path)
+				if d.Name() == "genproto" || filepath.ToSlash(rel) == "internal/gen" {
 					return filepath.SkipDir
 				}
 				return nil

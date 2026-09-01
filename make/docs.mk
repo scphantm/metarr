@@ -44,7 +44,7 @@ docs_watch: docs_build
 	npx nodemon --watch documentation --ext adoc,yml,yaml,png,jpg,jpeg,gif,svg --ignore documentation/node_modules --exec 'make docs_antora_run' & \
 	wait
 
-# Launch an interactive shell inside the Dockerfile.documentation container.
+# Launch an interactive shell inside the deploy/Dockerfile.documentation container.
 # Useful for debugging Antora builds, testing asciidoctor extensions, or running commands
 # in the exact environment the CI uses. The repo is mounted at /workspace with the same
 # directory structure, so `antora-playbook.yml` and all relative paths work without changes.
@@ -53,7 +53,7 @@ docs_watch: docs_build
 # Inside the container, you can run: npm --workspace=documentation run build
 docs_shell:
 	@echo "=== Building documentation container ===" && \
-	docker build -f Dockerfile.documentation -t metarr-docs-shell:latest . && \
+	docker build -f deploy/Dockerfile.documentation -t metarr-docs-shell:latest . && \
 	echo "=== Launching shell in documentation container ===" && \
 	echo "The repo is mounted at /workspace. To build docs:" && \
 	echo "  cd /workspace && npm --workspace=documentation run build" && \
