@@ -22,9 +22,8 @@ import './SystemDashboardPage.css'
  *
  * A single server-side sampler polls Redis on a fixed cadence into one shared
  * snapshot and fans it out here; opening a second dashboard adds no Redis
- * load. The six server tiles and the durable-stream table render live off
- * that stream; the Pub/Sub channel table arrives in a later ticket and
- * renders empty until then.
+ * load. The six server tiles, the durable-stream table, and the Pub/Sub
+ * channel table all render live off that stream.
  */
 
 // A snapshot older than this many milliseconds is stale: the sampler ticks
@@ -416,6 +415,15 @@ function GroupsTable({ groups }: { groups: BusGroupStat[] }) {
   )
 }
 
+// A declared channel is one on the application's fixed known-channel list; a
+// transient channel — the per-request reply.* channels — is one the sampler
+// only saw because something was subscribed to it at that instant. A declared
+// channel with no subscriber is flagged: the listener that should be attached
+// has dropped.
+function channelIsFlagged(channel: BusChannelStat): boolean {
+  return channel.known && Number(channel.subscribers) === 0
+}
+
 function ChannelsTable({ channels }: { channels: BusChannelStat[] }) {
   const columns: ColumnsType<BusChannelStat> = [
     {
@@ -426,9 +434,22 @@ function ChannelsTable({ channels }: { channels: BusChannelStat[] }) {
       ),
     },
     {
+      title: 'Type',
+      align: 'center',
+      render: (_, channel) =>
+        channel.known ? <Tag>declared</Tag> : <Tag color="blue">transient</Tag>,
+    },
+    {
       title: 'Subscribers',
       align: 'right',
-      render: (_, channel) => Number(channel.subscribers).toLocaleString(),
+      render: (_, channel) =>
+        channelIsFlagged(channel) ? (
+          <Tooltip title="A declared channel with no subscriber — the listener that should be attached has dropped.">
+            <Tag color="warning">no subscribers</Tag>
+          </Tooltip>
+        ) : (
+          Number(channel.subscribers).toLocaleString()
+        ),
     },
   ]
 
@@ -439,7 +460,10 @@ function ChannelsTable({ channels }: { channels: BusChannelStat[] }) {
       pagination={false}
       columns={columns}
       dataSource={channels}
-      locale={{ emptyText: 'Channel detail lands in a later ticket.' }}
+      rowClassName={(channel) =>
+        channelIsFlagged(channel) ? 'system-dashboard-row-flagged' : ''
+      }
+      locale={{ emptyText: 'No Pub/Sub channels are declared or active.' }}
     />
   )
 }

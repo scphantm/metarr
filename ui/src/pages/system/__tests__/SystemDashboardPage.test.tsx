@@ -14,11 +14,12 @@ vi.mock('../../../api/queries', () => ({
 function snapshot(
   overrides: Record<string, unknown> = {},
   streams: Array<Record<string, unknown>> = [],
+  channels: Array<Record<string, unknown>> = [],
 ) {
   return {
     collectedAt: { seconds: BigInt(Math.floor(Date.now() / 1000)), nanos: 0 },
     streams,
-    channels: [],
+    channels,
     server: {
       version: '7.2.4',
       uptimeSeconds: 90_061,
@@ -52,6 +53,15 @@ function group(overrides: Record<string, unknown> = {}) {
     lagSeries: [],
     oldestPendingAgeSecondsSeries: [],
     consumeRateSeries: [],
+    ...overrides,
+  }
+}
+
+function channel(overrides: Record<string, unknown> = {}) {
+  return {
+    channel: 'heartbeat.request',
+    subscribers: 1,
+    known: true,
     ...overrides,
   }
 }
@@ -219,5 +229,50 @@ describe('SystemDashboardPage', () => {
     const view = render(<SystemDashboardPage />)
 
     expect(view.container.querySelector('svg.system-dashboard-sparkline')).toBeNull()
+  })
+
+  it('renders a Pub/Sub channel row with its subscriber count and a declared tag', () => {
+    useBusSnapshot.mockReturnValue({
+      data: snapshot({}, [], [channel({ channel: 'logs.app', subscribers: 4, known: true })]),
+      error: null,
+      dataUpdatedAt: Date.now(),
+    })
+
+    render(<SystemDashboardPage />)
+
+    const row = screen.getByText('logs.app').closest('tr')!
+    expect(within(row).getByText('declared')).toBeDefined()
+    expect(within(row).getByText('4')).toBeDefined()
+  })
+
+  it('flags a declared channel that has dropped to zero subscribers', () => {
+    useBusSnapshot.mockReturnValue({
+      data: snapshot({}, [], [channel({ channel: 'heartbeat.request', subscribers: 0, known: true })]),
+      error: null,
+      dataUpdatedAt: Date.now(),
+    })
+
+    render(<SystemDashboardPage />)
+
+    const row = screen.getByText('heartbeat.request').closest('tr')!
+    expect(within(row).getByText('no subscribers')).toBeDefined()
+    expect(row.className).toContain('system-dashboard-row-flagged')
+  })
+
+  it('distinguishes a transient channel from a declared one', () => {
+    useBusSnapshot.mockReturnValue({
+      data: snapshot({}, [], [
+        channel({ channel: 'heartbeat.request', subscribers: 1, known: true }),
+        channel({ channel: 'reply.corr-1234', subscribers: 1, known: false }),
+      ]),
+      error: null,
+      dataUpdatedAt: Date.now(),
+    })
+
+    render(<SystemDashboardPage />)
+
+    const transientRow = screen.getByText('reply.corr-1234').closest('tr')!
+    expect(within(transientRow).getByText('transient')).toBeDefined()
+    expect(transientRow.className).not.toContain('system-dashboard-row-flagged')
   })
 })

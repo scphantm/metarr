@@ -235,6 +235,7 @@ func (s *Sampler) pass(ctx context.Context) {
 	// Each call inside is time-boxed on its own, and an unreadable stream
 	// carries its own error rather than failing the pass.
 	streams, published, consumed := s.collectStreams(ctx)
+	channels := s.collectChannels(ctx)
 
 	s.mu.Lock()
 	s.appendSeries(server)
@@ -248,7 +249,7 @@ func (s *Sampler) pass(ctx context.Context) {
 		CollectedAt: timestamppb.New(time.Now().UTC()),
 		Server:      server,
 		Streams:     streams,
-		Channels:    []*ChannelStat{},
+		Channels:    channels,
 	}
 	s.snapshot = snapshot
 
