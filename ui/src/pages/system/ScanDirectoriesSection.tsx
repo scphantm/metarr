@@ -1,18 +1,18 @@
-import { useState } from 'react'
-import { Input, Select, Space, Typography } from 'antd'
+import { useState } from "react";
+import { Input, Select, Space, Typography } from "antd";
 
 import {
   queryKeys,
   useDeleteScanDirectory,
   useUpsertScanDirectory,
-} from '../../api/queries'
-import { directoryTypes } from '../../api/vocab'
-import type { ScanDirectory } from '../../gen/metarr/v1/directory_scanner_pb'
-import { ScanDirectorySchema } from '../../gen/metarr/v1/directory_scanner_pb'
-import type { MessageInitShape } from '@bufbuild/protobuf'
-import { Button, Card, EmptyState, Row } from '../../components/Card'
-import { EditableSelect, EditableText } from '../../components/Editable'
-import './ScanDirectoriesSection.css'
+} from "../../api/queries";
+import { directoryTypes } from "../../api/vocab";
+import type { ScanDirectory } from "../../gen/metarr/v1/directory_scanner_pb";
+import { ScanDirectorySchema } from "../../gen/metarr/v1/directory_scanner_pb";
+import type { MessageInitShape } from "@bufbuild/protobuf";
+import { Button, Card, EmptyState, Row } from "../../components/Card";
+import { EditableSelect, EditableText } from "../../components/Editable";
+import "./ScanDirectoriesSection.css";
 
 /*
  * Scan directories are keyed by scanner_slug, which the upsert endpoint matches
@@ -23,11 +23,11 @@ import './ScanDirectoriesSection.css'
 export function ScanDirectoriesSection({
   directories,
 }: {
-  directories: ScanDirectory[]
+  directories: ScanDirectory[];
 }) {
-  const upsert = useUpsertScanDirectory()
-  const remove = useDeleteScanDirectory()
-  const [adding, setAdding] = useState(false)
+  const upsert = useUpsertScanDirectory();
+  const remove = useDeleteScanDirectory();
+  const [adding, setAdding] = useState(false);
 
   return (
     <Card
@@ -45,7 +45,7 @@ export function ScanDirectoriesSection({
         </EmptyState>
       ) : null}
 
-      <Space direction="vertical" size={12} style={{ width: '100%' }}>
+      <Space direction="vertical" size={12} style={{ width: "100%" }}>
         {directories.map((directory) => (
           <div key={directory.scannerSlug} className="scan-directory-card">
             <div className="scan-directory-card-header">
@@ -60,7 +60,7 @@ export function ScanDirectoriesSection({
                       `Remove the scan directory "${directory.scannerSlug}"? Records already scanned from it are not deleted.`,
                     )
                   ) {
-                    void remove.mutateAsync(directory.scannerSlug)
+                    void remove.mutateAsync(directory.scannerSlug);
                   }
                 }}
               >
@@ -76,7 +76,7 @@ export function ScanDirectoriesSection({
                 monospace
                 placeholder="/media/movies"
                 validate={(next) =>
-                  next.startsWith('/') ? null : 'Must be an absolute path'
+                  next.startsWith("/") ? null : "Must be an absolute path"
                 }
                 onSave={(value) =>
                   upsert.mutateAsync({ ...directory, directory: value })
@@ -104,13 +104,13 @@ export function ScanDirectoriesSection({
           existingSlugs={directories.map((entry) => entry.scannerSlug)}
           onCancel={() => setAdding(false)}
           onCreate={async (entry) => {
-            await upsert.mutateAsync(entry)
-            setAdding(false)
+            await upsert.mutateAsync(entry);
+            setAdding(false);
           }}
         />
       ) : null}
     </Card>
-  )
+  );
 }
 
 function NewScanDirectory({
@@ -118,38 +118,38 @@ function NewScanDirectory({
   onCreate,
   onCancel,
 }: {
-  existingSlugs: string[]
+  existingSlugs: string[];
   onCreate: (
     entry: MessageInitShape<typeof ScanDirectorySchema>,
-  ) => Promise<void>
-  onCancel: () => void
+  ) => Promise<void>;
+  onCancel: () => void;
 }) {
-  const [slug, setSlug] = useState('')
-  const [directory, setDirectory] = useState('')
-  const [scanType, setScanType] = useState<string>(directoryTypes[0])
-  const [error, setError] = useState<string | null>(null)
+  const [slug, setSlug] = useState("");
+  const [directory, setDirectory] = useState("");
+  const [scanType, setScanType] = useState<string>(directoryTypes[0]);
+  const [error, setError] = useState<string | null>(null);
 
   async function submit() {
     if (!slug.trim()) {
-      setError('A slug is required — it is how the API addresses this entry')
-      return
+      setError("A slug is required — it is how the API addresses this entry");
+      return;
     }
     if (existingSlugs.includes(slug.trim())) {
       setError(
-        'That slug is already in use; it would replace the existing entry',
-      )
-      return
+        "That slug is already in use; it would replace the existing entry",
+      );
+      return;
     }
-    if (!directory.startsWith('/')) {
-      setError('The path must be absolute')
-      return
+    if (!directory.startsWith("/")) {
+      setError("The path must be absolute");
+      return;
     }
-    setError(null)
+    setError(null);
     await onCreate({
       scannerSlug: slug.trim(),
       directory: directory.trim(),
       scanType: scanType,
-    })
+    });
   }
 
   return (
@@ -189,5 +189,5 @@ function NewScanDirectory({
         </Button>
       </Space>
     </div>
-  )
+  );
 }

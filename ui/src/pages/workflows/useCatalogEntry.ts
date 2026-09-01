@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo } from "react";
 
-import type { WorkflowNodeType as NodeType } from '../../gen/metarr/v1/workflow_catalog_pb'
-import { useWorkflowCatalog } from '../../api/queries'
+import type { WorkflowNodeType as NodeType } from "../../gen/metarr/v1/workflow_catalog_pb";
+import { useWorkflowCatalog } from "../../api/queries";
 
 /**
  * Looks up one catalog entry. Several entries may share `type` (variations
@@ -19,17 +19,17 @@ export function useCatalogEntry(
   id: string | undefined,
   type: string,
 ): NodeType | undefined {
-  const { data } = useWorkflowCatalog()
+  const { data } = useWorkflowCatalog();
   return useMemo(() => {
     if (id) {
-      const byId = data?.nodeTypes.find((entry) => entry.id === id)
-      if (byId) return byId
+      const byId = data?.nodeTypes.find((entry) => entry.id === id);
+      if (byId) return byId;
     }
-    return data?.nodeTypes.find((entry) => entry.type === type)
-  }, [data, id, type])
+    return data?.nodeTypes.find((entry) => entry.type === type);
+  }, [data, id, type]);
 }
 
 export function useTransforms() {
-  const { data } = useWorkflowCatalog()
-  return data?.transforms ?? []
+  const { data } = useWorkflowCatalog();
+  return data?.transforms ?? [];
 }

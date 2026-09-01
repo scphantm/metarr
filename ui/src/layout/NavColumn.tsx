@@ -1,9 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { Button, Menu, Tag, Typography, type MenuProps } from 'antd'
-import { PushpinFilled, PushpinOutlined } from '@ant-design/icons'
+import { useEffect, useState, type ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Button, Menu, Tag, Typography, type MenuProps } from "antd";
+import { PushpinFilled, PushpinOutlined } from "@ant-design/icons";
 
-import './NavColumn.css'
+import "./NavColumn.css";
 
 /*
  * The left column. Declared as antd Menu items so the Searches, Workflows
@@ -20,67 +20,67 @@ function comingSoonLabel(text: string): ReactNode {
       {text}
       <Tag className="nav-column-soon-tag">soon</Tag>
     </span>
-  )
+  );
 }
 
-const items: MenuProps['items'] = [
+const items: MenuProps["items"] = [
   {
-    key: 'group-workflows',
-    label: 'Workflows',
+    key: "group-workflows",
+    label: "Workflows",
     children: [
-      { key: '/workflows', label: 'All Workflows' },
-      { key: '/workflows/add', label: 'Add Workflow' },
+      { key: "/workflows", label: "All Workflows" },
+      { key: "/workflows/add", label: "Add Workflow" },
     ],
   },
-  { key: 'group-searches', label: comingSoonLabel('Searches'), disabled: true },
+  { key: "group-searches", label: comingSoonLabel("Searches"), disabled: true },
   {
-    key: 'group-automations',
-    label: comingSoonLabel('Automations'),
+    key: "group-automations",
+    label: comingSoonLabel("Automations"),
     disabled: true,
   },
-  { key: 'group-tasks', label: comingSoonLabel('Tasks'), disabled: true },
+  { key: "group-tasks", label: comingSoonLabel("Tasks"), disabled: true },
   {
-    key: 'group-system',
-    label: 'System',
+    key: "group-system",
+    label: "System",
     children: [
-      { key: '/system', label: 'Overview' },
+      { key: "/system", label: "Overview" },
       {
-        key: 'group-system-configuration',
-        label: 'Configuration',
+        key: "group-system-configuration",
+        label: "Configuration",
         children: [
-          { key: '/system/directory-scanner', label: 'Directory Scanner' },
-          { key: '/system/sidecars', label: 'Sidecars' },
-          { key: '/system/interfaces', label: 'Interfaces' },
-          { key: '/system/event-bus', label: 'Event Bus' },
-          { key: '/system/security', label: 'Security' },
+          { key: "/system/directory-scanner", label: "Directory Scanner" },
+          { key: "/system/sidecars", label: "Sidecars" },
+          { key: "/system/interfaces", label: "Interfaces" },
+          { key: "/system/event-bus", label: "Event Bus" },
+          { key: "/system/security", label: "Security" },
         ],
       },
-      { key: '/system/agents', label: 'Agents' },
-      { key: '/system/logging', label: 'Logging' },
-      { key: '/system/external-tools', label: 'External Tools' },
+      { key: "/system/agents", label: "Agents" },
+      { key: "/system/logging", label: "Logging" },
+      { key: "/system/external-tools", label: "External Tools" },
     ],
   },
-]
+];
 
 // Walks the item tree to find every group whose descendants include
 // pathname, so the tree auto-expands to reveal whichever page is active.
 function ancestorGroupKeys(
-  nodes: MenuProps['items'],
+  nodes: MenuProps["items"],
   pathname: string,
   trail: string[] = [],
 ): string[] {
   for (const node of nodes ?? []) {
-    if (!node || !('key' in node) || node.key == null) continue
-    const key = String(node.key)
-    const children = 'children' in node ? node.children : undefined
+    if (!node || !("key" in node) || node.key == null) continue;
+    const key = String(node.key);
+    const children = "children" in node ? node.children : undefined;
     if (children && children.length > 0) {
-      const found = ancestorGroupKeys(children, pathname, [...trail, key])
-      if (found.length > 0) return found
+      const found = ancestorGroupKeys(children, pathname, [...trail, key]);
+      if (found.length > 0) return found;
     } else if (key === pathname) {
-      return trail
+      return trail;
     }
   }
-  return []
+  return [];
 }
 
 export function NavColumn({
@@ -89,22 +89,26 @@ export function NavColumn({
 }: {
   // Only present on the hover/pin variant (AppShell) — a plain embed with no
   // pin control just omits it.
-  pinned?: boolean
-  onTogglePin?: () => void
+  pinned?: boolean;
+  onTogglePin?: () => void;
 }) {
-  const location = useLocation()
-  const navigate = useNavigate()
+  const location = useLocation();
+  const navigate = useNavigate();
   const [openKeys, setOpenKeys] = useState<string[]>(() =>
     ancestorGroupKeys(items, location.pathname),
-  )
+  );
 
+  // Navigating into a nested route additively opens its ancestor groups
+  // without collapsing whatever the user opened by hand — a merge of route
+  // state into UI state that has to happen after the location changes.
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect
     setOpenKeys((current) =>
       Array.from(
         new Set([...current, ...ancestorGroupKeys(items, location.pathname)]),
       ),
-    )
-  }, [location.pathname])
+    );
+  }, [location.pathname]);
 
   return (
     <nav className="nav-column" aria-label="Main">
@@ -123,8 +127,8 @@ export function NavColumn({
             size="small"
             icon={pinned ? <PushpinFilled /> : <PushpinOutlined />}
             onClick={onTogglePin}
-            aria-label={pinned ? 'Unpin navigation' : 'Pin navigation open'}
-            title={pinned ? 'Unpin' : 'Pin open'}
+            aria-label={pinned ? "Unpin navigation" : "Pin navigation open"}
+            title={pinned ? "Unpin" : "Pin open"}
           />
         ) : null}
       </div>
@@ -135,9 +139,11 @@ export function NavColumn({
         selectedKeys={[location.pathname]}
         openKeys={openKeys}
         onOpenChange={setOpenKeys}
-        onClick={({ key }) => navigate(key)}
+        onClick={({ key }) => {
+          void navigate(key);
+        }}
         className="nav-column-menu"
       />
     </nav>
-  )
+  );
 }

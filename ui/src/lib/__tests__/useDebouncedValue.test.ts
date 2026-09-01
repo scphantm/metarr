@@ -1,95 +1,95 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
-import { useDebouncedValue } from '../useDebouncedValue'
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderHook, act } from "@testing-library/react";
+import { useDebouncedValue } from "../useDebouncedValue";
 
-describe('useDebouncedValue', () => {
+describe("useDebouncedValue", () => {
   beforeEach(() => {
-    vi.useFakeTimers()
-  })
+    vi.useFakeTimers();
+  });
 
   afterEach(() => {
-    vi.runOnlyPendingTimers()
-    vi.useRealTimers()
-  })
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
+  });
 
-  it('returns initial value immediately', () => {
-    const { result } = renderHook(() => useDebouncedValue('initial', 100))
-    expect(result.current).toBe('initial')
-  })
+  it("returns initial value immediately", () => {
+    const { result } = renderHook(() => useDebouncedValue("initial", 100));
+    expect(result.current).toBe("initial");
+  });
 
-  it('debounces value changes', async () => {
+  it("debounces value changes", () => {
     const { result, rerender } = renderHook(
       ({ value }) => useDebouncedValue(value, 100),
-      { initialProps: { value: 'first' } },
-    )
+      { initialProps: { value: "first" } },
+    );
 
-    expect(result.current).toBe('first')
+    expect(result.current).toBe("first");
 
-    rerender({ value: 'second' })
-    expect(result.current).toBe('first')
+    rerender({ value: "second" });
+    expect(result.current).toBe("first");
 
-    act(() => vi.advanceTimersByTime(50))
-    expect(result.current).toBe('first')
+    void act(() => vi.advanceTimersByTime(50));
+    expect(result.current).toBe("first");
 
-    act(() => vi.advanceTimersByTime(50))
-    expect(result.current).toBe('second')
-  })
+    void act(() => vi.advanceTimersByTime(50));
+    expect(result.current).toBe("second");
+  });
 
-  it('resets debounce timer on rapid changes', async () => {
+  it("resets debounce timer on rapid changes", () => {
     const { result, rerender } = renderHook(
       ({ value }) => useDebouncedValue(value, 100),
-      { initialProps: { value: 'a' } },
-    )
+      { initialProps: { value: "a" } },
+    );
 
-    rerender({ value: 'b' })
-    act(() => vi.advanceTimersByTime(50))
-    rerender({ value: 'c' })
-    expect(result.current).toBe('a')
+    rerender({ value: "b" });
+    void act(() => vi.advanceTimersByTime(50));
+    rerender({ value: "c" });
+    expect(result.current).toBe("a");
 
-    act(() => vi.advanceTimersByTime(50))
-    expect(result.current).toBe('a')
+    void act(() => vi.advanceTimersByTime(50));
+    expect(result.current).toBe("a");
 
-    act(() => vi.advanceTimersByTime(50))
-    expect(result.current).toBe('c')
-  })
+    void act(() => vi.advanceTimersByTime(50));
+    expect(result.current).toBe("c");
+  });
 
-  it('handles number values', async () => {
+  it("handles number values", () => {
     const { result, rerender } = renderHook(
       ({ value }) => useDebouncedValue(value, 100),
       { initialProps: { value: 1 } },
-    )
+    );
 
-    expect(result.current).toBe(1)
-    rerender({ value: 2 })
-    act(() => vi.advanceTimersByTime(100))
-    expect(result.current).toBe(2)
-  })
+    expect(result.current).toBe(1);
+    rerender({ value: 2 });
+    void act(() => vi.advanceTimersByTime(100));
+    expect(result.current).toBe(2);
+  });
 
-  it('respects different delay values', async () => {
+  it("respects different delay values", () => {
     const { result, rerender } = renderHook(
       ({ value, delay }) => useDebouncedValue(value, delay),
-      { initialProps: { value: 'first', delay: 200 } },
-    )
+      { initialProps: { value: "first", delay: 200 } },
+    );
 
-    rerender({ value: 'second', delay: 200 })
-    act(() => vi.advanceTimersByTime(100))
-    expect(result.current).toBe('first')
+    rerender({ value: "second", delay: 200 });
+    void act(() => vi.advanceTimersByTime(100));
+    expect(result.current).toBe("first");
 
-    act(() => vi.advanceTimersByTime(100))
-    expect(result.current).toBe('second')
-  })
+    void act(() => vi.advanceTimersByTime(100));
+    expect(result.current).toBe("second");
+  });
 
-  it('clears timer on unmount', () => {
-    const clearSpy = vi.spyOn(window, 'clearTimeout')
+  it("clears timer on unmount", () => {
+    const clearSpy = vi.spyOn(window, "clearTimeout");
     const { unmount, rerender } = renderHook(
       ({ value }) => useDebouncedValue(value, 100),
-      { initialProps: { value: 'initial' } },
-    )
+      { initialProps: { value: "initial" } },
+    );
 
-    rerender({ value: 'changed' })
-    unmount()
+    rerender({ value: "changed" });
+    unmount();
 
-    expect(clearSpy).toHaveBeenCalled()
-    clearSpy.mockRestore()
-  })
-})
+    expect(clearSpy).toHaveBeenCalled();
+    clearSpy.mockRestore();
+  });
+});

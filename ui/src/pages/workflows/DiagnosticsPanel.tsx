@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { Badge, Button, Space, Typography } from 'antd'
-import { DownOutlined, RightOutlined } from '@ant-design/icons'
+import { useState } from "react";
+import { Badge, Button, Space, Typography } from "antd";
+import { DownOutlined, RightOutlined } from "@ant-design/icons";
 
 import {
   type WorkflowDiagnostic,
   WorkflowDiagnosticSeverity,
-} from '../../gen/metarr/v1/workflow_catalog_pb'
-import './DiagnosticsPanel.css'
+} from "../../gen/metarr/v1/workflow_catalog_pb";
+import "./DiagnosticsPanel.css";
 
 /*
  * Renders the debounced POST /api/workflows/validate result as a collapsible
@@ -23,17 +23,17 @@ export function DiagnosticsPanel({
   onSelectNode,
   onHoverDiagnostic,
 }: {
-  diagnostics: WorkflowDiagnostic[]
-  nodeLabel: (nodeId: string) => string
-  onSelectNode: (nodeId: string) => void
-  onHoverDiagnostic: (edgeIds: string[]) => void
+  diagnostics: WorkflowDiagnostic[];
+  nodeLabel: (nodeId: string) => string;
+  onSelectNode: (nodeId: string) => void;
+  onHoverDiagnostic: (edgeIds: string[]) => void;
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
 
   const errorCount = diagnostics.filter(
     (d) => d.severity === WorkflowDiagnosticSeverity.ERROR,
-  ).length
-  const warningCount = diagnostics.length - errorCount
+  ).length;
+  const warningCount = diagnostics.length - errorCount;
 
   return (
     <div className="diagnostics-panel">
@@ -76,6 +76,9 @@ export function DiagnosticsPanel({
             <ul className="diagnostics-panel-list">
               {diagnostics.map((diagnostic, index) => (
                 <li
+                  // Diagnostics carry no id and the same code can repeat
+                  // within one validation pass; index disambiguates.
+                  // eslint-disable-next-line @eslint-react/no-array-index-key
                   key={`${diagnostic.code}-${index}`}
                   className="diagnostics-panel-item"
                   onMouseEnter={() => onHoverDiagnostic(diagnostic.edgeIds)}
@@ -88,8 +91,8 @@ export function DiagnosticsPanel({
                         backgroundColor:
                           diagnostic.severity ===
                           WorkflowDiagnosticSeverity.ERROR
-                            ? 'var(--color-red)'
-                            : 'var(--color-yellow)',
+                            ? "var(--color-red)"
+                            : "var(--color-yellow)",
                       }}
                     />
                     <div className="diagnostics-panel-item-main">
@@ -114,6 +117,9 @@ export function DiagnosticsPanel({
                         <div className="diagnostics-panel-witness-path">
                           {diagnostic.witnessPath.map((nodeId, pathIndex) => (
                             <span
+                              // A witness path can revisit a node (cycle
+                              // witnesses), so nodeId alone is not unique.
+                              // eslint-disable-next-line @eslint-react/no-array-index-key
                               key={`${nodeId}-${pathIndex}`}
                               className="diagnostics-panel-witness-step"
                             >
@@ -137,5 +143,5 @@ export function DiagnosticsPanel({
         </div>
       ) : null}
     </div>
-  )
+  );
 }

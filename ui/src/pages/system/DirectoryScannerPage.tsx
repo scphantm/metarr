@@ -1,24 +1,24 @@
-import { useIsFetching, useQueryClient } from '@tanstack/react-query'
+import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 
 import {
   useDirectoryScannerConfig,
   useScanDirectories,
-} from '../../api/queries'
-import { Button } from '../../components/Card'
-import { PageError, PageLoading } from '../../components/PageState'
-import { PageHeader } from '../../layout/AppShell'
-import { ScanDirectoriesSection } from './ScanDirectoriesSection'
-import { ScannerSection } from './ScannerSection'
-import { SavingInfoSidebar } from './SavingInfoSidebar'
+} from "../../api/queries";
+import { Button } from "../../components/Card";
+import { PageError, PageLoading } from "../../components/PageState";
+import { PageHeader } from "../../layout/AppShell";
+import { ScanDirectoriesSection } from "./ScanDirectoriesSection";
+import { ScannerSection } from "./ScannerSection";
+import { SavingInfoSidebar } from "./SavingInfoSidebar";
 
 export function DirectoryScannerPage() {
-  const scanner = useDirectoryScannerConfig()
-  const directories = useScanDirectories()
+  const scanner = useDirectoryScannerConfig();
+  const directories = useScanDirectories();
 
-  const queryClient = useQueryClient()
-  const fetching = useIsFetching({ queryKey: ['config'] })
+  const queryClient = useQueryClient();
+  const fetching = useIsFetching({ queryKey: ["config"] });
 
-  const error = scanner.error ?? directories.error
+  const error = scanner.error ?? directories.error;
 
   if (error) {
     return (
@@ -26,7 +26,7 @@ export function DirectoryScannerPage() {
         <PageHeader title="Directory Scanner" />
         <PageError error={error} />
       </>
-    )
+    );
   }
 
   if (scanner.isLoading || directories.isLoading) {
@@ -35,7 +35,7 @@ export function DirectoryScannerPage() {
         <PageHeader title="Directory Scanner" />
         <PageLoading />
       </>
-    )
+    );
   }
 
   return (
@@ -46,11 +46,11 @@ export function DirectoryScannerPage() {
         actions={
           <Button
             onClick={() =>
-              void queryClient.invalidateQueries({ queryKey: ['config'] })
+              void queryClient.invalidateQueries({ queryKey: ["config"] })
             }
             title="Re-read every configuration section from the server"
           >
-            {fetching ? 'Refreshing…' : 'Refresh'}
+            {fetching ? "Refreshing…" : "Refresh"}
           </Button>
         }
       />
@@ -61,9 +61,9 @@ export function DirectoryScannerPage() {
         <ScanDirectoriesSection directories={directories.data ?? []} />
       </div>
     </>
-  )
+  );
 }
 
 export function DirectoryScannerSidebar() {
-  return <SavingInfoSidebar />
+  return <SavingInfoSidebar />;
 }

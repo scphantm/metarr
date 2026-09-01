@@ -1,4 +1,4 @@
-import { useStore } from '@xyflow/react'
+import { useStore } from "@xyflow/react";
 
 // The small per-connection type icons (data handles — nodes/shared/
 // NodeShell.tsx; data edge endpoints — edges/DataEdge.tsx) only show when
@@ -8,11 +8,13 @@ import { useStore } from '@xyflow/react'
 // prop (today it relies on React Flow's default, 2). The epsilon absorbs
 // floating-point drift from pinch/scroll gestures landing just under the
 // cap rather than exactly on it.
-const ZOOM_EPSILON = 1e-6
+const ZOOM_EPSILON = 1e-6;
 
 // A selector returning a primitive (not the whole viewport object, unlike
 // useViewport()) so this only re-renders the caller when the boundary is
 // actually crossed, not on every pan/zoom frame.
 export function useIconZoomVisibility(): boolean {
-  return useStore((state) => state.transform[2] >= state.maxZoom - ZOOM_EPSILON)
+  return useStore(
+    (state) => state.transform[2] >= state.maxZoom - ZOOM_EPSILON,
+  );
 }

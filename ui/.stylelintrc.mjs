@@ -1,3 +1,3 @@
-import { uiConfig } from '../stylelint.config.mjs'
+import { uiConfig } from "../stylelint.config.mjs";
 
-export default uiConfig
+export default uiConfig;

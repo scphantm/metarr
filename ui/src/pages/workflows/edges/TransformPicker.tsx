@@ -1,8 +1,8 @@
-import { Modal, Typography } from 'antd'
+import { Modal, Typography } from "antd";
 
-import type { WorkflowTransform as Transform } from '../../../gen/metarr/v1/workflow_catalog_pb'
-import type { Type } from '../connectionRules'
-import './TransformPicker.css'
+import type { WorkflowTransform as Transform } from "../../../gen/metarr/v1/workflow_catalog_pb";
+import type { Type } from "../connectionRules";
+import "./TransformPicker.css";
 
 /*
  * design.md §4.4, "several candidates": an inline picker with nothing
@@ -21,12 +21,12 @@ export function TransformPicker({
   onPick,
   onClose,
 }: {
-  fromType: Type
-  toType: Type
-  candidates: Transform[]
-  current?: string
-  onPick: (name: string) => void
-  onClose: () => void
+  fromType: Type;
+  toType: Type;
+  candidates: Transform[];
+  current?: string;
+  onPick: (name: string) => void;
+  onClose: () => void;
 }) {
   return (
     <Modal
@@ -38,7 +38,7 @@ export function TransformPicker({
     >
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
         <span className="transform-picker-type">{fromType}</span> does not
-        connect directly to{' '}
+        connect directly to{" "}
         <span className="transform-picker-type">{toType}</span>. Pick how to
         convert it:
       </Typography.Text>
@@ -49,7 +49,7 @@ export function TransformPicker({
             key={transform.name}
             type="button"
             onClick={() => onPick(transform.name)}
-            className={`transform-picker-option ${transform.name === current ? 'is-current' : ''}`}
+            className={`transform-picker-option ${transform.name === current ? "is-current" : ""}`}
           >
             <div className="transform-picker-option-name">{transform.name}</div>
             {transform.summary ? (
@@ -61,5 +61,5 @@ export function TransformPicker({
         ))}
       </div>
     </Modal>
-  )
+  );
 }

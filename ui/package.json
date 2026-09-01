@@ -13,7 +13,9 @@
     "test:watch": "vitest --reporter=verbose",
     "lint": "yarn lint:js && yarn lint:css",
     "lint:js": "eslint .",
-    "lint:css": "stylelint \"src/**/*.css\""
+    "lint:css": "stylelint \"src/**/*.css\" && prettier --check \"src/**/*.css\"",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.4",
@@ -42,6 +44,7 @@
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.12.0",
     "jsdom": "^30.0.1",
+    "prettier": "^3.9.6",
     "react-icons": "^5.7.0",
     "typescript": "^6.0.0",
     "typescript-eslint": "^8.26.0",

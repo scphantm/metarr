@@ -1,17 +1,17 @@
-import { useIsFetching, useQueryClient } from '@tanstack/react-query'
+import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 
-import { useSonarrInstances } from '../../api/queries'
-import { Button } from '../../components/Card'
-import { PageError, PageLoading } from '../../components/PageState'
-import { PageHeader } from '../../layout/AppShell'
-import { SavingInfoSidebar } from './SavingInfoSidebar'
-import { SonarrSection } from './SonarrSection'
+import { useSonarrInstances } from "../../api/queries";
+import { Button } from "../../components/Card";
+import { PageError, PageLoading } from "../../components/PageState";
+import { PageHeader } from "../../layout/AppShell";
+import { SavingInfoSidebar } from "./SavingInfoSidebar";
+import { SonarrSection } from "./SonarrSection";
 
 export function InterfacesPage() {
-  const sonarr = useSonarrInstances()
+  const sonarr = useSonarrInstances();
 
-  const queryClient = useQueryClient()
-  const fetching = useIsFetching({ queryKey: ['config'] })
+  const queryClient = useQueryClient();
+  const fetching = useIsFetching({ queryKey: ["config"] });
 
   if (sonarr.error) {
     return (
@@ -19,7 +19,7 @@ export function InterfacesPage() {
         <PageHeader title="Interfaces" />
         <PageError error={sonarr.error} />
       </>
-    )
+    );
   }
 
   if (sonarr.isLoading) {
@@ -28,7 +28,7 @@ export function InterfacesPage() {
         <PageHeader title="Interfaces" />
         <PageLoading />
       </>
-    )
+    );
   }
 
   return (
@@ -39,11 +39,11 @@ export function InterfacesPage() {
         actions={
           <Button
             onClick={() =>
-              void queryClient.invalidateQueries({ queryKey: ['config'] })
+              void queryClient.invalidateQueries({ queryKey: ["config"] })
             }
             title="Re-read every configuration section from the server"
           >
-            {fetching ? 'Refreshing…' : 'Refresh'}
+            {fetching ? "Refreshing…" : "Refresh"}
           </Button>
         }
       />
@@ -52,9 +52,9 @@ export function InterfacesPage() {
         <SonarrSection instances={sonarr.data ?? []} />
       </div>
     </>
-  )
+  );
 }
 
 export function InterfacesSidebar() {
-  return <SavingInfoSidebar />
+  return <SavingInfoSidebar />;
 }

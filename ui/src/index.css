@@ -1,4 +1,4 @@
-@import url('@xyflow/react/dist/style.css') layer(base);
+@import url("@xyflow/react/dist/style.css") layer(base);
 
 /*
  * Solarized, by Ethan Schoonover (https://ethanschoonover.com/solarized/).
@@ -98,12 +98,15 @@
 .accent-red-20 {
   background-color: color-mix(in srgb, var(--color-red) 20%, transparent);
 }
+
 .accent-red-40 {
   background-color: color-mix(in srgb, var(--color-red) 40%, transparent);
 }
+
 .accent-red-60 {
   background-color: color-mix(in srgb, var(--color-red) 60%, transparent);
 }
+
 .accent-red-80 {
   background-color: color-mix(in srgb, var(--color-red) 80%, transparent);
 }
@@ -111,12 +114,15 @@
 .accent-orange-20 {
   background-color: color-mix(in srgb, var(--color-orange) 20%, transparent);
 }
+
 .accent-orange-40 {
   background-color: color-mix(in srgb, var(--color-orange) 40%, transparent);
 }
+
 .accent-orange-60 {
   background-color: color-mix(in srgb, var(--color-orange) 60%, transparent);
 }
+
 .accent-orange-80 {
   background-color: color-mix(in srgb, var(--color-orange) 80%, transparent);
 }
@@ -124,12 +130,15 @@
 .accent-yellow-20 {
   background-color: color-mix(in srgb, var(--color-yellow) 20%, transparent);
 }
+
 .accent-yellow-40 {
   background-color: color-mix(in srgb, var(--color-yellow) 40%, transparent);
 }
+
 .accent-yellow-60 {
   background-color: color-mix(in srgb, var(--color-yellow) 60%, transparent);
 }
+
 .accent-yellow-80 {
   background-color: color-mix(in srgb, var(--color-yellow) 80%, transparent);
 }
@@ -137,12 +146,15 @@
 .accent-green-20 {
   background-color: color-mix(in srgb, var(--color-green) 20%, transparent);
 }
+
 .accent-green-40 {
   background-color: color-mix(in srgb, var(--color-green) 40%, transparent);
 }
+
 .accent-green-60 {
   background-color: color-mix(in srgb, var(--color-green) 60%, transparent);
 }
+
 .accent-green-80 {
   background-color: color-mix(in srgb, var(--color-green) 80%, transparent);
 }
@@ -150,12 +162,15 @@
 .accent-cyan-20 {
   background-color: color-mix(in srgb, var(--color-cyan) 20%, transparent);
 }
+
 .accent-cyan-40 {
   background-color: color-mix(in srgb, var(--color-cyan) 40%, transparent);
 }
+
 .accent-cyan-60 {
   background-color: color-mix(in srgb, var(--color-cyan) 60%, transparent);
 }
+
 .accent-cyan-80 {
   background-color: color-mix(in srgb, var(--color-cyan) 80%, transparent);
 }
@@ -163,12 +178,15 @@
 .accent-blue-20 {
   background-color: color-mix(in srgb, var(--color-blue) 20%, transparent);
 }
+
 .accent-blue-40 {
   background-color: color-mix(in srgb, var(--color-blue) 40%, transparent);
 }
+
 .accent-blue-60 {
   background-color: color-mix(in srgb, var(--color-blue) 60%, transparent);
 }
+
 .accent-blue-80 {
   background-color: color-mix(in srgb, var(--color-blue) 80%, transparent);
 }
@@ -176,12 +194,15 @@
 .accent-violet-20 {
   background-color: color-mix(in srgb, var(--color-violet) 20%, transparent);
 }
+
 .accent-violet-40 {
   background-color: color-mix(in srgb, var(--color-violet) 40%, transparent);
 }
+
 .accent-violet-60 {
   background-color: color-mix(in srgb, var(--color-violet) 60%, transparent);
 }
+
 .accent-violet-80 {
   background-color: color-mix(in srgb, var(--color-violet) 80%, transparent);
 }
@@ -189,12 +210,15 @@
 .accent-magenta-20 {
   background-color: color-mix(in srgb, var(--color-magenta) 20%, transparent);
 }
+
 .accent-magenta-40 {
   background-color: color-mix(in srgb, var(--color-magenta) 40%, transparent);
 }
+
 .accent-magenta-60 {
   background-color: color-mix(in srgb, var(--color-magenta) 60%, transparent);
 }
+
 .accent-magenta-80 {
   background-color: color-mix(in srgb, var(--color-magenta) 80%, transparent);
 }
@@ -206,24 +230,31 @@
 .color-red {
   --accent: color-mix(in srgb, var(--color-red) 80%, transparent);
 }
+
 .color-orange {
   --accent: color-mix(in srgb, var(--color-orange) 80%, transparent);
 }
+
 .color-yellow {
   --accent: color-mix(in srgb, var(--color-yellow) 80%, transparent);
 }
+
 .color-green {
   --accent: color-mix(in srgb, var(--color-green) 80%, transparent);
 }
+
 .color-cyan {
   --accent: color-mix(in srgb, var(--color-cyan) 80%, transparent);
 }
+
 .color-blue {
   --accent: color-mix(in srgb, var(--color-blue) 80%, transparent);
 }
+
 .color-violet {
   --accent: color-mix(in srgb, var(--color-violet) 80%, transparent);
 }
+
 .color-magenta {
   --accent: color-mix(in srgb, var(--color-magenta) 80%, transparent);
 }
@@ -266,24 +297,31 @@
 .hover-border-red:hover {
   border-color: color-mix(in srgb, var(--color-red) 40%, transparent);
 }
+
 .hover-border-orange:hover {
   border-color: color-mix(in srgb, var(--color-orange) 40%, transparent);
 }
+
 .hover-border-yellow:hover {
   border-color: color-mix(in srgb, var(--color-yellow) 40%, transparent);
 }
+
 .hover-border-green:hover {
   border-color: color-mix(in srgb, var(--color-green) 40%, transparent);
 }
+
 .hover-border-cyan:hover {
   border-color: color-mix(in srgb, var(--color-cyan) 40%, transparent);
 }
+
 .hover-border-blue:hover {
   border-color: color-mix(in srgb, var(--color-blue) 40%, transparent);
 }
+
 .hover-border-violet:hover {
   border-color: color-mix(in srgb, var(--color-violet) 40%, transparent);
 }
+
 .hover-border-magenta:hover {
   border-color: color-mix(in srgb, var(--color-magenta) 40%, transparent);
 }
@@ -308,7 +346,7 @@ body {
     ui-sans-serif,
     system-ui,
     -apple-system,
-    'Segoe UI',
+    "Segoe UI",
     Roboto,
     sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -413,6 +451,7 @@ body {
   100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.15;
   }

@@ -1,26 +1,26 @@
-import type { Node, NodeProps } from '@xyflow/react'
+import type { Node, NodeProps } from "@xyflow/react";
 
-import { NodeShell } from '../shared/NodeShell'
-import { limitBranchPorts, useVisibleBranchCount } from '../shared/branchPorts'
-import { useCatalogEntry } from '../../useCatalogEntry'
-import { useNodeHandles } from '../shared/useNodeHandles'
-import type { CatalogNodeData } from '../../editorNodeData'
+import { NodeShell } from "../shared/NodeShell";
+import { limitBranchPorts, useVisibleBranchCount } from "../shared/branchPorts";
+import { useCatalogEntry } from "../../useCatalogEntry";
+import { useNodeHandles } from "../shared/useNodeHandles";
+import type { CatalogNodeData } from "../../editorNodeData";
 
-const TYPE_KEY = 'core/join'
+const TYPE_KEY = "core/join";
 
 // Only as many branchN control-in ports render as the node's `branches`
 // setting calls for (plus any branch already wired past that) — mirrors
 // Parallel's control-out ports, see nodes/shared/branchPorts.ts.
 export function JoinNode({ id, data }: NodeProps<Node<CatalogNodeData>>) {
-  const nodeType = useCatalogEntry(data.catalogId, TYPE_KEY)
-  const handles = useNodeHandles(nodeType)
+  const nodeType = useCatalogEntry(data.catalogId, TYPE_KEY);
+  const handles = useNodeHandles(nodeType);
   const visibleBranches = useVisibleBranchCount(
     id,
     data,
     nodeType,
     nodeType?.control?.in ?? [],
-    'target',
-  )
+    "target",
+  );
 
   return (
     <NodeShell
@@ -32,5 +32,5 @@ export function JoinNode({ id, data }: NodeProps<Node<CatalogNodeData>>) {
         top: limitBranchPorts(handles.top, visibleBranches),
       }}
     />
-  )
+  );
 }

@@ -1,47 +1,47 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ReactFlowProvider,
   type ReactFlowInstance,
   type Viewport,
-} from '@xyflow/react'
-import { Input, Spin, Typography } from 'antd'
+} from "@xyflow/react";
+import { Input, Spin, Typography } from "antd";
 
-import type { Workflow } from '../../gen/metarr/v1/workflows_pb'
+import type { Workflow } from "../../gen/metarr/v1/workflows_pb";
 import {
   queryKeys,
   useSaveWorkflow,
   useWorkflow,
   useWorkflowVersion,
   useWorkflowVersions,
-} from '../../api/queries'
-import { Button } from '../../components/Card'
-import { DnDProvider } from './DnDContext'
-import { fromRFGraph, toRFGraph } from './graphAdapter'
-import { NodePalette } from './NodePalette'
-import { registeredTypes } from './nodes/registry'
-import { TagsInput } from './TagsInput'
-import { VersionHistory } from './VersionHistory'
-import { WorkflowCanvas } from './WorkflowCanvas'
+} from "../../api/queries";
+import { Button } from "../../components/Card";
+import { DnDProvider } from "./DnDContext";
+import { fromRFGraph, toRFGraph } from "./graphAdapter";
+import { NodePalette } from "./NodePalette";
+import { registeredTypes } from "./nodes/registry";
+import { TagsInput } from "./TagsInput";
+import { VersionHistory } from "./VersionHistory";
+import { WorkflowCanvas } from "./WorkflowCanvas";
 import {
   clearStashedDraft,
   readStashedDraft,
   stashDraft,
   type StashedDraft,
-} from './draftStorage'
-import { SchemaVersion } from './editorNodeData'
-import './WorkflowEditorPage.css'
+} from "./draftStorage";
+import { SchemaVersion } from "./editorNodeData";
+import "./WorkflowEditorPage.css";
 
-const emptyViewport: Viewport = { x: 0, y: 0, zoom: 1 }
+const emptyViewport: Viewport = { x: 0, y: 0, zoom: 1 };
 const emptySnapshot: StashedDraft = {
-  name: '',
-  description: '',
+  name: "",
+  description: "",
   tags: [],
   nodes: [],
   edges: [],
   viewport: emptyViewport,
-}
+};
 
 // A document whose schema_version doesn't match predates the control/data-
 // edge redesign (design.md §11) — its nodes/edges are the old React-Flow-
@@ -50,14 +50,14 @@ const emptySnapshot: StashedDraft = {
 // is no migration path, per the project's still-in-development stance: it's
 // opened read-only with an explanation instead.
 function isCurrentSchema(workflow: Workflow): boolean {
-  return (workflow.graph?.schemaVersion ?? 0) === SchemaVersion
+  return (workflow.graph?.schemaVersion ?? 0) === SchemaVersion;
 }
 
 function snapshotFromWorkflow(workflow: Workflow): StashedDraft {
   const { nodes, edges } = toRFGraph(
     { nodes: workflow.graph?.nodes ?? [], edges: workflow.graph?.edges ?? [] },
     registeredTypes,
-  )
+  );
   return {
     name: workflow.name,
     description: workflow.description,
@@ -66,7 +66,7 @@ function snapshotFromWorkflow(workflow: Workflow): StashedDraft {
     edges,
     viewport:
       (workflow.graph?.viewport as Viewport | undefined) ?? emptyViewport,
-  }
+  };
 }
 
 function draftDiffers(a: StashedDraft, b: StashedDraft) {
@@ -76,11 +76,11 @@ function draftDiffers(a: StashedDraft, b: StashedDraft) {
     tags: s.tags,
     nodes: s.nodes,
     edges: s.edges,
-  })
-  return JSON.stringify(strip(a)) !== JSON.stringify(strip(b))
+  });
+  return JSON.stringify(strip(a)) !== JSON.stringify(strip(b));
 }
 
-type EditorHandle = { getSnapshot: () => StashedDraft }
+type EditorHandle = { getSnapshot: () => StashedDraft };
 
 /*
  * Shared by both /workflows/add and /workflows/:id/edit — an id present in
@@ -98,101 +98,101 @@ type EditorHandle = { getSnapshot: () => StashedDraft }
  * overwriting in-progress state.
  */
 export function WorkflowEditorPage() {
-  const { id } = useParams<{ id?: string }>()
-  const navigate = useNavigate()
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
 
-  const workflowQuery = useWorkflow(id ?? '')
-  const versionsQuery = useWorkflowVersions(id ?? '')
-  const queryClient = useQueryClient()
+  const workflowQuery = useWorkflow(id ?? "");
+  const versionsQuery = useWorkflowVersions(id ?? "");
+  const queryClient = useQueryClient();
 
-  const [mode, setMode] = useState<'editing' | 'viewing-version'>('editing')
-  const [viewingVersion, setViewingVersion] = useState<number | null>(null)
+  const [mode, setMode] = useState<"editing" | "viewing-version">("editing");
+  const [viewingVersion, setViewingVersion] = useState<number | null>(null);
   // Bumped on "Back to editing" so EditorBody remounts even when mode and
   // viewingVersion both return to their prior values — those alone wouldn't
   // change the key on a second visit to the same old version.
-  const [restoreNonce, setRestoreNonce] = useState(0)
+  const [restoreNonce, setRestoreNonce] = useState(0);
   // Set only when "Back to editing" found something stashed; null means
   // "nothing had changed, fall back to workflowQuery.data as normal". A real
   // state value (not a ref) so it can be read during render.
-  const [restoredDraft, setRestoredDraft] = useState<StashedDraft | null>(null)
+  const [restoredDraft, setRestoredDraft] = useState<StashedDraft | null>(null);
 
-  const viewingVersionQuery = useWorkflowVersion(id ?? '', viewingVersion)
+  const viewingVersionQuery = useWorkflowVersion(id ?? "", viewingVersion);
 
-  const editorRef = useRef<EditorHandle>(null)
+  const editorRef = useRef<EditorHandle>(null);
 
   // The query cache is the baseline — no separate ref/state mirrors it. Save
   // seeds the cache directly (see handleSaved) so this is fresh immediately,
   // not only after the invalidated query's background refetch resolves.
   const baseline = workflowQuery.data
     ? snapshotFromWorkflow(workflowQuery.data)
-    : null
+    : null;
 
   function handleSelectVersion(version: number) {
-    if (!id) return
-    const current = editorRef.current?.getSnapshot()
+    if (!id) return;
+    const current = editorRef.current?.getSnapshot();
     if (current && (!baseline || draftDiffers(current, baseline))) {
-      stashDraft(id, current)
+      stashDraft(id, current);
     }
-    setMode('viewing-version')
-    setViewingVersion(version)
+    setMode("viewing-version");
+    setViewingVersion(version);
   }
 
   function handleBackToEditing() {
-    if (!id) return
-    const stashed = readStashedDraft(id)
+    if (!id) return;
+    const stashed = readStashedDraft(id);
     if (stashed) {
-      clearStashedDraft(id)
+      clearStashedDraft(id);
     }
-    setRestoredDraft(stashed)
-    setMode('editing')
-    setViewingVersion(null)
-    setRestoreNonce((n) => n + 1)
+    setRestoredDraft(stashed);
+    setMode("editing");
+    setViewingVersion(null);
+    setRestoreNonce((n) => n + 1);
   }
 
   function handleSaved(saved: Workflow) {
     // Seed the cache immediately rather than waiting on the mutation's
     // invalidation-triggered refetch, so `baseline` above reflects this save
     // on the very next render.
-    queryClient.setQueryData(queryKeys.workflow(saved.documentId), saved)
+    queryClient.setQueryData(queryKeys.workflow(saved.documentId), saved);
     if (!id) {
-      navigate(`/workflows/${saved.documentId}/edit`, { replace: true })
+      void navigate(`/workflows/${saved.documentId}/edit`, { replace: true });
     }
   }
 
-  const readOnly = mode === 'viewing-version'
+  const readOnly = mode === "viewing-version";
 
-  let editorKey: string
-  let initialSnapshot: StashedDraft
-  let ready = true
-  let outdatedSchema = false
+  let editorKey: string;
+  let initialSnapshot: StashedDraft;
+  let ready = true;
+  let outdatedSchema = false;
   if (readOnly) {
-    editorKey = `v-${viewingVersion}`
+    editorKey = `v-${viewingVersion}`;
     if (!viewingVersionQuery.data) {
-      ready = false
-      initialSnapshot = emptySnapshot
+      ready = false;
+      initialSnapshot = emptySnapshot;
     } else if (!isCurrentSchema(viewingVersionQuery.data)) {
-      outdatedSchema = true
-      initialSnapshot = emptySnapshot
+      outdatedSchema = true;
+      initialSnapshot = emptySnapshot;
     } else {
-      initialSnapshot = snapshotFromWorkflow(viewingVersionQuery.data)
+      initialSnapshot = snapshotFromWorkflow(viewingVersionQuery.data);
     }
   } else if (id) {
-    editorKey = `${id}-${restoreNonce}`
+    editorKey = `${id}-${restoreNonce}`;
     if (restoredDraft) {
-      initialSnapshot = restoredDraft
+      initialSnapshot = restoredDraft;
     } else if (!baseline) {
       if (workflowQuery.data && !isCurrentSchema(workflowQuery.data)) {
-        outdatedSchema = true
+        outdatedSchema = true;
       } else {
-        ready = false
+        ready = false;
       }
-      initialSnapshot = emptySnapshot
+      initialSnapshot = emptySnapshot;
     } else {
-      initialSnapshot = baseline
+      initialSnapshot = baseline;
     }
   } else {
-    editorKey = 'new'
-    initialSnapshot = emptySnapshot
+    editorKey = "new";
+    initialSnapshot = emptySnapshot;
   }
 
   return (
@@ -237,31 +237,32 @@ export function WorkflowEditorPage() {
         </div>
       ) : null}
     </div>
-  )
+  );
 }
 
+// eslint-disable-next-line @eslint-react/no-forward-ref -- keeps the imperative EditorHandle contract; migrate with the rest of the editor
 const EditorBody = forwardRef<
   EditorHandle,
   {
-    documentId: string | undefined
-    initial: StashedDraft
-    readOnly: boolean
-    viewingVersion: number | null
-    onBackToEditing: () => void
-    onSaved: (saved: Workflow) => void
+    documentId: string | undefined;
+    initial: StashedDraft;
+    readOnly: boolean;
+    viewingVersion: number | null;
+    onBackToEditing: () => void;
+    onSaved: (saved: Workflow) => void;
   }
 >(function EditorBody(
   { documentId, initial, readOnly, viewingVersion, onBackToEditing, onSaved },
   ref,
 ) {
-  const [name, setName] = useState(initial.name)
-  const [description, setDescription] = useState(initial.description)
-  const [tags, setTags] = useState(initial.tags)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [name, setName] = useState(initial.name);
+  const [description, setDescription] = useState(initial.description);
+  const [tags, setTags] = useState(initial.tags);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const rfInstanceRef = useRef<ReactFlowInstance | null>(null)
-  const saveWorkflow = useSaveWorkflow()
+  const rfInstanceRef = useRef<ReactFlowInstance | null>(null);
+  const saveWorkflow = useSaveWorkflow();
 
   useImperativeHandle(ref, () => ({
     getSnapshot: () => ({
@@ -272,40 +273,40 @@ const EditorBody = forwardRef<
       edges: rfInstanceRef.current?.getEdges() ?? initial.edges,
       viewport: rfInstanceRef.current?.getViewport() ?? initial.viewport,
     }),
-  }))
+  }));
 
   async function handleSave() {
-    const instance = rfInstanceRef.current
-    if (!instance) return
+    const instance = rfInstanceRef.current;
+    if (!instance) return;
 
-    setSaving(true)
-    setError(null)
+    setSaving(true);
+    setError(null);
     try {
       const graph = fromRFGraph(
         instance.getNodes(),
         instance.getEdges(),
         instance.getViewport(),
-      )
+      );
       const saved = await saveWorkflow.mutateAsync({
-        documentId: documentId ?? '',
+        documentId: documentId ?? "",
         name: name.trim(),
         description: description.trim(),
         tags,
         graph,
-      })
-      onSaved(saved)
+      });
+      onSaved(saved);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
   const canSave =
     !readOnly &&
-    name.trim() !== '' &&
-    description.trim() !== '' &&
-    tags.length > 0
+    name.trim() !== "" &&
+    description.trim() !== "" &&
+    tags.length > 0;
 
   return (
     <>
@@ -330,8 +331,8 @@ const EditorBody = forwardRef<
           <div
             className={
               readOnly
-                ? 'workflow-editor-tags is-read-only'
-                : 'workflow-editor-tags'
+                ? "workflow-editor-tags is-read-only"
+                : "workflow-editor-tags"
             }
           >
             <TagsInput value={tags} onChange={setTags} />
@@ -359,7 +360,7 @@ const EditorBody = forwardRef<
               disabled={!canSave || saving}
               onClick={() => void handleSave()}
             >
-              {saving ? 'Saving…' : 'Save Workflow'}
+              {saving ? "Saving…" : "Save Workflow"}
             </Button>
           )}
         </div>
@@ -382,7 +383,7 @@ const EditorBody = forwardRef<
                 }
                 readOnly={readOnly}
                 onInit={(instance) => {
-                  rfInstanceRef.current = instance
+                  rfInstanceRef.current = instance;
                 }}
               />
             </div>
@@ -390,5 +391,5 @@ const EditorBody = forwardRef<
         </DnDProvider>
       </div>
     </>
-  )
-})
+  );
+});

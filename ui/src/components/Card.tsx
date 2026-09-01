@@ -1,13 +1,13 @@
-import type { ReactNode } from 'react'
+import type { ReactNode } from "react";
 import {
   Button as AntButton,
   Card as AntCard,
   Empty,
   Space,
   Typography,
-} from 'antd'
+} from "antd";
 
-import './Card.css'
+import "./Card.css";
 
 export function Card({
   title,
@@ -15,10 +15,10 @@ export function Card({
   actions,
   children,
 }: {
-  title: string
-  description?: string
-  actions?: ReactNode
-  children: ReactNode
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+  children: ReactNode;
 }) {
   return (
     <AntCard
@@ -36,7 +36,7 @@ export function Card({
     >
       {children}
     </AntCard>
-  )
+  );
 }
 
 // Row is the label/value pair every edit-in-place field sits in, so labels
@@ -46,9 +46,9 @@ export function Row({
   hint,
   children,
 }: {
-  label: string
-  hint?: string
-  children: ReactNode
+  label: string;
+  hint?: string;
+  children: ReactNode;
 }) {
   return (
     <div className="ui-row">
@@ -62,30 +62,30 @@ export function Row({
       </div>
       <div className="ui-row-content">{children}</div>
     </div>
-  )
+  );
 }
 
 const variantToButtonProps = {
   default: {},
-  primary: { type: 'primary' as const },
+  primary: { type: "primary" as const },
   danger: { danger: true },
-  ghost: { type: 'text' as const },
-}
+  ghost: { type: "text" as const },
+};
 
 export function Button({
   children,
   onClick,
-  variant = 'default',
-  type = 'button',
+  variant = "default",
+  type = "button",
   disabled,
   title,
 }: {
-  children: ReactNode
-  onClick?: () => void
-  variant?: 'default' | 'primary' | 'danger' | 'ghost'
-  type?: 'button' | 'submit'
-  disabled?: boolean
-  title?: string
+  children: ReactNode;
+  onClick?: () => void;
+  variant?: "default" | "primary" | "danger" | "ghost";
+  type?: "button" | "submit";
+  disabled?: boolean;
+  title?: string;
 }) {
   return (
     <AntButton
@@ -98,7 +98,7 @@ export function Button({
     >
       {children}
     </AntButton>
-  )
+  );
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
@@ -108,5 +108,5 @@ export function EmptyState({ children }: { children: ReactNode }) {
       description={children}
       className="ui-empty-state"
     />
-  )
+  );
 }

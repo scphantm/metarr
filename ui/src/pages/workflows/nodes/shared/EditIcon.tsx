@@ -17,5 +17,5 @@ export function EditIcon() {
         strokeLinejoin="round"
       />
     </svg>
-  )
+  );
 }

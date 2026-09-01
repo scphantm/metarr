@@ -3,9 +3,9 @@ import {
   getBezierPath,
   type Edge,
   type EdgeProps,
-} from '@xyflow/react'
+} from "@xyflow/react";
 
-import { controlHandleId } from '../connectionRules'
+import { controlHandleId } from "../connectionRules";
 
 /*
  * The one shared control-edge component — edges aren't declared per catalog
@@ -21,10 +21,10 @@ import { controlHandleId } from '../connectionRules'
 // diagnosticHighlight is set by WorkflowCanvas.tsx while the user hovers a
 // diagnostic naming this edge — see DiagnosticsPanel.tsx — never persisted
 // (graphAdapter.ts's fromRFEdge doesn't read it).
-export type ControlEdgeData = { diagnosticHighlight?: boolean }
-export type ControlEdgeType = Edge<ControlEdgeData, 'controlEdge'>
+export type ControlEdgeData = { diagnosticHighlight?: boolean };
+export type ControlEdgeType = Edge<ControlEdgeData, "controlEdge">;
 
-const ERROR_HANDLE = controlHandleId('error')
+const ERROR_HANDLE = controlHandleId("error");
 
 export function ControlEdge({
   id,
@@ -45,12 +45,12 @@ export function ControlEdge({
     targetX,
     targetY,
     targetPosition,
-  })
+  });
   const color =
-    sourceHandleId === ERROR_HANDLE ? 'var(--color-red)' : 'var(--color-cyan)'
+    sourceHandleId === ERROR_HANDLE ? "var(--color-red)" : "var(--color-cyan)";
 
   return (
-    <g className={data?.diagnosticHighlight ? 'diagnostic-blink' : undefined}>
+    <g className={data?.diagnosticHighlight ? "diagnostic-blink" : undefined}>
       <BaseEdge
         id={id}
         path={path}
@@ -66,5 +66,5 @@ export function ControlEdge({
         />
       </circle>
     </g>
-  )
+  );
 }

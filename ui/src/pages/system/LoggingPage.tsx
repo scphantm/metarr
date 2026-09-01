@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { Badge, Segmented, Typography } from 'antd'
+import { useEffect, useRef, useState } from "react";
+import { Badge, Segmented, Typography } from "antd";
 
 import {
   useAgents,
@@ -8,13 +8,13 @@ import {
   useLogTailStreamStatus,
   useSetAgentLogLevel,
   useUpdateLoggingConfig,
-} from '../../api/queries'
-import { logLevels, type LogLevel } from '../../api/vocab'
-import type { LoggingConfig, LogRecord } from '../../gen/metarr/v1/logging_pb'
-import { Card, EmptyState } from '../../components/Card'
-import { PageError, PageLoading } from '../../components/PageState'
-import { PageHeader } from '../../layout/AppShell'
-import './LoggingPage.css'
+} from "../../api/queries";
+import { logLevels, type LogLevel } from "../../api/vocab";
+import type { LoggingConfig, LogRecord } from "../../gen/metarr/v1/logging_pb";
+import { Card, EmptyState } from "../../components/Card";
+import { PageError, PageLoading } from "../../components/PageState";
+import { PageHeader } from "../../layout/AppShell";
+import "./LoggingPage.css";
 
 /*
  * System > Logging.
@@ -30,9 +30,9 @@ import './LoggingPage.css'
  * vendors never becomes a Metarr code change.
  */
 export function LoggingPage() {
-  const logging = useLoggingConfig()
-  const agents = useAgents()
-  const socketStatus = useLogTailStreamStatus()
+  const logging = useLoggingConfig();
+  const agents = useAgents();
+  const socketStatus = useLogTailStreamStatus();
 
   if (logging.error && !logging.data) {
     return (
@@ -40,7 +40,7 @@ export function LoggingPage() {
         <PageHeader title="Logging" />
         <PageError error={logging.error} />
       </>
-    )
+    );
   }
 
   if (!logging.data) {
@@ -49,7 +49,7 @@ export function LoggingPage() {
         <PageHeader title="Logging" />
         <PageLoading />
       </>
-    )
+    );
   }
 
   return (
@@ -107,20 +107,20 @@ export function LoggingPage() {
         </Card>
       </div>
     </>
-  )
+  );
 }
 
 function ServerLevelCard({ config }: { config: LoggingConfig }) {
-  const update = useUpdateLoggingConfig()
-  const [error, setError] = useState<string | null>(null)
+  const update = useUpdateLoggingConfig();
+  const [error, setError] = useState<string | null>(null);
 
   async function setLevel(level: LogLevel) {
-    if (level === config.serverLevel) return
-    setError(null)
+    if (level === config.serverLevel) return;
+    setError(null);
     try {
-      await update.mutateAsync({ ...config, serverLevel: level })
+      await update.mutateAsync({ ...config, serverLevel: level });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      setError(cause instanceof Error ? cause.message : String(cause));
     }
   }
 
@@ -137,13 +137,13 @@ function ServerLevelCard({ config }: { config: LoggingConfig }) {
       {error ? (
         <Typography.Text
           type="danger"
-          style={{ display: 'block', marginTop: 8, fontSize: 12 }}
+          style={{ display: "block", marginTop: 8, fontSize: 12 }}
         >
           {error}
         </Typography.Text>
       ) : null}
     </Card>
-  )
+  );
 }
 
 function AgentLevelRow({
@@ -152,27 +152,27 @@ function AgentLevelRow({
   online,
   level,
 }: {
-  slug: string
-  displayName?: string
-  online: boolean
-  level: string
+  slug: string;
+  displayName?: string;
+  online: boolean;
+  level: string;
 }) {
-  const setLevel = useSetAgentLogLevel()
-  const [error, setError] = useState<string | null>(null)
+  const setLevel = useSetAgentLogLevel();
+  const [error, setError] = useState<string | null>(null);
 
   async function change(next: LogLevel) {
-    if (next === level) return
-    setError(null)
+    if (next === level) return;
+    setError(null);
     try {
-      await setLevel.mutateAsync({ slug, log_level: next })
+      await setLevel.mutateAsync({ slug, log_level: next });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      setError(cause instanceof Error ? cause.message : String(cause));
     }
   }
 
   return (
     <div className="logging-agent-row">
-      <Badge status={online ? 'success' : 'default'} />
+      <Badge status={online ? "success" : "default"} />
       <div className="logging-agent-name">
         <div className="logging-agent-name-primary">{displayName || slug}</div>
         {displayName ? (
@@ -190,7 +190,7 @@ function AgentLevelRow({
         </Typography.Text>
       ) : null}
     </div>
-  )
+  );
 }
 
 // Same segmented-pill pattern as the theme toggle (layout/Sidebar.tsx).
@@ -199,9 +199,9 @@ function LevelPill({
   disabled,
   onChange,
 }: {
-  value: string
-  disabled?: boolean
-  onChange: (level: LogLevel) => void
+  value: string;
+  disabled?: boolean;
+  onChange: (level: LogLevel) => void;
 }) {
   return (
     <Segmented
@@ -213,7 +213,7 @@ function LevelPill({
         value: level,
       }))}
     />
-  )
+  );
 }
 
 function PipelineInfo({
@@ -221,9 +221,9 @@ function PipelineInfo({
   endpoint,
   stream,
 }: {
-  sink: string
-  endpoint: string
-  stream: string
+  sink: string;
+  endpoint: string;
+  stream: string;
 }) {
   return (
     <div className="logging-pipeline-grid">
@@ -231,15 +231,15 @@ function PipelineInfo({
         <div className="logging-pipeline-label">Sink</div>
         <div
           className="logging-pipeline-value"
-          style={{ textTransform: 'capitalize' }}
+          style={{ textTransform: "capitalize" }}
         >
-          {sink || '—'}
+          {sink || "—"}
         </div>
       </div>
       <div>
         <div className="logging-pipeline-label">Stream</div>
         <div className="logging-pipeline-value editable-field-mono">
-          {stream || '—'}
+          {stream || "—"}
         </div>
       </div>
       <div>
@@ -255,57 +255,59 @@ function PipelineInfo({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function ConnectionIndicator({ status }: { status: string }) {
   const label =
-    status === 'open'
-      ? 'Live'
-      : status === 'connecting'
-        ? 'Connecting'
-        : 'Stale'
+    status === "open"
+      ? "Live"
+      : status === "connecting"
+        ? "Connecting"
+        : "Stale";
   const badgeStatus =
-    status === 'open'
-      ? 'success'
-      : status === 'connecting'
-        ? 'processing'
-        : 'warning'
+    status === "open"
+      ? "success"
+      : status === "connecting"
+        ? "processing"
+        : "warning";
 
-  return <Badge status={badgeStatus} text={label} />
+  return <Badge status={badgeStatus} text={label} />;
 }
 
 function LiveTail() {
-  const tail = useLogTail()
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const tail = useLogTail();
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: 'end' })
-  }, [tail.data?.length])
+    bottomRef.current?.scrollIntoView({ block: "end" });
+  }, [tail.data?.length]);
 
   if (!tail.data || tail.data.length === 0) {
-    return <EmptyState>No log lines seen yet.</EmptyState>
+    return <EmptyState>No log lines seen yet.</EmptyState>;
   }
 
   return (
     <div className="logging-live-tail">
       {tail.data.map((entry, index) => (
+        // Append-only tail with no per-line id; position is the identity.
+        // eslint-disable-next-line @eslint-react/no-array-index-key
         <TailLine key={index} entry={entry} />
       ))}
       <div ref={bottomRef} />
     </div>
-  )
+  );
 }
 
 function TailLine({ entry }: { entry: LogRecord }) {
   const toneVar =
-    entry.level === 'ERROR'
-      ? 'var(--color-red)'
-      : entry.level === 'WARN'
-        ? 'var(--color-yellow)'
-        : entry.level === 'DEBUG'
-          ? 'var(--ink-muted)'
-          : 'var(--ink-body)'
+    entry.level === "ERROR"
+      ? "var(--color-red)"
+      : entry.level === "WARN"
+        ? "var(--color-yellow)"
+        : entry.level === "DEBUG"
+          ? "var(--ink-muted)"
+          : "var(--ink-body)";
 
   return (
     <div className="logging-tail-line">
@@ -318,7 +320,7 @@ function TailLine({ entry }: { entry: LogRecord }) {
       <span className="logging-tail-source">{entry.source}</span>
       <span className="logging-tail-message">{entry.message}</span>
     </div>
-  )
+  );
 }
 
 export function LoggingSidebar() {
@@ -346,5 +348,5 @@ export function LoggingSidebar() {
         </Typography.Paragraph>
       </div>
     </div>
-  )
+  );
 }
