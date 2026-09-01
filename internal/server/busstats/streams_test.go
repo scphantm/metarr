@@ -37,7 +37,7 @@ func findStream(streams []*StreamStat, name string) *StreamStat {
 func TestCollectStreamsListsEveryStreamTopic(t *testing.T) {
 	sampler, _, _ := newStreamsSampler(t)
 
-	streams := sampler.collectStreams(context.Background())
+	streams, _, _ := sampler.collectStreams(context.Background())
 
 	for _, want := range []string{
 		eventbus.SystemConfigUpdateStream,
@@ -75,7 +75,8 @@ func TestCollectStreamsDiscoversPerAgentCommandStream(t *testing.T) {
 		t.Fatalf("seed per-agent stream: %v", err)
 	}
 
-	found := findStream(sampler.collectStreams(ctx), stream)
+	streams, _, _ := sampler.collectStreams(ctx)
+	found := findStream(streams, stream)
 	if found == nil {
 		t.Fatalf("per-agent command stream %s was not discovered", stream)
 	}
@@ -118,7 +119,8 @@ func TestCollectStreamGroupRows(t *testing.T) {
 		t.Fatalf("read into group: %v", err)
 	}
 
-	found := findStream(sampler.collectStreams(ctx), stream)
+	streams, _, _ := sampler.collectStreams(ctx)
+	found := findStream(streams, stream)
 	if found == nil {
 		t.Fatalf("stream %s missing", stream)
 	}
@@ -165,7 +167,8 @@ func TestCollectStreamGroupWithNoPendingHasZeroAge(t *testing.T) {
 		t.Fatalf("create group: %v", err)
 	}
 
-	found := findStream(sampler.collectStreams(ctx), stream)
+	streams, _, _ := sampler.collectStreams(ctx)
+	found := findStream(streams, stream)
 	if found == nil || len(found.GetGroups()) != 1 {
 		t.Fatalf("expected one group row, got %+v", found)
 	}
@@ -181,9 +184,12 @@ func TestPassKeepsSnapshotWhenOneStreamIsUnreadable(t *testing.T) {
 	sampler, _, mr := newStreamsSampler(t)
 	ctx := context.Background()
 
-	// Fail XLEN for the one stream, leaving every other Redis call working.
+	// Fail XINFO STREAM for the one stream, leaving every other Redis call
+	// working. The failure is not a "no such key", so the row must carry the
+	// error rather than read as not-yet-created.
 	mr.Server().SetPreHook(func(c *server.Peer, cmd string, args ...string) bool {
-		if strings.EqualFold(cmd, "XLEN") && len(args) == 1 && args[0] == eventbus.SystemConfigUpdateStream {
+		if strings.EqualFold(cmd, "XINFO") && len(args) >= 2 &&
+			strings.EqualFold(args[0], "STREAM") && args[1] == eventbus.SystemConfigUpdateStream {
 			c.WriteError("ERR simulated stream read failure")
 			return true
 		}

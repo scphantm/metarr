@@ -14,6 +14,7 @@ import type {
 import { Card } from '../../components/Card'
 import { PageError, PageLoading } from '../../components/PageState'
 import { PageHeader } from '../../layout/AppShell'
+import { Sparkline } from './Sparkline'
 import './SystemDashboardPage.css'
 
 /*
@@ -149,7 +150,12 @@ function useNow(intervalMs: number): number {
 function ServerTiles({ server }: { server: BusServerInfo }) {
   const errored = (field: string) => server.fieldErrors[field]
 
-  const tiles: { label: string; value: string; field?: string }[] = [
+  const tiles: {
+    label: string
+    value: string
+    field?: string
+    series?: bigint[]
+  }[] = [
     { label: 'Version', value: server.version || '—', field: 'version' },
     {
       label: 'Uptime',
@@ -160,21 +166,25 @@ function ServerTiles({ server }: { server: BusServerInfo }) {
       label: 'Connected clients',
       value: Number(server.connectedClients).toLocaleString(),
       field: 'connected_clients',
+      series: server.connectedClientsSeries,
     },
     {
       label: 'Memory used',
       value: server.usedMemoryHuman || formatBytes(Number(server.usedMemory)),
       field: 'used_memory',
+      series: server.usedMemorySeries,
     },
     {
       label: 'Ops / second',
       value: Number(server.opsPerSecond).toLocaleString(),
       field: 'ops_per_second',
+      series: server.opsPerSecondSeries,
     },
     {
       label: 'Keys',
       value: Number(server.totalKeys).toLocaleString(),
       field: 'total_keys',
+      series: server.totalKeysSeries,
     },
   ]
 
@@ -191,12 +201,34 @@ function ServerTiles({ server }: { server: BusServerInfo }) {
                 <div className="system-dashboard-tile-error" title={error}>
                   unavailable
                 </div>
+              ) : tile.series ? (
+                <Sparkline values={tile.series} title={`${tile.label} trend`} />
               ) : null}
             </div>
           </Col>
         )
       })}
     </AntRow>
+  )
+}
+
+// MetricCell pairs a right-aligned numeric value with the inline sparkline of
+// its rolling series. Sparkline itself decides when the series is too short to
+// draw, so a fresh dashboard just shows the number.
+function MetricCell({
+  value,
+  series,
+  label,
+}: {
+  value: string
+  series: bigint[]
+  label: string
+}) {
+  return (
+    <span className="system-dashboard-metric">
+      {value}
+      <Sparkline values={series} title={label} />
+    </span>
   )
 }
 
@@ -238,8 +270,32 @@ function StreamsTable({ streams }: { streams: BusStreamStat[] }) {
         if (!stream.exists) {
           return <Tag>not created yet</Tag>
         }
-        return Number(stream.length).toLocaleString()
+        return (
+          <MetricCell
+            value={Number(stream.length).toLocaleString()}
+            series={stream.lengthSeries}
+            label="Depth trend"
+          />
+        )
       },
+    },
+    {
+      title: (
+        <Tooltip title="Entries added to the stream since the previous sample (~2s apart)">
+          Publish rate
+        </Tooltip>
+      ),
+      align: 'right',
+      render: (_, stream) =>
+        stream.exists && !stream.error ? (
+          <MetricCell
+            value={Number(stream.publishRate).toLocaleString()}
+            series={stream.publishRateSeries}
+            label="Publish rate trend"
+          />
+        ) : (
+          '—'
+        ),
     },
     {
       title: 'Consumers',
@@ -300,12 +356,39 @@ function GroupsTable({ groups }: { groups: BusGroupStat[] }) {
     {
       title: 'Pending',
       align: 'right',
-      render: (_, group) => Number(group.pending).toLocaleString(),
+      render: (_, group) => (
+        <MetricCell
+          value={Number(group.pending).toLocaleString()}
+          series={group.pendingSeries}
+          label="Pending trend"
+        />
+      ),
     },
     {
       title: 'Lag',
       align: 'right',
-      render: (_, group) => Number(group.lag).toLocaleString(),
+      render: (_, group) => (
+        <MetricCell
+          value={Number(group.lag).toLocaleString()}
+          series={group.lagSeries}
+          label="Lag trend"
+        />
+      ),
+    },
+    {
+      title: (
+        <Tooltip title="Entries read by the group since the previous sample (~2s apart)">
+          Consume rate
+        </Tooltip>
+      ),
+      align: 'right',
+      render: (_, group) => (
+        <MetricCell
+          value={Number(group.consumeRate).toLocaleString()}
+          series={group.consumeRateSeries}
+          label="Consume rate trend"
+        />
+      ),
     },
     {
       title: 'Oldest pending',
