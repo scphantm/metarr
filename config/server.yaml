@@ -2,11 +2,11 @@
 #
 # This file is the single source of connection info for the backend
 # services. In docker-compose, the credentials below match the users
-# provisioned by mongo/init/init-mongo.js. For local (non-docker)
+# provisioned by config/mongo-init.js. For local (non-docker)
 # development, point the host at "localhost" instead of "mongodb".
 #
 # The path to this file can be overridden with the METARR_CONFIG_FILE
-# environment variable; otherwise the app looks for it at the project root.
+# environment variable; otherwise the app looks for config/server.yaml relative to the working directory.
 
 mongodb:
   # Read/write credential — used only for the app's own data
@@ -34,7 +34,7 @@ server:
 
 logging:
   # Where the server forwards centralized log records for shipping to
-  # OpenObserve — Fluent Bit's HTTP input (see fluent-bit/fluent-bit.conf).
+  # OpenObserve — Fluent Bit's HTTP input (see config/fluent-bit.conf).
   # Optional: leave blank and the server still logs to stdout and Redis, it
   # just won't forward anywhere. Swapping OpenObserve for Splunk or ELK is a
   # change to fluent-bit.conf, not to this URL.
@@ -44,5 +44,5 @@ workflow:
   # The hand-edited node type catalog the server reads at startup and serves
   # to the editor. This is where the file lives on disk — infrastructure
   # wiring, not an application setting — which is why it is here rather than
-  # in the Mongo-stored app config. Defaults to catalog.json when blank.
-  catalog_path: "catalog.json"
+  # in the Mongo-stored app config. Defaults to config/catalog.json when blank.
+  catalog_path: "config/catalog.json"

@@ -10,9 +10,9 @@ The two everyday rules — key-value pairs instead of `fmt.Sprintf`, and a fixed
 ## Transport
 
 * Neither binary talks to OpenObserve directly. Both publish to the `logs.app` Redis Pub/Sub channel.
-* Only `metarr-server` also subscribes to `logs.app` and forwards over HTTP to Fluent Bit's `http` input (`internal/server/logforward`), via `logging.forward_url` in `config.yaml` — infra wiring, not `appconfig`.
+* Only `metarr-server` also subscribes to `logs.app` and forwards over HTTP to Fluent Bit's `http` input (`internal/server/logforward`), via `logging.forward_url` in `config/server.yaml` — infra wiring, not `appconfig`.
 * Fluent Bit has no Redis input plugin (verified) — hence the HTTP hop.
-* Swapping vendors only touches `fluent-bit/fluent-bit.conf`'s OUTPUT block — no Go changes, no redeploys.
+* Swapping vendors only touches `config/fluent-bit.conf`'s OUTPUT block — no Go changes, no redeploys.
 
 ## Runtime behavior
 

@@ -15,7 +15,7 @@ services:
       MONGO_READONLY_PASSWORD: ${MONGO_READONLY_PASSWORD:-readonlypassword}
     volumes:
       - mongodb_data:/data/db
-      - ./mongo/init/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - ./config/mongo-init.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     networks:
       - metarr-net
 
@@ -88,10 +88,10 @@ services:
     ports:
       # metarr-server runs directly on the host for now (not yet packaged
       # into this compose file) and forwards here. Publishing the port is
-      # what lets config.local.yaml's forward_url reach it via localhost.
+      # what lets config/server.local.yaml forward_url reach it via localhost.
       - "8888:8888"
     volumes:
-      - ./fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./config/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
     networks:
       - metarr-net
 

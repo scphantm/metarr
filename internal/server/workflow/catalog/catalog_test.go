@@ -10,7 +10,7 @@ import (
 )
 
 // repoCatalogPath is the hand-edited catalog the server ships with.
-const repoCatalogPath = "../../../../catalog.json"
+const repoCatalogPath = "../../../../config/catalog.json"
 
 // TestLoadRealCatalog is the end-to-end check that the shipped catalog.json
 // parses into typed entries: the node-kind and effects vocabularies are proto

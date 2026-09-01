@@ -7,7 +7,7 @@
 # internal/agent/runtime/config.go.
 #
 # The path to this file can be overridden with the METARR_AGENT_CONFIG_FILE
-# environment variable; otherwise the agent looks for it at the project root.
+# environment variable; otherwise the agent looks for config/agent.yaml relative to the working directory.
 # The file itself is optional — every value below can also be set by
 # environment variable (METARR_AGENT_SLUG, METARR_REDIS_HOST,
 # METARR_REDIS_PORT, METARR_REDIS_USERNAME, METARR_REDIS_PASSWORD,

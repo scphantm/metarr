@@ -6,7 +6,7 @@
 package sonarrclient
 
 import (
-	"Metarr/generated/sonarr"
+	"Metarr/internal/gen/sonarr"
 	"Metarr/internal/server/httpclient"
 
 	"github.com/oapi-codegen/oapi-codegen/v2/pkg/securityprovider"
