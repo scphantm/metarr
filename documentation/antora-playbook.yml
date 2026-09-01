@@ -4,21 +4,23 @@ site:
 
 content:
   sources:
-  - url: ./
+  # Paths are resolved against this file's directory; ./.. is the repo root.
+  - url: ./..
     branches: HEAD
     start_path: documentation
 
 ui:
   bundle:
-    url: ./documentation-theme/build/ui-bundle.zip
+    url: ./../documentation-theme/build/ui-bundle.zip
     snapshot: true
     # supplemental_files: ../documentation-theme-supplemental-ui
 
 output:
-  dir: ./build/site
+  dir: ./../build/site
   destinations:
     - provider: fs
     - provider: archive
+      path: ./../build/site.zip
 
 antora:
   # https://github.com/lask79/antora-shiki-extension
