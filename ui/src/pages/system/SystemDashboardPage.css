@@ -10,6 +10,7 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--ink-strong);
+  overflow-wrap: anywhere;
 }
 
 .system-dashboard-tile-label {
@@ -18,12 +19,17 @@
   color: var(--ink-muted);
 }
 
+.system-dashboard-tile-error {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--color-orange);
+}
+
 .system-dashboard-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color: var(--ink-strong);
 }
 
-.system-dashboard-error-note {
-  font-size: 0.75rem;
-  color: var(--color-red);
+.system-dashboard-collected {
+  font-size: 12px;
 }

@@ -6,32 +6,39 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
-// RedisSnapshot is a point-in-time view of the Redis instance backing the
-// event system: the depth and consumer-group state of every event stream,
-// the subscriber count of every Pub/Sub channel, and a handful of
-// server-wide counters. It is the single definition of that shape — the Go
-// collector (internal/server/redisstats aliases these messages) and the
-// dashboard both read it.
+// BusSnapshot is a point-in-time view of the Redis instance backing the
+// event bus: a handful of server-wide counters, and (populated by later
+// tickets) the depth and consumer-group state of every event stream plus
+// the subscriber count of every Pub/Sub channel. It is the single
+// definition of that shape — the Go sampler (internal/server/busstats
+// aliases these messages) and the dashboard both read it. See docs/adr/0007.
+//
+// One background sampler per server process fills this on a fixed interval
+// into one shared in-process value with a short rolling history; every
+// dashboard viewer reads that shared value. There is no per-viewer Redis
+// traffic.
 //
 // The event streams and the Pub/Sub channels are not two flavours of one
 // thing. Streams are durable — messages sit on them until acknowledged, so
 // depth and pending counts are real numbers. Pub/Sub holds nothing, so
-// RedisChannelStat carries a subscriber count and no depth.
-message RedisSnapshot {
-  // Field 5 was dead_letter, a RedisDeadLetterStat for the events.dead_letter
-  // parking stream, removed with the stream itself (scphantm/metarr#47): a
-  // message that exhausts its retries is logged and acked, not parked.
-  reserved 5;
-  reserved "dead_letter";
-
+// BusChannelStat carries a subscriber count and no depth.
+message BusSnapshot {
   google.protobuf.Timestamp collected_at = 1;
-  RedisServerInfo server = 2;
-  repeated RedisStreamStat streams = 3;
-  repeated RedisChannelStat pubsub = 4;
+  BusServerInfo server = 2;
+  // Empty until the stream and channel tables land (scphantm/metarr#62,
+  // scphantm/metarr#64). The walking skeleton fills server only.
+  repeated BusStreamStat streams = 3;
+  repeated BusChannelStat channels = 4;
 }
 
-// RedisServerInfo holds the instance-wide counters, read from INFO and DBSIZE.
-message RedisServerInfo {
+// BusServerInfo holds the instance-wide counters, read from INFO and DBSIZE.
+//
+// Each Redis call in a sampler pass is time-boxed on its own. A call that
+// fails blanks only the fields it feeds and names each of them in
+// field_errors; the rest of the snapshot is still delivered. Only losing
+// the connection outright fails the whole pass, and then the last good
+// snapshot is kept and ages out as stale on the dashboard.
+message BusServerInfo {
   string version = 1;
   int64 uptime_seconds = 2;
   int64 connected_clients = 3;
@@ -39,42 +46,55 @@ message RedisServerInfo {
   string used_memory_human = 5;
   int64 ops_per_second = 6;
   int64 total_keys = 7;
+
+  // Rolling per-metric history, oldest sample first, one entry per sampler
+  // pass (capped at ~150 samples, ~5 min at the 2s cadence). Empty until the
+  // sampler has taken its first pass. These back the tile sparklines.
+  repeated int64 connected_clients_series = 8;
+  repeated int64 used_memory_series = 9;
+  repeated int64 ops_per_second_series = 10;
+  repeated int64 total_keys_series = 11;
+
+  // field_errors maps a blanked field name (for example "connected_clients"
+  // or "total_keys") to the error that blanked it on the last pass. Empty on
+  // a clean pass.
+  map<string, string> field_errors = 12;
 }
 
-// RedisStreamStat is one event stream and the consumer groups reading it.
-message RedisStreamStat {
+// BusStreamStat is one event stream and the consumer groups reading it.
+message BusStreamStat {
   string stream = 1;
   string event_name = 2;
   int64 length = 3;
   // exists distinguishes an empty stream from one that has never been
   // created — streams are created lazily, when a listener first subscribes.
   bool exists = 4;
-  repeated RedisGroupStat groups = 5;
+  repeated BusGroupStat groups = 5;
   // error records a per-stream failure; one unreadable stream should not
   // cost the caller the rest of the snapshot.
   string error = 6;
 }
 
-// RedisGroupStat is one consumer group's position on a stream.
-message RedisGroupStat {
+// BusGroupStat is one consumer group's position on a stream.
+message BusGroupStat {
   string name = 1;
   int64 consumers = 2;
   int64 pending = 3;
   int64 lag = 4;
   string last_delivered_id = 5;
-  repeated RedisConsumerStat consumer_detail = 6;
+  repeated BusConsumerStat consumer_detail = 6;
 }
 
-// RedisConsumerStat is a single consumer within a group.
-message RedisConsumerStat {
+// BusConsumerStat is a single consumer within a group.
+message BusConsumerStat {
   string name = 1;
   int64 pending = 2;
   int64 idle_seconds = 3;
 }
 
-// RedisChannelStat is one Pub/Sub channel. It carries no message count
+// BusChannelStat is one Pub/Sub channel. It carries no message count
 // because Redis Pub/Sub queues nothing.
-message RedisChannelStat {
+message BusChannelStat {
   string channel = 1;
   int64 subscribers = 2;
   // known marks the application's declared channels. Channels discovered at
@@ -85,18 +105,18 @@ message RedisChannelStat {
 message StatsServiceGetRequest {}
 
 message StatsServiceGetResponse {
-  RedisSnapshot snapshot = 1;
+  BusSnapshot snapshot = 1;
 }
 
 message StatsServiceStreamRequest {}
 
 message StatsServiceStreamResponse {
-  RedisSnapshot snapshot = 1;
+  BusSnapshot snapshot = 1;
 }
 
-// StatsService.Get is the REST-era first-paint fallback (a dashboard needs
-// something to paint before its stream connects); Stream is the same
-// snapshot pushed continuously, replacing the stats.redis wsbus topic.
+// StatsService.Get is the first-paint fallback (a dashboard needs something
+// to paint before its stream connects); Stream is the same snapshot pushed
+// on every sampler tick, fanned out from the shared store.
 service StatsService {
   rpc Get(StatsServiceGetRequest) returns (StatsServiceGetResponse);
   rpc Stream(StatsServiceStreamRequest) returns (stream StatsServiceStreamResponse);

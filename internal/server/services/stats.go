@@ -3,8 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"net/http"
-	"time"
 
 	"connectrpc.com/connect"
 
@@ -14,20 +12,15 @@ import (
 	"Metarr/internal/server/httpserver"
 )
 
-// statsStreamInterval matches the interval wsbus.Hub.Register used for the
-// stats.redis topic in cmd/metarr-server/main.go.
-const statsStreamInterval = time.Second
-
-// StatsServer implements metarrv1connect.StatsServiceHandler. Get is ported
-// directly from internal/server/handlers/stats.go; Stream replaces the
-// stats.redis wsbus topic, collecting on the same interval and reusing the
-// exact same Collect call — only the delivery mechanism changed.
+// StatsServer implements metarrv1connect.StatsServiceHandler. Both methods
+// read the shared busstats.Sampler and never touch Redis inline: Get returns
+// the last sampled snapshot, Stream fans out one frame per sampler pass.
 type StatsServer struct {
 	*handlers.Handlers
 }
 
-// StatsAuthPolicies is this service's method-name -> policy map. Mirrors
-// GET /api/stats/redis and the stats.redis topic both being GroupConfig.
+// StatsAuthPolicies is this service's method-name -> policy map. Both the
+// first-paint read and the live stream sit behind GroupConfig, read-only.
 var StatsAuthPolicies = map[string]httpserver.RPCPolicy{
 	"Get":    {Group: auth.GroupConfig, ReadOnly: true},
 	"Stream": {Group: auth.GroupConfig, ReadOnly: true},
@@ -37,12 +30,13 @@ func (s *StatsServer) Get(
 	ctx context.Context,
 	req *connect.Request[metarrv1.StatsServiceGetRequest],
 ) (*connect.Response[metarrv1.StatsServiceGetResponse], error) {
-	snapshot, err := s.Stats.Collect(ctx)
-	if err != nil {
-		s.Logger.Error("failed to collect redis statistics", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to collect redis statistics"))
+	snapshot := s.Stats.Get()
+	if snapshot == nil {
+		// Only reachable in the window before the sampler's first pass, which
+		// Prime closes at startup. Answer honestly rather than with an OK
+		// response carrying no snapshot.
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("bus snapshot not sampled yet"))
 	}
-
 	return connect.NewResponse(&metarrv1.StatsServiceGetResponse{Snapshot: snapshot}), nil
 }
 
@@ -51,27 +45,20 @@ func (s *StatsServer) Stream(
 	req *connect.Request[metarrv1.StatsServiceStreamRequest],
 	stream *connect.ServerStream[metarrv1.StatsServiceStreamResponse],
 ) error {
-	ticker := time.NewTicker(statsStreamInterval)
-	defer ticker.Stop()
+	snapshots, unsubscribe := s.Stats.Subscribe()
+	defer unsubscribe()
 
 	for {
-		snapshot, err := s.Stats.Collect(ctx)
-		if err != nil {
-			if ctx.Err() != nil {
-				return nil
-			}
-			s.Logger.Error("failed to collect redis statistics", "error", err)
-			return connectError(http.StatusInternalServerError, errors.New("failed to collect redis statistics"))
-		}
-
-		if err := stream.Send(&metarrv1.StatsServiceStreamResponse{Snapshot: snapshot}); err != nil {
-			return err
-		}
-
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-ticker.C:
+		case snapshot, ok := <-snapshots:
+			if !ok {
+				return nil
+			}
+			if err := stream.Send(&metarrv1.StatsServiceStreamResponse{Snapshot: snapshot}); err != nil {
+				return err
+			}
 		}
 	}
 }

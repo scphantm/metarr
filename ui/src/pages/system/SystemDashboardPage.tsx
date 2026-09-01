@@ -1,81 +1,93 @@
-import { Alert, Badge, Col, Row as AntRow, Table, Tag, Typography } from 'antd'
+import { useEffect, useState } from 'react'
+import { Alert, Badge, Col, Row as AntRow, Table, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-
-import { useRedisStats, useRedisStatsStreamStatus } from '../../api/queries'
-import type {
-  RedisChannelStat,
-  RedisGroupStat,
-  RedisStreamStat,
-  RedisServerInfo,
-} from '../../gen/metarr/v1/stats_pb'
 import { timestampDate } from '@bufbuild/protobuf/wkt'
+
+import { useBusSnapshot, useBusSnapshotStreamStatus } from '../../api/queries'
+import type { StreamStatus } from '../../api/streams'
+import type {
+  BusChannelStat,
+  BusServerInfo,
+  BusStreamStat,
+} from '../../gen/metarr/v1/stats_pb'
 import { Card } from '../../components/Card'
 import { PageError, PageLoading } from '../../components/PageState'
 import { PageHeader } from '../../layout/AppShell'
 import './SystemDashboardPage.css'
 
 /*
- * The system dashboard.
+ * The system dashboard — the landing screen.
  *
- * Deliberately tables and stat tiles rather than charts: three streams
- * carrying four measures each is table data, and the server counters are a
- * handful of headline numbers. A three-bar bar chart would say less than the
- * numbers themselves.
+ * A single server-side sampler polls Redis on a fixed cadence into one shared
+ * snapshot and fans it out here; opening a second dashboard adds no Redis
+ * load. This walking skeleton renders the six server tiles live off that
+ * stream. The stream and channel tables arrive in later tickets and render
+ * empty until then.
  */
+
+// A snapshot older than this many milliseconds is stale: the sampler ticks
+// every ~2s, so four missed passes means the picture can no longer be
+// trusted as live.
+const STALE_AFTER_MS = 8_000
+
 export function SystemDashboardPage() {
-  const stats = useRedisStats()
-  const socketStatus = useRedisStatsStreamStatus()
+  const snapshot = useBusSnapshot()
+  const streamStatus = useBusSnapshotStreamStatus()
 
   // Only a failure with nothing cached is fatal to the page. Once a snapshot
-  // has arrived, a dropped socket keeps showing it and says so, because a
+  // has arrived, a dropped stream keeps showing it and says so, because a
   // blank dashboard reads as "nothing is running" rather than "I can't see".
-  if (stats.error && !stats.data) {
+  if (snapshot.error && !snapshot.data) {
     return (
       <>
         <PageHeader title="System" />
-        <PageError error={stats.error} />
+        <PageError error={snapshot.error} />
       </>
     )
   }
 
-  if (!stats.data) {
+  if (!snapshot.data) {
     return (
       <>
         <PageHeader title="System" />
-        <PageLoading>Connecting to Redis…</PageLoading>
+        <PageLoading>Connecting to the event bus…</PageLoading>
       </>
     )
   }
+
+  const data = snapshot.data
 
   return (
     <>
       <PageHeader
         title="System"
-        description="Live statistics for the Redis instance behind the event system."
-        actions={<ConnectionIndicator status={socketStatus} />}
+        description="Live statistics for the Redis instance behind the event bus."
+        actions={
+          <LivenessBadge status={streamStatus} lastFrameAt={snapshot.dataUpdatedAt} />
+        }
       />
 
       <div className="page-body">
-        {stats.data.server ? <ServerTiles server={stats.data.server} /> : null}
+        {data.server ? <ServerTiles server={data.server} /> : null}
 
         <Card
           title="Event streams"
-          description="Durable Redis Streams. Events sit on a stream until a consumer group acknowledges them, so depth and pending are real counts. Expand a row for per-consumer-group lag."
+          description="Durable Redis Streams. Events sit on a stream until a consumer group acknowledges them, so depth and pending are real counts."
         >
-          <StreamsTable streams={stats.data.streams} />
+          <StreamsTable streams={data.streams} />
         </Card>
 
         <Card
           title="Pub/Sub channels"
           description="Redis Pub/Sub delivers to whoever is connected at that instant and keeps nothing, so these channels have subscribers but no depth to report."
         >
-          <ChannelsTable channels={stats.data.pubsub} />
+          <ChannelsTable channels={data.channels} />
         </Card>
 
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        <Typography.Text type="secondary" className="system-dashboard-collected">
           Last collected{' '}
-          {stats.data.collectedAt
-            ? timestampDate(stats.data.collectedAt).toLocaleTimeString()
+          {data.collectedAt
+            ? timestampDate(data.collectedAt).toLocaleTimeString()
             : '—'}
         </Typography.Text>
       </div>
@@ -83,127 +95,123 @@ export function SystemDashboardPage() {
   )
 }
 
+type Liveness = 'live' | 'reconnecting' | 'stale'
+
 // The connection state is worth showing plainly: a frozen dashboard and idle
-// infrastructure look identical otherwise.
-function ConnectionIndicator({ status }: { status: string }) {
+// infrastructure look identical otherwise. A brief drop shows "Reconnecting"
+// and clears itself once the stream re-establishes — the stream layer
+// retries with backoff on its own.
+//
+// Freshness is measured against lastFrameAt — the client wall-clock time the
+// last frame landed in the query cache (react-query's dataUpdatedAt) — not
+// the server's collected_at, so a skewed browser clock can't pin a healthy
+// stream to "Stale".
+function LivenessBadge({
+  status,
+  lastFrameAt,
+}: {
+  status: StreamStatus
+  lastFrameAt: number
+}) {
+  const now = useNow(2_000)
+
+  const fresh = lastFrameAt > 0 && now - lastFrameAt < STALE_AFTER_MS
+
+  let liveness: Liveness
+  if (status === 'open' && fresh) {
+    liveness = 'live'
+  } else if (status === 'connecting') {
+    liveness = 'reconnecting'
+  } else {
+    liveness = 'stale'
+  }
+
   const label =
-    status === 'open' ? 'Live' : status === 'connecting' ? 'Connecting' : 'Stale'
+    liveness === 'live' ? 'Live' : liveness === 'reconnecting' ? 'Reconnecting' : 'Stale'
   const badgeStatus =
-    status === 'open' ? 'success' : status === 'connecting' ? 'processing' : 'warning'
+    liveness === 'live' ? 'success' : liveness === 'reconnecting' ? 'processing' : 'warning'
 
   return <Badge status={badgeStatus} text={label} />
 }
 
-function ServerTiles({ server }: { server: RedisServerInfo }) {
-  const tiles = [
-    { label: 'Connected clients', value: server.connectedClients.toLocaleString() },
-    { label: 'Memory used', value: server.usedMemoryHuman || '—' },
-    { label: 'Ops / second', value: server.opsPerSecond.toLocaleString() },
-    { label: 'Keys', value: server.totalKeys.toLocaleString() },
-    { label: 'Uptime', value: formatUptime(Number(server.uptimeSeconds)) },
+// Re-render on an interval so a snapshot ageing past the stale threshold is
+// noticed even while no new frame is arriving to trigger one.
+function useNow(intervalMs: number): number {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), intervalMs)
+    return () => clearInterval(id)
+  }, [intervalMs])
+  return now
+}
+
+function ServerTiles({ server }: { server: BusServerInfo }) {
+  const errored = (field: string) => server.fieldErrors[field]
+
+  const tiles: { label: string; value: string; field?: string }[] = [
+    { label: 'Version', value: server.version || '—', field: 'version' },
+    {
+      label: 'Uptime',
+      value: formatUptime(Number(server.uptimeSeconds)),
+      field: 'uptime_seconds',
+    },
+    {
+      label: 'Connected clients',
+      value: Number(server.connectedClients).toLocaleString(),
+      field: 'connected_clients',
+    },
+    {
+      label: 'Memory used',
+      value: server.usedMemoryHuman || formatBytes(Number(server.usedMemory)),
+      field: 'used_memory',
+    },
+    {
+      label: 'Ops / second',
+      value: Number(server.opsPerSecond).toLocaleString(),
+      field: 'ops_per_second',
+    },
+    {
+      label: 'Keys',
+      value: Number(server.totalKeys).toLocaleString(),
+      field: 'total_keys',
+    },
   ]
 
   return (
     <AntRow gutter={[12, 12]}>
-      {tiles.map((tile) => (
-        <Col key={tile.label} xs={12} sm={8} lg={4}>
-          <div className="system-dashboard-tile">
-            <div className="system-dashboard-tile-value">{tile.value}</div>
-            <div className="system-dashboard-tile-label">{tile.label}</div>
-          </div>
-        </Col>
-      ))}
+      {tiles.map((tile) => {
+        const error = tile.field ? errored(tile.field) : undefined
+        return (
+          <Col key={tile.label} xs={12} sm={8} lg={4}>
+            <div className="system-dashboard-tile">
+              <div className="system-dashboard-tile-value">{error ? '—' : tile.value}</div>
+              <div className="system-dashboard-tile-label">{tile.label}</div>
+              {error ? (
+                <div className="system-dashboard-tile-error" title={error}>
+                  unavailable
+                </div>
+              ) : null}
+            </div>
+          </Col>
+        )
+      })}
     </AntRow>
   )
 }
 
-// One consumer group's position on a stream, shown when a stream row is
-// expanded. Lag is the headline: it is how far this group is behind the tail.
-function GroupsTable({ groups }: { groups: RedisGroupStat[] }) {
-  const columns: ColumnsType<RedisGroupStat> = [
-    {
-      title: 'Consumer group',
-      dataIndex: 'name',
-      render: (_, group) => <span className="system-dashboard-mono">{group.name}</span>,
-    },
-    { title: 'Consumers', align: 'right', render: (_, group) => Number(group.consumers).toLocaleString() },
-    { title: 'Pending', align: 'right', render: (_, group) => Number(group.pending).toLocaleString() },
-    {
-      title: 'Lag',
-      align: 'right',
-      render: (_, group) => {
-        const lag = Number(group.lag)
-        return lag > 0 ? (
-          <span style={{ color: 'var(--color-yellow)' }}>{lag.toLocaleString()}</span>
-        ) : (
-          <Typography.Text type="secondary">0</Typography.Text>
-        )
-      },
-    },
-  ]
-
-  return (
-    <Table
-      size="small"
-      rowKey="name"
-      pagination={false}
-      columns={columns}
-      dataSource={groups}
-      locale={{ emptyText: 'No consumer groups on this stream yet.' }}
-    />
-  )
-}
-
-function StreamsTable({ streams }: { streams: RedisStreamStat[] }) {
-  const columns: ColumnsType<RedisStreamStat> = [
+function StreamsTable({ streams }: { streams: BusStreamStat[] }) {
+  const columns: ColumnsType<BusStreamStat> = [
     {
       title: 'Stream',
       dataIndex: 'stream',
       render: (_, stream) => (
-        <div>
-          <span className="system-dashboard-mono">{stream.stream}</span>
-          {stream.error ? (
-            <div className="system-dashboard-error-note">{stream.error}</div>
-          ) : !stream.exists ? (
-            <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
-              not created yet — no listener has subscribed
-            </Typography.Text>
-          ) : null}
-        </div>
+        <span className="system-dashboard-mono">{stream.stream}</span>
       ),
     },
     {
       title: 'Depth',
       align: 'right',
-      render: (_, stream) => (stream.exists ? stream.length.toLocaleString() : '—'),
-    },
-    {
-      title: 'Pending',
-      align: 'right',
-      render: (_, stream) => {
-        const pending = stream.groups.reduce((sum, g) => sum + Number(g.pending), 0)
-        // Colour alone never carries the state — the word does the work and
-        // the tone reinforces it.
-        return pending > 0 ? (
-          <span style={{ color: 'var(--color-yellow)' }}>{pending.toLocaleString()} pending</span>
-        ) : (
-          <Typography.Text type="secondary">0</Typography.Text>
-        )
-      },
-    },
-    {
-      title: 'Consumers',
-      align: 'right',
-      render: (_, stream) =>
-        stream.exists
-          ? stream.groups.reduce((sum, g) => sum + Number(g.consumers), 0).toLocaleString()
-          : '—',
-    },
-    {
-      title: 'Lag',
-      align: 'right',
-      render: (_, stream) =>
-        stream.exists ? stream.groups.reduce((sum, g) => sum + Number(g.lag), 0).toLocaleString() : '—',
+      render: (_, stream) => (stream.exists ? Number(stream.length).toLocaleString() : '—'),
     },
   ]
 
@@ -214,40 +222,24 @@ function StreamsTable({ streams }: { streams: RedisStreamStat[] }) {
       pagination={false}
       columns={columns}
       dataSource={streams}
-      expandable={{
-        expandedRowRender: (stream) => <GroupsTable groups={stream.groups} />,
-        rowExpandable: (stream) => stream.exists && stream.groups.length > 0,
-      }}
+      locale={{ emptyText: 'Stream detail lands in a later ticket.' }}
     />
   )
 }
 
-function ChannelsTable({ channels }: { channels: RedisChannelStat[] }) {
-  const columns: ColumnsType<RedisChannelStat> = [
+function ChannelsTable({ channels }: { channels: BusChannelStat[] }) {
+  const columns: ColumnsType<BusChannelStat> = [
     {
       title: 'Channel',
       dataIndex: 'channel',
       render: (_, channel) => (
-        <>
-          <span className="system-dashboard-mono">{channel.channel}</span>
-          {!channel.known ? <Tag style={{ marginLeft: 8 }}>transient</Tag> : null}
-        </>
+        <span className="system-dashboard-mono">{channel.channel}</span>
       ),
     },
     {
       title: 'Subscribers',
       align: 'right',
-      render: (_, channel) =>
-        channel.subscribers > 0n ? (
-          channel.subscribers.toLocaleString()
-        ) : (
-          <span style={{ color: 'var(--color-orange)' }}>0 — no listener</span>
-        ),
-    },
-    {
-      title: 'Depth',
-      align: 'right',
-      render: () => <Typography.Text type="secondary">—</Typography.Text>,
+      render: (_, channel) => Number(channel.subscribers).toLocaleString(),
     },
   ]
 
@@ -258,20 +250,40 @@ function ChannelsTable({ channels }: { channels: RedisChannelStat[] }) {
       pagination={false}
       columns={columns}
       dataSource={channels}
+      locale={{ emptyText: 'Channel detail lands in a later ticket.' }}
     />
   )
 }
 
 function formatUptime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '—'
   if (seconds < 60) return `${seconds}s`
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`
   return `${Math.floor(seconds / 86400)}d`
 }
 
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '—'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let value = bytes
+  let unit = 0
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024
+    unit += 1
+  }
+  return `${value.toFixed(unit === 0 ? 0 : 1)}${units[unit]}`
+}
+
 export function SystemDashboardSidebar() {
   return (
     <div className="system-dashboard-sidebar">
+      <Alert
+        type="info"
+        message="One sampler, many viewers"
+        description="A single server-side sampler polls Redis on a fixed cadence into one shared snapshot. Every open dashboard reads that same snapshot over a stream, so a second viewer adds no load on Redis."
+      />
+
       <Alert
         type="info"
         message="Two transports"
@@ -289,12 +301,6 @@ export function SystemDashboardSidebar() {
             </p>
           </>
         }
-      />
-
-      <Alert
-        type="info"
-        message="Reading the numbers"
-        description="Streams are not trimmed, so depth climbing steadily is expected rather than a symptom. Pending is the number delivered but not yet acknowledged — that one staying above zero is worth looking into."
       />
     </div>
   )

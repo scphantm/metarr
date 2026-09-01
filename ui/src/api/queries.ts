@@ -40,7 +40,7 @@ export const queryKeys = {
   sonarr: ['config', 'interfaces', 'sonarr'] as const,
   // Deliberately outside the config tree: these are fed by a socket, and the
   // config-wide invalidations should not reach them.
-  redisStats: ['stats', 'redis'] as const,
+  busSnapshot: ['stats', 'bus'] as const,
   agents: ['stats', 'agents'] as const,
   logging: ['config', 'logging'] as const,
   eventBus: ['config', 'event-bus'] as const,
@@ -97,11 +97,11 @@ export function useSonarrInstances() {
   })
 }
 
-// Redis statistics arrive over the socket rather than by refetching: useTopic
-// writes each frame straight into this query's cache entry. The queryFn still
-// runs once, so the page has something to paint before the socket is up and
-// something to fall back on if it never connects.
-// Agents stream over the socket for the same reason the Redis stats do: the
+// The bus snapshot arrives over the socket rather than by refetching: the
+// stream writes each frame straight into this query's cache entry. The
+// queryFn still runs once, so the page has something to paint before the
+// stream is up and something to fall back on if it never connects.
+// Agents stream over the socket for the same reason the bus snapshot does: the
 // telemetry is live and the presence half changes on its own, with no user
 // action to hang a refetch off. The queryFn covers the first paint. Both the
 // stream frame and the refetch yield the generated AgentView directly, so
@@ -145,24 +145,29 @@ export function useDeleteAgent() {
   )
 }
 
-// StatsService.Get/Stream carry a typed RedisSnapshot; the stream frame and
-// the first-paint read land in the same cache entry unchanged.
-const redisStatsStream = registerStream(
-  new Stream((signal) =>
-    mapAsync(statsClient.stream({}, { signal }), (response) => response.snapshot),
-  ),
+// StatsService.Get/Stream carry a typed BusSnapshot. The server samples Redis
+// on its own cadence and fans the snapshot out; the stream only ever yields
+// frames that carry one (a frame without a snapshot is skipped rather than
+// written to the cache as undefined, which react-query rejects), and the
+// first-paint Get coalesces an absent snapshot to null for the same reason.
+const busSnapshotStream = registerStream(
+  new Stream(async function* (signal) {
+    for await (const response of statsClient.stream({}, { signal })) {
+      if (response.snapshot) yield response.snapshot
+    }
+  }),
 )
 
-export function useRedisStatsStreamStatus() {
-  return useStreamStatus(redisStatsStream)
+export function useBusSnapshotStreamStatus() {
+  return useStreamStatus(busSnapshotStream)
 }
 
-export function useRedisStats() {
-  useStream(redisStatsStream, queryKeys.redisStats)
+export function useBusSnapshot() {
+  useStream(busSnapshotStream, queryKeys.busSnapshot)
 
   return useQuery({
-    queryKey: queryKeys.redisStats,
-    queryFn: async () => (await statsClient.get({})).snapshot,
+    queryKey: queryKeys.busSnapshot,
+    queryFn: async () => (await statsClient.get({})).snapshot ?? null,
     staleTime: Infinity,
   })
 }

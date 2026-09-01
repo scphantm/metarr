@@ -1,4 +1,4 @@
-package redisstats
+package busstats
 
 import "testing"
 
@@ -89,19 +89,3 @@ func TestInfoIntParsesAndDefaultsToZero(t *testing.T) {
 		t.Errorf("non-numeric value = %d, want 0", got)
 	}
 }
-
-func TestIsMissingKeyMatchesRedisNoSuchKeyError(t *testing.T) {
-	if !isMissingKey(errString("ERR no such key")) {
-		t.Error("ERR no such key was not recognised as a missing key")
-	}
-	if isMissingKey(errString("NOGROUP No such consumer group")) {
-		t.Error("a consumer-group error was misread as a missing key")
-	}
-	if isMissingKey(nil) {
-		t.Error("nil was reported as a missing key")
-	}
-}
-
-type errString string
-
-func (e errString) Error() string { return string(e) }
