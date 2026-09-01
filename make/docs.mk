@@ -18,7 +18,7 @@ docs_theme_pack: docs_theme_install
 
 # Run Antora to generate the documentation site.
 docs_antora_run: docs_install
-	npx antora generate antora-playbook.yml --stacktrace
+	npx antora generate documentation/antora-playbook.yml --stacktrace
 
 # Serve the built documentation site (build/site) locally over HTTP.
 # Uses `npx http-server`, fetched on demand the same way `docs_build` fetches antora via npx.
@@ -47,16 +47,17 @@ docs_watch: docs_build
 # Launch an interactive shell inside the deploy/Dockerfile.documentation container.
 # Useful for debugging Antora builds, testing asciidoctor extensions, or running commands
 # in the exact environment the CI uses. The repo is mounted at /workspace with the same
-# directory structure, so `antora-playbook.yml` and all relative paths work without changes.
+# directory structure, so `documentation/antora-playbook.yml` resolves the same way it
+# does on the host (its paths are relative to the playbook file, not the working dir).
 #
 # Usage: make docs-shell
-# Inside the container, you can run: npm --workspace=documentation run build
+# Inside the container, you can run: yarn workspace @metarr/documentation run build
 docs_shell:
 	@echo "=== Building documentation container ===" && \
 	docker build -f deploy/Dockerfile.documentation -t metarr-docs-shell:latest . && \
 	echo "=== Launching shell in documentation container ===" && \
 	echo "The repo is mounted at /workspace. To build docs:" && \
-	echo "  cd /workspace && npm --workspace=documentation run build" && \
+	echo "  cd /workspace && yarn workspace @metarr/documentation run build" && \
 	echo "" && \
 	docker run -it --rm \
 		-v $$(pwd):/workspace \
@@ -67,7 +68,7 @@ docs_shell:
 # to configure the way the build presentations system works, check out this link
 # https://docs.asciidoctor.org/reveal.js-converter/latest/setup/ruby-setup/
 docs_build_presentations:
-	bundle exec asciidoctor-revealjs --attribute revealjsdir=https://cdn.jsdelivr.net/npm/reveal.js@4.1.2 --out-file documentation/modules/ROOT/attachments/presentation.html documentation/modules/ROOT/pages/tests/presentation.adoc
+	BUNDLE_GEMFILE=documentation/Gemfile bundle exec asciidoctor-revealjs --attribute revealjsdir=https://cdn.jsdelivr.net/npm/reveal.js@4.1.2 --out-file documentation/modules/ROOT/attachments/presentation.html documentation/modules/ROOT/pages/tests/presentation.adoc
 
 subtree_docs_theme-add:
 	git subtree add --prefix documentation-theme git@github.com:scphantm/metarr-documentation-theme.git metarr-main --squash
