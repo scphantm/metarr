@@ -16,9 +16,9 @@ export const file_metarr_v1_stats: GenFile = /*@__PURE__*/
 
 /**
  * BusSnapshot is a point-in-time view of the Redis instance backing the
- * event bus: a handful of server-wide counters, and (populated by later
- * tickets) the depth and consumer-group state of every event stream plus
- * the subscriber count of every Pub/Sub channel. It is the single
+ * event bus: a handful of server-wide counters, the depth and
+ * consumer-group state of every event stream, and the subscriber count of
+ * every Pub/Sub channel. It is the single
  * definition of that shape — the Go sampler (internal/server/busstats
  * aliases these messages) and the dashboard both read it. See docs/adr/0007.
  *
@@ -48,8 +48,10 @@ export type BusSnapshot = Message<"metarr.v1.BusSnapshot"> & {
   /**
    * streams carries one row per durable stream the event bus knows about —
    * the static stream-topic rows plus the per-agent command streams
-   * discovered against live Redis. channels is empty until the Pub/Sub
-   * table lands (scphantm/metarr#64).
+   * discovered against live Redis. channels carries one row per Pub/Sub
+   * channel: every channel live against Redis right now unioned with the
+   * fixed known-channel list, so a declared channel with no current
+   * subscriber still shows as a row.
    *
    * @generated from field: repeated metarr.v1.BusStreamStat streams = 3;
    */
@@ -352,8 +354,9 @@ export const BusConsumerStatSchema: GenMessage<BusConsumerStat> = /*@__PURE__*/
   messageDesc(file_metarr_v1_stats, 4);
 
 /**
- * BusChannelStat is one Pub/Sub channel. It carries no message count
- * because Redis Pub/Sub queues nothing.
+ * BusChannelStat is one Pub/Sub channel. It carries no message count and no
+ * publish rate: Redis Pub/Sub queues nothing and exposes no per-channel
+ * publish counter.
  *
  * @generated from message metarr.v1.BusChannelStat
  */
@@ -369,8 +372,11 @@ export type BusChannelStat = Message<"metarr.v1.BusChannelStat"> & {
   subscribers: bigint;
 
   /**
-   * known marks the application's declared channels. Channels discovered at
-   * runtime — the per-correlation-id reply channels — come back false.
+   * known marks the application's declared channels (eventbus's fixed
+   * known-channel list). Channels discovered at runtime — the
+   * per-correlation-id reply channels — come back false, so the dashboard
+   * can tell a transient channel from a declared one and flag a declared
+   * channel that has dropped to zero subscribers.
    *
    * @generated from field: bool known = 3;
    */
