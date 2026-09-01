@@ -34,6 +34,13 @@
   color: var(--color-orange);
 }
 
+/* A declared Pub/Sub channel that currently has no subscriber: the row is
+   tinted so a dropped listener reads at a glance rather than needing the
+   subscriber cell to be parsed. */
+.system-dashboard-row-flagged > td {
+  background: color-mix(in srgb, var(--color-orange) 12%, transparent);
+}
+
 .system-dashboard-groups {
   margin: 0.25rem 0;
 }

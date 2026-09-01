@@ -52,8 +52,8 @@ func TestPassPopulatesSnapshotFromRedis(t *testing.T) {
 	if got := snap.GetServer().GetConnectedClients(); got < 1 {
 		t.Errorf("connected_clients = %d, want at least 1", got)
 	}
-	// Streams and channels are stubbed empty in the walking skeleton, but the
-	// fields must be present and non-nil so the dashboard can render a table.
+	// The streams/channels slices must always be present and non-nil so the
+	// dashboard can render a table even against an otherwise-idle Redis.
 	if snap.GetStreams() == nil || snap.GetChannels() == nil {
 		t.Error("streams/channels slices should be empty, not nil")
 	}

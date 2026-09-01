@@ -23,9 +23,9 @@ const (
 )
 
 // BusSnapshot is a point-in-time view of the Redis instance backing the
-// event bus: a handful of server-wide counters, and (populated by later
-// tickets) the depth and consumer-group state of every event stream plus
-// the subscriber count of every Pub/Sub channel. It is the single
+// event bus: a handful of server-wide counters, the depth and
+// consumer-group state of every event stream, and the subscriber count of
+// every Pub/Sub channel. It is the single
 // definition of that shape — the Go sampler (internal/server/busstats
 // aliases these messages) and the dashboard both read it. See docs/adr/0007.
 //
@@ -44,8 +44,10 @@ type BusSnapshot struct {
 	Server      *BusServerInfo         `protobuf:"bytes,2,opt,name=server,proto3" json:"server,omitempty"`
 	// streams carries one row per durable stream the event bus knows about —
 	// the static stream-topic rows plus the per-agent command streams
-	// discovered against live Redis. channels is empty until the Pub/Sub
-	// table lands (scphantm/metarr#64).
+	// discovered against live Redis. channels carries one row per Pub/Sub
+	// channel: every channel live against Redis right now unioned with the
+	// fixed known-channel list, so a declared channel with no current
+	// subscriber still shows as a row.
 	Streams       []*BusStreamStat  `protobuf:"bytes,3,rep,name=streams,proto3" json:"streams,omitempty"`
 	Channels      []*BusChannelStat `protobuf:"bytes,4,rep,name=channels,proto3" json:"channels,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -587,14 +589,18 @@ func (x *BusConsumerStat) GetIdleSeconds() int64 {
 	return 0
 }
 
-// BusChannelStat is one Pub/Sub channel. It carries no message count
-// because Redis Pub/Sub queues nothing.
+// BusChannelStat is one Pub/Sub channel. It carries no message count and no
+// publish rate: Redis Pub/Sub queues nothing and exposes no per-channel
+// publish counter.
 type BusChannelStat struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	Channel     string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
 	Subscribers int64                  `protobuf:"varint,2,opt,name=subscribers,proto3" json:"subscribers,omitempty"`
-	// known marks the application's declared channels. Channels discovered at
-	// runtime — the per-correlation-id reply channels — come back false.
+	// known marks the application's declared channels (eventbus's fixed
+	// known-channel list). Channels discovered at runtime — the
+	// per-correlation-id reply channels — come back false, so the dashboard
+	// can tell a transient channel from a declared one and flag a declared
+	// channel that has dropped to zero subscribers.
 	Known         bool `protobuf:"varint,3,opt,name=known,proto3" json:"known,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
