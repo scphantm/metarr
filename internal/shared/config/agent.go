@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	defaultAgentConfigPath = "agent.yaml"
+	defaultAgentConfigPath = "config/agent.yaml"
 	agentConfigFileEnvVar  = "METARR_AGENT_CONFIG_FILE"
 	defaultRedisPort       = 6379
 )
@@ -54,7 +54,7 @@ type agentFileConfig struct {
 	} `yaml:"redis"`
 }
 
-// LoadAgent reads the agent's configuration from agent.yaml (or the file named
+// LoadAgent reads the agent's configuration from config/agent.yaml (or the file named
 // by METARR_AGENT_CONFIG_FILE) and applies environment overrides on top.
 //
 // A missing file is not an error as long as the environment supplies a slug

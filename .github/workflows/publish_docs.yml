@@ -27,7 +27,7 @@ jobs:
 
       - name: Build documentation in Docker
         run: |
-          docker build -f Dockerfile.documentation -t metarr-docs:latest .
+          docker build -f deploy/Dockerfile.documentation -t metarr-docs:latest .
           docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace \
             metarr-docs:latest \
             sh -c 'make docs_build'

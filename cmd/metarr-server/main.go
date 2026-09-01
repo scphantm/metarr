@@ -43,8 +43,8 @@ import (
 
 // httpClientEnvFile is the JetBrains HTTP Client's per-developer secrets
 // file, kept in sync with freshly bootstrapped API keys if the developer
-// has one at the project root.
-const httpClientEnvFile = "http-client.private.env.json"
+// has one in .http/.
+const httpClientEnvFile = ".http/http-client.private.env.json"
 
 // @title			Metarr API
 // @version		1.0
@@ -189,7 +189,7 @@ func run() error {
 
 	if bootstrapReport.APIKeys != nil || bootstrapReport.Admin.Password != "" {
 		if err := syncHTTPClientEnv(bootstrapReport.APIKeys, bootstrapReport.Admin.Password); err != nil {
-			logger.Error("failed to sync http-client.private.env.json", "error", err)
+			logger.Error("failed to sync .http/http-client.private.env.json", "error", err)
 		}
 	}
 
@@ -296,7 +296,7 @@ func run() error {
 
 	// The one hop that leaves Metarr's own infrastructure: forwarding to
 	// Fluent Bit, which ships on to OpenObserve (or whatever it's configured
-	// for). Optional — a deployment with no Fluent Bit set in config.yaml
+	// for). Optional — a deployment with no Fluent Bit set in config/server.yaml
 	// simply skips this, and logging still works everywhere else.
 	if cfg.LogForwardURL != "" {
 		forwarder := logforward.New(cfg.LogForwardURL)

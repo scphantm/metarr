@@ -6,7 +6,7 @@ description: Build, run, and smoke-test Metarr (server, agent, UI). Use when ask
 This skill builds and runs the complete Metarr stack — the Go HTTP API server, the Go agent process, and the Vite/React UI — and verifies end-to-end via smoke tests (heartbeat check, optional login, dashboard screenshot).
 
 The stack has three components that start together:
-- **metarr-server** (`./bin/metarr-server`) on port 8080, needs MongoDB + Redis, reads `config.local.yaml`
+- **metarr-server** (`./bin/metarr-server`) on port 8080, needs MongoDB + Redis, reads `config/server.local.yaml`
 - **metarr-agent** (`./bin/metarr-agent`) with slug `local`, connects to Redis only
 - **Metarr UI** (`npm run dev` in `ui/`) on port 5173, proxies `/api` to the server
 
@@ -77,7 +77,7 @@ Ports in use (verify not bound before starting):
 
 This script:
 1. Builds `bin/metarr-server` (Go 1.26 required)
-2. Sets `METARR_CONFIG_FILE=config.local.yaml` (critical: `.env` sets this but Go code doesn't load it; without this, the server tries Docker-internal hostnames `mongodb`/`redis` and fails)
+2. Sets `METARR_CONFIG_FILE=config/server.local.yaml` (critical: `.env` sets this but Go code doesn't load it; without this, the server tries Docker-internal hostnames `mongodb`/`redis` and fails)
 3. Launches in background, redirects to `/tmp/metarr-server.log`
 4. Polls `GET /api/heartbeat` (unauthenticated endpoint that round-trips Redis) until 200 OK
 5. Attempts to capture admin credentials from the log (printed once on first boot; may not be present if database already bootstrapped)
@@ -149,7 +149,7 @@ If you're not an agent and just want to run Metarr locally (e.g., for developmen
 docker compose up
 
 # Terminal 2: server
-export METARR_CONFIG_FILE=config.local.yaml
+export METARR_CONFIG_FILE=config/server.local.yaml
 go run ./cmd/metarr-server
 
 # Terminal 3: agent
@@ -166,7 +166,7 @@ To stop: Ctrl-C in each terminal.
 
 ## Gotchas
 
-- **`.env` is not auto-loaded by Go.** The repo's `.env` file sets `METARR_CONFIG_FILE=config.local.yaml`, but nothing in the Go code or Makefile reads it. The smoke scripts export it explicitly before launching the server. Without this, the server silently tries to resolve Docker-internal hostnames (`mongodb`, `redis`) and fails.
+- **`.env` is not auto-loaded by Go.** The repo's `.env` file sets `METARR_CONFIG_FILE=config/server.local.yaml`, but nothing in the Go code or Makefile reads it. The smoke scripts export it explicitly before launching the server. Without this, the server silently tries to resolve Docker-internal hostnames (`mongodb`, `redis`) and fails.
 
 - **Backgrounding `go run` doesn't give you the real process PID.** `go run ./cmd/metarr-server &` spawns an npm-like wrapper that forks the actual binary; capturing `$!` and later `kill $!` leaves the real server running. The smoke scripts use `go build -o bin/metarr-{server,agent}` instead so the captured PID is the real process.
 
@@ -188,7 +188,7 @@ The docker-compose services haven't come up yet or ports aren't bound. Run `dock
 
 ### Server fails to start with "i/o timeout" connecting to `mongodb`/`redis`
 
-`METARR_CONFIG_FILE` is not set. The server is trying to resolve Docker-internal hostnames (`mongodb`, `redis`) instead of `localhost`. Verify `export METARR_CONFIG_FILE=config.local.yaml` before launching.
+`METARR_CONFIG_FILE` is not set. The server is trying to resolve Docker-internal hostnames (`mongodb`, `redis`) instead of `localhost`. Verify `export METARR_CONFIG_FILE=config/server.local.yaml` before launching.
 
 ### Agent fails to start with "cannot start: another agent is already running with this slug"
 

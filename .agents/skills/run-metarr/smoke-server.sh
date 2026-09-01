@@ -16,7 +16,7 @@ echo "=== Building metarr-server ==="
 go build -o bin/metarr-server ./cmd/metarr-server
 
 echo "=== Launching metarr-server ==="
-METARR_CONFIG_FILE=config.local.yaml ./bin/metarr-server > "$LOG_FILE" 2>&1 &
+METARR_CONFIG_FILE=config/server.local.yaml ./bin/metarr-server > "$LOG_FILE" 2>&1 &
 SERVER_PID=$!
 echo "Server PID: $SERVER_PID"
 

@@ -1,8 +1,8 @@
 # Makefile for Metarr: build, run, test, and lint targets for the Go backend.
-# Includes UI tasks from Makefile.ui and documentation tasks from Makefile.documentation.
+# Includes UI tasks from make/ui.mk and documentation tasks from make/docs.mk.
 
-include Makefile.ui
-include Makefile.documentation
+include make/ui.mk
+include make/docs.mk
 
 .PHONY: help generate build build-server build-agent build-server-production run run-server run-agent run-production down test tidy \
 	dist dist-agent-linux-amd64 dist-agent-linux-arm64 \
@@ -31,7 +31,7 @@ help:
 	@echo "                        Override: METARR_AGENT_SLUG=nas-01 METARR_REDIS_HOST=10.0.0.5"
 	@echo "  make run-production   Build and run metarr-server with embedded UI"
 	@echo ""
-	@echo "UI (from Makefile.ui):"
+	@echo "UI (from make/ui.mk):"
 	@echo "  make ui-install       Install UI dependencies (yarn install)"
 	@echo "  make ui-dev           Start Vite dev server on http://localhost:5173"
 	@echo "  make ui-build         Build production UI bundle"
@@ -58,7 +58,7 @@ help:
 	@echo "MAINTENANCE:"
 	@echo "  make tidy             Tidy go.mod and go.sum"
 	@echo ""
-	@echo "DOCUMENTATION (from Makefile.documentation):"
+	@echo "DOCUMENTATION (from make/docs.mk):"
 	@echo "  make docs-install     Install documentation dependencies"
 	@echo "  make docs-build       Build the Antora documentation site"
 	@echo "  make docs-serve       Start a local documentation server"
@@ -68,7 +68,7 @@ help:
 # Generate code: run all go:generate directives in the repo.
 # Produces:
 #   - Swagger docs:          api/docs.go, api/swagger.json, api/swagger.yaml
-#   - Sonarr OpenAPI client: generated/sonarr/sonarr.go
+#   - Sonarr OpenAPI client: internal/gen/sonarr/sonarr.go
 #   - gRPC-Web stubs:        internal/genproto/ (Go) and ui/src/gen/ (TypeScript), from proto/
 # Run before build, test, or when generator directives or .proto files change.
 generate:
@@ -90,7 +90,7 @@ build-agent: generate
 	go build -ldflags "$(LDFLAGS)" -o bin/metarr-agent ./cmd/metarr-agent
 
 # Build metarr-server with the UI embedded, for production deployment.
-# Builds the UI first (npm run build), then compiles the Go binary with the embed_ui tag so the built
+# Builds the UI first (yarn workspace @metarr/metarr-ui run build), then compiles the Go binary with the embed_ui tag so the built
 # assets are baked into the binary. Serves the UI at / and the API at /api from a single process.
 build-server-production: generate ui-build
 	go build -tags embed_ui -ldflags "$(LDFLAGS)" -o bin/metarr-server ./cmd/metarr-server
@@ -111,12 +111,12 @@ run: build-server build-agent
 	@echo "=== Starting Metarr stack (docker compose + server + agent + ui) ===" && \
 	docker compose up -d && sleep 2 && \
 	trap "echo '=== Shutting down...'; pkill -f 'bin/metarr-server' || true; pkill -f 'bin/metarr-agent' || true; sleep 1; docker compose down" EXIT INT TERM && \
-	export METARR_CONFIG_FILE=config.local.yaml && \
+	export METARR_CONFIG_FILE=config/server.local.yaml && \
 	./bin/metarr-server > /tmp/metarr-server.log 2>&1 & \
 	METARR_AGENT_SLUG=local METARR_REDIS_HOST=localhost ./bin/metarr-agent > /tmp/metarr-agent.log 2>&1 & \
 	echo "=== Server and agent running in background, logs at /tmp/metarr-*.log ===" && \
 	echo "=== Starting UI in foreground (Ctrl-C to stop all) ===" && \
-	cd ui && npm run dev
+	yarn workspace @metarr/metarr-ui run dev
 
 # Stop all Metarr components: Docker services, server, agent, and UI.
 # Kills any lingering processes and brings down docker-compose.
@@ -124,7 +124,7 @@ down:
 	@echo "=== Stopping Metarr stack ===" && \
 	pkill -f 'bin/metarr-server' || true && \
 	pkill -f 'bin/metarr-agent' || true && \
-	pkill -f 'npm run dev' || true && \
+	pkill -f 'metarr-ui run dev' || true && \
 	sleep 1 && \
 	docker compose down && \
 	echo "=== Stack stopped ==="
@@ -135,11 +135,11 @@ down:
 # Requires MongoDB and Redis running (docker compose up).
 # Stop with Ctrl-C.
 run-production: build-server-production
-	METARR_CONFIG_FILE=config.local.yaml ./bin/metarr-server
+	METARR_CONFIG_FILE=config/server.local.yaml ./bin/metarr-server
 
 # Start the metarr-server in the foreground.
 # The server listens on http://0.0.0.0:8080 and connects to MongoDB + Redis.
-# It reads config.yaml (or the file named by METARR_CONFIG_FILE env var) on startup.
+# It reads config/server.yaml (or the file named by METARR_CONFIG_FILE env var) on startup.
 # Stop with Ctrl-C. Requires: MongoDB and Redis running (docker compose up).
 run-server: generate
 	go run ./cmd/metarr-server
@@ -150,7 +150,7 @@ run-server: generate
 #   METARR_AGENT_SLUG    — unique identifier for this agent instance (default: "local")
 #   METARR_REDIS_HOST    — Redis hostname (default: "localhost")
 #   METARR_REDIS_PORT    — Redis port (default: "6379")
-#   METARR_REDIS_PASSWORD — Redis password (must match config.yaml)
+#   METARR_REDIS_PASSWORD — Redis password (must match config/server.yaml)
 #
 # Example: make run-agent METARR_AGENT_SLUG=nas-01 METARR_REDIS_HOST=192.168.1.100
 run-agent: generate
@@ -197,8 +197,8 @@ dist-agent-darwin-arm64: generate
 # Set VERSION to tag the images: make docker-build VERSION=1.0.0
 # Default VERSION is read from the VERSION file at the repo root.
 docker-build:
-	docker build --build-arg VERSION=$(VERSION) -f Dockerfile.server -t metarr-server:$(VERSION) .
-	docker build --build-arg VERSION=$(VERSION) -f Dockerfile.agent -t metarr-agent:$(VERSION) .
+	docker build --build-arg VERSION=$(VERSION) -f deploy/Dockerfile.server -t metarr-server:$(VERSION) .
+	docker build --build-arg VERSION=$(VERSION) -f deploy/Dockerfile.agent -t metarr-agent:$(VERSION) .
 
 # Run the Go test suite.
 # Runs all tests in ./... and re-generates code first.

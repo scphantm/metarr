@@ -33,7 +33,7 @@ Read [`CLAUDE.md`](./CLAUDE.md) — it documents project-specific conventions, a
 3. **Run tests and checks frequently**
    ```bash
    go test ./...                    # Go tests
-   cd ui && npm test                # UI tests
+   make ui-test                     # UI tests
    make lint                        # All linters
    ```
 
@@ -67,8 +67,8 @@ Read [`CLAUDE.md`](./CLAUDE.md) — it documents project-specific conventions, a
 
 2. **Type-check and lint incrementally**
    ```bash
-   npm run build                    # incremental tsc
-   npm run lint                     # diff-scoped eslint
+   make ui-build                    # incremental tsc
+   make lint-ui                     # diff-scoped eslint
    ```
 
 3. **Test in the browser**
@@ -107,8 +107,8 @@ Configuration changes also require:
 ## Testing
 
 - **Go tests**: Cover the packages your change touches. Run with `go test -run TestName ./...` for focused testing.
-- **UI tests**: TypeScript type-checking via `npm run build` catches most issues; manual browser testing for UI behavior.
-- **Integration**: Before submitting, run `make test` (Go) and `npm test` (UI) to catch regressions.
+- **UI tests**: TypeScript type-checking via `make ui-build` catches most issues; manual browser testing for UI behavior.
+- **Integration**: Before submitting, run `make test` (Go) and `make ui-test` (UI) to catch regressions.
 
 ## Submitting Changes
 
@@ -144,8 +144,8 @@ Configuration changes also require:
 
 Before submitting, verify:
 
-- [ ] Code compiles (`go build ./...` or `npm run build`)
-- [ ] Tests pass (`go test ./...` or `npm test`)
+- [ ] Code compiles (`go build ./...` or `make ui-build`)
+- [ ] Tests pass (`go test ./...` or `make ui-test`)
 - [ ] Linters pass (`make lint`)
 - [ ] No new warnings in the build output
 - [ ] Design docs reviewed (if applicable)
@@ -167,9 +167,11 @@ Metarr/
 │   └── shared/                   # Event contracts, config, models
 ├── api/                          # API definitions
 ├── ui/                           # TypeScript/React frontend
+├── config/                       # Runtime config (server/agent YAML, catalog, sidecar configs)
+├── deploy/                       # Dockerfiles
+├── make/                         # Makefile fragments (ui.mk, docs.mk)
 ├── documentation/                # AsciiDoc source
 ├── documentation-theme/          # Antora UI theme
-├── Makefile.documentation        # Docs build targets
 └── CLAUDE.md                      # Project conventions (required reading!)
 ```
 

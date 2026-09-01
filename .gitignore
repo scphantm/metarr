@@ -413,13 +413,11 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/jetbrains+all,macos,windows,linux,eclipse,visualstudiocode,go,node
 /internal/appconfig/app_config.local.yaml
-/config.local.yaml
-/http-client.private.env.json
-/http-client.env.json
-/metarr.http
+/config/server.local.yaml
+/.http/
 /data/
 /ui/.vite/
-/agent.local.yaml
+/config/agent.local.yaml
 /documentation/build/
 /build/
 Metarr.code-workspace
