@@ -42,8 +42,10 @@ type BusSnapshot struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	CollectedAt *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=collected_at,json=collectedAt,proto3" json:"collected_at,omitempty"`
 	Server      *BusServerInfo         `protobuf:"bytes,2,opt,name=server,proto3" json:"server,omitempty"`
-	// Empty until the stream and channel tables land (scphantm/metarr#62,
-	// scphantm/metarr#64). The walking skeleton fills server only.
+	// streams carries one row per durable stream the event bus knows about —
+	// the static stream-topic rows plus the per-agent command streams
+	// discovered against live Redis. channels is empty until the Pub/Sub
+	// table lands (scphantm/metarr#64).
 	Streams       []*BusStreamStat  `protobuf:"bytes,3,rep,name=streams,proto3" json:"streams,omitempty"`
 	Channels      []*BusChannelStat `protobuf:"bytes,4,rep,name=channels,proto3" json:"channels,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -351,8 +353,12 @@ type BusGroupStat struct {
 	Lag             int64                  `protobuf:"varint,4,opt,name=lag,proto3" json:"lag,omitempty"`
 	LastDeliveredId string                 `protobuf:"bytes,5,opt,name=last_delivered_id,json=lastDeliveredId,proto3" json:"last_delivered_id,omitempty"`
 	ConsumerDetail  []*BusConsumerStat     `protobuf:"bytes,6,rep,name=consumer_detail,json=consumerDetail,proto3" json:"consumer_detail,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// oldest_pending_age_seconds is how long the group's oldest unacknowledged
+	// entry has been waiting, derived from the entry ID's timestamp. Zero when
+	// the group has nothing pending.
+	OldestPendingAgeSeconds int64 `protobuf:"varint,7,opt,name=oldest_pending_age_seconds,json=oldestPendingAgeSeconds,proto3" json:"oldest_pending_age_seconds,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *BusGroupStat) Reset() {
@@ -425,6 +431,13 @@ func (x *BusGroupStat) GetConsumerDetail() []*BusConsumerStat {
 		return x.ConsumerDetail
 	}
 	return nil
+}
+
+func (x *BusGroupStat) GetOldestPendingAgeSeconds() int64 {
+	if x != nil {
+		return x.OldestPendingAgeSeconds
+	}
+	return 0
 }
 
 // BusConsumerStat is a single consumer within a group.
@@ -748,14 +761,15 @@ const file_metarr_v1_stats_proto_rawDesc = "" +
 	"\x06length\x18\x03 \x01(\x03R\x06length\x12\x16\n" +
 	"\x06exists\x18\x04 \x01(\bR\x06exists\x12/\n" +
 	"\x06groups\x18\x05 \x03(\v2\x17.metarr.v1.BusGroupStatR\x06groups\x12\x14\n" +
-	"\x05error\x18\x06 \x01(\tR\x05error\"\xdd\x01\n" +
+	"\x05error\x18\x06 \x01(\tR\x05error\"\x9a\x02\n" +
 	"\fBusGroupStat\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1c\n" +
 	"\tconsumers\x18\x02 \x01(\x03R\tconsumers\x12\x18\n" +
 	"\apending\x18\x03 \x01(\x03R\apending\x12\x10\n" +
 	"\x03lag\x18\x04 \x01(\x03R\x03lag\x12*\n" +
 	"\x11last_delivered_id\x18\x05 \x01(\tR\x0flastDeliveredId\x12C\n" +
-	"\x0fconsumer_detail\x18\x06 \x03(\v2\x1a.metarr.v1.BusConsumerStatR\x0econsumerDetail\"b\n" +
+	"\x0fconsumer_detail\x18\x06 \x03(\v2\x1a.metarr.v1.BusConsumerStatR\x0econsumerDetail\x12;\n" +
+	"\x1aoldest_pending_age_seconds\x18\a \x01(\x03R\x17oldestPendingAgeSeconds\"b\n" +
 	"\x0fBusConsumerStat\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\apending\x18\x02 \x01(\x03R\apending\x12!\n" +
