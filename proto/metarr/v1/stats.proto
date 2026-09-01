@@ -180,10 +180,36 @@ message StatsServiceStreamResponse {
   BusSnapshot snapshot = 1;
 }
 
+// StatsServicePurgeRequest names what to clear: one stream by name, or every
+// discovered durable stream when all is set. Exactly one of the two must be
+// given — an empty stream with all unset, or a stream name with all set, is
+// rejected.
+message StatsServicePurgeRequest {
+  string stream = 1;
+  bool all = 2;
+}
+
+// StreamPurgeResult is the outcome for one purged stream: how many entries
+// the approximate trim dropped, and the consumer groups it fast-forwarded
+// to the stream's tail. A stream that had no groups reports an empty list.
+message StreamPurgeResult {
+  string stream = 1;
+  int64 dropped = 2;
+  repeated string groups_fast_forwarded = 3;
+}
+
+message StatsServicePurgeResponse {
+  repeated StreamPurgeResult results = 1;
+}
+
 // StatsService.Get is the first-paint fallback (a dashboard needs something
 // to paint before its stream connects); Stream is the same snapshot pushed
-// on every sampler tick, fanned out from the shared store.
+// on every sampler tick, fanned out from the shared store. Purge clears a
+// jammed durable stream (or all of them): an approximate trim of every
+// current entry, then a fast-forward of each consumer group to the tail. It
+// is the one non-read-only method on the service — see docs/adr/0007.
 service StatsService {
   rpc Get(StatsServiceGetRequest) returns (StatsServiceGetResponse);
   rpc Stream(StatsServiceStreamRequest) returns (stream StatsServiceStreamResponse);
+  rpc Purge(StatsServicePurgeRequest) returns (StatsServicePurgeResponse);
 }

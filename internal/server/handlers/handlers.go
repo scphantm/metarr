@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/redis/go-redis/v9"
+
 	"Metarr/internal/server/agentregistry"
 	"Metarr/internal/server/appconfigstore"
 	"Metarr/internal/server/busstats"
@@ -27,6 +29,7 @@ type Handlers struct {
 	WorkflowCatalog    *workflow.Catalog
 	Sessions           *session.Store
 	Stats              *busstats.Sampler
+	Redis              redis.UniversalClient
 	Agents             *agentregistry.Registry
 	LogTail            *logtail.Buffer
 	Logger             *slog.Logger
@@ -43,6 +46,7 @@ func New(
 	workflowCatalog *workflow.Catalog,
 	sessions *session.Store,
 	stats *busstats.Sampler,
+	redisClient redis.UniversalClient,
 	agents *agentregistry.Registry,
 	logTail *logtail.Buffer,
 	logger *slog.Logger,
@@ -57,6 +61,7 @@ func New(
 		WorkflowCatalog:    workflowCatalog,
 		Sessions:           sessions,
 		Stats:              stats,
+		Redis:              redisClient,
 		Agents:             agents,
 		LogTail:            logTail,
 		Logger:             logger,
