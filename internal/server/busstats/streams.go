@@ -17,42 +17,58 @@ import (
 // its own. A stream that cannot be read carries a per-stream error and does
 // not cost the caller the rest of the snapshot; a reserved stream with no
 // consumer group reads as present-but-not-created rather than as an error.
-func (s *Sampler) collectStreams(ctx context.Context) []*StreamStat {
+//
+// It also returns the raw monotonic Redis counters this pass read: published
+// maps a stream to its total entries-added, consumed maps groupSeriesKey to
+// that group's total entries-read. recordStreamMetrics turns those into
+// per-pass rates by subtracting the previous pass. A counter Redis does not
+// report (miniredis omits entries-added; an uncreated stream has none) is
+// simply absent from the map, which leaves that rate at zero.
+func (s *Sampler) collectStreams(ctx context.Context) ([]*StreamStat, map[string]int64, map[string]int64) {
 	// A partial SCAN failure still yields the streams it did find — someone
 	// looking here to see why an agent is not picking up work should see
 	// what there is rather than a blank panel.
 	topics, _ := eventbus.DiscoverStreamTopics(ctx, s.client)
 
 	stats := make([]*StreamStat, 0, len(topics))
+	published := make(map[string]int64)
+	consumed := make(map[string]int64)
 	for _, topic := range topics {
-		stats = append(stats, s.collectStream(ctx, topic))
+		stats = append(stats, s.collectStream(ctx, topic, published, consumed))
 	}
-	return stats
+	return stats, published, consumed
 }
 
-func (s *Sampler) collectStream(ctx context.Context, topic eventbus.StreamTopic) *StreamStat {
+func (s *Sampler) collectStream(ctx context.Context, topic eventbus.StreamTopic, published, consumed map[string]int64) *StreamStat {
 	stat := &StreamStat{
 		Stream:    topic.Name,
 		EventName: strings.Join(topic.Events, ", "),
 		Groups:    []*GroupStat{},
 	}
 
-	lenCtx, cancel := context.WithTimeout(ctx, callTimeout)
-	length, err := s.client.XLen(lenCtx, topic.Name).Result()
+	// One XINFO STREAM serves both the depth and the entries-added counter
+	// that feeds the publish rate. A stream key is created lazily when a
+	// listener first subscribes, so "no such key" here is Redis's normal
+	// cold-start answer, not a fault: show it as not-yet-created.
+	infoCtx, cancel := context.WithTimeout(ctx, callTimeout)
+	info, err := s.client.XInfoStream(infoCtx, topic.Name).Result()
 	cancel()
 	if err != nil {
-		stat.Error = err.Error()
+		if !isMissingKey(err) {
+			stat.Error = err.Error()
+		}
 		return stat
 	}
-	stat.Length = length
+	stat.Length = info.Length
+	// entries-added is monotonic on real Redis; miniredis omits it and
+	// go-redis then yields zero — a constant, so the derived publish rate
+	// stays a sane zero there.
+	published[topic.Name] = info.EntriesAdded
 
 	groupsCtx, cancel := context.WithTimeout(ctx, callTimeout)
 	groups, err := s.client.XInfoGroups(groupsCtx, topic.Name).Result()
 	cancel()
 	if err != nil {
-		// XINFO against a stream key that does not exist yet is Redis's
-		// normal cold-start answer, not a fault: a stream is created lazily
-		// when a listener first subscribes. Show it as not-yet-created.
 		if isMissingKey(err) {
 			return stat
 		}
@@ -63,8 +79,20 @@ func (s *Sampler) collectStream(ctx context.Context, topic eventbus.StreamTopic)
 
 	for _, group := range groups {
 		stat.Groups = append(stat.Groups, s.collectGroup(ctx, topic.Name, group))
+		// entries-read is a monotonic per-group counter. Redis always
+		// reports it; miniredis returns null, which go-redis maps to zero —
+		// a constant, so the derived consume rate stays a sane zero there.
+		consumed[groupSeriesKey(topic.Name, group.Name)] = group.EntriesRead
 	}
 	return stat
+}
+
+// groupSeriesKey is the composite key a consumer group's per-metric history
+// and previous-counter state are stored under. A group name is unique within
+// its stream, so stream+group identifies it; the NUL separator cannot occur
+// in a Redis key or group name.
+func groupSeriesKey(stream, group string) string {
+	return stream + "\x00" + group
 }
 
 func (s *Sampler) collectGroup(ctx context.Context, stream string, group redis.XInfoGroup) *GroupStat {

@@ -69,10 +69,12 @@ type Sampler struct {
 	interval time.Duration
 	history  int
 
-	mu       sync.Mutex
-	snapshot *Snapshot
-	series   metricSeries
-	subs     map[chan *Snapshot]struct{}
+	mu         sync.Mutex
+	snapshot   *Snapshot
+	series     metricSeries
+	streamHist map[string]*streamHistory
+	groupHist  map[string]*groupHistory
+	subs       map[chan *Snapshot]struct{}
 }
 
 // metricSeries is the set of per-metric ring buffers, oldest sample first.
@@ -81,6 +83,31 @@ type metricSeries struct {
 	usedMemory       []int64
 	opsPerSecond     []int64
 	totalKeys        []int64
+}
+
+// streamHistory and groupHistory are the per-stream and per-group ring
+// buffers, oldest sample first, keyed on the stream name and on
+// groupSeriesKey respectively. Each also carries the previous pass's raw
+// monotonic Redis counter, so the entry that owns a metric's history also
+// owns the state its rate is derived from — the two are created and dropped
+// together.
+type streamHistory struct {
+	length      []int64
+	publishRate []int64
+
+	prevEntriesAdded int64
+	havePrevAdded    bool
+}
+
+type groupHistory struct {
+	consumers     []int64
+	pending       []int64
+	lag           []int64
+	oldestPending []int64
+	consumeRate   []int64
+
+	prevEntriesRead int64
+	havePrevRead    bool
 }
 
 // Option configures a Sampler at construction.
@@ -111,11 +138,13 @@ func New(client redis.UniversalClient, logger *slog.Logger, opts ...Option) *Sam
 		logger = slog.New(slog.DiscardHandler)
 	}
 	s := &Sampler{
-		client:   client,
-		logger:   logger,
-		interval: DefaultInterval,
-		history:  DefaultHistory,
-		subs:     make(map[chan *Snapshot]struct{}),
+		client:     client,
+		logger:     logger,
+		interval:   DefaultInterval,
+		history:    DefaultHistory,
+		streamHist: make(map[string]*streamHistory),
+		groupHist:  make(map[string]*groupHistory),
+		subs:       make(map[chan *Snapshot]struct{}),
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -205,7 +234,7 @@ func (s *Sampler) pass(ctx context.Context) {
 	// run outside the lock: a slow XINFO must not stall Get or the fan-out.
 	// Each call inside is time-boxed on its own, and an unreadable stream
 	// carries its own error rather than failing the pass.
-	streams := s.collectStreams(ctx)
+	streams, published, consumed := s.collectStreams(ctx)
 
 	s.mu.Lock()
 	s.appendSeries(server)
@@ -213,6 +242,7 @@ func (s *Sampler) pass(ctx context.Context) {
 	server.UsedMemorySeries = slices.Clone(s.series.usedMemory)
 	server.OpsPerSecondSeries = slices.Clone(s.series.opsPerSecond)
 	server.TotalKeysSeries = slices.Clone(s.series.totalKeys)
+	s.recordStreamMetrics(streams, published, consumed)
 
 	snapshot := &Snapshot{
 		CollectedAt: timestamppb.New(time.Now().UTC()),
@@ -267,6 +297,91 @@ func ring(buf []int64, value int64, max int) []int64 {
 		buf = buf[len(buf)-max:]
 	}
 	return buf
+}
+
+// recordStreamMetrics appends every numeric stream and group metric from this
+// pass to its ring buffer, derives the per-pass publish/consume rates from the
+// raw Redis counters the pass read (published = each stream's total
+// entries-added, consumed = each group's total entries-read), and clones the
+// buffers onto the snapshot rows. A stream or group seen for the first time
+// reports a zero rate rather than its whole lifetime count as a spike.
+// History for streams and groups no longer in the topology is dropped.
+// Called with s.mu held.
+func (s *Sampler) recordStreamMetrics(streams []*StreamStat, published, consumed map[string]int64) {
+	liveStreams := make(map[string]struct{}, len(streams))
+	liveGroups := make(map[string]struct{})
+
+	for _, st := range streams {
+		liveStreams[st.Stream] = struct{}{}
+
+		hist := s.streamHist[st.Stream]
+		if hist == nil {
+			hist = &streamHistory{}
+			s.streamHist[st.Stream] = hist
+		}
+
+		if cur, ok := published[st.Stream]; ok {
+			if hist.havePrevAdded {
+				st.PublishRate = nonNegativeDelta(hist.prevEntriesAdded, cur)
+			}
+			hist.prevEntriesAdded, hist.havePrevAdded = cur, true
+		}
+
+		hist.length = ring(hist.length, st.Length, s.history)
+		hist.publishRate = ring(hist.publishRate, st.PublishRate, s.history)
+		st.LengthSeries = slices.Clone(hist.length)
+		st.PublishRateSeries = slices.Clone(hist.publishRate)
+
+		for _, g := range st.Groups {
+			key := groupSeriesKey(st.Stream, g.Name)
+			liveGroups[key] = struct{}{}
+
+			gh := s.groupHist[key]
+			if gh == nil {
+				gh = &groupHistory{}
+				s.groupHist[key] = gh
+			}
+
+			if cur, ok := consumed[key]; ok {
+				if gh.havePrevRead {
+					g.ConsumeRate = nonNegativeDelta(gh.prevEntriesRead, cur)
+				}
+				gh.prevEntriesRead, gh.havePrevRead = cur, true
+			}
+
+			gh.consumers = ring(gh.consumers, g.Consumers, s.history)
+			gh.pending = ring(gh.pending, g.Pending, s.history)
+			gh.lag = ring(gh.lag, g.Lag, s.history)
+			gh.oldestPending = ring(gh.oldestPending, g.OldestPendingAgeSeconds, s.history)
+			gh.consumeRate = ring(gh.consumeRate, g.ConsumeRate, s.history)
+			g.ConsumersSeries = slices.Clone(gh.consumers)
+			g.PendingSeries = slices.Clone(gh.pending)
+			g.LagSeries = slices.Clone(gh.lag)
+			g.OldestPendingAgeSecondsSeries = slices.Clone(gh.oldestPending)
+			g.ConsumeRateSeries = slices.Clone(gh.consumeRate)
+		}
+	}
+
+	for k := range s.streamHist {
+		if _, ok := liveStreams[k]; !ok {
+			delete(s.streamHist, k)
+		}
+	}
+	for k := range s.groupHist {
+		if _, ok := liveGroups[k]; !ok {
+			delete(s.groupHist, k)
+		}
+	}
+}
+
+// nonNegativeDelta is cur-prev floored at zero, so a counter reset — Redis
+// restarted, or the stream trimmed and recreated — reads as no activity for
+// that pass rather than a large negative spike.
+func nonNegativeDelta(prev, cur int64) int64 {
+	if cur < prev {
+		return 0
+	}
+	return cur - prev
 }
 
 // collectServer fills BusServerInfo from INFO + DBSIZE. Each call is

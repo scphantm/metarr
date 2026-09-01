@@ -75,6 +75,17 @@ message BusStreamStat {
   // error records a per-stream failure; one unreadable stream should not
   // cost the caller the rest of the snapshot.
   string error = 6;
+  // publish_rate is entries added to the stream since the previous sampler
+  // pass — the delta of Redis's total entries-added counter, not an absolute
+  // count. It is zero on the first pass that sees a stream (no prior sample
+  // to subtract) and when Redis does not report the counter.
+  int64 publish_rate = 7;
+
+  // Rolling per-metric history, oldest sample first, one entry per sampler
+  // pass, capped at the ring-buffer window (~150 samples, ~5 min). These
+  // back the row's inline sparklines.
+  repeated int64 length_series = 8;
+  repeated int64 publish_rate_series = 9;
 }
 
 // BusGroupStat is one consumer group's position on a stream.
@@ -89,6 +100,20 @@ message BusGroupStat {
   // entry has been waiting, derived from the entry ID's timestamp. Zero when
   // the group has nothing pending.
   int64 oldest_pending_age_seconds = 7;
+  // consume_rate is entries read by the group since the previous sampler
+  // pass — the delta of Redis's per-group entries-read counter, not an
+  // absolute count. Zero on the first pass that sees a group and when Redis
+  // does not report the counter.
+  int64 consume_rate = 8;
+
+  // Rolling per-metric history, oldest sample first, one entry per sampler
+  // pass, capped at the ring-buffer window. These back the expanded row's
+  // inline sparklines.
+  repeated int64 consumers_series = 9;
+  repeated int64 pending_series = 10;
+  repeated int64 lag_series = 11;
+  repeated int64 oldest_pending_age_seconds_series = 12;
+  repeated int64 consume_rate_series = 13;
 }
 
 // BusConsumerStat is a single consumer within a group.
