@@ -4,11 +4,19 @@ status: accepted
 
 # Startup bootstrap is a separate synchronous store capability, not a config mutation
 
+> **Amended by ADR-0002 / ADR-0010 (2026-09-02):** `Mutate` is now synchronous
+> too, so the "the listener isn't running yet, the write wouldn't land" race in
+> the *Why* below no longer applies. What survives is the reason bootstrap stays
+> a distinct contract: it does not propagate (nothing else is up to receive a
+> propagated change), it writes only when a value is missing, and it carries the
+> `SeedAdmin` ordering guarantee. `Mutate` and the bootstrap calls now share
+> both the lock and the synchronous direct write.
+
 Server startup seeds the application config (API keys, admin credentials, admin lockout recovery, directory-scanner defaults, sidecar types, agent normalization, logging defaults, API-key id backfill) before anything else runs. This seeding is applied through new synchronous methods on `appconfigstore.Store`, sharing its single-writer mutex, but distinct from `Mutate`: it persists directly and fires no `system_config_update` event. `CONTEXT.md` names this **Bootstrap**, explicitly not a **config mutation**.
 
 ## Why
 
-`Mutate` (docs/adr/0002-config-writes-are-async-and-single-writer.md) is deliberately asynchronous: it fires an event and returns, and actual persistence happens later in the `system_config_update` stream listener. That listener does not start until after the point in `cmd/metarr-server/main.go` where bootstrap runs. Several services (`directory_scanner.go`, `sonarr_interfaces.go`, `agents.go`, `logging.go`, `tasks.go`, `config.go`) read the application config straight from Mongo per call, bypassing the in-memory `appconfig.Get()` global that the listener keeps current. Routing bootstrap through `Mutate` as-is would let the server start accepting requests while Mongo still held the pre-bootstrap document — a real race window, not a theoretical one, for every one of those services.
+`Mutate` (docs/adr/0002-config-writes-are-synchronous-and-single-writer.md) was, when this ADR was written, deliberately asynchronous: it fired an event and returned, and actual persistence happened later in the `system_config_update` stream listener. That listener does not start until after the point in `cmd/metarr-server/main.go` where bootstrap runs. Several services (`directory_scanner.go`, `sonarr_interfaces.go`, `agents.go`, `logging.go`, `tasks.go`, `config.go`) read the application config straight from Mongo per call, bypassing the in-memory `appconfig.Get()` global that the listener keeps current. Routing bootstrap through `Mutate` as-is would let the server start accepting requests while Mongo still held the pre-bootstrap document — a real race window, not a theoretical one, for every one of those services.
 
 ADR-0002 rejected making `Mutate` synchronous to keep that change a narrow locking fix. Bootstrap has the opposite requirement from the runtime path: nothing else is running yet to race it, but request handlers need Mongo already caught up before they start serving. A synchronous, non-event contract fits that requirement without touching `Mutate`'s.
 
