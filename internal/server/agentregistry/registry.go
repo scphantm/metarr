@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/protobuf/proto"
 
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
 	"Metarr/internal/shared/agentproto"
@@ -28,67 +29,55 @@ func New(client redis.UniversalClient, bus *eventbus.Bus, logger *slog.Logger) *
 	return &Registry{client: client, bus: bus, logger: logger}
 }
 
-// AgentView is one agent as the UI sees it: what the operator configured, what
-// the agent itself reports, and whether it is currently there. MappingView is
-// one of its library mappings, showing both machines' names for it. Both are
-// aliases to their generated metarr.v1 messages — proto is the single
-// definition for a model the UI reads. See docs/adr/0005.
-//
-// On the message, Online is presence rather than health (true while the agent
-// still refreshes its key); Configured separates an agent that has announced
-// itself from one someone has set up; LogLevel is defaulted the same way
-// BuildProjection defaults it, so the Logging screen's toggle always has a
-// real value.
-type (
-	AgentView   = metarrv1.AgentView
-	MappingView = metarrv1.AgentMappingView
-)
-
-// List returns every agent the server knows about: those configured in config,
-// those currently present in Redis, and the union of the two.
+// List returns every agent the server knows about as a metarr.v1.Agent: those
+// configured in config, those currently present in Redis, and the union of the
+// two — the operator fields from config, the output-only presence fields
+// (configured, online, identity, telemetry, reported_at) from Redis.
 //
 // Both halves matter. A configured agent that has gone away must still appear,
 // or a machine going offline would look like a machine that was never set up.
 // An unconfigured agent that has appeared must also show, because that is the
-// only way anyone learns it is there.
-func (r *Registry) List(ctx context.Context, config *appconfig.Config) ([]*AgentView, error) {
+// only way anyone learns it is there. LogLevel is defaulted the same way
+// BuildProjection defaults it, so the Logging screen's toggle always has a
+// real value.
+func (r *Registry) List(ctx context.Context, config *appconfig.Config) ([]*metarrv1.Agent, error) {
 	presence, err := r.presence(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	views := make(map[string]*AgentView, len(presence)+len(config.Agents))
+	agents := make(map[string]*metarrv1.Agent, len(presence)+len(config.Agents))
 
 	for _, agent := range config.Agents {
 		logLevel := agent.LogLevel
 		if logLevel == "" {
 			logLevel = appconfig.LogLevelInfo
 		}
-		views[agent.Slug] = &AgentView{
+		agents[agent.Slug] = &metarrv1.Agent{
 			Slug:        agent.Slug,
 			DisplayName: agent.DisplayName,
 			Configured:  true,
-			Mappings:    mappingViews(config, agent),
+			Mappings:    cloneMappings(agent.Mappings),
 			LogLevel:    logLevel,
 		}
 	}
 
 	for slug, reported := range presence {
-		view, known := views[slug]
+		agent, known := agents[slug]
 		if !known {
-			view = &AgentView{Slug: slug, Mappings: []*MappingView{}, LogLevel: appconfig.LogLevelInfo}
-			views[slug] = view
+			agent = &metarrv1.Agent{Slug: slug, Mappings: []*appconfig.AgentDirectoryMapping{}, LogLevel: appconfig.LogLevelInfo}
+			agents[slug] = agent
 		}
 
-		view.Online = true
-		view.Identity = reported.Identity
-		view.Telemetry = reported.Telemetry
-		view.ReportedAt = reported.ReportedAt
+		agent.Online = true
+		agent.Identity = reported.Identity
+		agent.Telemetry = reported.Telemetry
+		agent.ReportedAt = reported.ReportedAt
 	}
 
-	list := make([]*AgentView, 0, len(views))
-	for _, view := range views {
-		list = append(list, view)
+	list := make([]*metarrv1.Agent, 0, len(agents))
+	for _, agent := range agents {
+		list = append(list, agent)
 	}
 	// Stable order so the UI does not reshuffle its cards on every poll.
 	sort.Slice(list, func(i, j int) bool { return list[i].Slug < list[j].Slug })
@@ -96,20 +85,12 @@ func (r *Registry) List(ctx context.Context, config *appconfig.Config) ([]*Agent
 	return list, nil
 }
 
-func mappingViews(config *appconfig.Config, agent *appconfig.AgentConfig) []*MappingView {
-	mappings := make([]*MappingView, 0, len(agent.Mappings))
-	for _, mapping := range agent.Mappings {
-		view := &MappingView{
-			ScannerSlug: mapping.ScannerSlug,
-			AgentPath:   mapping.AgentPath,
-		}
-		if index := appconfig.FindScanDirectoryIndex(config.DirectoryScanner, mapping.ScannerSlug); index >= 0 {
-			view.ServerPath = config.DirectoryScanner.ScanDirectories[index].Directory
-			view.ScanType = config.DirectoryScanner.ScanDirectories[index].ScanType
-		}
-		mappings = append(mappings, view)
+func cloneMappings(mappings []*appconfig.AgentDirectoryMapping) []*appconfig.AgentDirectoryMapping {
+	out := make([]*appconfig.AgentDirectoryMapping, 0, len(mappings))
+	for _, mapping := range mappings {
+		out = append(out, proto.Clone(mapping).(*appconfig.AgentDirectoryMapping))
 	}
-	return mappings
+	return out
 }
 
 // presence reads every live agent's presence record.

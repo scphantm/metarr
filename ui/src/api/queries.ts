@@ -38,7 +38,10 @@ import {
   ConfigServiceUpdateAdminRequestSchema,
   ConfigServiceUpsertApiKeyRequestSchema,
 } from "../gen/metarr/v1/config_pb";
-import { AgentConfigSchema } from "../gen/metarr/v1/agents_pb";
+import {
+  AgentSchema,
+  type Agent as ConnectAgent,
+} from "../gen/metarr/v1/agents_pb";
 import {
   SidecarTypeDefinitionSchema,
   type SidecarTypeDefinition as ConnectSidecarType,
@@ -169,8 +172,8 @@ export function useSonarrInstances() {
 // Agents stream over the socket for the same reason the bus snapshot does: the
 // telemetry is live and the presence half changes on its own, with no user
 // action to hang a refetch off. The queryFn covers the first paint. Both the
-// stream frame and the refetch yield the generated AgentView directly, so
-// they land in the same cache entry with no shape mismatch.
+// stream frame and the refetch yield the generated Agent directly, so they
+// land in the same cache entry with no shape mismatch.
 
 // One singleton per server-streaming RPC, refcounted across every component
 // watching it — see streams.ts. Registered so resetStreams() (called on
@@ -188,31 +191,72 @@ export function useAgentsPresenceStreamStatus() {
   return useStreamStatus(agentsPresenceStream);
 }
 
+// ListAgents is paginated (AIP-158); the screen shows every agent at once, so
+// it drains the pages like useSonarrInstances. The collection is
+// operator-bounded, so this is one page in practice.
 export function useAgents() {
   useStream(agentsPresenceStream, queryKeys.agents);
 
   return useQuery({
     queryKey: queryKeys.agents,
-    queryFn: async () => (await agentClient.list({})).agents,
+    queryFn: async () => {
+      const agents = [];
+      let pageToken = "";
+      do {
+        const page = await agentClient.listAgents({ pageToken });
+        agents.push(...page.agents);
+        pageToken = page.nextPageToken;
+      } while (pageToken !== "");
+      return agents;
+    },
     staleTime: Infinity,
   });
 }
 
-// Agents are upserted by slug, like every other config collection here.
-export function useUpsertAgent() {
-  return useConfigMutation<
-    MessageInitShape<typeof AgentConfigSchema>,
-    ConnectAcceptedResponse
-  >(
-    (agent) => agentClient.upsert({ agent }),
-    [queryKeys.config, queryKeys.agents],
+// AgentService is a slug-addressed collection on AIP standard methods
+// (docs/adr/0010): Create / Update return the stored Agent, Delete returns
+// empty, every write is synchronous. The agents cache (["stats","agents"]) is
+// socket-fed by StreamPresence and carries the merged presence view, so a
+// write invalidates it — the refetch re-merges live presence — rather than
+// splicing a presence-less response in. The sibling aggregate GetConfig read
+// is invalidated exact.
+function useAgentCollectionWrite<TVariables>(
+  write: (variables: TVariables) => Promise<unknown>,
+): UseMutationResult<unknown, Error, TVariables> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: write,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.agents });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.config,
+        exact: true,
+      });
+    },
+  });
+}
+
+export function useCreateAgent() {
+  return useAgentCollectionWrite<MessageInitShape<typeof AgentSchema>>(
+    (agent) => agentClient.createAgent({ agentId: agent.slug, agent }),
+  );
+}
+
+// The Agents screen edits display name and library mappings; the log level is
+// the Logging screen's job (SetLogLevel), so it is not in this mask even
+// though it is a writable field. slug is the addressing key and the presence
+// fields are output-only, so neither is masked either.
+const agentUpdateMask = { paths: ["display_name", "mappings"] };
+
+export function useUpdateAgent() {
+  return useAgentCollectionWrite<MessageInitShape<typeof AgentSchema>>(
+    (agent) => agentClient.updateAgent({ agent, updateMask: agentUpdateMask }),
   );
 }
 
 export function useDeleteAgent() {
-  return useConfigMutation<string, ConnectAcceptedResponse>(
-    (slug) => agentClient.delete({ slug }),
-    [queryKeys.config, queryKeys.agents],
+  return useAgentCollectionWrite<string>((slug) =>
+    agentClient.deleteAgent({ slug }),
   );
 }
 
@@ -306,15 +350,13 @@ export function useLogTail() {
   });
 }
 
-// A dedicated sub-resource rather than a full AgentConfig upsert: setting a
-// level should never risk touching an agent's mappings, and it works even for
-// an agent that isn't configured with any yet (the server creates a bare
-// entry) — see SetAgentLogLevel's doc comment on the Go side.
+// A custom method rather than a full Agent update: setting a level should
+// never risk touching an agent's mappings, and it works even for an agent
+// that isn't configured with any yet (the server creates a bare entry) — see
+// SetLogLevel's doc comment on the Go side. It returns the stored Agent;
+// nothing here reads it, so the hook just invalidates.
 export function useSetAgentLogLevel() {
-  return useConfigMutation<
-    { slug: string; log_level: string },
-    ConnectAcceptedResponse
-  >(
+  return useConfigMutation<{ slug: string; log_level: string }, ConnectAgent>(
     ({ slug, log_level }) =>
       agentClient.setLogLevel({ slug, logLevel: log_level }),
     [queryKeys.config, queryKeys.agents],

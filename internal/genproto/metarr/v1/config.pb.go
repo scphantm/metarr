@@ -289,7 +289,7 @@ type Config struct {
 	Admin            *AdminUser              `protobuf:"bytes,2,opt,name=admin,proto3" json:"admin,omitempty"`
 	Interfaces       *InterfacesConfig       `protobuf:"bytes,3,opt,name=interfaces,proto3" json:"interfaces,omitempty"`
 	DirectoryScanner *DirectoryScannerConfig `protobuf:"bytes,4,opt,name=directory_scanner,json=directoryScanner,proto3" json:"directory_scanner,omitempty"`
-	Agents           []*AgentConfig          `protobuf:"bytes,5,rep,name=agents,proto3" json:"agents,omitempty"`
+	Agents           []*Agent                `protobuf:"bytes,5,rep,name=agents,proto3" json:"agents,omitempty"`
 	Logging          *LoggingConfig          `protobuf:"bytes,6,opt,name=logging,proto3" json:"logging,omitempty"`
 	EventBus         *EventBusConfig         `protobuf:"bytes,7,opt,name=event_bus,json=eventBus,proto3" json:"event_bus,omitempty"`
 	unknownFields    protoimpl.UnknownFields
@@ -354,7 +354,7 @@ func (x *Config) GetDirectoryScanner() *DirectoryScannerConfig {
 	return nil
 }
 
-func (x *Config) GetAgents() []*AgentConfig {
+func (x *Config) GetAgents() []*Agent {
 	if x != nil {
 		return x.Agents
 	}
@@ -649,15 +649,15 @@ const file_metarr_v1_config_proto_rawDesc = "" +
 	"\awebhook\x18\x03 \x03(\v2\x16.metarr.v1.APIKeyEntryR\awebhook\x123\n" +
 	"\tread_only\x18\x04 \x03(\v2\x16.metarr.v1.APIKeyEntryR\breadOnly\"E\n" +
 	"\x10InterfacesConfig\x121\n" +
-	"\x06sonarr\x18\x01 \x03(\v2\x19.metarr.v1.SonarrInstanceR\x06sonarr\"\x92\x03\n" +
+	"\x06sonarr\x18\x01 \x03(\v2\x19.metarr.v1.SonarrInstanceR\x06sonarr\"\x8c\x03\n" +
 	"\x06Config\x123\n" +
 	"\bapi_keys\x18\x01 \x01(\v2\x18.metarr.v1.APIKeysConfigR\aapiKeys\x12*\n" +
 	"\x05admin\x18\x02 \x01(\v2\x14.metarr.v1.AdminUserR\x05admin\x12;\n" +
 	"\n" +
 	"interfaces\x18\x03 \x01(\v2\x1b.metarr.v1.InterfacesConfigR\n" +
 	"interfaces\x12N\n" +
-	"\x11directory_scanner\x18\x04 \x01(\v2!.metarr.v1.DirectoryScannerConfigR\x10directoryScanner\x12.\n" +
-	"\x06agents\x18\x05 \x03(\v2\x16.metarr.v1.AgentConfigR\x06agents\x122\n" +
+	"\x11directory_scanner\x18\x04 \x01(\v2!.metarr.v1.DirectoryScannerConfigR\x10directoryScanner\x12(\n" +
+	"\x06agents\x18\x05 \x03(\v2\x10.metarr.v1.AgentR\x06agents\x122\n" +
 	"\alogging\x18\x06 \x01(\v2\x18.metarr.v1.LoggingConfigR\alogging\x126\n" +
 	"\tevent_bus\x18\a \x01(\v2\x19.metarr.v1.EventBusConfigR\beventBus\"\x19\n" +
 	"\x17ConfigServiceGetRequest\"E\n" +
@@ -708,7 +708,7 @@ var file_metarr_v1_config_proto_goTypes = []any{
 	(*ConfigServiceDeleteApiKeyRequest)(nil), // 9: metarr.v1.ConfigServiceDeleteApiKeyRequest
 	(*SonarrInstance)(nil),                   // 10: metarr.v1.SonarrInstance
 	(*DirectoryScannerConfig)(nil),           // 11: metarr.v1.DirectoryScannerConfig
-	(*AgentConfig)(nil),                      // 12: metarr.v1.AgentConfig
+	(*Agent)(nil),                            // 12: metarr.v1.Agent
 	(*LoggingConfig)(nil),                    // 13: metarr.v1.LoggingConfig
 	(*EventBusConfig)(nil),                   // 14: metarr.v1.EventBusConfig
 	(*AcceptedResponse)(nil),                 // 15: metarr.v1.AcceptedResponse
@@ -723,7 +723,7 @@ var file_metarr_v1_config_proto_depIdxs = []int32{
 	0,  // 6: metarr.v1.Config.admin:type_name -> metarr.v1.AdminUser
 	3,  // 7: metarr.v1.Config.interfaces:type_name -> metarr.v1.InterfacesConfig
 	11, // 8: metarr.v1.Config.directory_scanner:type_name -> metarr.v1.DirectoryScannerConfig
-	12, // 9: metarr.v1.Config.agents:type_name -> metarr.v1.AgentConfig
+	12, // 9: metarr.v1.Config.agents:type_name -> metarr.v1.Agent
 	13, // 10: metarr.v1.Config.logging:type_name -> metarr.v1.LoggingConfig
 	14, // 11: metarr.v1.Config.event_bus:type_name -> metarr.v1.EventBusConfig
 	4,  // 12: metarr.v1.ConfigServiceGetResponse.config:type_name -> metarr.v1.Config

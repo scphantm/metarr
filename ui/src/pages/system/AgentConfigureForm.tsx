@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { Input, Space, Typography } from "antd";
 
-import { useDeleteAgent, useUpsertAgent } from "../../api/queries";
-import type { AgentView } from "../../gen/metarr/v1/agents_pb";
+import {
+  useCreateAgent,
+  useDeleteAgent,
+  useUpdateAgent,
+} from "../../api/queries";
+import type { Agent } from "../../gen/metarr/v1/agents_pb";
 import { Button } from "../../components/Card";
 import "./AgentConfigureForm.css";
 
@@ -20,11 +24,12 @@ export function AgentConfigureForm({
   scanDirectories,
   onDone,
 }: {
-  agent: AgentView;
+  agent: Agent;
   scanDirectories: { scannerSlug: string; directory: string }[];
   onDone: () => void;
 }) {
-  const upsert = useUpsertAgent();
+  const create = useCreateAgent();
+  const update = useUpdateAgent();
   const remove = useDeleteAgent();
 
   const [displayName, setDisplayName] = useState(agent.displayName);
@@ -40,7 +45,10 @@ export function AgentConfigureForm({
     setSaving(true);
     setError(null);
     try {
-      await upsert.mutateAsync({
+      // A configured agent is edited through Update; one that has only
+      // announced itself is set up through Create.
+      const write = agent.configured ? update : create;
+      await write.mutateAsync({
         slug: agent.slug,
         displayName: displayName.trim(),
         mappings: Object.entries(paths)

@@ -23,8 +23,8 @@ func TestApplyUpdateMask_RejectsEmptyMask(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			err := applyUpdateMask(
-				&metarrv1.AgentServiceUpsertRequest{},
-				&metarrv1.AgentServiceUpsertRequest{},
+				&metarrv1.UpdateAgentRequest{},
+				&metarrv1.UpdateAgentRequest{},
 				mask,
 			)
 			if !errors.Is(err, errEmptyMask) {
@@ -42,8 +42,8 @@ func TestApplyUpdateMask_RejectsUnknownPath(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			err := applyUpdateMask(
-				&metarrv1.AgentServiceUpsertRequest{},
-				&metarrv1.AgentServiceUpsertRequest{},
+				&metarrv1.UpdateAgentRequest{},
+				&metarrv1.UpdateAgentRequest{},
 				&fieldmaskpb.FieldMask{Paths: []string{path}},
 			)
 			if !errors.Is(err, errUnknownPath) {
@@ -54,12 +54,12 @@ func TestApplyUpdateMask_RejectsUnknownPath(t *testing.T) {
 }
 
 func TestApplyUpdateMask_DottedPathTouchesOnlyTheNamedScalar(t *testing.T) {
-	dst := &metarrv1.AgentServiceUpsertRequest{Agent: &metarrv1.AgentConfig{
+	dst := &metarrv1.UpdateAgentRequest{Agent: &metarrv1.Agent{
 		Slug:        "nas-01",
 		DisplayName: "old",
 		LogLevel:    "info",
 	}}
-	src := &metarrv1.AgentServiceUpsertRequest{Agent: &metarrv1.AgentConfig{
+	src := &metarrv1.UpdateAgentRequest{Agent: &metarrv1.Agent{
 		Slug:        "ignored",
 		DisplayName: "new",
 		LogLevel:    "debug",
@@ -77,13 +77,13 @@ func TestApplyUpdateMask_DottedPathTouchesOnlyTheNamedScalar(t *testing.T) {
 }
 
 func TestApplyUpdateMask_BareMessagePathReplacesTheWholeSubMessage(t *testing.T) {
-	dst := &metarrv1.AgentServiceUpsertRequest{Agent: &metarrv1.AgentConfig{
+	dst := &metarrv1.UpdateAgentRequest{Agent: &metarrv1.Agent{
 		Slug:        "nas-01",
 		DisplayName: "old",
 		LogLevel:    "info",
 		Mappings:    []*metarrv1.AgentDirectoryMapping{{ScannerSlug: "movies", AgentPath: "/old"}},
 	}}
-	src := &metarrv1.AgentServiceUpsertRequest{Agent: &metarrv1.AgentConfig{
+	src := &metarrv1.UpdateAgentRequest{Agent: &metarrv1.Agent{
 		Slug:        "nas-02",
 		DisplayName: "new",
 	}}
