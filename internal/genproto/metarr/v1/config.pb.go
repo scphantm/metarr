@@ -21,217 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// AdminUser is the system's single administrative user account.
-//
-// password_salt and password_hash are here because this message is on its
-// way to being both the wire shape and the stored shape — the document
-// Mongo holds — and a stored admin account has to carry its credentials.
-//
-// They are never populated in a client-facing response: Get blanks both
-// before responding, and UpdateAdmin is the only write path for a new
-// password. A generated client therefore sees two fields that are always
-// empty, which is the deliberate cost of having one definition of this
-// message rather than a wire copy and a stored copy.
-type AdminUser struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	PasswordSalt  string                 `protobuf:"bytes,3,opt,name=password_salt,json=passwordSalt,proto3" json:"password_salt,omitempty"`
-	PasswordHash  string                 `protobuf:"bytes,4,opt,name=password_hash,json=passwordHash,proto3" json:"password_hash,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AdminUser) Reset() {
-	*x = AdminUser{}
-	mi := &file_metarr_v1_config_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AdminUser) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AdminUser) ProtoMessage() {}
-
-func (x *AdminUser) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_config_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AdminUser.ProtoReflect.Descriptor instead.
-func (*AdminUser) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_config_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *AdminUser) GetUsername() string {
-	if x != nil {
-		return x.Username
-	}
-	return ""
-}
-
-func (x *AdminUser) GetEmail() string {
-	if x != nil {
-		return x.Email
-	}
-	return ""
-}
-
-func (x *AdminUser) GetPasswordSalt() string {
-	if x != nil {
-		return x.PasswordSalt
-	}
-	return ""
-}
-
-func (x *AdminUser) GetPasswordHash() string {
-	if x != nil {
-		return x.PasswordHash
-	}
-	return ""
-}
-
-// APIKeyEntry is a single named API key. id is the stable handle a scoped
-// edit addresses this entry by; it is empty only when a client is proposing
-// a brand new entry that has not been minted one yet.
-type APIKeyEntry struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	ApiKey        string                 `protobuf:"bytes,2,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
-	Id            string                 `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *APIKeyEntry) Reset() {
-	*x = APIKeyEntry{}
-	mi := &file_metarr_v1_config_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *APIKeyEntry) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*APIKeyEntry) ProtoMessage() {}
-
-func (x *APIKeyEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_config_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use APIKeyEntry.ProtoReflect.Descriptor instead.
-func (*APIKeyEntry) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_config_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *APIKeyEntry) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *APIKeyEntry) GetApiKey() string {
-	if x != nil {
-		return x.ApiKey
-	}
-	return ""
-}
-
-func (x *APIKeyEntry) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-// APIKeysConfig groups the API keys issued for each access-level category.
-type APIKeysConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Admin         []*APIKeyEntry         `protobuf:"bytes,1,rep,name=admin,proto3" json:"admin,omitempty"`
-	User          []*APIKeyEntry         `protobuf:"bytes,2,rep,name=user,proto3" json:"user,omitempty"`
-	Webhook       []*APIKeyEntry         `protobuf:"bytes,3,rep,name=webhook,proto3" json:"webhook,omitempty"`
-	ReadOnly      []*APIKeyEntry         `protobuf:"bytes,4,rep,name=read_only,json=readOnly,proto3" json:"read_only,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *APIKeysConfig) Reset() {
-	*x = APIKeysConfig{}
-	mi := &file_metarr_v1_config_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *APIKeysConfig) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*APIKeysConfig) ProtoMessage() {}
-
-func (x *APIKeysConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_config_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use APIKeysConfig.ProtoReflect.Descriptor instead.
-func (*APIKeysConfig) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_config_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *APIKeysConfig) GetAdmin() []*APIKeyEntry {
-	if x != nil {
-		return x.Admin
-	}
-	return nil
-}
-
-func (x *APIKeysConfig) GetUser() []*APIKeyEntry {
-	if x != nil {
-		return x.User
-	}
-	return nil
-}
-
-func (x *APIKeysConfig) GetWebhook() []*APIKeyEntry {
-	if x != nil {
-		return x.Webhook
-	}
-	return nil
-}
-
-func (x *APIKeysConfig) GetReadOnly() []*APIKeyEntry {
-	if x != nil {
-		return x.ReadOnly
-	}
-	return nil
-}
-
 // InterfacesConfig groups the configuration for every external service
 // interface Metarr integrates with.
 type InterfacesConfig struct {
@@ -243,7 +32,7 @@ type InterfacesConfig struct {
 
 func (x *InterfacesConfig) Reset() {
 	*x = InterfacesConfig{}
-	mi := &file_metarr_v1_config_proto_msgTypes[3]
+	mi := &file_metarr_v1_config_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -255,7 +44,7 @@ func (x *InterfacesConfig) String() string {
 func (*InterfacesConfig) ProtoMessage() {}
 
 func (x *InterfacesConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_config_proto_msgTypes[3]
+	mi := &file_metarr_v1_config_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -268,7 +57,7 @@ func (x *InterfacesConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InterfacesConfig.ProtoReflect.Descriptor instead.
 func (*InterfacesConfig) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_config_proto_rawDescGZIP(), []int{3}
+	return file_metarr_v1_config_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *InterfacesConfig) GetSonarr() []*SonarrInstance {
@@ -283,6 +72,10 @@ func (x *InterfacesConfig) GetSonarr() []*SonarrInstance {
 // aliases these messages), the TypeScript UI, and the stored Mongo document
 // all read this one shape. The singleton _id the document is stored under
 // is a storage concern and deliberately not a field here.
+//
+// admin and api_keys are managed through AdminService and ApiKeyService
+// respectively; ConfigService owns only the read-only aggregate below, for
+// the UI's first paint (docs/adr/0010).
 type Config struct {
 	state            protoimpl.MessageState  `protogen:"open.v1"`
 	ApiKeys          *APIKeysConfig          `protobuf:"bytes,1,opt,name=api_keys,json=apiKeys,proto3" json:"api_keys,omitempty"`
@@ -298,7 +91,7 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	mi := &file_metarr_v1_config_proto_msgTypes[4]
+	mi := &file_metarr_v1_config_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -310,7 +103,7 @@ func (x *Config) String() string {
 func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_config_proto_msgTypes[4]
+	mi := &file_metarr_v1_config_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -323,7 +116,7 @@ func (x *Config) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Config.ProtoReflect.Descriptor instead.
 func (*Config) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_config_proto_rawDescGZIP(), []int{4}
+	return file_metarr_v1_config_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Config) GetApiKeys() *APIKeysConfig {
@@ -375,27 +168,27 @@ func (x *Config) GetEventBus() *EventBusConfig {
 	return nil
 }
 
-type ConfigServiceGetRequest struct {
+type GetConfigRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ConfigServiceGetRequest) Reset() {
-	*x = ConfigServiceGetRequest{}
-	mi := &file_metarr_v1_config_proto_msgTypes[5]
+func (x *GetConfigRequest) Reset() {
+	*x = GetConfigRequest{}
+	mi := &file_metarr_v1_config_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ConfigServiceGetRequest) String() string {
+func (x *GetConfigRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ConfigServiceGetRequest) ProtoMessage() {}
+func (*GetConfigRequest) ProtoMessage() {}
 
-func (x *ConfigServiceGetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_config_proto_msgTypes[5]
+func (x *GetConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_config_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -406,33 +199,33 @@ func (x *ConfigServiceGetRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConfigServiceGetRequest.ProtoReflect.Descriptor instead.
-func (*ConfigServiceGetRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_config_proto_rawDescGZIP(), []int{5}
+// Deprecated: Use GetConfigRequest.ProtoReflect.Descriptor instead.
+func (*GetConfigRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_config_proto_rawDescGZIP(), []int{2}
 }
 
-type ConfigServiceGetResponse struct {
+type GetConfigResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Config        *Config                `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ConfigServiceGetResponse) Reset() {
-	*x = ConfigServiceGetResponse{}
-	mi := &file_metarr_v1_config_proto_msgTypes[6]
+func (x *GetConfigResponse) Reset() {
+	*x = GetConfigResponse{}
+	mi := &file_metarr_v1_config_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ConfigServiceGetResponse) String() string {
+func (x *GetConfigResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ConfigServiceGetResponse) ProtoMessage() {}
+func (*GetConfigResponse) ProtoMessage() {}
 
-func (x *ConfigServiceGetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_config_proto_msgTypes[6]
+func (x *GetConfigResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_config_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -443,211 +236,23 @@ func (x *ConfigServiceGetResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConfigServiceGetResponse.ProtoReflect.Descriptor instead.
-func (*ConfigServiceGetResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_config_proto_rawDescGZIP(), []int{6}
+// Deprecated: Use GetConfigResponse.ProtoReflect.Descriptor instead.
+func (*GetConfigResponse) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_config_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ConfigServiceGetResponse) GetConfig() *Config {
+func (x *GetConfigResponse) GetConfig() *Config {
 	if x != nil {
 		return x.Config
 	}
 	return nil
 }
 
-// ConfigServiceUpdateAdminRequest is a partial update: only the fields set
-// are changed. An explicitly-empty string for a set field is rejected
-// rather than silently clearing it — see UpdateAdmin's implementation.
-type ConfigServiceUpdateAdminRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Username      *string                `protobuf:"bytes,1,opt,name=username,proto3,oneof" json:"username,omitempty"`
-	Email         *string                `protobuf:"bytes,2,opt,name=email,proto3,oneof" json:"email,omitempty"`
-	Password      *string                `protobuf:"bytes,3,opt,name=password,proto3,oneof" json:"password,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ConfigServiceUpdateAdminRequest) Reset() {
-	*x = ConfigServiceUpdateAdminRequest{}
-	mi := &file_metarr_v1_config_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ConfigServiceUpdateAdminRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ConfigServiceUpdateAdminRequest) ProtoMessage() {}
-
-func (x *ConfigServiceUpdateAdminRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_config_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ConfigServiceUpdateAdminRequest.ProtoReflect.Descriptor instead.
-func (*ConfigServiceUpdateAdminRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_config_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *ConfigServiceUpdateAdminRequest) GetUsername() string {
-	if x != nil && x.Username != nil {
-		return *x.Username
-	}
-	return ""
-}
-
-func (x *ConfigServiceUpdateAdminRequest) GetEmail() string {
-	if x != nil && x.Email != nil {
-		return *x.Email
-	}
-	return ""
-}
-
-func (x *ConfigServiceUpdateAdminRequest) GetPassword() string {
-	if x != nil && x.Password != nil {
-		return *x.Password
-	}
-	return ""
-}
-
-// ConfigServiceUpsertApiKeyRequest replaces the entry in group matching
-// entry.id. If entry.id is empty, the server mints one and creates a new
-// entry — ids are always server-minted, never client-chosen, so a
-// non-empty entry.id that doesn't match an existing entry is rejected as
-// not found rather than treated as a creation request. group is one of
-// "admin", "user", "webhook", "read_only" — the same names
-// internal/shared/appconfig.APIKeyGroup uses.
-type ConfigServiceUpsertApiKeyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Group         string                 `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
-	Entry         *APIKeyEntry           `protobuf:"bytes,2,opt,name=entry,proto3" json:"entry,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ConfigServiceUpsertApiKeyRequest) Reset() {
-	*x = ConfigServiceUpsertApiKeyRequest{}
-	mi := &file_metarr_v1_config_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ConfigServiceUpsertApiKeyRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ConfigServiceUpsertApiKeyRequest) ProtoMessage() {}
-
-func (x *ConfigServiceUpsertApiKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_config_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ConfigServiceUpsertApiKeyRequest.ProtoReflect.Descriptor instead.
-func (*ConfigServiceUpsertApiKeyRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_config_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *ConfigServiceUpsertApiKeyRequest) GetGroup() string {
-	if x != nil {
-		return x.Group
-	}
-	return ""
-}
-
-func (x *ConfigServiceUpsertApiKeyRequest) GetEntry() *APIKeyEntry {
-	if x != nil {
-		return x.Entry
-	}
-	return nil
-}
-
-type ConfigServiceDeleteApiKeyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Group         string                 `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
-	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ConfigServiceDeleteApiKeyRequest) Reset() {
-	*x = ConfigServiceDeleteApiKeyRequest{}
-	mi := &file_metarr_v1_config_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ConfigServiceDeleteApiKeyRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ConfigServiceDeleteApiKeyRequest) ProtoMessage() {}
-
-func (x *ConfigServiceDeleteApiKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_config_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ConfigServiceDeleteApiKeyRequest.ProtoReflect.Descriptor instead.
-func (*ConfigServiceDeleteApiKeyRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_config_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *ConfigServiceDeleteApiKeyRequest) GetGroup() string {
-	if x != nil {
-		return x.Group
-	}
-	return ""
-}
-
-func (x *ConfigServiceDeleteApiKeyRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
 var File_metarr_v1_config_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_config_proto_rawDesc = "" +
 	"\n" +
-	"\x16metarr/v1/config.proto\x12\tmetarr.v1\x1a\x16metarr/v1/agents.proto\x1a\x16metarr/v1/common.proto\x1a!metarr/v1/directory_scanner.proto\x1a\x19metarr/v1/event_bus.proto\x1a\x17metarr/v1/logging.proto\x1a!metarr/v1/sonarr_interfaces.proto\"\x87\x01\n" +
-	"\tAdminUser\x12\x1a\n" +
-	"\busername\x18\x01 \x01(\tR\busername\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\x12#\n" +
-	"\rpassword_salt\x18\x03 \x01(\tR\fpasswordSalt\x12#\n" +
-	"\rpassword_hash\x18\x04 \x01(\tR\fpasswordHash\"J\n" +
-	"\vAPIKeyEntry\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x17\n" +
-	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\x12\x0e\n" +
-	"\x02id\x18\x03 \x01(\tR\x02id\"\xd0\x01\n" +
-	"\rAPIKeysConfig\x12,\n" +
-	"\x05admin\x18\x01 \x03(\v2\x16.metarr.v1.APIKeyEntryR\x05admin\x12*\n" +
-	"\x04user\x18\x02 \x03(\v2\x16.metarr.v1.APIKeyEntryR\x04user\x120\n" +
-	"\awebhook\x18\x03 \x03(\v2\x16.metarr.v1.APIKeyEntryR\awebhook\x123\n" +
-	"\tread_only\x18\x04 \x03(\v2\x16.metarr.v1.APIKeyEntryR\breadOnly\"E\n" +
+	"\x16metarr/v1/config.proto\x12\tmetarr.v1\x1a\x15metarr/v1/admin.proto\x1a\x16metarr/v1/agents.proto\x1a\x18metarr/v1/api_keys.proto\x1a!metarr/v1/directory_scanner.proto\x1a\x19metarr/v1/event_bus.proto\x1a\x17metarr/v1/logging.proto\x1a!metarr/v1/sonarr_interfaces.proto\"E\n" +
 	"\x10InterfacesConfig\x121\n" +
 	"\x06sonarr\x18\x01 \x03(\v2\x19.metarr.v1.SonarrInstanceR\x06sonarr\"\x8c\x03\n" +
 	"\x06Config\x123\n" +
@@ -659,28 +264,12 @@ const file_metarr_v1_config_proto_rawDesc = "" +
 	"\x11directory_scanner\x18\x04 \x01(\v2!.metarr.v1.DirectoryScannerConfigR\x10directoryScanner\x12(\n" +
 	"\x06agents\x18\x05 \x03(\v2\x10.metarr.v1.AgentR\x06agents\x122\n" +
 	"\alogging\x18\x06 \x01(\v2\x18.metarr.v1.LoggingConfigR\alogging\x126\n" +
-	"\tevent_bus\x18\a \x01(\v2\x19.metarr.v1.EventBusConfigR\beventBus\"\x19\n" +
-	"\x17ConfigServiceGetRequest\"E\n" +
-	"\x18ConfigServiceGetResponse\x12)\n" +
-	"\x06config\x18\x01 \x01(\v2\x11.metarr.v1.ConfigR\x06config\"\xa2\x01\n" +
-	"\x1fConfigServiceUpdateAdminRequest\x12\x1f\n" +
-	"\busername\x18\x01 \x01(\tH\x00R\busername\x88\x01\x01\x12\x19\n" +
-	"\x05email\x18\x02 \x01(\tH\x01R\x05email\x88\x01\x01\x12\x1f\n" +
-	"\bpassword\x18\x03 \x01(\tH\x02R\bpassword\x88\x01\x01B\v\n" +
-	"\t_usernameB\b\n" +
-	"\x06_emailB\v\n" +
-	"\t_password\"f\n" +
-	" ConfigServiceUpsertApiKeyRequest\x12\x14\n" +
-	"\x05group\x18\x01 \x01(\tR\x05group\x12,\n" +
-	"\x05entry\x18\x02 \x01(\v2\x16.metarr.v1.APIKeyEntryR\x05entry\"H\n" +
-	" ConfigServiceDeleteApiKeyRequest\x12\x14\n" +
-	"\x05group\x18\x01 \x01(\tR\x05group\x12\x0e\n" +
-	"\x02id\x18\x02 \x01(\tR\x02id2\xeb\x02\n" +
-	"\rConfigService\x12N\n" +
-	"\x03Get\x12\".metarr.v1.ConfigServiceGetRequest\x1a#.metarr.v1.ConfigServiceGetResponse\x12V\n" +
-	"\vUpdateAdmin\x12*.metarr.v1.ConfigServiceUpdateAdminRequest\x1a\x1b.metarr.v1.AcceptedResponse\x12X\n" +
-	"\fUpsertApiKey\x12+.metarr.v1.ConfigServiceUpsertApiKeyRequest\x1a\x1b.metarr.v1.AcceptedResponse\x12X\n" +
-	"\fDeleteApiKey\x12+.metarr.v1.ConfigServiceDeleteApiKeyRequest\x1a\x1b.metarr.v1.AcceptedResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
+	"\tevent_bus\x18\a \x01(\v2\x19.metarr.v1.EventBusConfigR\beventBus\"\x12\n" +
+	"\x10GetConfigRequest\">\n" +
+	"\x11GetConfigResponse\x12)\n" +
+	"\x06config\x18\x01 \x01(\v2\x11.metarr.v1.ConfigR\x06config2W\n" +
+	"\rConfigService\x12F\n" +
+	"\tGetConfig\x12\x1b.metarr.v1.GetConfigRequest\x1a\x1c.metarr.v1.GetConfigResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
 
 var (
 	file_metarr_v1_config_proto_rawDescOnce sync.Once
@@ -694,53 +283,37 @@ func file_metarr_v1_config_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_config_proto_rawDescData
 }
 
-var file_metarr_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_metarr_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_metarr_v1_config_proto_goTypes = []any{
-	(*AdminUser)(nil),                        // 0: metarr.v1.AdminUser
-	(*APIKeyEntry)(nil),                      // 1: metarr.v1.APIKeyEntry
-	(*APIKeysConfig)(nil),                    // 2: metarr.v1.APIKeysConfig
-	(*InterfacesConfig)(nil),                 // 3: metarr.v1.InterfacesConfig
-	(*Config)(nil),                           // 4: metarr.v1.Config
-	(*ConfigServiceGetRequest)(nil),          // 5: metarr.v1.ConfigServiceGetRequest
-	(*ConfigServiceGetResponse)(nil),         // 6: metarr.v1.ConfigServiceGetResponse
-	(*ConfigServiceUpdateAdminRequest)(nil),  // 7: metarr.v1.ConfigServiceUpdateAdminRequest
-	(*ConfigServiceUpsertApiKeyRequest)(nil), // 8: metarr.v1.ConfigServiceUpsertApiKeyRequest
-	(*ConfigServiceDeleteApiKeyRequest)(nil), // 9: metarr.v1.ConfigServiceDeleteApiKeyRequest
-	(*SonarrInstance)(nil),                   // 10: metarr.v1.SonarrInstance
-	(*DirectoryScannerConfig)(nil),           // 11: metarr.v1.DirectoryScannerConfig
-	(*Agent)(nil),                            // 12: metarr.v1.Agent
-	(*LoggingConfig)(nil),                    // 13: metarr.v1.LoggingConfig
-	(*EventBusConfig)(nil),                   // 14: metarr.v1.EventBusConfig
-	(*AcceptedResponse)(nil),                 // 15: metarr.v1.AcceptedResponse
+	(*InterfacesConfig)(nil),       // 0: metarr.v1.InterfacesConfig
+	(*Config)(nil),                 // 1: metarr.v1.Config
+	(*GetConfigRequest)(nil),       // 2: metarr.v1.GetConfigRequest
+	(*GetConfigResponse)(nil),      // 3: metarr.v1.GetConfigResponse
+	(*SonarrInstance)(nil),         // 4: metarr.v1.SonarrInstance
+	(*APIKeysConfig)(nil),          // 5: metarr.v1.APIKeysConfig
+	(*AdminUser)(nil),              // 6: metarr.v1.AdminUser
+	(*DirectoryScannerConfig)(nil), // 7: metarr.v1.DirectoryScannerConfig
+	(*Agent)(nil),                  // 8: metarr.v1.Agent
+	(*LoggingConfig)(nil),          // 9: metarr.v1.LoggingConfig
+	(*EventBusConfig)(nil),         // 10: metarr.v1.EventBusConfig
 }
 var file_metarr_v1_config_proto_depIdxs = []int32{
-	1,  // 0: metarr.v1.APIKeysConfig.admin:type_name -> metarr.v1.APIKeyEntry
-	1,  // 1: metarr.v1.APIKeysConfig.user:type_name -> metarr.v1.APIKeyEntry
-	1,  // 2: metarr.v1.APIKeysConfig.webhook:type_name -> metarr.v1.APIKeyEntry
-	1,  // 3: metarr.v1.APIKeysConfig.read_only:type_name -> metarr.v1.APIKeyEntry
-	10, // 4: metarr.v1.InterfacesConfig.sonarr:type_name -> metarr.v1.SonarrInstance
-	2,  // 5: metarr.v1.Config.api_keys:type_name -> metarr.v1.APIKeysConfig
-	0,  // 6: metarr.v1.Config.admin:type_name -> metarr.v1.AdminUser
-	3,  // 7: metarr.v1.Config.interfaces:type_name -> metarr.v1.InterfacesConfig
-	11, // 8: metarr.v1.Config.directory_scanner:type_name -> metarr.v1.DirectoryScannerConfig
-	12, // 9: metarr.v1.Config.agents:type_name -> metarr.v1.Agent
-	13, // 10: metarr.v1.Config.logging:type_name -> metarr.v1.LoggingConfig
-	14, // 11: metarr.v1.Config.event_bus:type_name -> metarr.v1.EventBusConfig
-	4,  // 12: metarr.v1.ConfigServiceGetResponse.config:type_name -> metarr.v1.Config
-	1,  // 13: metarr.v1.ConfigServiceUpsertApiKeyRequest.entry:type_name -> metarr.v1.APIKeyEntry
-	5,  // 14: metarr.v1.ConfigService.Get:input_type -> metarr.v1.ConfigServiceGetRequest
-	7,  // 15: metarr.v1.ConfigService.UpdateAdmin:input_type -> metarr.v1.ConfigServiceUpdateAdminRequest
-	8,  // 16: metarr.v1.ConfigService.UpsertApiKey:input_type -> metarr.v1.ConfigServiceUpsertApiKeyRequest
-	9,  // 17: metarr.v1.ConfigService.DeleteApiKey:input_type -> metarr.v1.ConfigServiceDeleteApiKeyRequest
-	6,  // 18: metarr.v1.ConfigService.Get:output_type -> metarr.v1.ConfigServiceGetResponse
-	15, // 19: metarr.v1.ConfigService.UpdateAdmin:output_type -> metarr.v1.AcceptedResponse
-	15, // 20: metarr.v1.ConfigService.UpsertApiKey:output_type -> metarr.v1.AcceptedResponse
-	15, // 21: metarr.v1.ConfigService.DeleteApiKey:output_type -> metarr.v1.AcceptedResponse
-	18, // [18:22] is the sub-list for method output_type
-	14, // [14:18] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	4,  // 0: metarr.v1.InterfacesConfig.sonarr:type_name -> metarr.v1.SonarrInstance
+	5,  // 1: metarr.v1.Config.api_keys:type_name -> metarr.v1.APIKeysConfig
+	6,  // 2: metarr.v1.Config.admin:type_name -> metarr.v1.AdminUser
+	0,  // 3: metarr.v1.Config.interfaces:type_name -> metarr.v1.InterfacesConfig
+	7,  // 4: metarr.v1.Config.directory_scanner:type_name -> metarr.v1.DirectoryScannerConfig
+	8,  // 5: metarr.v1.Config.agents:type_name -> metarr.v1.Agent
+	9,  // 6: metarr.v1.Config.logging:type_name -> metarr.v1.LoggingConfig
+	10, // 7: metarr.v1.Config.event_bus:type_name -> metarr.v1.EventBusConfig
+	1,  // 8: metarr.v1.GetConfigResponse.config:type_name -> metarr.v1.Config
+	2,  // 9: metarr.v1.ConfigService.GetConfig:input_type -> metarr.v1.GetConfigRequest
+	3,  // 10: metarr.v1.ConfigService.GetConfig:output_type -> metarr.v1.GetConfigResponse
+	10, // [10:11] is the sub-list for method output_type
+	9,  // [9:10] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_config_proto_init() }
@@ -748,20 +321,20 @@ func file_metarr_v1_config_proto_init() {
 	if File_metarr_v1_config_proto != nil {
 		return
 	}
+	file_metarr_v1_admin_proto_init()
 	file_metarr_v1_agents_proto_init()
-	file_metarr_v1_common_proto_init()
+	file_metarr_v1_api_keys_proto_init()
 	file_metarr_v1_directory_scanner_proto_init()
 	file_metarr_v1_event_bus_proto_init()
 	file_metarr_v1_logging_proto_init()
 	file_metarr_v1_sonarr_interfaces_proto_init()
-	file_metarr_v1_config_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_config_proto_rawDesc), len(file_metarr_v1_config_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -368,6 +368,18 @@ func run() error {
 			sessions,
 			services.ConfigAuthPolicies,
 		),
+		newConnectService[metarrv1connect.AdminServiceHandler](
+			metarrv1connect.NewAdminServiceHandler,
+			&services.AdminServer{Handlers: apiHandlers},
+			sessions,
+			services.AdminAuthPolicies,
+		),
+		newConnectService[metarrv1connect.ApiKeyServiceHandler](
+			metarrv1connect.NewApiKeyServiceHandler,
+			&services.ApiKeyServer{Handlers: apiHandlers},
+			sessions,
+			services.ApiKeyAuthPolicies,
+		),
 		newConnectService[metarrv1connect.AgentServiceHandler](
 			metarrv1connect.NewAgentServiceHandler,
 			&services.AgentServer{Handlers: apiHandlers},
@@ -433,6 +445,8 @@ func run() error {
 		metarrv1connect.SonarrInterfaceServiceName,
 		metarrv1connect.AuthServiceName,
 		metarrv1connect.ConfigServiceName,
+		metarrv1connect.AdminServiceName,
+		metarrv1connect.ApiKeyServiceName,
 		metarrv1connect.AgentServiceName,
 		metarrv1connect.DirectoryScannerServiceName,
 		metarrv1connect.LoggingServiceName,

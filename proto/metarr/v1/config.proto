@@ -2,49 +2,15 @@ syntax = "proto3";
 
 package metarr.v1;
 
+import "metarr/v1/admin.proto";
 import "metarr/v1/agents.proto";
-import "metarr/v1/common.proto";
+import "metarr/v1/api_keys.proto";
 import "metarr/v1/directory_scanner.proto";
 import "metarr/v1/event_bus.proto";
 import "metarr/v1/logging.proto";
 import "metarr/v1/sonarr_interfaces.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
-
-// AdminUser is the system's single administrative user account.
-//
-// password_salt and password_hash are here because this message is on its
-// way to being both the wire shape and the stored shape — the document
-// Mongo holds — and a stored admin account has to carry its credentials.
-//
-// They are never populated in a client-facing response: Get blanks both
-// before responding, and UpdateAdmin is the only write path for a new
-// password. A generated client therefore sees two fields that are always
-// empty, which is the deliberate cost of having one definition of this
-// message rather than a wire copy and a stored copy.
-message AdminUser {
-  string username = 1;
-  string email = 2;
-  string password_salt = 3;
-  string password_hash = 4;
-}
-
-// APIKeyEntry is a single named API key. id is the stable handle a scoped
-// edit addresses this entry by; it is empty only when a client is proposing
-// a brand new entry that has not been minted one yet.
-message APIKeyEntry {
-  string name = 1;
-  string api_key = 2;
-  string id = 3;
-}
-
-// APIKeysConfig groups the API keys issued for each access-level category.
-message APIKeysConfig {
-  repeated APIKeyEntry admin = 1;
-  repeated APIKeyEntry user = 2;
-  repeated APIKeyEntry webhook = 3;
-  repeated APIKeyEntry read_only = 4;
-}
 
 // InterfacesConfig groups the configuration for every external service
 // interface Metarr integrates with.
@@ -57,6 +23,10 @@ message InterfacesConfig {
 // aliases these messages), the TypeScript UI, and the stored Mongo document
 // all read this one shape. The singleton _id the document is stored under
 // is a storage concern and deliberately not a field here.
+//
+// admin and api_keys are managed through AdminService and ApiKeyService
+// respectively; ConfigService owns only the read-only aggregate below, for
+// the UI's first paint (docs/adr/0010).
 message Config {
   APIKeysConfig api_keys = 1;
   AdminUser admin = 2;
@@ -67,45 +37,17 @@ message Config {
   EventBusConfig event_bus = 7;
 }
 
-message ConfigServiceGetRequest {}
+message GetConfigRequest {}
 
-message ConfigServiceGetResponse {
+message GetConfigResponse {
   Config config = 1;
 }
 
-// ConfigServiceUpdateAdminRequest is a partial update: only the fields set
-// are changed. An explicitly-empty string for a set field is rejected
-// rather than silently clearing it — see UpdateAdmin's implementation.
-message ConfigServiceUpdateAdminRequest {
-  optional string username = 1;
-  optional string email = 2;
-  optional string password = 3;
-}
-
-// ConfigServiceUpsertApiKeyRequest replaces the entry in group matching
-// entry.id. If entry.id is empty, the server mints one and creates a new
-// entry — ids are always server-minted, never client-chosen, so a
-// non-empty entry.id that doesn't match an existing entry is rejected as
-// not found rather than treated as a creation request. group is one of
-// "admin", "user", "webhook", "read_only" — the same names
-// internal/shared/appconfig.APIKeyGroup uses.
-message ConfigServiceUpsertApiKeyRequest {
-  string group = 1;
-  APIKeyEntry entry = 2;
-}
-
-message ConfigServiceDeleteApiKeyRequest {
-  string group = 1;
-  string id = 2;
-}
-
-// Every mutating method here goes through the config store, which reads a
-// fresh document and applies exactly what the method names — never a whole
-// document supplied by the caller, which is how a scoped API key edit used
-// to zero the admin password hash. See ADR 0001.
+// ConfigService is the read-only aggregate: GetConfig returns the whole
+// Config document — admin credentials blanked (docs/adr/0005) — so the UI
+// can paint every settings screen from one call. It has no write; every
+// mutation goes through the per-resource service that owns that section
+// (docs/adr/0010, ADR-0001).
 service ConfigService {
-  rpc Get(ConfigServiceGetRequest) returns (ConfigServiceGetResponse);
-  rpc UpdateAdmin(ConfigServiceUpdateAdminRequest) returns (metarr.v1.AcceptedResponse);
-  rpc UpsertApiKey(ConfigServiceUpsertApiKeyRequest) returns (metarr.v1.AcceptedResponse);
-  rpc DeleteApiKey(ConfigServiceDeleteApiKeyRequest) returns (metarr.v1.AcceptedResponse);
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
 }
