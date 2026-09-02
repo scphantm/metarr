@@ -49,10 +49,10 @@ _Avoid_: agent config, agent view
 ### Event bus
 
 **Event bus**:
-The Redis-backed path through which the server and agents exchange everything.
-Neither side calls the other directly. It has two halves: durable streams for
-work that must survive a restart, and Pub/Sub for notifications and one
-synchronous pattern.
+The Redis-backed path through which the server, agents, and participants
+exchange everything. No side calls another directly. It has two halves: durable
+streams for work that must survive a restart, and Pub/Sub for notifications and
+one synchronous pattern.
 _Avoid_: message queue, broker, Redis
 
 **Envelope**:
@@ -130,6 +130,30 @@ group to `$`. The stream key and its groups stay in place, so consumers resume
 with no redelivery and nothing left pending. Streams only — Pub/Sub buffers
 nothing, so a channel cannot be purged.
 _Avoid_: flush, drain, delete stream, clear queue
+
+**Bus contract**:
+The language-agnostic definition of everything needed to use the event bus: the
+envelope message and every inner payload, the stream / channel / group / key
+names, and the conventions proto cannot express — reply-channel derivation, how
+`correlation_id` flows, the retention and at-least-once guarantees, the `.vN`
+payload-evolution rule, and the one-field stream-entry shape. Versioned as the
+`metarr.bus.v1` proto module plus its written conventions.
+_Avoid_: wire format, bus API, event schema, protocol
+
+**Participant**:
+A process that implements the bus contract but is not part of Metarr — a
+third-party integration or extension in any protobuf-capable language. It reads
+streams, publishes events, and answers request/reply exactly as the server and
+agents do. Its identity and presence model is not yet defined.
+_Avoid_: client, external subscriber, plugin, consumer
+
+**Reference adapter**:
+The Go implementation of the bus contract, in `internal/shared/eventbus`, kept
+as the worked example every other-language implementation is checked against.
+Because it is the reference it carries no behaviour the contract does not
+state: it stamps `source` and event `name` from the stream-topic row, never
+from the call site.
+_Avoid_: bus client, bus wrapper, facade
 
 ### Identity
 
