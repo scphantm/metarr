@@ -86,6 +86,10 @@ const (
 	// AgentNFOReadEventName asks an agent to read one NFO file from disk now.
 	AgentNFOReadEventName = "agent.nfo_read"
 
+	// HeartbeatRequestEventName is stamped on the heartbeat request the
+	// server publishes on HeartbeatRequestChannel. Named here alongside the
+	// other discriminators so HeartbeatTopic().Events can carry it.
+	HeartbeatRequestEventName = "heartbeat.request"
 	// HeartbeatReplyEventName is stamped on the heartbeat responder's answer.
 	// It is the existing wire string, named here alongside the request names.
 	// The reply travels on the correlation-scoped reply channel and nothing
@@ -152,31 +156,63 @@ func AgentPubSubChannels(slug string) []string {
 	return []string{AgentConfigChangedChannel(slug), AgentRequestChannel(slug)}
 }
 
-// StreamTopic is one durable Redis Stream in the system, and the single
-// representation of it. Every inventory that used to keep its own list —
-// the statistics dashboard, the retention sweep, the publish cap, per-agent
-// discovery — reads StreamTopics() instead, so adding a durable stream is
-// one row here rather than an edit in four places.
-type StreamTopic struct {
-	// Name is the literal stream name, or the glob for a pattern topic.
+// TopicKind tags a Topic row with the delivery shape it describes, so one
+// table can carry durable streams and fixed Pub/Sub channels side by side
+// and a caller can filter to the kind it needs.
+type TopicKind string
+
+const (
+	// KindStream is a durable Redis Stream: a Watermill Router consumer,
+	// at-least-once delivery, bounded retry, retention-swept.
+	KindStream TopicKind = "stream"
+	// KindNotify is a Pub/Sub channel used fire-and-forget: at-most-once,
+	// no retry, the payload is opaque bytes (it need not be an envelope).
+	KindNotify TopicKind = "notify"
+	// KindRequestReply is a Pub/Sub request channel whose answer comes back
+	// on the correlation-scoped reply channel.
+	KindRequestReply TopicKind = "request_reply"
+)
+
+// Topic is one addressable destination on the event bus — a durable Redis
+// Stream or a fixed Pub/Sub channel — and the single representation of it.
+// Every inventory that used to keep its own list — the statistics
+// dashboard, the retention sweep, the publish cap, per-agent discovery,
+// KnownPubSubChannels — reads the one table instead, so adding a
+// destination is one row here rather than an edit in several places.
+type Topic struct {
+	// Name is the literal stream or channel name, or the glob for a
+	// pattern topic.
 	Name string
+	// Kind is the delivery shape: stream, notify, or request_reply.
+	Kind TopicKind
 	// Pattern is true when Name is a glob: the concrete topics come from
 	// DiscoverStreamTopics expanding it against live Redis, not from this
-	// row directly.
+	// row directly. KindStream only.
 	Pattern bool
 	// Group is the consumer group that reads the stream. It is "" when
-	// nothing consumes the stream (a reserved name), and "" on a pattern
-	// row (the group is per concrete stream, filled in by discovery).
+	// nothing consumes the stream (a reserved name), "" on a pattern row
+	// (the group is per concrete stream, filled in by discovery), and ""
+	// for every non-stream kind.
 	Group string
-	// Consumed is true when a listener is registered on the stream. A
+	// Consumed is true when a listener/responder is registered on the
+	// topic, or an identity is expected to be attached (ADR-0007). A
 	// reserved-but-unconsumed stream — AgentNodeResultStream until the
 	// workflow engine lands — is Consumed false with no Group.
 	Consumed bool
-	// Events are the envelope Name discriminators a handler on this stream
-	// may see. Informational only: routing is the handler's job, not this
-	// list's.
+	// Events are the envelope Name discriminators legal on this topic. For
+	// KindStream and KindRequestReply it is load-bearing (a publish or
+	// handler registration naming an event not listed here is rejected,
+	// once dispatch moves into the bus); for KindNotify it is advisory —
+	// a notify payload need not be an envelope.
 	Events []string
+	// ReplyName is the Name stamped on the reply envelope. KindRequestReply
+	// only; "" otherwise.
+	ReplyName string
 }
+
+// StreamTopic is the former name for Topic, kept as a compiling alias while
+// call sites migrate. New code names Topic.
+type StreamTopic = Topic
 
 // streamScanCount is the COUNT hint for the per-agent stream SCAN. It only
 // tunes how many keys Redis returns per round trip; the iterator still walks
@@ -186,8 +222,8 @@ const streamScanCount = 100
 // StreamTopics is the one table of every durable stream: the static rows,
 // plus one pattern row for the per-agent command streams.
 // DiscoverStreamTopics expands the pattern against live Redis.
-func StreamTopics() []StreamTopic {
-	return []StreamTopic{
+func StreamTopics() []Topic {
+	return []Topic{
 		SystemConfigUpdateTopic(),
 		AgentScanResultTopic(),
 		agentNodeResultTopic(),
@@ -195,13 +231,25 @@ func StreamTopics() []StreamTopic {
 	}
 }
 
+// Topics is the one unified table: every durable stream (via StreamTopics,
+// including the per-agent command-stream pattern row) plus every fixed
+// Pub/Sub channel, each tagged by Kind. It is the single list ADR-0007's
+// expected-vs-actual derivation and any caller wanting "everything on the
+// bus" reads; filter by Kind for a streams-only or channels-only view. The
+// per-agent Pub/Sub channels are parameterised by slug, so — like the
+// per-agent command streams — they are not static rows here; callers expand
+// them per registered agent with AgentConfigChangedTopic / AgentRequestTopic.
+func Topics() []Topic {
+	return append(StreamTopics(), HeartbeatTopic(), LogTopic())
+}
+
 // streamTopicPublishable reports whether StreamBus.Publish may append to
 // topic. It returns an error for a pattern topic — a glob names many streams,
 // not one — and for a non-pattern topic whose Name is not one the stream
 // topic table resolves to, whether a static row or a concrete per-agent
 // command stream the pattern row covers. The topic constructors are the
-// primary safety; this is the backstop for a hand-built StreamTopic.
-func streamTopicPublishable(topic StreamTopic) error {
+// primary safety; this is the backstop for a hand-built Topic.
+func streamTopicPublishable(topic Topic) error {
 	if topic.Pattern {
 		return fmt.Errorf("eventbus: stream topic %q is a pattern; a glob is not publishable", topic.Name)
 	}
@@ -245,9 +293,10 @@ func matchesStreamGlob(pattern, name string) bool {
 
 // SystemConfigUpdateTopic is the stream the server's config-update listener
 // registers on.
-func SystemConfigUpdateTopic() StreamTopic {
-	return StreamTopic{
+func SystemConfigUpdateTopic() Topic {
+	return Topic{
 		Name:     SystemConfigUpdateStream,
+		Kind:     KindStream,
 		Group:    SystemConfigUpdateGroup,
 		Consumed: true,
 		Events:   []string{SystemConfigUpdateEventName},
@@ -255,24 +304,31 @@ func SystemConfigUpdateTopic() StreamTopic {
 }
 
 // AgentScanResultTopic is the shared stream the server's scan-result
-// listener registers on. Events names the discriminator the stream is about
-// — the per-item result — not every discriminator its handler branches on
-// (it also sees scan_complete and scan_failed); the field is informational.
-func AgentScanResultTopic() StreamTopic {
-	return StreamTopic{
+// listener registers on. Events lists all three discriminators an agent
+// sends on it — the per-item result, the run-complete marker, and the
+// failure report — so the field is the dispatch table once per-(topic,
+// name) routing moves into the bus, not just a comment.
+func AgentScanResultTopic() Topic {
+	return Topic{
 		Name:     AgentScanResultStream,
+		Kind:     KindStream,
 		Group:    AgentScanResultGroup,
 		Consumed: true,
-		Events:   []string{AgentScanResultEventName},
+		Events: []string{
+			AgentScanResultEventName,
+			AgentScanCompleteEventName,
+			AgentScanFailedEventName,
+		},
 	}
 }
 
 // AgentCommandTopic is the concrete per-agent command topic for slug: the
 // row the agent registers its scan-command listener with. Discovery
 // produces the same shape for a stream it finds by glob.
-func AgentCommandTopic(slug string) StreamTopic {
-	return StreamTopic{
+func AgentCommandTopic(slug string) Topic {
+	return Topic{
 		Name:     AgentCommandStream(slug),
+		Kind:     KindStream,
 		Group:    AgentCommandGroup(slug),
 		Consumed: true,
 		Events:   []string{AgentScanCommandEventName},
@@ -283,19 +339,68 @@ func AgentCommandTopic(slug string) StreamTopic {
 // no consumer group and no listener until the workflow engine lands
 // (scphantm/metarr#37); retention and stats still treat it as a durable
 // stream so it is visible before then.
-func agentNodeResultTopic() StreamTopic {
-	return StreamTopic{Name: AgentNodeResultStream}
+func agentNodeResultTopic() Topic {
+	return Topic{Name: AgentNodeResultStream, Kind: KindStream}
 }
 
 // agentCommandStreamPatternTopic is the single pattern row. Each agent
 // reads its work from a stream named after its slug, so the concrete rows
 // are discovered rather than listed.
-func agentCommandStreamPatternTopic() StreamTopic {
-	return StreamTopic{
+func agentCommandStreamPatternTopic() Topic {
+	return Topic{
 		Name:     AgentCommandStreamPattern,
+		Kind:     KindStream,
 		Pattern:  true,
 		Consumed: true,
 		Events:   []string{AgentScanCommandEventName},
+	}
+}
+
+// LogTopic is the fire-and-forget channel every process publishes its
+// structured log records to. KindNotify: the payload is a raw slog record,
+// never an envelope, so Events is nil and nothing decodes or validates it.
+func LogTopic() Topic {
+	return Topic{
+		Name:     LogChannel,
+		Kind:     KindNotify,
+		Consumed: true,
+	}
+}
+
+// HeartbeatTopic is the fixed request/reply channel the heartbeat handler
+// publishes to and the heartbeat responder answers on. The reply is stamped
+// with ReplyName and travels on the correlation-scoped reply channel.
+func HeartbeatTopic() Topic {
+	return Topic{
+		Name:      HeartbeatRequestChannel,
+		Kind:      KindRequestReply,
+		Consumed:  true,
+		Events:    []string{HeartbeatRequestEventName},
+		ReplyName: HeartbeatReplyEventName,
+	}
+}
+
+// AgentConfigChangedTopic is the per-agent notify channel telling one agent
+// its configuration was rewritten. KindNotify, best effort: the payload is
+// an empty marker, so Events is nil.
+func AgentConfigChangedTopic(slug string) Topic {
+	return Topic{
+		Name:     AgentConfigChangedChannel(slug),
+		Kind:     KindNotify,
+		Consumed: true,
+	}
+}
+
+// AgentRequestTopic is the per-agent request/reply channel an HTTP caller
+// waits on — today the NFO-file read. The responder stamps ReplyName on the
+// answer and publishes it on the correlation-scoped reply channel.
+func AgentRequestTopic(slug string) Topic {
+	return Topic{
+		Name:      AgentRequestChannel(slug),
+		Kind:      KindRequestReply,
+		Consumed:  true,
+		Events:    []string{AgentNFOReadEventName},
+		ReplyName: AgentNFOReadReplyEventName,
 	}
 }
 
@@ -305,9 +410,9 @@ func agentCommandStreamPatternTopic() StreamTopic {
 // returns what it has plus the error — every caller logs the error and
 // proceeds with the partial set, so a failed scan still trims or shows what
 // it can.
-func DiscoverStreamTopics(ctx context.Context, client redis.UniversalClient) ([]StreamTopic, error) {
+func DiscoverStreamTopics(ctx context.Context, client redis.UniversalClient) ([]Topic, error) {
 	var (
-		topics  []StreamTopic
+		topics  []Topic
 		scanErr error
 	)
 	seen := map[string]bool{}
@@ -331,8 +436,9 @@ func DiscoverStreamTopics(ctx context.Context, client redis.UniversalClient) ([]
 				continue
 			}
 			seen[name] = true
-			topics = append(topics, StreamTopic{
+			topics = append(topics, Topic{
 				Name:     name,
+				Kind:     topic.Kind,
 				Group:    groupForAgentCommandStream(name),
 				Consumed: topic.Consumed,
 				Events:   topic.Events,
@@ -359,9 +465,16 @@ func groupForAgentCommandStream(name string) string {
 	return AgentCommandGroup(slug)
 }
 
-// KnownPubSubChannels returns the fixed Pub/Sub channels. The per-request
-// reply channels are deliberately absent: they are named for a correlation
-// ID and exist only for the duration of one request.
+// KnownPubSubChannels returns the fixed Pub/Sub channels — every non-stream
+// row of the unified Topics() table. The per-request reply channels are
+// deliberately absent: they are named for a correlation ID and exist only
+// for the duration of one request.
 func KnownPubSubChannels() []string {
-	return []string{HeartbeatRequestChannel, LogChannel}
+	var channels []string
+	for _, topic := range Topics() {
+		if topic.Kind != KindStream {
+			channels = append(channels, topic.Name)
+		}
+	}
+	return channels
 }
