@@ -110,12 +110,6 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	// The Pub/Sub counterpart of the durable-stream Bus: the NFO-read
-	// responder and the config-changed watch register on it, then one
-	// Run(ctx) drives it (docs/adr/0006), the same shape the Bus is driven
-	// with below.
-	pubsubRouter := eventbus.NewPubSubRouter(redisClient, eventbus.AgentSource(cfg.Slug), logger)
-
 	configStore := runtime.NewConfigStore(redisClient, logger, cfg.Slug, logShipper)
 	if err := configStore.Refresh(connectCtx); err != nil {
 		// Not fatal: an unreachable config key is a reason to keep heartbeating
@@ -136,8 +130,12 @@ func run() error {
 		return err
 	}
 	nfoReader := runtime.NewNFOReader(configStore, logger, cfg.Slug)
-	nfoReader.Register(pubsubRouter)
-	configStore.Register(pubsubRouter)
+	if err := nfoReader.Register(bus); err != nil {
+		return err
+	}
+	if err := configStore.Register(bus); err != nil {
+		return err
+	}
 
 	// Every loop is tracked, so shutdown waits for a scan in flight rather than
 	// killing it half way through and leaving the server holding a partial
@@ -152,24 +150,13 @@ func run() error {
 		}()
 	}
 
-	// The Bus and the Pub/Sub router now have every handler registered; drive
-	// each with the one tracked-goroutine helper so their lifecycle is
-	// written once, not twice. A warm-up publisher can wait on bus.Ready() /
-	// pubsubRouter.Running().
-	startRouter := func(name string, run func(context.Context) error) {
-		start(name, func() {
-			if err := run(ctx); err != nil && ctx.Err() == nil {
-				logger.Error("router stopped unexpectedly", "router", name, "error", err)
-			}
-		})
-	}
-
 	start("presence", func() { presence.Run(ctx) })
 	start("config", func() { configStore.RefreshPeriodically(ctx) })
-	startRouter("pubsub", pubsubRouter.Run)
-	// The Bus carries this agent's scan command and result streams, so a Run
-	// failure triggers a graceful shutdown rather than a running-but-deaf
-	// agent.
+	// The one Bus now carries every handler this agent registers — the scan
+	// command and result streams, the NFO-read responder, and the
+	// config-changed watch — driven by a single bus.Run. A warm-up publisher
+	// can wait on bus.Ready(). A Run failure triggers a graceful shutdown
+	// rather than a running-but-deaf agent.
 	start("bus", func() {
 		if err := bus.Run(ctx); err != nil && ctx.Err() == nil {
 			logger.Error("event bus stopped unexpectedly; shutting down", "error", err)

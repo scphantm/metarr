@@ -21,7 +21,6 @@ import (
 
 // Handlers bundles the dependencies shared by every HTTP handler.
 type Handlers struct {
-	PubSub             *eventbus.PubSubBus
 	Bus                *eventbus.Bus
 	AppConfigStore     *appconfigstore.Store
 	LocalDirectoryRepo *mongostore.LocalDirectoryRepo
@@ -38,7 +37,6 @@ type Handlers struct {
 
 // New constructs a Handlers from its dependencies.
 func New(
-	pubsub *eventbus.PubSubBus,
 	bus *eventbus.Bus,
 	appConfigStore *appconfigstore.Store,
 	localDirectoryRepo *mongostore.LocalDirectoryRepo,
@@ -53,7 +51,6 @@ func New(
 	heartbeatTimeout time.Duration,
 ) *Handlers {
 	return &Handlers{
-		PubSub:             pubsub,
 		Bus:                bus,
 		AppConfigStore:     appConfigStore,
 		LocalDirectoryRepo: localDirectoryRepo,

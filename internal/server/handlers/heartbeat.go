@@ -21,9 +21,9 @@ type HeartbeatResponse struct {
 // correlation-scoped reply channel until the heartbeat listener — also in
 // metarr-server — answers with the current time and correlation ID, which is
 // returned to the client verbatim. It exercises the same request/reply path
-// (eventbus.PubSubBus.Request) the NFO read uses, so a green heartbeat means
-// the server can publish, subscribe, and round-trip through Redis. It does
-// not reach an agent.
+// (eventbus.Bus.Request) the NFO read uses, so a green heartbeat means the
+// server can publish, subscribe, and round-trip through Redis. It does not
+// reach an agent.
 //
 // @Summary		Redis round-trip health check
 // @Description	Publishes a request on a Redis Pub/Sub channel and blocks until the in-process heartbeat listener replies with the current time and the request's correlation ID. Confirms the server's Redis request/reply path; it does not reach any agent.
@@ -40,9 +40,8 @@ func (h *Handlers) Heartbeat(w http.ResponseWriter, r *http.Request) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, h.HeartbeatTimeout)
 	defer cancel()
 
-	event := eventbus.NewEvent(eventbus.SourceServer, "heartbeat.request", correlationID, nil)
-
-	reply, err := h.PubSub.Request(timeoutCtx, eventbus.HeartbeatRequestChannel, event)
+	reply, err := h.Bus.Request(timeoutCtx, eventbus.HeartbeatTopic(),
+		eventbus.HeartbeatRequestEventName, correlationID, nil)
 	if err != nil {
 		h.Logger.Error("heartbeat request failed", "correlation_id", correlationID, "error", err)
 		if errors.Is(err, eventbus.ErrNoResponder) {

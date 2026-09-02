@@ -124,22 +124,26 @@ func (s *ConfigStore) applyLogLevel(projection *agentproto.AgentConfigProjection
 	s.shipper.SetLevel(level)
 }
 
-// Register wires the server's change notification onto router: when the server
-// publishes to this agent's AgentConfigChangedChannel, the handler re-reads the
-// projection from Redis and installs it. The router owns the subscription loop
-// and its shutdown, matching the NFO responder and the server's log listeners.
+// Register wires the server's change notification onto the Bus: when the
+// server notifies this agent's AgentConfigChangedTopic, the handler re-reads
+// the projection from Redis and installs it. The Bus owns the subscription
+// loop and its shutdown, matching the NFO responder and the server's log
+// listeners.
 //
 // The belt-and-braces periodic re-read is deliberately not entangled with this
 // wake-up — it runs on its own goroutine in RefreshPeriodically so a missed
 // notification is still bounded even if this subscription is briefly down.
-func (s *ConfigStore) Register(router *eventbus.PubSubRouter) {
-	channel := eventbus.AgentConfigChangedChannel(s.slug)
-	router.Handle(channel, func(ctx context.Context, _ []byte) {
+func (s *ConfigStore) Register(bus *eventbus.Bus) error {
+	topic := eventbus.AgentConfigChangedTopic(s.slug)
+	if err := bus.HandleNotify(topic, func(ctx context.Context, _ []byte) {
 		if err := s.Refresh(ctx); err != nil && ctx.Err() == nil {
 			s.logger.Warn("failed to re-read configuration after a change", "error", err)
 		}
-	})
-	s.logger.Info("config-changed watch registered", "channel", channel)
+	}); err != nil {
+		return err
+	}
+	s.logger.Info("config-changed watch registered", "channel", topic.Name)
+	return nil
 }
 
 // RefreshPeriodically re-reads the projection on a slow timer until ctx is
