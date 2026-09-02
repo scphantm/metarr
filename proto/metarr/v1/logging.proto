@@ -4,7 +4,6 @@ package metarr.v1;
 
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/struct.proto";
-import "metarr/v1/operations.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
@@ -16,10 +15,13 @@ message LoggingConfig {
   string sink = 2;
   string endpoint = 3;
   string stream = 4;
-  // etag is the AIP-154 concurrency token: a hash of the stored section,
-  // OUTPUT_ONLY (populated on read, ignored on write, never stored). Echo it
-  // back on UpdateLoggingConfig; a mismatch is ABORTED. See docs/adr/0010.
-  string etag = 5;
+
+  // Field 5 was etag, an AIP-154 concurrency token. Config writes are
+  // synchronous under a single-writer lock (docs/adr/0002) so there is no
+  // stale-read window to guard; the field was removed. Reserved so the
+  // number is not reused.
+  reserved 5;
+  reserved "etag";
 }
 
 message GetLoggingConfigRequest {}
@@ -31,15 +33,12 @@ message GetLoggingConfigResponse {
 // UpdateLoggingConfigRequest is an AIP-134 partial update: update_mask names
 // the fields to change and config carries their new values. A missing config,
 // an empty mask, or a path naming no LoggingConfig field is rejected with
-// InvalidArgument (docs/adr/0010). etag, when set, must match the stored
-// section or the write is ABORTED (AIP-154); an empty etag is a deliberate
-// blind write. The write goes through the config store as a scoped mutation —
-// the masked fields are merged onto cfg.Logging — and returns an Operation
-// (docs/adr/0002).
+// InvalidArgument (docs/adr/0010). The write goes through the config store as a
+// scoped mutation — the masked fields are merged onto cfg.Logging — and blocks
+// until the change has persisted and propagated in-process (docs/adr/0002).
 message UpdateLoggingConfigRequest {
   LoggingConfig config = 1;
   google.protobuf.FieldMask update_mask = 2;
-  string etag = 3;
 }
 
 // LogRecord is the vendor-neutral shape of one log line, shared by both
@@ -85,7 +84,9 @@ message LoggingServiceStreamTailResponse {
 // logging.tail wsbus topic).
 service LoggingService {
   rpc GetLoggingConfig(GetLoggingConfigRequest) returns (GetLoggingConfigResponse);
-  rpc UpdateLoggingConfig(UpdateLoggingConfigRequest) returns (Operation);
+  // UpdateLoggingConfig returns the stored section after the synchronous
+  // write has landed (AIP-134).
+  rpc UpdateLoggingConfig(UpdateLoggingConfigRequest) returns (LoggingConfig);
   rpc GetTail(LoggingServiceGetTailRequest) returns (LoggingServiceGetTailResponse);
   rpc StreamTail(LoggingServiceStreamTailRequest) returns (stream LoggingServiceStreamTailResponse);
 }

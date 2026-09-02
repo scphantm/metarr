@@ -6,15 +6,13 @@ import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegen
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { FieldMask } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_field_mask, file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
-import type { OperationSchema } from "./operations_pb";
-import { file_metarr_v1_operations } from "./operations_pb";
 import type { JsonObject, Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metarr/v1/logging.proto.
  */
 export const file_metarr_v1_logging: GenFile = /*@__PURE__*/
-  fileDesc("ChdtZXRhcnIvdjEvbG9nZ2luZy5wcm90bxIJbWV0YXJyLnYxImMKDUxvZ2dpbmdDb25maWcSFAoMc2VydmVyX2xldmVsGAEgASgJEgwKBHNpbmsYAiABKAkSEAoIZW5kcG9pbnQYAyABKAkSDgoGc3RyZWFtGAQgASgJEgwKBGV0YWcYBSABKAkiGQoXR2V0TG9nZ2luZ0NvbmZpZ1JlcXVlc3QiRAoYR2V0TG9nZ2luZ0NvbmZpZ1Jlc3BvbnNlEigKBmNvbmZpZxgBIAEoCzIYLm1ldGFyci52MS5Mb2dnaW5nQ29uZmlnIoUBChpVcGRhdGVMb2dnaW5nQ29uZmlnUmVxdWVzdBIoCgZjb25maWcYASABKAsyGC5tZXRhcnIudjEuTG9nZ2luZ0NvbmZpZxIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2sSDAoEZXRhZxgDIAEoCSJxCglMb2dSZWNvcmQSDAoEdGltZRgBIAEoCRINCgVsZXZlbBgCIAEoCRIPCgdtZXNzYWdlGAMgASgJEg4KBnNvdXJjZRgEIAEoCRImCgVhdHRycxgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QiHgocTG9nZ2luZ1NlcnZpY2VHZXRUYWlsUmVxdWVzdCJGCh1Mb2dnaW5nU2VydmljZUdldFRhaWxSZXNwb25zZRIlCgdyZWNvcmRzGAEgAygLMhQubWV0YXJyLnYxLkxvZ1JlY29yZCIhCh9Mb2dnaW5nU2VydmljZVN0cmVhbVRhaWxSZXF1ZXN0IkkKIExvZ2dpbmdTZXJ2aWNlU3RyZWFtVGFpbFJlc3BvbnNlEiUKB3JlY29yZHMYASADKAsyFC5tZXRhcnIudjEuTG9nUmVjb3JkMogDCg5Mb2dnaW5nU2VydmljZRJbChBHZXRMb2dnaW5nQ29uZmlnEiIubWV0YXJyLnYxLkdldExvZ2dpbmdDb25maWdSZXF1ZXN0GiMubWV0YXJyLnYxLkdldExvZ2dpbmdDb25maWdSZXNwb25zZRJSChNVcGRhdGVMb2dnaW5nQ29uZmlnEiUubWV0YXJyLnYxLlVwZGF0ZUxvZ2dpbmdDb25maWdSZXF1ZXN0GhQubWV0YXJyLnYxLk9wZXJhdGlvbhJcCgdHZXRUYWlsEicubWV0YXJyLnYxLkxvZ2dpbmdTZXJ2aWNlR2V0VGFpbFJlcXVlc3QaKC5tZXRhcnIudjEuTG9nZ2luZ1NlcnZpY2VHZXRUYWlsUmVzcG9uc2USZwoKU3RyZWFtVGFpbBIqLm1ldGFyci52MS5Mb2dnaW5nU2VydmljZVN0cmVhbVRhaWxSZXF1ZXN0GisubWV0YXJyLnYxLkxvZ2dpbmdTZXJ2aWNlU3RyZWFtVGFpbFJlc3BvbnNlMAFCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_google_protobuf_field_mask, file_google_protobuf_struct, file_metarr_v1_operations]);
+  fileDesc("ChdtZXRhcnIvdjEvbG9nZ2luZy5wcm90bxIJbWV0YXJyLnYxImEKDUxvZ2dpbmdDb25maWcSFAoMc2VydmVyX2xldmVsGAEgASgJEgwKBHNpbmsYAiABKAkSEAoIZW5kcG9pbnQYAyABKAkSDgoGc3RyZWFtGAQgASgJSgQIBRAGUgRldGFnIhkKF0dldExvZ2dpbmdDb25maWdSZXF1ZXN0IkQKGEdldExvZ2dpbmdDb25maWdSZXNwb25zZRIoCgZjb25maWcYASABKAsyGC5tZXRhcnIudjEuTG9nZ2luZ0NvbmZpZyJ3ChpVcGRhdGVMb2dnaW5nQ29uZmlnUmVxdWVzdBIoCgZjb25maWcYASABKAsyGC5tZXRhcnIudjEuTG9nZ2luZ0NvbmZpZxIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2sicQoJTG9nUmVjb3JkEgwKBHRpbWUYASABKAkSDQoFbGV2ZWwYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIOCgZzb3VyY2UYBCABKAkSJgoFYXR0cnMYBSABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Ih4KHExvZ2dpbmdTZXJ2aWNlR2V0VGFpbFJlcXVlc3QiRgodTG9nZ2luZ1NlcnZpY2VHZXRUYWlsUmVzcG9uc2USJQoHcmVjb3JkcxgBIAMoCzIULm1ldGFyci52MS5Mb2dSZWNvcmQiIQofTG9nZ2luZ1NlcnZpY2VTdHJlYW1UYWlsUmVxdWVzdCJJCiBMb2dnaW5nU2VydmljZVN0cmVhbVRhaWxSZXNwb25zZRIlCgdyZWNvcmRzGAEgAygLMhQubWV0YXJyLnYxLkxvZ1JlY29yZDKMAwoOTG9nZ2luZ1NlcnZpY2USWwoQR2V0TG9nZ2luZ0NvbmZpZxIiLm1ldGFyci52MS5HZXRMb2dnaW5nQ29uZmlnUmVxdWVzdBojLm1ldGFyci52MS5HZXRMb2dnaW5nQ29uZmlnUmVzcG9uc2USVgoTVXBkYXRlTG9nZ2luZ0NvbmZpZxIlLm1ldGFyci52MS5VcGRhdGVMb2dnaW5nQ29uZmlnUmVxdWVzdBoYLm1ldGFyci52MS5Mb2dnaW5nQ29uZmlnElwKB0dldFRhaWwSJy5tZXRhcnIudjEuTG9nZ2luZ1NlcnZpY2VHZXRUYWlsUmVxdWVzdBooLm1ldGFyci52MS5Mb2dnaW5nU2VydmljZUdldFRhaWxSZXNwb25zZRJnCgpTdHJlYW1UYWlsEioubWV0YXJyLnYxLkxvZ2dpbmdTZXJ2aWNlU3RyZWFtVGFpbFJlcXVlc3QaKy5tZXRhcnIudjEuTG9nZ2luZ1NlcnZpY2VTdHJlYW1UYWlsUmVzcG9uc2UwAUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_google_protobuf_field_mask, file_google_protobuf_struct]);
 
 /**
  * LoggingConfig controls the centralized logging pipeline: the servers own
@@ -43,15 +41,6 @@ export type LoggingConfig = Message<"metarr.v1.LoggingConfig"> & {
    * @generated from field: string stream = 4;
    */
   stream: string;
-
-  /**
-   * etag is the AIP-154 concurrency token: a hash of the stored section,
-   * OUTPUT_ONLY (populated on read, ignored on write, never stored). Echo it
-   * back on UpdateLoggingConfig; a mismatch is ABORTED. See docs/adr/0010.
-   *
-   * @generated from field: string etag = 5;
-   */
-  etag: string;
 };
 
 /**
@@ -95,11 +84,9 @@ export const GetLoggingConfigResponseSchema: GenMessage<GetLoggingConfigResponse
  * UpdateLoggingConfigRequest is an AIP-134 partial update: update_mask names
  * the fields to change and config carries their new values. A missing config,
  * an empty mask, or a path naming no LoggingConfig field is rejected with
- * InvalidArgument (docs/adr/0010). etag, when set, must match the stored
- * section or the write is ABORTED (AIP-154); an empty etag is a deliberate
- * blind write. The write goes through the config store as a scoped mutation —
- * the masked fields are merged onto cfg.Logging — and returns an Operation
- * (docs/adr/0002).
+ * InvalidArgument (docs/adr/0010). The write goes through the config store as a
+ * scoped mutation — the masked fields are merged onto cfg.Logging — and blocks
+ * until the change has persisted and propagated in-process (docs/adr/0002).
  *
  * @generated from message metarr.v1.UpdateLoggingConfigRequest
  */
@@ -113,11 +100,6 @@ export type UpdateLoggingConfigRequest = Message<"metarr.v1.UpdateLoggingConfigR
    * @generated from field: google.protobuf.FieldMask update_mask = 2;
    */
   updateMask?: FieldMask | undefined;
-
-  /**
-   * @generated from field: string etag = 3;
-   */
-  etag: string;
 };
 
 /**
@@ -262,12 +244,15 @@ export const LoggingService: GenService<{
     output: typeof GetLoggingConfigResponseSchema;
   },
   /**
+   * UpdateLoggingConfig returns the stored section after the synchronous
+   * write has landed (AIP-134).
+   *
    * @generated from rpc metarr.v1.LoggingService.UpdateLoggingConfig
    */
   updateLoggingConfig: {
     methodKind: "unary";
     input: typeof UpdateLoggingConfigRequestSchema;
-    output: typeof OperationSchema;
+    output: typeof LoggingConfigSchema;
   },
   /**
    * @generated from rpc metarr.v1.LoggingService.GetTail

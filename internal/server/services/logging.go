@@ -42,8 +42,6 @@ func (s *LoggingServer) GetLoggingConfig(
 	ctx context.Context,
 	req *connect.Request[metarrv1.GetLoggingConfigRequest],
 ) (*connect.Response[metarrv1.GetLoggingConfigResponse], error) {
-	// Live config is always Normalized, so the section already carries its
-	// derived etag — the read just clones it out.
 	return connect.NewResponse(&metarrv1.GetLoggingConfigResponse{
 		Config: cloneMsg(appconfig.Get().Logging),
 	}), nil
@@ -52,15 +50,15 @@ func (s *LoggingServer) GetLoggingConfig(
 // UpdateLoggingConfig is an AIP-134 partial update: update_mask names the
 // LoggingConfig fields to change, req.Config carries their new values, and the
 // masked fields are merged onto the stored section under the config store's
-// lock. req.Etag, when set, must match the stored section or the write is
-// ABORTED (AIP-154). An empty mask or an unknown path returns InvalidArgument;
-// the merged server_level is then validated so a bad level — or one blanked by
-// a mask that names the field with no value — is rejected. The write returns
-// an Operation the caller polls (docs/adr/0002).
+// lock. An empty mask or an unknown path returns InvalidArgument; the merged
+// server_level is then validated so a bad level — or one blanked by a mask
+// that names the field with no value — is rejected. The write is synchronous —
+// it persists and propagates in-process before returning the stored section
+// (docs/adr/0002).
 func (s *LoggingServer) UpdateLoggingConfig(
 	ctx context.Context,
 	req *connect.Request[metarrv1.UpdateLoggingConfigRequest],
-) (*connect.Response[metarrv1.Operation], error) {
+) (*connect.Response[metarrv1.LoggingConfig], error) {
 	correlationID := correlation.FromContext(ctx)
 
 	patch := req.Msg.GetConfig()
@@ -68,16 +66,11 @@ func (s *LoggingServer) UpdateLoggingConfig(
 		return nil, connectError(http.StatusBadRequest, fmt.Errorf("logging config is required"))
 	}
 
-	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
-		// cfg is Normalized, so cfg.Logging carries its current etag;
-		// checkETag recomputes with that field cleared. MarshalStored strips
-		// the derived etag before the section is persisted or fired.
+	var stored *metarrv1.LoggingConfig
+	err := s.AppConfigStore.MutateSync(ctx, func(cfg *appconfig.Config) error {
 		merged := cloneMsg(cfg.Logging)
 		if merged == nil {
 			merged = &metarrv1.LoggingConfig{}
-		}
-		if err := checkETag(merged, req.Msg.GetEtag()); err != nil {
-			return err
 		}
 		if err := applyUpdateMask(merged, patch, req.Msg.GetUpdateMask()); err != nil {
 			return err
@@ -86,13 +79,14 @@ func (s *LoggingServer) UpdateLoggingConfig(
 			return connectError(http.StatusBadRequest, err)
 		}
 		cfg.Logging = merged
+		stored = cloneMsg(merged)
 		return nil
 	})
 	if err != nil {
 		return nil, mutateConfigErr(s.Logger, correlationID, err)
 	}
 
-	return connect.NewResponse(beginConfigOperation(ctx, s.Operations, s.Logger, correlationID)), nil
+	return connect.NewResponse(stored), nil
 }
 
 func (s *LoggingServer) GetTail(

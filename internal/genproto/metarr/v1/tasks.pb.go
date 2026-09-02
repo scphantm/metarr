@@ -73,16 +73,85 @@ func (x *TaskServiceRunDirectoryScanRequest) GetCommand() string {
 	return ""
 }
 
+// TaskServiceRunDirectoryScanResponse acknowledges that the scan command was
+// accepted onto the event bus. The scan itself runs asynchronously in the
+// agent — see internal/server/handlers/tasks.go for the listener side — so
+// "accepted" means "queued", not "finished". This is a genuine long-running
+// task kickoff, unrelated to the synchronous config writes (docs/adr/0002).
+type TaskServiceRunDirectoryScanResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Event         string                 `protobuf:"bytes,2,opt,name=event,proto3" json:"event,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,3,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskServiceRunDirectoryScanResponse) Reset() {
+	*x = TaskServiceRunDirectoryScanResponse{}
+	mi := &file_metarr_v1_tasks_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskServiceRunDirectoryScanResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskServiceRunDirectoryScanResponse) ProtoMessage() {}
+
+func (x *TaskServiceRunDirectoryScanResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_tasks_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskServiceRunDirectoryScanResponse.ProtoReflect.Descriptor instead.
+func (*TaskServiceRunDirectoryScanResponse) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_tasks_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *TaskServiceRunDirectoryScanResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *TaskServiceRunDirectoryScanResponse) GetEvent() string {
+	if x != nil {
+		return x.Event
+	}
+	return ""
+}
+
+func (x *TaskServiceRunDirectoryScanResponse) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
 var File_metarr_v1_tasks_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_tasks_proto_rawDesc = "" +
 	"\n" +
-	"\x15metarr/v1/tasks.proto\x12\tmetarr.v1\x1a\x16metarr/v1/common.proto\"a\n" +
+	"\x15metarr/v1/tasks.proto\x12\tmetarr.v1\"a\n" +
 	"\"TaskServiceRunDirectoryScanRequest\x12!\n" +
 	"\fscanner_slug\x18\x01 \x01(\tR\vscannerSlug\x12\x18\n" +
-	"\acommand\x18\x02 \x01(\tR\acommand2m\n" +
-	"\vTaskService\x12^\n" +
-	"\x10RunDirectoryScan\x12-.metarr.v1.TaskServiceRunDirectoryScanRequest\x1a\x1b.metarr.v1.AcceptedResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
+	"\acommand\x18\x02 \x01(\tR\acommand\"z\n" +
+	"#TaskServiceRunDirectoryScanResponse\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\x12\x14\n" +
+	"\x05event\x18\x02 \x01(\tR\x05event\x12%\n" +
+	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId2\x80\x01\n" +
+	"\vTaskService\x12q\n" +
+	"\x10RunDirectoryScan\x12-.metarr.v1.TaskServiceRunDirectoryScanRequest\x1a..metarr.v1.TaskServiceRunDirectoryScanResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
 
 var (
 	file_metarr_v1_tasks_proto_rawDescOnce sync.Once
@@ -96,14 +165,14 @@ func file_metarr_v1_tasks_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_tasks_proto_rawDescData
 }
 
-var file_metarr_v1_tasks_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_metarr_v1_tasks_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_metarr_v1_tasks_proto_goTypes = []any{
-	(*TaskServiceRunDirectoryScanRequest)(nil), // 0: metarr.v1.TaskServiceRunDirectoryScanRequest
-	(*AcceptedResponse)(nil),                   // 1: metarr.v1.AcceptedResponse
+	(*TaskServiceRunDirectoryScanRequest)(nil),  // 0: metarr.v1.TaskServiceRunDirectoryScanRequest
+	(*TaskServiceRunDirectoryScanResponse)(nil), // 1: metarr.v1.TaskServiceRunDirectoryScanResponse
 }
 var file_metarr_v1_tasks_proto_depIdxs = []int32{
 	0, // 0: metarr.v1.TaskService.RunDirectoryScan:input_type -> metarr.v1.TaskServiceRunDirectoryScanRequest
-	1, // 1: metarr.v1.TaskService.RunDirectoryScan:output_type -> metarr.v1.AcceptedResponse
+	1, // 1: metarr.v1.TaskService.RunDirectoryScan:output_type -> metarr.v1.TaskServiceRunDirectoryScanResponse
 	1, // [1:2] is the sub-list for method output_type
 	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -116,14 +185,13 @@ func file_metarr_v1_tasks_proto_init() {
 	if File_metarr_v1_tasks_proto != nil {
 		return
 	}
-	file_metarr_v1_common_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_tasks_proto_rawDesc), len(file_metarr_v1_tasks_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

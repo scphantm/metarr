@@ -17,9 +17,8 @@ import (
 // is a process-wide singleton no existing test in this package touches.
 //
 // cfg is Normalized first, matching production: every path that sets live
-// config (bootstrap warm-up, the system_config_update propagator) Normalizes
-// beforehand, so a read site can use plain field access and every section
-// carries its derived etag.
+// config (bootstrap warm-up, the config propagator) Normalizes beforehand,
+// so a read site can use plain field access.
 func withLiveConfig(t *testing.T, cfg *appconfig.Config) {
 	t.Helper()
 	previous := appconfig.Get()

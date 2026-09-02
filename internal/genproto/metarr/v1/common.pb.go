@@ -23,9 +23,15 @@ const (
 
 // AcceptedResponse mirrors internal/server/handlers/handlers.go's
 // AcceptedResponse: the shared body for the fire-event-and-return-immediately
-// write pattern most config mutations use. The event fires synchronously;
-// persistence happens afterward via a background listener, so "accepted"
-// means "queued," not "stored" — callers poll/refetch to confirm.
+// write pattern. The event fires synchronously; persistence happens afterward
+// via a background listener, so "accepted" means "queued," not "stored" —
+// callers poll/refetch to confirm.
+//
+// Transitional: the config sections converting to AIP synchronous writes
+// (docs/adr/0002 / docs/adr/0010) drop this in favour of returning the stored
+// resource. It still backs the config services not yet reshaped
+// (ConfigService, AgentService, DirectoryScannerService, SonarrInterface
+// Service); a genuine async task kickoff uses its own response message.
 type AcceptedResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`

@@ -26,7 +26,8 @@ import {
 } from "./streams";
 import type { DescMessage, MessageInitShape } from "@bufbuild/protobuf";
 import type { AcceptedResponse as ConnectAcceptedResponse } from "../gen/metarr/v1/common_pb";
-import type { Operation as ConnectOperation } from "../gen/metarr/v1/operations_pb";
+import type { EventBusConfig as ConnectEventBusConfig } from "../gen/metarr/v1/event_bus_pb";
+import type { LoggingConfig as ConnectLoggingConfig } from "../gen/metarr/v1/logging_pb";
 import { SonarrInstanceSchema } from "../gen/metarr/v1/sonarr_interfaces_pb";
 import {
   ConfigServiceDeleteApiKeyRequestSchema,
@@ -328,28 +329,25 @@ function updateMaskFor(patch: Record<string, unknown>): { paths: string[] } {
   };
 }
 
-// A scalar-section partial update: the changed fields (patch), the update_mask
-// derived from them, and the etag the operator's screen last read — sent as
-// the request's own field, never in the mask, so the server can reject a write
-// computed from a stale copy (AIP-154). The write returns a
-// google.longrunning.Operation; useSaveState still confirms it by re-reading.
+// A scalar-section partial update: just the changed fields (patch); the
+// update_mask is derived from their keys. The write is synchronous — the
+// server persists and propagates before returning the stored section
+// (docs/adr/0002) — and useSaveState still confirms it by re-reading.
 type ScalarSectionUpdate<S extends DescMessage> = {
   patch: MessageInitShape<S>;
-  etag?: string;
 };
 
 // AIP-134 partial update: LoggingService.UpdateLoggingConfig merges the masked
-// fields onto cfg.Logging under the config-store lock.
+// fields onto cfg.Logging under the config-store lock and returns it.
 export function useUpdateLoggingConfig() {
   return useConfigMutation<
     ScalarSectionUpdate<typeof LoggingConfigSchema>,
-    ConnectOperation
+    ConnectLoggingConfig
   >(
-    ({ patch, etag }) =>
+    ({ patch }) =>
       loggingClient.updateLoggingConfig({
         config: patch,
         updateMask: updateMaskFor(patch),
-        etag,
       }),
     [queryKeys.logging, queryKeys.config],
   );
@@ -361,13 +359,12 @@ export function useUpdateLoggingConfig() {
 export function useUpdateEventBusConfig() {
   return useConfigMutation<
     ScalarSectionUpdate<typeof EventBusConfigSchema>,
-    ConnectOperation
+    ConnectEventBusConfig
   >(
-    ({ patch, etag }) =>
+    ({ patch }) =>
       eventBusClient.updateEventBusConfig({
         config: patch,
         updateMask: updateMaskFor(patch),
-        etag,
       }),
     [queryKeys.eventBus, queryKeys.config],
   );
