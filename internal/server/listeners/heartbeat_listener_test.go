@@ -8,9 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis/v2"
-	"github.com/redis/go-redis/v9"
-
 	"Metarr/internal/shared/eventbus"
 	"Metarr/internal/shared/version"
 )
@@ -58,15 +55,11 @@ func TestBuildHeartbeatReplyIsValidJSON(t *testing.T) {
 // heartbeat request/reply topic, and the reply echoes the request's
 // correlation ID and carries the topic's reply event name.
 func TestRegisterHeartbeatResponderAnswersThroughTheBus(t *testing.T) {
-	server := miniredis.RunT(t)
-	client := redis.NewClient(&redis.Options{Addr: server.Addr()})
-	t.Cleanup(func() { _ = client.Close() })
-
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	bus, err := eventbus.New(eventbus.Config{
-		Redis:   client,
 		Source:  eventbus.SourceServer,
 		Streams: eventbus.ChannelStreamTransport(),
+		PubSub:  eventbus.InMemoryPubSub(),
 		Policy:  eventbus.DefaultBusPolicy,
 		Logger:  logger,
 	})

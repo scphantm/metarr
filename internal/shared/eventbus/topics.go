@@ -215,6 +215,23 @@ type Topic struct {
 	ReplyName string
 }
 
+// StreamTopic, NotifyTopic and RequestTopic carry a Topic row's Kind in the
+// Go type. The Bus verbs take one of them rather than a bare Topic, so
+// handing Publish a notify row or HandleRequest a stream row is a compile
+// error, not a runtime ErrWrongKind. The embedded Topic stays readable — the
+// topology derivation and the stats dashboard walk []Topic as before; the
+// wrapper only gates the verbs. The topic constructors below are the only
+// blessed way to build one; a hand-assembled StreamTopic{Topic{…}} with a
+// bogus name is still caught by streamTopicPublishable.
+type (
+	// StreamTopic is a durable-stream row: HandleStream, Publish.
+	StreamTopic struct{ Topic }
+	// NotifyTopic is a fire-and-forget Pub/Sub row: HandleNotify, Notify.
+	NotifyTopic struct{ Topic }
+	// RequestTopic is a request/reply Pub/Sub row: HandleRequest, Request.
+	RequestTopic struct{ Topic }
+)
+
 // streamScanCount is the COUNT hint for the per-agent stream SCAN. It only
 // tunes how many keys Redis returns per round trip; the iterator still walks
 // the whole keyspace.
@@ -225,10 +242,10 @@ const streamScanCount = 100
 // DiscoverStreamTopics expands the pattern against live Redis.
 func StreamTopics() []Topic {
 	return []Topic{
-		SystemConfigUpdateTopic(),
-		AgentScanResultTopic(),
-		agentNodeResultTopic(),
-		agentCommandStreamPatternTopic(),
+		SystemConfigUpdateTopic().Topic,
+		AgentScanResultTopic().Topic,
+		agentNodeResultTopic().Topic,
+		agentCommandStreamPatternTopic().Topic,
 	}
 }
 
@@ -241,7 +258,7 @@ func StreamTopics() []Topic {
 // per-agent command streams — they are not static rows here; callers expand
 // them per registered agent with AgentConfigChangedTopic / AgentRequestTopic.
 func Topics() []Topic {
-	return append(StreamTopics(), HeartbeatTopic(), LogTopic())
+	return append(StreamTopics(), HeartbeatTopic().Topic, LogTopic().Topic)
 }
 
 // AgentTopics is the per-agent counterpart to Topics(): every bus
@@ -253,9 +270,9 @@ func Topics() []Topic {
 // appear on the dashboard rather than vanishing.
 func AgentTopics(slug string) []Topic {
 	return []Topic{
-		AgentCommandTopic(slug),
-		AgentConfigChangedTopic(slug),
-		AgentRequestTopic(slug),
+		AgentCommandTopic(slug).Topic,
+		AgentConfigChangedTopic(slug).Topic,
+		AgentRequestTopic(slug).Topic,
 	}
 }
 
@@ -309,14 +326,14 @@ func matchesStreamGlob(pattern, name string) bool {
 
 // SystemConfigUpdateTopic is the stream the server's config-update listener
 // registers on.
-func SystemConfigUpdateTopic() Topic {
-	return Topic{
+func SystemConfigUpdateTopic() StreamTopic {
+	return StreamTopic{Topic{
 		Name:     SystemConfigUpdateStream,
 		Kind:     KindStream,
 		Group:    SystemConfigUpdateGroup,
 		Consumed: true,
 		Events:   []string{SystemConfigUpdateEventName},
-	}
+	}}
 }
 
 // AgentScanResultTopic is the shared stream the server's scan-result
@@ -324,8 +341,8 @@ func SystemConfigUpdateTopic() Topic {
 // sends on it — the per-item result, the run-complete marker, and the
 // failure report — so the field is the dispatch table once per-(topic,
 // name) routing moves into the bus, not just a comment.
-func AgentScanResultTopic() Topic {
-	return Topic{
+func AgentScanResultTopic() StreamTopic {
+	return StreamTopic{Topic{
 		Name:     AgentScanResultStream,
 		Kind:     KindStream,
 		Group:    AgentScanResultGroup,
@@ -335,89 +352,89 @@ func AgentScanResultTopic() Topic {
 			AgentScanCompleteEventName,
 			AgentScanFailedEventName,
 		},
-	}
+	}}
 }
 
 // AgentCommandTopic is the concrete per-agent command topic for slug: the
 // row the agent registers its scan-command listener with. Discovery
 // produces the same shape for a stream it finds by glob.
-func AgentCommandTopic(slug string) Topic {
-	return Topic{
+func AgentCommandTopic(slug string) StreamTopic {
+	return StreamTopic{Topic{
 		Name:     AgentCommandStream(slug),
 		Kind:     KindStream,
 		Group:    AgentCommandGroup(slug),
 		Consumed: true,
 		Events:   []string{AgentScanCommandEventName},
-	}
+	}}
 }
 
 // agentNodeResultTopic is the reserved workflow node-result stream. It has
 // no consumer group and no listener until the workflow engine lands
 // (scphantm/metarr#37); retention and stats still treat it as a durable
 // stream so it is visible before then.
-func agentNodeResultTopic() Topic {
-	return Topic{Name: AgentNodeResultStream, Kind: KindStream}
+func agentNodeResultTopic() StreamTopic {
+	return StreamTopic{Topic{Name: AgentNodeResultStream, Kind: KindStream}}
 }
 
 // agentCommandStreamPatternTopic is the single pattern row. Each agent
 // reads its work from a stream named after its slug, so the concrete rows
 // are discovered rather than listed.
-func agentCommandStreamPatternTopic() Topic {
-	return Topic{
+func agentCommandStreamPatternTopic() StreamTopic {
+	return StreamTopic{Topic{
 		Name:     AgentCommandStreamPattern,
 		Kind:     KindStream,
 		Pattern:  true,
 		Consumed: true,
 		Events:   []string{AgentScanCommandEventName},
-	}
+	}}
 }
 
 // LogTopic is the fire-and-forget channel every process publishes its
 // structured log records to. KindNotify: the payload is a raw slog record,
 // never an envelope, so Events is nil and nothing decodes or validates it.
-func LogTopic() Topic {
-	return Topic{
+func LogTopic() NotifyTopic {
+	return NotifyTopic{Topic{
 		Name:     LogChannel,
 		Kind:     KindNotify,
 		Consumed: true,
-	}
+	}}
 }
 
 // HeartbeatTopic is the fixed request/reply channel the heartbeat handler
 // publishes to and the heartbeat responder answers on. The reply is stamped
 // with ReplyName and travels on the correlation-scoped reply channel.
-func HeartbeatTopic() Topic {
-	return Topic{
+func HeartbeatTopic() RequestTopic {
+	return RequestTopic{Topic{
 		Name:      HeartbeatRequestChannel,
 		Kind:      KindRequestReply,
 		Consumed:  true,
 		Events:    []string{HeartbeatRequestEventName},
 		ReplyName: HeartbeatReplyEventName,
-	}
+	}}
 }
 
 // AgentConfigChangedTopic is the per-agent notify channel telling one agent
 // its configuration was rewritten. KindNotify, best effort: the payload is
 // an empty marker, so Events is nil.
-func AgentConfigChangedTopic(slug string) Topic {
-	return Topic{
+func AgentConfigChangedTopic(slug string) NotifyTopic {
+	return NotifyTopic{Topic{
 		Name:     AgentConfigChangedChannel(slug),
 		Kind:     KindNotify,
 		Consumed: true,
-	}
+	}}
 }
 
 // AgentRequestTopic is the per-agent request/reply channel an HTTP caller
 // waits on — today the NFO-file read. The responder stamps ReplyName on the
 // answer and publishes it on the correlation-scoped reply channel.
-func AgentRequestTopic(slug string) Topic {
-	return Topic{
+func AgentRequestTopic(slug string) RequestTopic {
+	return RequestTopic{Topic{
 		Name:      AgentRequestChannel(slug),
 		Kind:      KindRequestReply,
 		Consumed:  true,
 		Events:    []string{AgentNFOReadEventName},
 		ReplyName: AgentNFOReadReplyEventName,
-	}
+	}}
 }
 
 // DiscoverStreamTopics returns every concrete durable stream topic: the

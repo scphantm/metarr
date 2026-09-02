@@ -56,7 +56,7 @@ func (f *fakeBackend) snapshotLocked() *appconfig.Config {
 // Timestamp itself. The fake reassembles the fields it was handed so the
 // assertions below can inspect what crossed the wire (Timestamp is the Bus's
 // to stamp, so it is left zero here).
-func (f *fakeBackend) Publish(_ context.Context, _ eventbus.Topic, name, correlationID string, payload []byte) error {
+func (f *fakeBackend) Publish(_ context.Context, _ eventbus.StreamTopic, name, correlationID string, payload []byte) error {
 	cfg, err := appconfig.UnmarshalStored(payload)
 	if err != nil {
 		return err

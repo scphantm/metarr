@@ -268,35 +268,21 @@ func TestBusPublishRejectsOffTableName(t *testing.T) {
 	}
 }
 
-func TestBusPublishRejectsWrongKind(t *testing.T) {
-	bus := newChannelBus(t, SourceServer, nil)
-	err := bus.Publish(context.Background(), LogTopic(), "whatever", "corr", nil)
-	if !errors.Is(err, ErrWrongKind) {
-		t.Fatalf("err = %v, want ErrWrongKind", err)
-	}
-}
+// Wrong-Kind calls — Publish(LogTopic()), HandleStream(HeartbeatTopic()) and
+// the rest — are no longer runtime errors to test: the verbs take
+// StreamTopic / NotifyTopic / RequestTopic, so a mismatch does not compile.
 
 func TestBusPublishRejectsPatternTopic(t *testing.T) {
 	bus := newChannelBus(t, SourceServer, nil)
-	pattern := Topic{
+	pattern := StreamTopic{Topic{
 		Name:    AgentCommandStreamPattern,
 		Kind:    KindStream,
 		Pattern: true,
 		Events:  []string{AgentScanCommandEventName},
-	}
+	}}
 	err := bus.Publish(context.Background(), pattern, AgentScanCommandEventName, "corr", nil)
 	if !errors.Is(err, ErrNotPublishable) {
 		t.Fatalf("err = %v, want ErrNotPublishable", err)
-	}
-}
-
-func TestBusHandleStreamRejectsWrongKind(t *testing.T) {
-	bus := newChannelBus(t, SourceServer, nil)
-	err := bus.HandleStream(HeartbeatTopic(), map[string]StreamHandler{
-		HeartbeatRequestEventName: func(context.Context, *Event) error { return nil },
-	})
-	if !errors.Is(err, ErrWrongKind) {
-		t.Fatalf("err = %v, want ErrWrongKind", err)
 	}
 }
 
@@ -415,7 +401,7 @@ func TestBusRunSetupFailureIsRecoverable(t *testing.T) {
 	}
 }
 
-func mustPublish(t *testing.T, bus *Bus, topic Topic, name, correlationID string, payload []byte) {
+func mustPublish(t *testing.T, bus *Bus, topic StreamTopic, name, correlationID string, payload []byte) {
 	t.Helper()
 	if err := bus.Publish(context.Background(), topic, name, correlationID, payload); err != nil {
 		t.Fatalf("Publish %s/%s: %v", topic.Name, name, err)
