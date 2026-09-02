@@ -1,0 +1,48 @@
+name: Proto Contract
+
+# Guards the published metarr.bus.v1 event-bus contract (docs/adr/0008).
+# buf lint covers every module; buf breaking is scoped to proto/metarr/bus/,
+# the only frozen surface — proto/metarr/v1/ is internal and churns freely.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'proto/**'
+      - 'buf.yaml'
+      - 'buf.gen.yaml'
+      - 'make/proto.mk'
+      - '.github/workflows/proto.yml'
+  pull_request:
+    paths:
+      - 'proto/**'
+      - 'buf.yaml'
+      - 'buf.gen.yaml'
+      - 'make/proto.mk'
+      - '.github/workflows/proto.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  buf:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history so buf can diff proto/metarr/bus/ against origin/main.
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: buf lint
+        run: make buf-lint
+
+      - name: buf breaking (metarr.bus.v1)
+        run: make buf-breaking BUF_BREAKING_AGAINST='.git#ref=origin/main'
