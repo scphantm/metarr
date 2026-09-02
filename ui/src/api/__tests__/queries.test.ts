@@ -4,7 +4,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 
 const purge = vi.fn();
+const getEventBusConfig = vi.fn();
 const updateEventBusConfig = vi.fn();
+const getLoggingConfig = vi.fn();
 const updateLoggingConfig = vi.fn();
 
 vi.mock("../clients", () => ({
@@ -16,9 +18,11 @@ vi.mock("../clients", () => ({
   configClient: {},
   directoryScannerClient: {},
   eventBusClient: {
+    getEventBusConfig: (...args: unknown[]) => getEventBusConfig(...args),
     updateEventBusConfig: (...args: unknown[]) => updateEventBusConfig(...args),
   },
   loggingClient: {
+    getLoggingConfig: (...args: unknown[]) => getLoggingConfig(...args),
     updateLoggingConfig: (...args: unknown[]) => updateLoggingConfig(...args),
   },
   sonarrInterfaceClient: {},
@@ -29,6 +33,8 @@ vi.mock("../clients", () => ({
 import {
   queryKeys,
   usePurgeStreams,
+  useEventBusConfig,
+  useLoggingConfig,
   useUpdateEventBusConfig,
   useUpdateLoggingConfig,
 } from "../queries";
@@ -143,7 +149,7 @@ function mutationHarness() {
   const invalidate = vi.spyOn(queryClient, "invalidateQueries");
   const wrapper = ({ children }: { children: ReactNode }) =>
     createElement(QueryClientProvider, { client: queryClient }, children);
-  return { invalidate, wrapper };
+  return { queryClient, invalidate, wrapper };
 }
 
 describe("useUpdateEventBusConfig", () => {
@@ -179,16 +185,46 @@ describe("useUpdateEventBusConfig", () => {
     });
   });
 
-  it("invalidates the event-bus and whole-config reads on success", async () => {
-    updateEventBusConfig.mockReset().mockResolvedValue({ maxLen: 20000 });
-    const { invalidate, wrapper } = mutationHarness();
+  it("writes the returned section into the event-bus cache and does not refetch it", async () => {
+    const stored = {
+      maxLen: 20000,
+      retentionHours: 48,
+      retryAttempts: 4,
+      retryBackoffBaseMs: 500,
+      retryBackoffMaxMs: 30000,
+    };
+    getEventBusConfig.mockReset().mockResolvedValue({
+      config: { maxLen: 10000, retentionHours: 48 },
+    });
+    updateEventBusConfig.mockReset().mockResolvedValue(stored);
+    const { queryClient, invalidate, wrapper } = mutationHarness();
 
-    const { result } = renderHook(() => useUpdateEventBusConfig(), { wrapper });
-    result.current.mutate({ patch: { maxLen: 20000 } });
+    // The section read is mounted, as it is on the Event Bus screen: a naive
+    // invalidate({queryKey: ["config"]}) would fuzzy-match ["config","event-bus"]
+    // and refetch it, undoing the setQueryData below.
+    const { result } = renderHook(
+      () => ({
+        read: useEventBusConfig(),
+        update: useUpdateEventBusConfig(),
+      }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.read.isSuccess).toBe(true));
+    expect(getEventBusConfig).toHaveBeenCalledTimes(1);
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.eventBus });
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.config });
+    result.current.update.mutate({ patch: { maxLen: 20000 } });
+    await waitFor(() => expect(result.current.update.isSuccess).toBe(true));
+
+    // The synchronous write is authoritative: its response lands in the cache
+    // directly and no GET round-trip runs — no queued→confirmed poll.
+    expect(queryClient.getQueryData(queryKeys.eventBus)).toEqual(stored);
+    expect(getEventBusConfig).toHaveBeenCalledTimes(1);
+    // Only the sibling aggregate GetConfig read is invalidated, exact so the
+    // fuzzy match cannot sweep the section read back in.
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.config,
+      exact: true,
+    });
   });
 });
 
@@ -204,6 +240,40 @@ describe("useUpdateLoggingConfig", () => {
     expect(updateLoggingConfig).toHaveBeenCalledWith({
       config: { serverLevel: "debug" },
       updateMask: { paths: ["server_level"] },
+    });
+  });
+
+  it("writes the returned section into the logging cache and does not refetch it", async () => {
+    const stored = {
+      serverLevel: "debug",
+      sink: "fluent-bit",
+      endpoint: "http://openobserve.example/logs",
+      stream: "metarr",
+    };
+    getLoggingConfig.mockReset().mockResolvedValue({
+      config: { serverLevel: "info", sink: "fluent-bit" },
+    });
+    updateLoggingConfig.mockReset().mockResolvedValue(stored);
+    const { queryClient, invalidate, wrapper } = mutationHarness();
+
+    const { result } = renderHook(
+      () => ({
+        read: useLoggingConfig(),
+        update: useUpdateLoggingConfig(),
+      }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.read.isSuccess).toBe(true));
+    expect(getLoggingConfig).toHaveBeenCalledTimes(1);
+
+    result.current.update.mutate({ patch: { serverLevel: "debug" } });
+    await waitFor(() => expect(result.current.update.isSuccess).toBe(true));
+
+    expect(queryClient.getQueryData(queryKeys.logging)).toEqual(stored);
+    expect(getLoggingConfig).toHaveBeenCalledTimes(1);
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.config,
+      exact: true,
     });
   });
 });

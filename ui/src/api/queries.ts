@@ -65,10 +65,13 @@ export const queryKeys = {
 /*
  * Reads.
  *
- * Everything below writes through a system_config_update event, so a mutation
- * settling does not mean the read is fresh yet. The mutations invalidate their
- * queries, and the sections that own them poll briefly while a save is
- * outstanding — see useConfirmationPoll.
+ * The still-async config sections write through a system_config_update event,
+ * so a mutation settling does not mean the read is fresh yet: those mutations
+ * invalidate their queries and the sections that own them poll briefly while a
+ * save is outstanding — see useSaveState. The scalar sections on the
+ * synchronous AIP write path (event bus, logging — docs/adr/0002) are the
+ * exception: their Update returns the stored section, which is written straight
+ * into the section's cache, so no poll runs.
  */
 
 export function useConfig() {
@@ -330,26 +333,47 @@ function updateMaskFor(patch: Record<string, unknown>): { paths: string[] } {
 }
 
 // A scalar-section partial update: just the changed fields (patch); the
-// update_mask is derived from their keys. The write is synchronous — the
-// server persists and propagates before returning the stored section
-// (docs/adr/0002) — and useSaveState still confirms it by re-reading.
+// update_mask is derived from their keys.
 type ScalarSectionUpdate<S extends DescMessage> = {
   patch: MessageInitShape<S>;
 };
 
+// The synchronous AIP write path shared by the scalar config sections (event
+// bus, logging — docs/adr/0002). UpdateX merges the masked fields onto the
+// section under the config store's lock and returns the *stored* section, so
+// the response is authoritative: it is written straight into the section's
+// query cache, no refetch and no queued→confirmed poll. The read-only
+// aggregate GetConfig — a sibling query, ["config"], not a prefix of the
+// section key — still overlaps the section's data, so it alone is invalidated,
+// exact:true so the fuzzy match does not sweep the section read back in.
+function useScalarSectionUpdate<S extends DescMessage, R>(
+  sectionKey: readonly unknown[],
+  write: (patch: MessageInitShape<S>) => Promise<R>,
+): UseMutationResult<R, Error, ScalarSectionUpdate<S>> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ patch }: ScalarSectionUpdate<S>) => write(patch),
+    onSuccess: (stored) => {
+      queryClient.setQueryData(sectionKey, stored);
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.config,
+        exact: true,
+      });
+    },
+  });
+}
+
 // AIP-134 partial update: LoggingService.UpdateLoggingConfig merges the masked
 // fields onto cfg.Logging under the config-store lock and returns it.
 export function useUpdateLoggingConfig() {
-  return useConfigMutation<
-    ScalarSectionUpdate<typeof LoggingConfigSchema>,
+  return useScalarSectionUpdate<
+    typeof LoggingConfigSchema,
     ConnectLoggingConfig
-  >(
-    ({ patch }) =>
-      loggingClient.updateLoggingConfig({
-        config: patch,
-        updateMask: updateMaskFor(patch),
-      }),
-    [queryKeys.logging, queryKeys.config],
+  >(queryKeys.logging, (patch) =>
+    loggingClient.updateLoggingConfig({
+      config: patch,
+      updateMask: updateMaskFor(patch),
+    }),
   );
 }
 
@@ -357,16 +381,14 @@ export function useUpdateLoggingConfig() {
 // block of scalars, so the patch's keys map one-for-one to the update_mask
 // paths. The server merges them onto cfg.EventBus as a scoped mutation.
 export function useUpdateEventBusConfig() {
-  return useConfigMutation<
-    ScalarSectionUpdate<typeof EventBusConfigSchema>,
+  return useScalarSectionUpdate<
+    typeof EventBusConfigSchema,
     ConnectEventBusConfig
-  >(
-    ({ patch }) =>
-      eventBusClient.updateEventBusConfig({
-        config: patch,
-        updateMask: updateMaskFor(patch),
-      }),
-    [queryKeys.eventBus, queryKeys.config],
+  >(queryKeys.eventBus, (patch) =>
+    eventBusClient.updateEventBusConfig({
+      config: patch,
+      updateMask: updateMaskFor(patch),
+    }),
   );
 }
 

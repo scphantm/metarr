@@ -172,6 +172,30 @@ func TestLoggingUpdateLoggingConfig_RejectsAnInvalidLevel(t *testing.T) {
 	}
 }
 
+// The synchronous write propagates in-process before returning, so the next
+// GetLoggingConfig — reading live config — already sees it with no
+// system_config_update round trip.
+func TestLoggingUpdateLoggingConfig_VisibleOnNextGet(t *testing.T) {
+	withLiveConfig(t, &appconfig.Config{Logging: seededLoggingConfig()})
+	server, _ := newTestLoggingServer(&appconfig.Config{Logging: seededLoggingConfig()})
+	server.AppConfigStore.SetPropagator(liveConfigPropagator{})
+
+	if _, err := server.UpdateLoggingConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateLoggingConfigRequest{
+		Config:     &metarrv1.LoggingConfig{ServerLevel: appconfig.LogLevelDebug},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"server_level"}},
+	})); err != nil {
+		t.Fatalf("UpdateLoggingConfig: %v", err)
+	}
+
+	got, err := server.GetLoggingConfig(context.Background(), connect.NewRequest(&metarrv1.GetLoggingConfigRequest{}))
+	if err != nil {
+		t.Fatalf("GetLoggingConfig: %v", err)
+	}
+	if got.Msg.GetConfig().GetServerLevel() != appconfig.LogLevelDebug {
+		t.Errorf("Get after Update returned server_level %q, want %q", got.Msg.GetConfig().GetServerLevel(), appconfig.LogLevelDebug)
+	}
+}
+
 func TestLoggingGetLoggingConfig_ReadsLiveConfig(t *testing.T) {
 	withLiveConfig(t, &appconfig.Config{
 		Logging: &appconfig.LoggingConfig{ServerLevel: appconfig.LogLevelDebug, Sink: "fluent-bit"},
