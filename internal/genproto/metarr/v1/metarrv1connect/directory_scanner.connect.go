@@ -5,10 +5,12 @@
 package metarrv1connect
 
 import (
+	v11 "Metarr/internal/genproto/metarr/bus/v1"
 	v1 "Metarr/internal/genproto/metarr/v1"
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	http "net/http"
 	strings "strings"
 )
@@ -33,33 +35,39 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// DirectoryScannerServiceGetProcedure is the fully-qualified name of the DirectoryScannerService's
-	// Get RPC.
-	DirectoryScannerServiceGetProcedure = "/metarr.v1.DirectoryScannerService/Get"
-	// DirectoryScannerServiceUpdateProcedure is the fully-qualified name of the
-	// DirectoryScannerService's Update RPC.
-	DirectoryScannerServiceUpdateProcedure = "/metarr.v1.DirectoryScannerService/Update"
-	// DirectoryScannerServiceListDirectoriesProcedure is the fully-qualified name of the
-	// DirectoryScannerService's ListDirectories RPC.
-	DirectoryScannerServiceListDirectoriesProcedure = "/metarr.v1.DirectoryScannerService/ListDirectories"
-	// DirectoryScannerServiceGetDirectoryProcedure is the fully-qualified name of the
-	// DirectoryScannerService's GetDirectory RPC.
-	DirectoryScannerServiceGetDirectoryProcedure = "/metarr.v1.DirectoryScannerService/GetDirectory"
-	// DirectoryScannerServiceUpsertDirectoryProcedure is the fully-qualified name of the
-	// DirectoryScannerService's UpsertDirectory RPC.
-	DirectoryScannerServiceUpsertDirectoryProcedure = "/metarr.v1.DirectoryScannerService/UpsertDirectory"
-	// DirectoryScannerServiceDeleteDirectoryProcedure is the fully-qualified name of the
-	// DirectoryScannerService's DeleteDirectory RPC.
-	DirectoryScannerServiceDeleteDirectoryProcedure = "/metarr.v1.DirectoryScannerService/DeleteDirectory"
-	// DirectoryScannerServiceListSidecarTypesProcedure is the fully-qualified name of the
-	// DirectoryScannerService's ListSidecarTypes RPC.
-	DirectoryScannerServiceListSidecarTypesProcedure = "/metarr.v1.DirectoryScannerService/ListSidecarTypes"
+	// DirectoryScannerServiceGetDirectoryScannerConfigProcedure is the fully-qualified name of the
+	// DirectoryScannerService's GetDirectoryScannerConfig RPC.
+	DirectoryScannerServiceGetDirectoryScannerConfigProcedure = "/metarr.v1.DirectoryScannerService/GetDirectoryScannerConfig"
+	// DirectoryScannerServiceUpdateDirectoryScannerConfigProcedure is the fully-qualified name of the
+	// DirectoryScannerService's UpdateDirectoryScannerConfig RPC.
+	DirectoryScannerServiceUpdateDirectoryScannerConfigProcedure = "/metarr.v1.DirectoryScannerService/UpdateDirectoryScannerConfig"
+	// DirectoryScannerServiceCreateScanDirectoryProcedure is the fully-qualified name of the
+	// DirectoryScannerService's CreateScanDirectory RPC.
+	DirectoryScannerServiceCreateScanDirectoryProcedure = "/metarr.v1.DirectoryScannerService/CreateScanDirectory"
+	// DirectoryScannerServiceGetScanDirectoryProcedure is the fully-qualified name of the
+	// DirectoryScannerService's GetScanDirectory RPC.
+	DirectoryScannerServiceGetScanDirectoryProcedure = "/metarr.v1.DirectoryScannerService/GetScanDirectory"
+	// DirectoryScannerServiceListScanDirectoriesProcedure is the fully-qualified name of the
+	// DirectoryScannerService's ListScanDirectories RPC.
+	DirectoryScannerServiceListScanDirectoriesProcedure = "/metarr.v1.DirectoryScannerService/ListScanDirectories"
+	// DirectoryScannerServiceUpdateScanDirectoryProcedure is the fully-qualified name of the
+	// DirectoryScannerService's UpdateScanDirectory RPC.
+	DirectoryScannerServiceUpdateScanDirectoryProcedure = "/metarr.v1.DirectoryScannerService/UpdateScanDirectory"
+	// DirectoryScannerServiceDeleteScanDirectoryProcedure is the fully-qualified name of the
+	// DirectoryScannerService's DeleteScanDirectory RPC.
+	DirectoryScannerServiceDeleteScanDirectoryProcedure = "/metarr.v1.DirectoryScannerService/DeleteScanDirectory"
+	// DirectoryScannerServiceCreateSidecarTypeProcedure is the fully-qualified name of the
+	// DirectoryScannerService's CreateSidecarType RPC.
+	DirectoryScannerServiceCreateSidecarTypeProcedure = "/metarr.v1.DirectoryScannerService/CreateSidecarType"
 	// DirectoryScannerServiceGetSidecarTypeProcedure is the fully-qualified name of the
 	// DirectoryScannerService's GetSidecarType RPC.
 	DirectoryScannerServiceGetSidecarTypeProcedure = "/metarr.v1.DirectoryScannerService/GetSidecarType"
-	// DirectoryScannerServiceUpsertSidecarTypeProcedure is the fully-qualified name of the
-	// DirectoryScannerService's UpsertSidecarType RPC.
-	DirectoryScannerServiceUpsertSidecarTypeProcedure = "/metarr.v1.DirectoryScannerService/UpsertSidecarType"
+	// DirectoryScannerServiceListSidecarTypesProcedure is the fully-qualified name of the
+	// DirectoryScannerService's ListSidecarTypes RPC.
+	DirectoryScannerServiceListSidecarTypesProcedure = "/metarr.v1.DirectoryScannerService/ListSidecarTypes"
+	// DirectoryScannerServiceUpdateSidecarTypeProcedure is the fully-qualified name of the
+	// DirectoryScannerService's UpdateSidecarType RPC.
+	DirectoryScannerServiceUpdateSidecarTypeProcedure = "/metarr.v1.DirectoryScannerService/UpdateSidecarType"
 	// DirectoryScannerServiceDeleteSidecarTypeProcedure is the fully-qualified name of the
 	// DirectoryScannerService's DeleteSidecarType RPC.
 	DirectoryScannerServiceDeleteSidecarTypeProcedure = "/metarr.v1.DirectoryScannerService/DeleteSidecarType"
@@ -73,18 +81,24 @@ const (
 
 // DirectoryScannerServiceClient is a client for the metarr.v1.DirectoryScannerService service.
 type DirectoryScannerServiceClient interface {
-	Get(context.Context, *connect.Request[v1.DirectoryScannerServiceGetRequest]) (*connect.Response[v1.DirectoryScannerServiceGetResponse], error)
-	Update(context.Context, *connect.Request[v1.DirectoryScannerServiceUpdateRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	ListDirectories(context.Context, *connect.Request[v1.DirectoryScannerServiceListDirectoriesRequest]) (*connect.Response[v1.DirectoryScannerServiceListDirectoriesResponse], error)
-	GetDirectory(context.Context, *connect.Request[v1.DirectoryScannerServiceGetDirectoryRequest]) (*connect.Response[v1.DirectoryScannerServiceGetDirectoryResponse], error)
-	UpsertDirectory(context.Context, *connect.Request[v1.DirectoryScannerServiceUpsertDirectoryRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	DeleteDirectory(context.Context, *connect.Request[v1.DirectoryScannerServiceDeleteDirectoryRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	ListSidecarTypes(context.Context, *connect.Request[v1.DirectoryScannerServiceListSidecarTypesRequest]) (*connect.Response[v1.DirectoryScannerServiceListSidecarTypesResponse], error)
-	GetSidecarType(context.Context, *connect.Request[v1.DirectoryScannerServiceGetSidecarTypeRequest]) (*connect.Response[v1.DirectoryScannerServiceGetSidecarTypeResponse], error)
-	UpsertSidecarType(context.Context, *connect.Request[v1.DirectoryScannerServiceUpsertSidecarTypeRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	DeleteSidecarType(context.Context, *connect.Request[v1.DirectoryScannerServiceDeleteSidecarTypeRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	ReorderSidecarTypes(context.Context, *connect.Request[v1.DirectoryScannerServiceReorderSidecarTypesRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	ResetSidecarTypes(context.Context, *connect.Request[v1.DirectoryScannerServiceResetSidecarTypesRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	GetDirectoryScannerConfig(context.Context, *connect.Request[v1.GetDirectoryScannerConfigRequest]) (*connect.Response[v1.GetDirectoryScannerConfigResponse], error)
+	// UpdateDirectoryScannerConfig returns the stored section after the
+	// synchronous write has landed (AIP-134).
+	UpdateDirectoryScannerConfig(context.Context, *connect.Request[v1.UpdateDirectoryScannerConfigRequest]) (*connect.Response[v1.DirectoryScannerConfig], error)
+	CreateScanDirectory(context.Context, *connect.Request[v1.CreateScanDirectoryRequest]) (*connect.Response[v1.ScanDirectory], error)
+	GetScanDirectory(context.Context, *connect.Request[v1.GetScanDirectoryRequest]) (*connect.Response[v1.ScanDirectory], error)
+	ListScanDirectories(context.Context, *connect.Request[v1.ListScanDirectoriesRequest]) (*connect.Response[v1.ListScanDirectoriesResponse], error)
+	UpdateScanDirectory(context.Context, *connect.Request[v1.UpdateScanDirectoryRequest]) (*connect.Response[v1.ScanDirectory], error)
+	DeleteScanDirectory(context.Context, *connect.Request[v1.DeleteScanDirectoryRequest]) (*connect.Response[emptypb.Empty], error)
+	CreateSidecarType(context.Context, *connect.Request[v1.CreateSidecarTypeRequest]) (*connect.Response[v11.SidecarTypeDefinition], error)
+	GetSidecarType(context.Context, *connect.Request[v1.GetSidecarTypeRequest]) (*connect.Response[v11.SidecarTypeDefinition], error)
+	ListSidecarTypes(context.Context, *connect.Request[v1.ListSidecarTypesRequest]) (*connect.Response[v1.ListSidecarTypesResponse], error)
+	UpdateSidecarType(context.Context, *connect.Request[v1.UpdateSidecarTypeRequest]) (*connect.Response[v11.SidecarTypeDefinition], error)
+	DeleteSidecarType(context.Context, *connect.Request[v1.DeleteSidecarTypeRequest]) (*connect.Response[emptypb.Empty], error)
+	// ReorderSidecarTypes and ResetSidecarTypes are custom methods (AIP-136),
+	// synchronous, returning the updated list.
+	ReorderSidecarTypes(context.Context, *connect.Request[v1.ReorderSidecarTypesRequest]) (*connect.Response[v1.ReorderSidecarTypesResponse], error)
+	ResetSidecarTypes(context.Context, *connect.Request[v1.ResetSidecarTypesRequest]) (*connect.Response[v1.ResetSidecarTypesResponse], error)
 }
 
 // NewDirectoryScannerServiceClient constructs a client for the metarr.v1.DirectoryScannerService
@@ -98,73 +112,85 @@ func NewDirectoryScannerServiceClient(httpClient connect.HTTPClient, baseURL str
 	baseURL = strings.TrimRight(baseURL, "/")
 	directoryScannerServiceMethods := v1.File_metarr_v1_directory_scanner_proto.Services().ByName("DirectoryScannerService").Methods()
 	return &directoryScannerServiceClient{
-		get: connect.NewClient[v1.DirectoryScannerServiceGetRequest, v1.DirectoryScannerServiceGetResponse](
+		getDirectoryScannerConfig: connect.NewClient[v1.GetDirectoryScannerConfigRequest, v1.GetDirectoryScannerConfigResponse](
 			httpClient,
-			baseURL+DirectoryScannerServiceGetProcedure,
-			connect.WithSchema(directoryScannerServiceMethods.ByName("Get")),
+			baseURL+DirectoryScannerServiceGetDirectoryScannerConfigProcedure,
+			connect.WithSchema(directoryScannerServiceMethods.ByName("GetDirectoryScannerConfig")),
 			connect.WithClientOptions(opts...),
 		),
-		update: connect.NewClient[v1.DirectoryScannerServiceUpdateRequest, v1.AcceptedResponse](
+		updateDirectoryScannerConfig: connect.NewClient[v1.UpdateDirectoryScannerConfigRequest, v1.DirectoryScannerConfig](
 			httpClient,
-			baseURL+DirectoryScannerServiceUpdateProcedure,
-			connect.WithSchema(directoryScannerServiceMethods.ByName("Update")),
+			baseURL+DirectoryScannerServiceUpdateDirectoryScannerConfigProcedure,
+			connect.WithSchema(directoryScannerServiceMethods.ByName("UpdateDirectoryScannerConfig")),
 			connect.WithClientOptions(opts...),
 		),
-		listDirectories: connect.NewClient[v1.DirectoryScannerServiceListDirectoriesRequest, v1.DirectoryScannerServiceListDirectoriesResponse](
+		createScanDirectory: connect.NewClient[v1.CreateScanDirectoryRequest, v1.ScanDirectory](
 			httpClient,
-			baseURL+DirectoryScannerServiceListDirectoriesProcedure,
-			connect.WithSchema(directoryScannerServiceMethods.ByName("ListDirectories")),
+			baseURL+DirectoryScannerServiceCreateScanDirectoryProcedure,
+			connect.WithSchema(directoryScannerServiceMethods.ByName("CreateScanDirectory")),
 			connect.WithClientOptions(opts...),
 		),
-		getDirectory: connect.NewClient[v1.DirectoryScannerServiceGetDirectoryRequest, v1.DirectoryScannerServiceGetDirectoryResponse](
+		getScanDirectory: connect.NewClient[v1.GetScanDirectoryRequest, v1.ScanDirectory](
 			httpClient,
-			baseURL+DirectoryScannerServiceGetDirectoryProcedure,
-			connect.WithSchema(directoryScannerServiceMethods.ByName("GetDirectory")),
+			baseURL+DirectoryScannerServiceGetScanDirectoryProcedure,
+			connect.WithSchema(directoryScannerServiceMethods.ByName("GetScanDirectory")),
 			connect.WithClientOptions(opts...),
 		),
-		upsertDirectory: connect.NewClient[v1.DirectoryScannerServiceUpsertDirectoryRequest, v1.AcceptedResponse](
+		listScanDirectories: connect.NewClient[v1.ListScanDirectoriesRequest, v1.ListScanDirectoriesResponse](
 			httpClient,
-			baseURL+DirectoryScannerServiceUpsertDirectoryProcedure,
-			connect.WithSchema(directoryScannerServiceMethods.ByName("UpsertDirectory")),
+			baseURL+DirectoryScannerServiceListScanDirectoriesProcedure,
+			connect.WithSchema(directoryScannerServiceMethods.ByName("ListScanDirectories")),
 			connect.WithClientOptions(opts...),
 		),
-		deleteDirectory: connect.NewClient[v1.DirectoryScannerServiceDeleteDirectoryRequest, v1.AcceptedResponse](
+		updateScanDirectory: connect.NewClient[v1.UpdateScanDirectoryRequest, v1.ScanDirectory](
 			httpClient,
-			baseURL+DirectoryScannerServiceDeleteDirectoryProcedure,
-			connect.WithSchema(directoryScannerServiceMethods.ByName("DeleteDirectory")),
+			baseURL+DirectoryScannerServiceUpdateScanDirectoryProcedure,
+			connect.WithSchema(directoryScannerServiceMethods.ByName("UpdateScanDirectory")),
 			connect.WithClientOptions(opts...),
 		),
-		listSidecarTypes: connect.NewClient[v1.DirectoryScannerServiceListSidecarTypesRequest, v1.DirectoryScannerServiceListSidecarTypesResponse](
+		deleteScanDirectory: connect.NewClient[v1.DeleteScanDirectoryRequest, emptypb.Empty](
 			httpClient,
-			baseURL+DirectoryScannerServiceListSidecarTypesProcedure,
-			connect.WithSchema(directoryScannerServiceMethods.ByName("ListSidecarTypes")),
+			baseURL+DirectoryScannerServiceDeleteScanDirectoryProcedure,
+			connect.WithSchema(directoryScannerServiceMethods.ByName("DeleteScanDirectory")),
 			connect.WithClientOptions(opts...),
 		),
-		getSidecarType: connect.NewClient[v1.DirectoryScannerServiceGetSidecarTypeRequest, v1.DirectoryScannerServiceGetSidecarTypeResponse](
+		createSidecarType: connect.NewClient[v1.CreateSidecarTypeRequest, v11.SidecarTypeDefinition](
+			httpClient,
+			baseURL+DirectoryScannerServiceCreateSidecarTypeProcedure,
+			connect.WithSchema(directoryScannerServiceMethods.ByName("CreateSidecarType")),
+			connect.WithClientOptions(opts...),
+		),
+		getSidecarType: connect.NewClient[v1.GetSidecarTypeRequest, v11.SidecarTypeDefinition](
 			httpClient,
 			baseURL+DirectoryScannerServiceGetSidecarTypeProcedure,
 			connect.WithSchema(directoryScannerServiceMethods.ByName("GetSidecarType")),
 			connect.WithClientOptions(opts...),
 		),
-		upsertSidecarType: connect.NewClient[v1.DirectoryScannerServiceUpsertSidecarTypeRequest, v1.AcceptedResponse](
+		listSidecarTypes: connect.NewClient[v1.ListSidecarTypesRequest, v1.ListSidecarTypesResponse](
 			httpClient,
-			baseURL+DirectoryScannerServiceUpsertSidecarTypeProcedure,
-			connect.WithSchema(directoryScannerServiceMethods.ByName("UpsertSidecarType")),
+			baseURL+DirectoryScannerServiceListSidecarTypesProcedure,
+			connect.WithSchema(directoryScannerServiceMethods.ByName("ListSidecarTypes")),
 			connect.WithClientOptions(opts...),
 		),
-		deleteSidecarType: connect.NewClient[v1.DirectoryScannerServiceDeleteSidecarTypeRequest, v1.AcceptedResponse](
+		updateSidecarType: connect.NewClient[v1.UpdateSidecarTypeRequest, v11.SidecarTypeDefinition](
+			httpClient,
+			baseURL+DirectoryScannerServiceUpdateSidecarTypeProcedure,
+			connect.WithSchema(directoryScannerServiceMethods.ByName("UpdateSidecarType")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteSidecarType: connect.NewClient[v1.DeleteSidecarTypeRequest, emptypb.Empty](
 			httpClient,
 			baseURL+DirectoryScannerServiceDeleteSidecarTypeProcedure,
 			connect.WithSchema(directoryScannerServiceMethods.ByName("DeleteSidecarType")),
 			connect.WithClientOptions(opts...),
 		),
-		reorderSidecarTypes: connect.NewClient[v1.DirectoryScannerServiceReorderSidecarTypesRequest, v1.AcceptedResponse](
+		reorderSidecarTypes: connect.NewClient[v1.ReorderSidecarTypesRequest, v1.ReorderSidecarTypesResponse](
 			httpClient,
 			baseURL+DirectoryScannerServiceReorderSidecarTypesProcedure,
 			connect.WithSchema(directoryScannerServiceMethods.ByName("ReorderSidecarTypes")),
 			connect.WithClientOptions(opts...),
 		),
-		resetSidecarTypes: connect.NewClient[v1.DirectoryScannerServiceResetSidecarTypesRequest, v1.AcceptedResponse](
+		resetSidecarTypes: connect.NewClient[v1.ResetSidecarTypesRequest, v1.ResetSidecarTypesResponse](
 			httpClient,
 			baseURL+DirectoryScannerServiceResetSidecarTypesProcedure,
 			connect.WithSchema(directoryScannerServiceMethods.ByName("ResetSidecarTypes")),
@@ -175,95 +201,114 @@ func NewDirectoryScannerServiceClient(httpClient connect.HTTPClient, baseURL str
 
 // directoryScannerServiceClient implements DirectoryScannerServiceClient.
 type directoryScannerServiceClient struct {
-	get                 *connect.Client[v1.DirectoryScannerServiceGetRequest, v1.DirectoryScannerServiceGetResponse]
-	update              *connect.Client[v1.DirectoryScannerServiceUpdateRequest, v1.AcceptedResponse]
-	listDirectories     *connect.Client[v1.DirectoryScannerServiceListDirectoriesRequest, v1.DirectoryScannerServiceListDirectoriesResponse]
-	getDirectory        *connect.Client[v1.DirectoryScannerServiceGetDirectoryRequest, v1.DirectoryScannerServiceGetDirectoryResponse]
-	upsertDirectory     *connect.Client[v1.DirectoryScannerServiceUpsertDirectoryRequest, v1.AcceptedResponse]
-	deleteDirectory     *connect.Client[v1.DirectoryScannerServiceDeleteDirectoryRequest, v1.AcceptedResponse]
-	listSidecarTypes    *connect.Client[v1.DirectoryScannerServiceListSidecarTypesRequest, v1.DirectoryScannerServiceListSidecarTypesResponse]
-	getSidecarType      *connect.Client[v1.DirectoryScannerServiceGetSidecarTypeRequest, v1.DirectoryScannerServiceGetSidecarTypeResponse]
-	upsertSidecarType   *connect.Client[v1.DirectoryScannerServiceUpsertSidecarTypeRequest, v1.AcceptedResponse]
-	deleteSidecarType   *connect.Client[v1.DirectoryScannerServiceDeleteSidecarTypeRequest, v1.AcceptedResponse]
-	reorderSidecarTypes *connect.Client[v1.DirectoryScannerServiceReorderSidecarTypesRequest, v1.AcceptedResponse]
-	resetSidecarTypes   *connect.Client[v1.DirectoryScannerServiceResetSidecarTypesRequest, v1.AcceptedResponse]
+	getDirectoryScannerConfig    *connect.Client[v1.GetDirectoryScannerConfigRequest, v1.GetDirectoryScannerConfigResponse]
+	updateDirectoryScannerConfig *connect.Client[v1.UpdateDirectoryScannerConfigRequest, v1.DirectoryScannerConfig]
+	createScanDirectory          *connect.Client[v1.CreateScanDirectoryRequest, v1.ScanDirectory]
+	getScanDirectory             *connect.Client[v1.GetScanDirectoryRequest, v1.ScanDirectory]
+	listScanDirectories          *connect.Client[v1.ListScanDirectoriesRequest, v1.ListScanDirectoriesResponse]
+	updateScanDirectory          *connect.Client[v1.UpdateScanDirectoryRequest, v1.ScanDirectory]
+	deleteScanDirectory          *connect.Client[v1.DeleteScanDirectoryRequest, emptypb.Empty]
+	createSidecarType            *connect.Client[v1.CreateSidecarTypeRequest, v11.SidecarTypeDefinition]
+	getSidecarType               *connect.Client[v1.GetSidecarTypeRequest, v11.SidecarTypeDefinition]
+	listSidecarTypes             *connect.Client[v1.ListSidecarTypesRequest, v1.ListSidecarTypesResponse]
+	updateSidecarType            *connect.Client[v1.UpdateSidecarTypeRequest, v11.SidecarTypeDefinition]
+	deleteSidecarType            *connect.Client[v1.DeleteSidecarTypeRequest, emptypb.Empty]
+	reorderSidecarTypes          *connect.Client[v1.ReorderSidecarTypesRequest, v1.ReorderSidecarTypesResponse]
+	resetSidecarTypes            *connect.Client[v1.ResetSidecarTypesRequest, v1.ResetSidecarTypesResponse]
 }
 
-// Get calls metarr.v1.DirectoryScannerService.Get.
-func (c *directoryScannerServiceClient) Get(ctx context.Context, req *connect.Request[v1.DirectoryScannerServiceGetRequest]) (*connect.Response[v1.DirectoryScannerServiceGetResponse], error) {
-	return c.get.CallUnary(ctx, req)
+// GetDirectoryScannerConfig calls metarr.v1.DirectoryScannerService.GetDirectoryScannerConfig.
+func (c *directoryScannerServiceClient) GetDirectoryScannerConfig(ctx context.Context, req *connect.Request[v1.GetDirectoryScannerConfigRequest]) (*connect.Response[v1.GetDirectoryScannerConfigResponse], error) {
+	return c.getDirectoryScannerConfig.CallUnary(ctx, req)
 }
 
-// Update calls metarr.v1.DirectoryScannerService.Update.
-func (c *directoryScannerServiceClient) Update(ctx context.Context, req *connect.Request[v1.DirectoryScannerServiceUpdateRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return c.update.CallUnary(ctx, req)
+// UpdateDirectoryScannerConfig calls
+// metarr.v1.DirectoryScannerService.UpdateDirectoryScannerConfig.
+func (c *directoryScannerServiceClient) UpdateDirectoryScannerConfig(ctx context.Context, req *connect.Request[v1.UpdateDirectoryScannerConfigRequest]) (*connect.Response[v1.DirectoryScannerConfig], error) {
+	return c.updateDirectoryScannerConfig.CallUnary(ctx, req)
 }
 
-// ListDirectories calls metarr.v1.DirectoryScannerService.ListDirectories.
-func (c *directoryScannerServiceClient) ListDirectories(ctx context.Context, req *connect.Request[v1.DirectoryScannerServiceListDirectoriesRequest]) (*connect.Response[v1.DirectoryScannerServiceListDirectoriesResponse], error) {
-	return c.listDirectories.CallUnary(ctx, req)
+// CreateScanDirectory calls metarr.v1.DirectoryScannerService.CreateScanDirectory.
+func (c *directoryScannerServiceClient) CreateScanDirectory(ctx context.Context, req *connect.Request[v1.CreateScanDirectoryRequest]) (*connect.Response[v1.ScanDirectory], error) {
+	return c.createScanDirectory.CallUnary(ctx, req)
 }
 
-// GetDirectory calls metarr.v1.DirectoryScannerService.GetDirectory.
-func (c *directoryScannerServiceClient) GetDirectory(ctx context.Context, req *connect.Request[v1.DirectoryScannerServiceGetDirectoryRequest]) (*connect.Response[v1.DirectoryScannerServiceGetDirectoryResponse], error) {
-	return c.getDirectory.CallUnary(ctx, req)
+// GetScanDirectory calls metarr.v1.DirectoryScannerService.GetScanDirectory.
+func (c *directoryScannerServiceClient) GetScanDirectory(ctx context.Context, req *connect.Request[v1.GetScanDirectoryRequest]) (*connect.Response[v1.ScanDirectory], error) {
+	return c.getScanDirectory.CallUnary(ctx, req)
 }
 
-// UpsertDirectory calls metarr.v1.DirectoryScannerService.UpsertDirectory.
-func (c *directoryScannerServiceClient) UpsertDirectory(ctx context.Context, req *connect.Request[v1.DirectoryScannerServiceUpsertDirectoryRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return c.upsertDirectory.CallUnary(ctx, req)
+// ListScanDirectories calls metarr.v1.DirectoryScannerService.ListScanDirectories.
+func (c *directoryScannerServiceClient) ListScanDirectories(ctx context.Context, req *connect.Request[v1.ListScanDirectoriesRequest]) (*connect.Response[v1.ListScanDirectoriesResponse], error) {
+	return c.listScanDirectories.CallUnary(ctx, req)
 }
 
-// DeleteDirectory calls metarr.v1.DirectoryScannerService.DeleteDirectory.
-func (c *directoryScannerServiceClient) DeleteDirectory(ctx context.Context, req *connect.Request[v1.DirectoryScannerServiceDeleteDirectoryRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return c.deleteDirectory.CallUnary(ctx, req)
+// UpdateScanDirectory calls metarr.v1.DirectoryScannerService.UpdateScanDirectory.
+func (c *directoryScannerServiceClient) UpdateScanDirectory(ctx context.Context, req *connect.Request[v1.UpdateScanDirectoryRequest]) (*connect.Response[v1.ScanDirectory], error) {
+	return c.updateScanDirectory.CallUnary(ctx, req)
 }
 
-// ListSidecarTypes calls metarr.v1.DirectoryScannerService.ListSidecarTypes.
-func (c *directoryScannerServiceClient) ListSidecarTypes(ctx context.Context, req *connect.Request[v1.DirectoryScannerServiceListSidecarTypesRequest]) (*connect.Response[v1.DirectoryScannerServiceListSidecarTypesResponse], error) {
-	return c.listSidecarTypes.CallUnary(ctx, req)
+// DeleteScanDirectory calls metarr.v1.DirectoryScannerService.DeleteScanDirectory.
+func (c *directoryScannerServiceClient) DeleteScanDirectory(ctx context.Context, req *connect.Request[v1.DeleteScanDirectoryRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.deleteScanDirectory.CallUnary(ctx, req)
+}
+
+// CreateSidecarType calls metarr.v1.DirectoryScannerService.CreateSidecarType.
+func (c *directoryScannerServiceClient) CreateSidecarType(ctx context.Context, req *connect.Request[v1.CreateSidecarTypeRequest]) (*connect.Response[v11.SidecarTypeDefinition], error) {
+	return c.createSidecarType.CallUnary(ctx, req)
 }
 
 // GetSidecarType calls metarr.v1.DirectoryScannerService.GetSidecarType.
-func (c *directoryScannerServiceClient) GetSidecarType(ctx context.Context, req *connect.Request[v1.DirectoryScannerServiceGetSidecarTypeRequest]) (*connect.Response[v1.DirectoryScannerServiceGetSidecarTypeResponse], error) {
+func (c *directoryScannerServiceClient) GetSidecarType(ctx context.Context, req *connect.Request[v1.GetSidecarTypeRequest]) (*connect.Response[v11.SidecarTypeDefinition], error) {
 	return c.getSidecarType.CallUnary(ctx, req)
 }
 
-// UpsertSidecarType calls metarr.v1.DirectoryScannerService.UpsertSidecarType.
-func (c *directoryScannerServiceClient) UpsertSidecarType(ctx context.Context, req *connect.Request[v1.DirectoryScannerServiceUpsertSidecarTypeRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return c.upsertSidecarType.CallUnary(ctx, req)
+// ListSidecarTypes calls metarr.v1.DirectoryScannerService.ListSidecarTypes.
+func (c *directoryScannerServiceClient) ListSidecarTypes(ctx context.Context, req *connect.Request[v1.ListSidecarTypesRequest]) (*connect.Response[v1.ListSidecarTypesResponse], error) {
+	return c.listSidecarTypes.CallUnary(ctx, req)
+}
+
+// UpdateSidecarType calls metarr.v1.DirectoryScannerService.UpdateSidecarType.
+func (c *directoryScannerServiceClient) UpdateSidecarType(ctx context.Context, req *connect.Request[v1.UpdateSidecarTypeRequest]) (*connect.Response[v11.SidecarTypeDefinition], error) {
+	return c.updateSidecarType.CallUnary(ctx, req)
 }
 
 // DeleteSidecarType calls metarr.v1.DirectoryScannerService.DeleteSidecarType.
-func (c *directoryScannerServiceClient) DeleteSidecarType(ctx context.Context, req *connect.Request[v1.DirectoryScannerServiceDeleteSidecarTypeRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+func (c *directoryScannerServiceClient) DeleteSidecarType(ctx context.Context, req *connect.Request[v1.DeleteSidecarTypeRequest]) (*connect.Response[emptypb.Empty], error) {
 	return c.deleteSidecarType.CallUnary(ctx, req)
 }
 
 // ReorderSidecarTypes calls metarr.v1.DirectoryScannerService.ReorderSidecarTypes.
-func (c *directoryScannerServiceClient) ReorderSidecarTypes(ctx context.Context, req *connect.Request[v1.DirectoryScannerServiceReorderSidecarTypesRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+func (c *directoryScannerServiceClient) ReorderSidecarTypes(ctx context.Context, req *connect.Request[v1.ReorderSidecarTypesRequest]) (*connect.Response[v1.ReorderSidecarTypesResponse], error) {
 	return c.reorderSidecarTypes.CallUnary(ctx, req)
 }
 
 // ResetSidecarTypes calls metarr.v1.DirectoryScannerService.ResetSidecarTypes.
-func (c *directoryScannerServiceClient) ResetSidecarTypes(ctx context.Context, req *connect.Request[v1.DirectoryScannerServiceResetSidecarTypesRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+func (c *directoryScannerServiceClient) ResetSidecarTypes(ctx context.Context, req *connect.Request[v1.ResetSidecarTypesRequest]) (*connect.Response[v1.ResetSidecarTypesResponse], error) {
 	return c.resetSidecarTypes.CallUnary(ctx, req)
 }
 
 // DirectoryScannerServiceHandler is an implementation of the metarr.v1.DirectoryScannerService
 // service.
 type DirectoryScannerServiceHandler interface {
-	Get(context.Context, *connect.Request[v1.DirectoryScannerServiceGetRequest]) (*connect.Response[v1.DirectoryScannerServiceGetResponse], error)
-	Update(context.Context, *connect.Request[v1.DirectoryScannerServiceUpdateRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	ListDirectories(context.Context, *connect.Request[v1.DirectoryScannerServiceListDirectoriesRequest]) (*connect.Response[v1.DirectoryScannerServiceListDirectoriesResponse], error)
-	GetDirectory(context.Context, *connect.Request[v1.DirectoryScannerServiceGetDirectoryRequest]) (*connect.Response[v1.DirectoryScannerServiceGetDirectoryResponse], error)
-	UpsertDirectory(context.Context, *connect.Request[v1.DirectoryScannerServiceUpsertDirectoryRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	DeleteDirectory(context.Context, *connect.Request[v1.DirectoryScannerServiceDeleteDirectoryRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	ListSidecarTypes(context.Context, *connect.Request[v1.DirectoryScannerServiceListSidecarTypesRequest]) (*connect.Response[v1.DirectoryScannerServiceListSidecarTypesResponse], error)
-	GetSidecarType(context.Context, *connect.Request[v1.DirectoryScannerServiceGetSidecarTypeRequest]) (*connect.Response[v1.DirectoryScannerServiceGetSidecarTypeResponse], error)
-	UpsertSidecarType(context.Context, *connect.Request[v1.DirectoryScannerServiceUpsertSidecarTypeRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	DeleteSidecarType(context.Context, *connect.Request[v1.DirectoryScannerServiceDeleteSidecarTypeRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	ReorderSidecarTypes(context.Context, *connect.Request[v1.DirectoryScannerServiceReorderSidecarTypesRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	ResetSidecarTypes(context.Context, *connect.Request[v1.DirectoryScannerServiceResetSidecarTypesRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	GetDirectoryScannerConfig(context.Context, *connect.Request[v1.GetDirectoryScannerConfigRequest]) (*connect.Response[v1.GetDirectoryScannerConfigResponse], error)
+	// UpdateDirectoryScannerConfig returns the stored section after the
+	// synchronous write has landed (AIP-134).
+	UpdateDirectoryScannerConfig(context.Context, *connect.Request[v1.UpdateDirectoryScannerConfigRequest]) (*connect.Response[v1.DirectoryScannerConfig], error)
+	CreateScanDirectory(context.Context, *connect.Request[v1.CreateScanDirectoryRequest]) (*connect.Response[v1.ScanDirectory], error)
+	GetScanDirectory(context.Context, *connect.Request[v1.GetScanDirectoryRequest]) (*connect.Response[v1.ScanDirectory], error)
+	ListScanDirectories(context.Context, *connect.Request[v1.ListScanDirectoriesRequest]) (*connect.Response[v1.ListScanDirectoriesResponse], error)
+	UpdateScanDirectory(context.Context, *connect.Request[v1.UpdateScanDirectoryRequest]) (*connect.Response[v1.ScanDirectory], error)
+	DeleteScanDirectory(context.Context, *connect.Request[v1.DeleteScanDirectoryRequest]) (*connect.Response[emptypb.Empty], error)
+	CreateSidecarType(context.Context, *connect.Request[v1.CreateSidecarTypeRequest]) (*connect.Response[v11.SidecarTypeDefinition], error)
+	GetSidecarType(context.Context, *connect.Request[v1.GetSidecarTypeRequest]) (*connect.Response[v11.SidecarTypeDefinition], error)
+	ListSidecarTypes(context.Context, *connect.Request[v1.ListSidecarTypesRequest]) (*connect.Response[v1.ListSidecarTypesResponse], error)
+	UpdateSidecarType(context.Context, *connect.Request[v1.UpdateSidecarTypeRequest]) (*connect.Response[v11.SidecarTypeDefinition], error)
+	DeleteSidecarType(context.Context, *connect.Request[v1.DeleteSidecarTypeRequest]) (*connect.Response[emptypb.Empty], error)
+	// ReorderSidecarTypes and ResetSidecarTypes are custom methods (AIP-136),
+	// synchronous, returning the updated list.
+	ReorderSidecarTypes(context.Context, *connect.Request[v1.ReorderSidecarTypesRequest]) (*connect.Response[v1.ReorderSidecarTypesResponse], error)
+	ResetSidecarTypes(context.Context, *connect.Request[v1.ResetSidecarTypesRequest]) (*connect.Response[v1.ResetSidecarTypesResponse], error)
 }
 
 // NewDirectoryScannerServiceHandler builds an HTTP handler from the service implementation. It
@@ -273,46 +318,52 @@ type DirectoryScannerServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewDirectoryScannerServiceHandler(svc DirectoryScannerServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	directoryScannerServiceMethods := v1.File_metarr_v1_directory_scanner_proto.Services().ByName("DirectoryScannerService").Methods()
-	directoryScannerServiceGetHandler := connect.NewUnaryHandler(
-		DirectoryScannerServiceGetProcedure,
-		svc.Get,
-		connect.WithSchema(directoryScannerServiceMethods.ByName("Get")),
+	directoryScannerServiceGetDirectoryScannerConfigHandler := connect.NewUnaryHandler(
+		DirectoryScannerServiceGetDirectoryScannerConfigProcedure,
+		svc.GetDirectoryScannerConfig,
+		connect.WithSchema(directoryScannerServiceMethods.ByName("GetDirectoryScannerConfig")),
 		connect.WithHandlerOptions(opts...),
 	)
-	directoryScannerServiceUpdateHandler := connect.NewUnaryHandler(
-		DirectoryScannerServiceUpdateProcedure,
-		svc.Update,
-		connect.WithSchema(directoryScannerServiceMethods.ByName("Update")),
+	directoryScannerServiceUpdateDirectoryScannerConfigHandler := connect.NewUnaryHandler(
+		DirectoryScannerServiceUpdateDirectoryScannerConfigProcedure,
+		svc.UpdateDirectoryScannerConfig,
+		connect.WithSchema(directoryScannerServiceMethods.ByName("UpdateDirectoryScannerConfig")),
 		connect.WithHandlerOptions(opts...),
 	)
-	directoryScannerServiceListDirectoriesHandler := connect.NewUnaryHandler(
-		DirectoryScannerServiceListDirectoriesProcedure,
-		svc.ListDirectories,
-		connect.WithSchema(directoryScannerServiceMethods.ByName("ListDirectories")),
+	directoryScannerServiceCreateScanDirectoryHandler := connect.NewUnaryHandler(
+		DirectoryScannerServiceCreateScanDirectoryProcedure,
+		svc.CreateScanDirectory,
+		connect.WithSchema(directoryScannerServiceMethods.ByName("CreateScanDirectory")),
 		connect.WithHandlerOptions(opts...),
 	)
-	directoryScannerServiceGetDirectoryHandler := connect.NewUnaryHandler(
-		DirectoryScannerServiceGetDirectoryProcedure,
-		svc.GetDirectory,
-		connect.WithSchema(directoryScannerServiceMethods.ByName("GetDirectory")),
+	directoryScannerServiceGetScanDirectoryHandler := connect.NewUnaryHandler(
+		DirectoryScannerServiceGetScanDirectoryProcedure,
+		svc.GetScanDirectory,
+		connect.WithSchema(directoryScannerServiceMethods.ByName("GetScanDirectory")),
 		connect.WithHandlerOptions(opts...),
 	)
-	directoryScannerServiceUpsertDirectoryHandler := connect.NewUnaryHandler(
-		DirectoryScannerServiceUpsertDirectoryProcedure,
-		svc.UpsertDirectory,
-		connect.WithSchema(directoryScannerServiceMethods.ByName("UpsertDirectory")),
+	directoryScannerServiceListScanDirectoriesHandler := connect.NewUnaryHandler(
+		DirectoryScannerServiceListScanDirectoriesProcedure,
+		svc.ListScanDirectories,
+		connect.WithSchema(directoryScannerServiceMethods.ByName("ListScanDirectories")),
 		connect.WithHandlerOptions(opts...),
 	)
-	directoryScannerServiceDeleteDirectoryHandler := connect.NewUnaryHandler(
-		DirectoryScannerServiceDeleteDirectoryProcedure,
-		svc.DeleteDirectory,
-		connect.WithSchema(directoryScannerServiceMethods.ByName("DeleteDirectory")),
+	directoryScannerServiceUpdateScanDirectoryHandler := connect.NewUnaryHandler(
+		DirectoryScannerServiceUpdateScanDirectoryProcedure,
+		svc.UpdateScanDirectory,
+		connect.WithSchema(directoryScannerServiceMethods.ByName("UpdateScanDirectory")),
 		connect.WithHandlerOptions(opts...),
 	)
-	directoryScannerServiceListSidecarTypesHandler := connect.NewUnaryHandler(
-		DirectoryScannerServiceListSidecarTypesProcedure,
-		svc.ListSidecarTypes,
-		connect.WithSchema(directoryScannerServiceMethods.ByName("ListSidecarTypes")),
+	directoryScannerServiceDeleteScanDirectoryHandler := connect.NewUnaryHandler(
+		DirectoryScannerServiceDeleteScanDirectoryProcedure,
+		svc.DeleteScanDirectory,
+		connect.WithSchema(directoryScannerServiceMethods.ByName("DeleteScanDirectory")),
+		connect.WithHandlerOptions(opts...),
+	)
+	directoryScannerServiceCreateSidecarTypeHandler := connect.NewUnaryHandler(
+		DirectoryScannerServiceCreateSidecarTypeProcedure,
+		svc.CreateSidecarType,
+		connect.WithSchema(directoryScannerServiceMethods.ByName("CreateSidecarType")),
 		connect.WithHandlerOptions(opts...),
 	)
 	directoryScannerServiceGetSidecarTypeHandler := connect.NewUnaryHandler(
@@ -321,10 +372,16 @@ func NewDirectoryScannerServiceHandler(svc DirectoryScannerServiceHandler, opts 
 		connect.WithSchema(directoryScannerServiceMethods.ByName("GetSidecarType")),
 		connect.WithHandlerOptions(opts...),
 	)
-	directoryScannerServiceUpsertSidecarTypeHandler := connect.NewUnaryHandler(
-		DirectoryScannerServiceUpsertSidecarTypeProcedure,
-		svc.UpsertSidecarType,
-		connect.WithSchema(directoryScannerServiceMethods.ByName("UpsertSidecarType")),
+	directoryScannerServiceListSidecarTypesHandler := connect.NewUnaryHandler(
+		DirectoryScannerServiceListSidecarTypesProcedure,
+		svc.ListSidecarTypes,
+		connect.WithSchema(directoryScannerServiceMethods.ByName("ListSidecarTypes")),
+		connect.WithHandlerOptions(opts...),
+	)
+	directoryScannerServiceUpdateSidecarTypeHandler := connect.NewUnaryHandler(
+		DirectoryScannerServiceUpdateSidecarTypeProcedure,
+		svc.UpdateSidecarType,
+		connect.WithSchema(directoryScannerServiceMethods.ByName("UpdateSidecarType")),
 		connect.WithHandlerOptions(opts...),
 	)
 	directoryScannerServiceDeleteSidecarTypeHandler := connect.NewUnaryHandler(
@@ -347,24 +404,28 @@ func NewDirectoryScannerServiceHandler(svc DirectoryScannerServiceHandler, opts 
 	)
 	return "/metarr.v1.DirectoryScannerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case DirectoryScannerServiceGetProcedure:
-			directoryScannerServiceGetHandler.ServeHTTP(w, r)
-		case DirectoryScannerServiceUpdateProcedure:
-			directoryScannerServiceUpdateHandler.ServeHTTP(w, r)
-		case DirectoryScannerServiceListDirectoriesProcedure:
-			directoryScannerServiceListDirectoriesHandler.ServeHTTP(w, r)
-		case DirectoryScannerServiceGetDirectoryProcedure:
-			directoryScannerServiceGetDirectoryHandler.ServeHTTP(w, r)
-		case DirectoryScannerServiceUpsertDirectoryProcedure:
-			directoryScannerServiceUpsertDirectoryHandler.ServeHTTP(w, r)
-		case DirectoryScannerServiceDeleteDirectoryProcedure:
-			directoryScannerServiceDeleteDirectoryHandler.ServeHTTP(w, r)
-		case DirectoryScannerServiceListSidecarTypesProcedure:
-			directoryScannerServiceListSidecarTypesHandler.ServeHTTP(w, r)
+		case DirectoryScannerServiceGetDirectoryScannerConfigProcedure:
+			directoryScannerServiceGetDirectoryScannerConfigHandler.ServeHTTP(w, r)
+		case DirectoryScannerServiceUpdateDirectoryScannerConfigProcedure:
+			directoryScannerServiceUpdateDirectoryScannerConfigHandler.ServeHTTP(w, r)
+		case DirectoryScannerServiceCreateScanDirectoryProcedure:
+			directoryScannerServiceCreateScanDirectoryHandler.ServeHTTP(w, r)
+		case DirectoryScannerServiceGetScanDirectoryProcedure:
+			directoryScannerServiceGetScanDirectoryHandler.ServeHTTP(w, r)
+		case DirectoryScannerServiceListScanDirectoriesProcedure:
+			directoryScannerServiceListScanDirectoriesHandler.ServeHTTP(w, r)
+		case DirectoryScannerServiceUpdateScanDirectoryProcedure:
+			directoryScannerServiceUpdateScanDirectoryHandler.ServeHTTP(w, r)
+		case DirectoryScannerServiceDeleteScanDirectoryProcedure:
+			directoryScannerServiceDeleteScanDirectoryHandler.ServeHTTP(w, r)
+		case DirectoryScannerServiceCreateSidecarTypeProcedure:
+			directoryScannerServiceCreateSidecarTypeHandler.ServeHTTP(w, r)
 		case DirectoryScannerServiceGetSidecarTypeProcedure:
 			directoryScannerServiceGetSidecarTypeHandler.ServeHTTP(w, r)
-		case DirectoryScannerServiceUpsertSidecarTypeProcedure:
-			directoryScannerServiceUpsertSidecarTypeHandler.ServeHTTP(w, r)
+		case DirectoryScannerServiceListSidecarTypesProcedure:
+			directoryScannerServiceListSidecarTypesHandler.ServeHTTP(w, r)
+		case DirectoryScannerServiceUpdateSidecarTypeProcedure:
+			directoryScannerServiceUpdateSidecarTypeHandler.ServeHTTP(w, r)
 		case DirectoryScannerServiceDeleteSidecarTypeProcedure:
 			directoryScannerServiceDeleteSidecarTypeHandler.ServeHTTP(w, r)
 		case DirectoryScannerServiceReorderSidecarTypesProcedure:
@@ -380,50 +441,58 @@ func NewDirectoryScannerServiceHandler(svc DirectoryScannerServiceHandler, opts 
 // UnimplementedDirectoryScannerServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedDirectoryScannerServiceHandler struct{}
 
-func (UnimplementedDirectoryScannerServiceHandler) Get(context.Context, *connect.Request[v1.DirectoryScannerServiceGetRequest]) (*connect.Response[v1.DirectoryScannerServiceGetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.Get is not implemented"))
+func (UnimplementedDirectoryScannerServiceHandler) GetDirectoryScannerConfig(context.Context, *connect.Request[v1.GetDirectoryScannerConfigRequest]) (*connect.Response[v1.GetDirectoryScannerConfigResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.GetDirectoryScannerConfig is not implemented"))
 }
 
-func (UnimplementedDirectoryScannerServiceHandler) Update(context.Context, *connect.Request[v1.DirectoryScannerServiceUpdateRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.Update is not implemented"))
+func (UnimplementedDirectoryScannerServiceHandler) UpdateDirectoryScannerConfig(context.Context, *connect.Request[v1.UpdateDirectoryScannerConfigRequest]) (*connect.Response[v1.DirectoryScannerConfig], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.UpdateDirectoryScannerConfig is not implemented"))
 }
 
-func (UnimplementedDirectoryScannerServiceHandler) ListDirectories(context.Context, *connect.Request[v1.DirectoryScannerServiceListDirectoriesRequest]) (*connect.Response[v1.DirectoryScannerServiceListDirectoriesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.ListDirectories is not implemented"))
+func (UnimplementedDirectoryScannerServiceHandler) CreateScanDirectory(context.Context, *connect.Request[v1.CreateScanDirectoryRequest]) (*connect.Response[v1.ScanDirectory], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.CreateScanDirectory is not implemented"))
 }
 
-func (UnimplementedDirectoryScannerServiceHandler) GetDirectory(context.Context, *connect.Request[v1.DirectoryScannerServiceGetDirectoryRequest]) (*connect.Response[v1.DirectoryScannerServiceGetDirectoryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.GetDirectory is not implemented"))
+func (UnimplementedDirectoryScannerServiceHandler) GetScanDirectory(context.Context, *connect.Request[v1.GetScanDirectoryRequest]) (*connect.Response[v1.ScanDirectory], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.GetScanDirectory is not implemented"))
 }
 
-func (UnimplementedDirectoryScannerServiceHandler) UpsertDirectory(context.Context, *connect.Request[v1.DirectoryScannerServiceUpsertDirectoryRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.UpsertDirectory is not implemented"))
+func (UnimplementedDirectoryScannerServiceHandler) ListScanDirectories(context.Context, *connect.Request[v1.ListScanDirectoriesRequest]) (*connect.Response[v1.ListScanDirectoriesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.ListScanDirectories is not implemented"))
 }
 
-func (UnimplementedDirectoryScannerServiceHandler) DeleteDirectory(context.Context, *connect.Request[v1.DirectoryScannerServiceDeleteDirectoryRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.DeleteDirectory is not implemented"))
+func (UnimplementedDirectoryScannerServiceHandler) UpdateScanDirectory(context.Context, *connect.Request[v1.UpdateScanDirectoryRequest]) (*connect.Response[v1.ScanDirectory], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.UpdateScanDirectory is not implemented"))
 }
 
-func (UnimplementedDirectoryScannerServiceHandler) ListSidecarTypes(context.Context, *connect.Request[v1.DirectoryScannerServiceListSidecarTypesRequest]) (*connect.Response[v1.DirectoryScannerServiceListSidecarTypesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.ListSidecarTypes is not implemented"))
+func (UnimplementedDirectoryScannerServiceHandler) DeleteScanDirectory(context.Context, *connect.Request[v1.DeleteScanDirectoryRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.DeleteScanDirectory is not implemented"))
 }
 
-func (UnimplementedDirectoryScannerServiceHandler) GetSidecarType(context.Context, *connect.Request[v1.DirectoryScannerServiceGetSidecarTypeRequest]) (*connect.Response[v1.DirectoryScannerServiceGetSidecarTypeResponse], error) {
+func (UnimplementedDirectoryScannerServiceHandler) CreateSidecarType(context.Context, *connect.Request[v1.CreateSidecarTypeRequest]) (*connect.Response[v11.SidecarTypeDefinition], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.CreateSidecarType is not implemented"))
+}
+
+func (UnimplementedDirectoryScannerServiceHandler) GetSidecarType(context.Context, *connect.Request[v1.GetSidecarTypeRequest]) (*connect.Response[v11.SidecarTypeDefinition], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.GetSidecarType is not implemented"))
 }
 
-func (UnimplementedDirectoryScannerServiceHandler) UpsertSidecarType(context.Context, *connect.Request[v1.DirectoryScannerServiceUpsertSidecarTypeRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.UpsertSidecarType is not implemented"))
+func (UnimplementedDirectoryScannerServiceHandler) ListSidecarTypes(context.Context, *connect.Request[v1.ListSidecarTypesRequest]) (*connect.Response[v1.ListSidecarTypesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.ListSidecarTypes is not implemented"))
 }
 
-func (UnimplementedDirectoryScannerServiceHandler) DeleteSidecarType(context.Context, *connect.Request[v1.DirectoryScannerServiceDeleteSidecarTypeRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+func (UnimplementedDirectoryScannerServiceHandler) UpdateSidecarType(context.Context, *connect.Request[v1.UpdateSidecarTypeRequest]) (*connect.Response[v11.SidecarTypeDefinition], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.UpdateSidecarType is not implemented"))
+}
+
+func (UnimplementedDirectoryScannerServiceHandler) DeleteSidecarType(context.Context, *connect.Request[v1.DeleteSidecarTypeRequest]) (*connect.Response[emptypb.Empty], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.DeleteSidecarType is not implemented"))
 }
 
-func (UnimplementedDirectoryScannerServiceHandler) ReorderSidecarTypes(context.Context, *connect.Request[v1.DirectoryScannerServiceReorderSidecarTypesRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+func (UnimplementedDirectoryScannerServiceHandler) ReorderSidecarTypes(context.Context, *connect.Request[v1.ReorderSidecarTypesRequest]) (*connect.Response[v1.ReorderSidecarTypesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.ReorderSidecarTypes is not implemented"))
 }
 
-func (UnimplementedDirectoryScannerServiceHandler) ResetSidecarTypes(context.Context, *connect.Request[v1.DirectoryScannerServiceResetSidecarTypesRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+func (UnimplementedDirectoryScannerServiceHandler) ResetSidecarTypes(context.Context, *connect.Request[v1.ResetSidecarTypesRequest]) (*connect.Response[v1.ResetSidecarTypesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.DirectoryScannerService.ResetSidecarTypes is not implemented"))
 }

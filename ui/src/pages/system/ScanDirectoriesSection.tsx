@@ -3,8 +3,9 @@ import { Input, Select, Space, Typography } from "antd";
 
 import {
   queryKeys,
+  useCreateScanDirectory,
   useDeleteScanDirectory,
-  useUpsertScanDirectory,
+  useUpdateScanDirectory,
 } from "../../api/queries";
 import { directoryTypes } from "../../api/vocab";
 import type { ScanDirectory } from "../../gen/metarr/v1/directory_scanner_pb";
@@ -15,17 +16,18 @@ import { EditableSelect, EditableText } from "../../components/Editable";
 import "./ScanDirectoriesSection.css";
 
 /*
- * Scan directories are keyed by scanner_slug, which the upsert endpoint matches
- * on. That makes the slug the one field that cannot be edited in place: writing
- * a new slug would create a second entry rather than rename this one, silently
- * leaving the original behind.
+ * Scan directories are addressed by scanner_slug, so the slug is the one field
+ * that cannot be edited in place: writing a new slug through Create would make
+ * a second entry rather than rename this one, and Update matches on it. Edits
+ * go through Update, new entries through Create.
  */
 export function ScanDirectoriesSection({
   directories,
 }: {
   directories: ScanDirectory[];
 }) {
-  const upsert = useUpsertScanDirectory();
+  const create = useCreateScanDirectory();
+  const update = useUpdateScanDirectory();
   const remove = useDeleteScanDirectory();
   const [adding, setAdding] = useState(false);
 
@@ -79,7 +81,7 @@ export function ScanDirectoriesSection({
                   next.startsWith("/") ? null : "Must be an absolute path"
                 }
                 onSave={(value) =>
-                  upsert.mutateAsync({ ...directory, directory: value })
+                  update.mutateAsync({ ...directory, directory: value })
                 }
               />
             </Row>
@@ -91,7 +93,7 @@ export function ScanDirectoriesSection({
                 value={directory.scanType}
                 options={directoryTypes}
                 onSave={(value) =>
-                  upsert.mutateAsync({ ...directory, scanType: value })
+                  update.mutateAsync({ ...directory, scanType: value })
                 }
               />
             </Row>
@@ -104,7 +106,7 @@ export function ScanDirectoriesSection({
           existingSlugs={directories.map((entry) => entry.scannerSlug)}
           onCancel={() => setAdding(false)}
           onCreate={async (entry) => {
-            await upsert.mutateAsync(entry);
+            await create.mutateAsync(entry);
             setAdding(false);
           }}
         />

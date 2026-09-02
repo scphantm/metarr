@@ -39,8 +39,15 @@ import {
   ConfigServiceUpsertApiKeyRequestSchema,
 } from "../gen/metarr/v1/config_pb";
 import { AgentConfigSchema } from "../gen/metarr/v1/agents_pb";
-import { SidecarTypeDefinitionSchema } from "../gen/metarr/bus/v1/agent_contract_pb";
-import { ScanDirectorySchema } from "../gen/metarr/v1/directory_scanner_pb";
+import {
+  SidecarTypeDefinitionSchema,
+  type SidecarTypeDefinition as ConnectSidecarType,
+} from "../gen/metarr/bus/v1/agent_contract_pb";
+import {
+  ScanDirectorySchema,
+  type ScanDirectory as ConnectScanDirectory,
+  type DirectoryScannerConfig as ConnectDirectoryScannerConfig,
+} from "../gen/metarr/v1/directory_scanner_pb";
 import { LoggingConfigSchema } from "../gen/metarr/v1/logging_pb";
 import { EventBusConfigSchema } from "../gen/metarr/v1/event_bus_pb";
 import { WorkflowServiceUpsertRequestSchema } from "../gen/metarr/v1/workflows_pb";
@@ -88,23 +95,48 @@ export function useConfig() {
 export function useDirectoryScannerConfig() {
   return useQuery({
     queryKey: queryKeys.directoryScanner,
-    queryFn: async () => (await directoryScannerClient.get({})).config,
+    queryFn: async () =>
+      (await directoryScannerClient.getDirectoryScannerConfig({})).config,
   });
 }
 
+// ListScanDirectories / ListSidecarTypes are paginated (AIP-158) with a
+// server-side page cap, so — like useSonarrInstances — the settings screens
+// drain the pages rather than assuming one call returns them all. Both
+// collections are operator-bounded, so this is one page in practice.
 export function useScanDirectories() {
   return useQuery({
     queryKey: queryKeys.scanDirectories,
-    queryFn: async () =>
-      (await directoryScannerClient.listDirectories({})).directories,
+    queryFn: async () => {
+      const directories = [];
+      let pageToken = "";
+      do {
+        const page = await directoryScannerClient.listScanDirectories({
+          pageToken,
+        });
+        directories.push(...page.scanDirectories);
+        pageToken = page.nextPageToken;
+      } while (pageToken !== "");
+      return directories;
+    },
   });
 }
 
 export function useSidecarTypes() {
   return useQuery({
     queryKey: queryKeys.sidecarTypes,
-    queryFn: async () =>
-      (await directoryScannerClient.listSidecarTypes({})).types,
+    queryFn: async () => {
+      const types = [];
+      let pageToken = "";
+      do {
+        const page = await directoryScannerClient.listSidecarTypes({
+          pageToken,
+        });
+        types.push(...page.sidecarTypes);
+        pageToken = page.nextPageToken;
+      } while (pageToken !== "");
+      return types;
+    },
   });
 }
 
@@ -411,62 +443,202 @@ export function useUpdateEventBusConfig() {
   );
 }
 
+// DirectoryScannerService is on AIP standard methods (docs/adr/0010): the
+// scalar section's UpdateDirectoryScannerConfig and every sub-collection
+// write is synchronous and returns the stored resource. Like the Sonarr
+// hooks below, each write splices its own response into the section cache
+// rather than refetching, and invalidates the sibling aggregate GetConfig
+// read (["config"], exact, so the fuzzy match cannot sweep the section reads
+// back in).
+
+// AIP-134 partial update of the scalar section: the mask names only
+// parallel_count and the response is the stored DirectoryScannerConfig,
+// written straight into the section cache — no confirmation poll.
 export function useUpdateDirectoryScanner() {
-  return useConfigMutation<{ parallelCount?: number }, ConnectAcceptedResponse>(
-    (body) =>
-      directoryScannerClient.update({ parallelCount: body.parallelCount }),
-    [queryKeys.directoryScanner, queryKeys.config],
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ parallelCount }: { parallelCount: number }) =>
+      directoryScannerClient.updateDirectoryScannerConfig({
+        config: { parallelCount },
+        updateMask: { paths: ["parallel_count"] },
+      }),
+    onSuccess: (stored: ConnectDirectoryScannerConfig) => {
+      queryClient.setQueryData(queryKeys.directoryScanner, stored);
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.config,
+        exact: true,
+      });
+    },
+  });
+}
+
+function patchScanDirectoryListCache(
+  queryClient: QueryClient,
+  update: (current: ConnectScanDirectory[]) => ConnectScanDirectory[],
+) {
+  queryClient.setQueryData<ConnectScanDirectory[]>(
+    queryKeys.scanDirectories,
+    (current = []) => update(current),
+  );
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.config,
+    exact: true,
+  });
+}
+
+function useScanDirectoryCollectionWrite<TVariables>(
+  write: (variables: TVariables) => Promise<ConnectScanDirectory>,
+): UseMutationResult<ConnectScanDirectory, Error, TVariables> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: write,
+    onSuccess: (stored) => {
+      patchScanDirectoryListCache(queryClient, (current) => {
+        const index = current.findIndex(
+          (entry) => entry.scannerSlug === stored.scannerSlug,
+        );
+        if (index === -1) return [...current, stored];
+        const next = current.slice();
+        next[index] = stored;
+        return next;
+      });
+    },
+  });
+}
+
+export function useCreateScanDirectory() {
+  return useScanDirectoryCollectionWrite<
+    MessageInitShape<typeof ScanDirectorySchema>
+  >((directory) =>
+    directoryScannerClient.createScanDirectory({
+      scanDirectoryId: directory.scannerSlug,
+      scanDirectory: directory,
+    }),
   );
 }
 
-export function useUpsertScanDirectory() {
-  return useConfigMutation<
-    MessageInitShape<typeof ScanDirectorySchema>,
-    ConnectAcceptedResponse
-  >(
-    (directory) => directoryScannerClient.upsertDirectory({ directory }),
-    [queryKeys.scanDirectories, queryKeys.directoryScanner, queryKeys.config],
+// The scan-directory editor sends the whole resource back, so the mask names
+// every writable field — scanner_slug is the addressing key, set from the
+// resource and never masked.
+const scanDirectoryUpdateMask = { paths: ["scan_type", "directory"] };
+
+export function useUpdateScanDirectory() {
+  return useScanDirectoryCollectionWrite<
+    MessageInitShape<typeof ScanDirectorySchema>
+  >((directory) =>
+    directoryScannerClient.updateScanDirectory({
+      scanDirectory: directory,
+      updateMask: scanDirectoryUpdateMask,
+    }),
   );
 }
 
 export function useDeleteScanDirectory() {
-  return useConfigMutation<string, ConnectAcceptedResponse>(
-    (slug) => directoryScannerClient.deleteDirectory({ slug }),
-    [queryKeys.scanDirectories, queryKeys.directoryScanner, queryKeys.config],
-  );
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (slug: string) =>
+      directoryScannerClient.deleteScanDirectory({ slug }),
+    onSuccess: (_result, slug) => {
+      patchScanDirectoryListCache(queryClient, (current) =>
+        current.filter((entry) => entry.scannerSlug !== slug),
+      );
+    },
+  });
 }
 
-export function useUpsertSidecarType() {
-  return useConfigMutation<
-    MessageInitShape<typeof SidecarTypeDefinitionSchema>,
-    ConnectAcceptedResponse
-  >(
-    (type) => directoryScannerClient.upsertSidecarType({ type }),
-    [queryKeys.sidecarTypes, queryKeys.directoryScanner, queryKeys.config],
+function patchSidecarTypeListCache(
+  queryClient: QueryClient,
+  next:
+    | ConnectSidecarType[]
+    | ((current: ConnectSidecarType[]) => ConnectSidecarType[]),
+) {
+  queryClient.setQueryData<ConnectSidecarType[]>(
+    queryKeys.sidecarTypes,
+    (current = []) => (typeof next === "function" ? next(current) : next),
+  );
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.config,
+    exact: true,
+  });
+}
+
+function useSidecarTypeCollectionWrite<TVariables>(
+  write: (variables: TVariables) => Promise<ConnectSidecarType>,
+): UseMutationResult<ConnectSidecarType, Error, TVariables> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: write,
+    onSuccess: (stored) => {
+      patchSidecarTypeListCache(queryClient, (current) => {
+        const index = current.findIndex((entry) => entry.id === stored.id);
+        if (index === -1) return [...current, stored];
+        const next = current.slice();
+        next[index] = stored;
+        return next;
+      });
+    },
+  });
+}
+
+export function useCreateSidecarType() {
+  return useSidecarTypeCollectionWrite<
+    MessageInitShape<typeof SidecarTypeDefinitionSchema>
+  >((sidecarType) => directoryScannerClient.createSidecarType({ sidecarType }));
+}
+
+// The editor sends the whole resource back; id is the addressing key and
+// order belongs to ReorderSidecarTypes, so neither is masked.
+const sidecarTypeUpdateMask = {
+  paths: ["type", "category", "patterns", "extensions"],
+};
+
+export function useUpdateSidecarType() {
+  return useSidecarTypeCollectionWrite<
+    MessageInitShape<typeof SidecarTypeDefinitionSchema>
+  >((sidecarType) =>
+    directoryScannerClient.updateSidecarType({
+      sidecarType,
+      updateMask: sidecarTypeUpdateMask,
+    }),
   );
 }
 
 export function useDeleteSidecarType() {
-  return useConfigMutation<string, ConnectAcceptedResponse>(
-    (id) => directoryScannerClient.deleteSidecarType({ id }),
-    [queryKeys.sidecarTypes, queryKeys.directoryScanner, queryKeys.config],
-  );
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      directoryScannerClient.deleteSidecarType({ id }),
+    onSuccess: (_result, id) => {
+      patchSidecarTypeListCache(queryClient, (current) =>
+        current.filter((entry) => entry.id !== id),
+      );
+    },
+  });
 }
 
 // Ordering covers the whole table in one call — it is the only place an entry
 // can be enabled or disabled, since order zero is the disabled sentinel.
+// Reorder and Reset are custom methods (AIP-136) that return the updated
+// list, written straight into the section cache.
 export function useReorderSidecarTypes() {
-  return useConfigMutation<Record<string, number>, ConnectAcceptedResponse>(
-    (orders) => directoryScannerClient.reorderSidecarTypes({ orders }),
-    [queryKeys.sidecarTypes, queryKeys.directoryScanner, queryKeys.config],
-  );
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (orders: Record<string, number>) =>
+      directoryScannerClient.reorderSidecarTypes({ orders }),
+    onSuccess: (result) => {
+      patchSidecarTypeListCache(queryClient, result.sidecarTypes);
+    },
+  });
 }
 
 export function useResetSidecarTypes() {
-  return useConfigMutation<void, ConnectAcceptedResponse>(
-    () => directoryScannerClient.resetSidecarTypes({}),
-    [queryKeys.sidecarTypes, queryKeys.directoryScanner, queryKeys.config],
-  );
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => directoryScannerClient.resetSidecarTypes({}),
+    onSuccess: (result) => {
+      patchSidecarTypeListCache(queryClient, result.sidecarTypes);
+    },
+  });
 }
 
 // SonarrInterfaceService is a collection on AIP standard methods

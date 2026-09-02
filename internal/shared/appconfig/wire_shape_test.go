@@ -84,12 +84,9 @@ func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 	assertKeys(t, "config.directory_scanner.scan_directories[0]",
 		first(t, document, "directory_scanner", "scan_directories"),
 		[]string{"directory", "scan_type", "scanner_slug"})
-	// name is a wire-compatible field on the frozen metarr.bus.v1
-	// SidecarTypeDefinition, unused by the config API today; EmitUnpopulated
-	// lists the key, which is why it appears here.
 	assertKeys(t, "config.directory_scanner.sidecar_types[0]",
 		first(t, document, "directory_scanner", "sidecar_types"),
-		[]string{"category", "extensions", "id", "name", "order", "patterns", "type"})
+		[]string{"category", "extensions", "id", "order", "patterns", "type"})
 
 	agent := firstOf(t, document["agents"])
 	assertKeys(t, "config.agents[0]", agent, []string{

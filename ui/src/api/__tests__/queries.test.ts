@@ -12,6 +12,18 @@ const listSonarrInstances = vi.fn();
 const createSonarrInstance = vi.fn();
 const updateSonarrInstance = vi.fn();
 const deleteSonarrInstance = vi.fn();
+const getDirectoryScannerConfig = vi.fn();
+const updateDirectoryScannerConfig = vi.fn();
+const listScanDirectories = vi.fn();
+const createScanDirectory = vi.fn();
+const updateScanDirectory = vi.fn();
+const deleteScanDirectory = vi.fn();
+const listSidecarTypes = vi.fn();
+const createSidecarType = vi.fn();
+const updateSidecarType = vi.fn();
+const deleteSidecarType = vi.fn();
+const reorderSidecarTypes = vi.fn();
+const resetSidecarTypes = vi.fn();
 
 vi.mock("../clients", () => ({
   statsClient: { purge: (...args: unknown[]) => purge(...args) },
@@ -20,7 +32,6 @@ vi.mock("../clients", () => ({
   // exist.
   agentClient: {},
   configClient: {},
-  directoryScannerClient: {},
   eventBusClient: {
     getEventBusConfig: (...args: unknown[]) => getEventBusConfig(...args),
     updateEventBusConfig: (...args: unknown[]) => updateEventBusConfig(...args),
@@ -34,6 +45,22 @@ vi.mock("../clients", () => ({
     createSonarrInstance: (...args: unknown[]) => createSonarrInstance(...args),
     updateSonarrInstance: (...args: unknown[]) => updateSonarrInstance(...args),
     deleteSonarrInstance: (...args: unknown[]) => deleteSonarrInstance(...args),
+  },
+  directoryScannerClient: {
+    getDirectoryScannerConfig: (...args: unknown[]) =>
+      getDirectoryScannerConfig(...args),
+    updateDirectoryScannerConfig: (...args: unknown[]) =>
+      updateDirectoryScannerConfig(...args),
+    listScanDirectories: (...args: unknown[]) => listScanDirectories(...args),
+    createScanDirectory: (...args: unknown[]) => createScanDirectory(...args),
+    updateScanDirectory: (...args: unknown[]) => updateScanDirectory(...args),
+    deleteScanDirectory: (...args: unknown[]) => deleteScanDirectory(...args),
+    listSidecarTypes: (...args: unknown[]) => listSidecarTypes(...args),
+    createSidecarType: (...args: unknown[]) => createSidecarType(...args),
+    updateSidecarType: (...args: unknown[]) => updateSidecarType(...args),
+    deleteSidecarType: (...args: unknown[]) => deleteSidecarType(...args),
+    reorderSidecarTypes: (...args: unknown[]) => reorderSidecarTypes(...args),
+    resetSidecarTypes: (...args: unknown[]) => resetSidecarTypes(...args),
   },
   workflowCatalogClient: {},
   workflowClient: {},
@@ -50,6 +77,17 @@ import {
   useCreateSonarrInstance,
   useUpdateSonarrInstance,
   useDeleteSonarrInstance,
+  useScanDirectories,
+  useUpdateDirectoryScanner,
+  useCreateScanDirectory,
+  useUpdateScanDirectory,
+  useDeleteScanDirectory,
+  useSidecarTypes,
+  useCreateSidecarType,
+  useUpdateSidecarType,
+  useDeleteSidecarType,
+  useReorderSidecarTypes,
+  useResetSidecarTypes,
 } from "../queries";
 
 describe("queryKeys", () => {
@@ -400,5 +438,207 @@ describe("Sonarr instance hooks", () => {
       queryKey: queryKeys.config,
       exact: true,
     });
+  });
+});
+
+// DirectoryScannerService is on AIP standard methods: the scalar section's
+// UpdateDirectoryScannerConfig and every sub-collection write is synchronous
+// and returns the stored resource, which each hook splices into its section
+// cache rather than refetching.
+describe("Directory scanner hooks", () => {
+  const dirA = { scannerSlug: "movies", scanType: "movie", directory: "/m" };
+  const typeA = {
+    id: "t-1",
+    type: "poster",
+    category: "image",
+    order: 10,
+    patterns: ["(?i)^poster$"],
+    extensions: [],
+  };
+
+  it("useScanDirectories drains the paginated list", async () => {
+    const dirB = { ...dirA, scannerSlug: "tv", directory: "/t" };
+    listScanDirectories
+      .mockReset()
+      .mockResolvedValueOnce({ scanDirectories: [dirA], nextPageToken: "p2" })
+      .mockResolvedValueOnce({ scanDirectories: [dirB], nextPageToken: "" });
+    const { wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useScanDirectories(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(listScanDirectories).toHaveBeenNthCalledWith(1, { pageToken: "" });
+    expect(listScanDirectories).toHaveBeenNthCalledWith(2, { pageToken: "p2" });
+    expect(result.current.data).toEqual([dirA, dirB]);
+  });
+
+  it("useSidecarTypes drains the paginated list", async () => {
+    listSidecarTypes
+      .mockReset()
+      .mockResolvedValueOnce({ sidecarTypes: [typeA], nextPageToken: "" });
+    const { wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useSidecarTypes(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual([typeA]);
+  });
+
+  it("useUpdateDirectoryScanner sends a parallel_count mask and caches the stored section", async () => {
+    const stored = { parallelCount: 8, scanDirectories: [], sidecarTypes: [] };
+    updateDirectoryScannerConfig.mockReset().mockResolvedValue(stored);
+    const { queryClient, invalidate, wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useUpdateDirectoryScanner(), {
+      wrapper,
+    });
+    result.current.mutate({ parallelCount: 8 });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(updateDirectoryScannerConfig).toHaveBeenCalledWith({
+      config: { parallelCount: 8 },
+      updateMask: { paths: ["parallel_count"] },
+    });
+    expect(queryClient.getQueryData(queryKeys.directoryScanner)).toEqual(
+      stored,
+    );
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.config,
+      exact: true,
+    });
+  });
+
+  it("useCreateScanDirectory sends the slug in scan_directory_id and appends", async () => {
+    createScanDirectory.mockReset().mockResolvedValue(dirA);
+    const { queryClient, wrapper } = mutationHarness();
+    queryClient.setQueryData(queryKeys.scanDirectories, []);
+
+    const { result } = renderHook(() => useCreateScanDirectory(), { wrapper });
+    result.current.mutate(dirA);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(createScanDirectory).toHaveBeenCalledWith({
+      scanDirectoryId: "movies",
+      scanDirectory: dirA,
+    });
+    expect(queryClient.getQueryData(queryKeys.scanDirectories)).toEqual([dirA]);
+  });
+
+  it("useUpdateScanDirectory sends the writable-field mask and replaces the cached entry", async () => {
+    const updated = { ...dirA, directory: "/movies-4k" };
+    updateScanDirectory.mockReset().mockResolvedValue(updated);
+    const { queryClient, wrapper } = mutationHarness();
+    queryClient.setQueryData(queryKeys.scanDirectories, [dirA]);
+
+    const { result } = renderHook(() => useUpdateScanDirectory(), { wrapper });
+    result.current.mutate(updated);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(updateScanDirectory).toHaveBeenCalledWith({
+      scanDirectory: updated,
+      updateMask: { paths: ["scan_type", "directory"] },
+    });
+    expect(queryClient.getQueryData(queryKeys.scanDirectories)).toEqual([
+      updated,
+    ]);
+  });
+
+  it("useDeleteScanDirectory sends the slug and drops the cached entry", async () => {
+    deleteScanDirectory.mockReset().mockResolvedValue({});
+    const { queryClient, wrapper } = mutationHarness();
+    queryClient.setQueryData(queryKeys.scanDirectories, [dirA]);
+
+    const { result } = renderHook(() => useDeleteScanDirectory(), { wrapper });
+    result.current.mutate("movies");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(deleteScanDirectory).toHaveBeenCalledWith({ slug: "movies" });
+    expect(queryClient.getQueryData(queryKeys.scanDirectories)).toEqual([]);
+  });
+
+  it("useCreateSidecarType sends the resource with no id and appends", async () => {
+    createSidecarType.mockReset().mockResolvedValue(typeA);
+    const { queryClient, wrapper } = mutationHarness();
+    queryClient.setQueryData(queryKeys.sidecarTypes, []);
+
+    const { result } = renderHook(() => useCreateSidecarType(), { wrapper });
+    result.current.mutate({
+      id: "",
+      type: "poster",
+      category: "image",
+      order: 0,
+      patterns: ["(?i)^poster$"],
+      extensions: [],
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(createSidecarType).toHaveBeenCalledWith({
+      sidecarType: expect.objectContaining({ type: "poster", id: "" }),
+    });
+    expect(queryClient.getQueryData(queryKeys.sidecarTypes)).toEqual([typeA]);
+  });
+
+  it("useUpdateSidecarType sends the writable-field mask and replaces the cached entry", async () => {
+    const updated = { ...typeA, category: "subtitle" };
+    updateSidecarType.mockReset().mockResolvedValue(updated);
+    const { queryClient, wrapper } = mutationHarness();
+    queryClient.setQueryData(queryKeys.sidecarTypes, [typeA]);
+
+    const { result } = renderHook(() => useUpdateSidecarType(), { wrapper });
+    result.current.mutate(updated);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(updateSidecarType).toHaveBeenCalledWith({
+      sidecarType: updated,
+      updateMask: { paths: ["type", "category", "patterns", "extensions"] },
+    });
+    expect(queryClient.getQueryData(queryKeys.sidecarTypes)).toEqual([updated]);
+  });
+
+  it("useDeleteSidecarType sends the id and drops the cached entry", async () => {
+    deleteSidecarType.mockReset().mockResolvedValue({});
+    const { queryClient, wrapper } = mutationHarness();
+    queryClient.setQueryData(queryKeys.sidecarTypes, [typeA]);
+
+    const { result } = renderHook(() => useDeleteSidecarType(), { wrapper });
+    result.current.mutate("t-1");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(deleteSidecarType).toHaveBeenCalledWith({ id: "t-1" });
+    expect(queryClient.getQueryData(queryKeys.sidecarTypes)).toEqual([]);
+  });
+
+  it("useReorderSidecarTypes writes the returned list into the section cache", async () => {
+    const reordered = [{ ...typeA, order: 20 }];
+    reorderSidecarTypes
+      .mockReset()
+      .mockResolvedValue({ sidecarTypes: reordered });
+    const { queryClient, invalidate, wrapper } = mutationHarness();
+    queryClient.setQueryData(queryKeys.sidecarTypes, [typeA]);
+
+    const { result } = renderHook(() => useReorderSidecarTypes(), { wrapper });
+    result.current.mutate({ "t-1": 20 });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(reorderSidecarTypes).toHaveBeenCalledWith({ orders: { "t-1": 20 } });
+    expect(queryClient.getQueryData(queryKeys.sidecarTypes)).toEqual(reordered);
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.config,
+      exact: true,
+    });
+  });
+
+  it("useResetSidecarTypes writes the returned defaults into the section cache", async () => {
+    const defaults = [typeA];
+    resetSidecarTypes.mockReset().mockResolvedValue({ sidecarTypes: defaults });
+    const { queryClient, wrapper } = mutationHarness();
+    queryClient.setQueryData(queryKeys.sidecarTypes, []);
+
+    const { result } = renderHook(() => useResetSidecarTypes(), { wrapper });
+    result.current.mutate();
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(resetSidecarTypes).toHaveBeenCalledWith({});
+    expect(queryClient.getQueryData(queryKeys.sidecarTypes)).toEqual(defaults);
   });
 });
