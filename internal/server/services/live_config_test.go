@@ -28,7 +28,7 @@ func withLiveConfig(t *testing.T, cfg *appconfig.Config) {
 
 // These three exercise a representative sample of the twelve handlers
 // converted in issue #14 — a plain read-and-convert (ConfigServer.Get), a
-// lookup-by-slug with branching (DirectoryScannerServer.GetDirectory), and a
+// lookup-by-slug with branching (DirectoryScannerServer.GetScanDirectory), and a
 // list conversion in a different file (SonarrInterfaceServer.ListSonarrInstances) — to
 // prove the live-config seam works, not to re-test every one of the twelve
 // individually.
@@ -97,13 +97,13 @@ func TestDirectoryScannerServerGetDirectory_ReadsLiveConfig(t *testing.T) {
 
 	server := &DirectoryScannerServer{Handlers: &handlers.Handlers{}}
 
-	resp, err := server.GetDirectory(context.Background(), connect.NewRequest(&metarrv1.DirectoryScannerServiceGetDirectoryRequest{
+	resp, err := server.GetScanDirectory(context.Background(), connect.NewRequest(&metarrv1.GetScanDirectoryRequest{
 		Slug: "arranged-slug",
 	}))
 	if err != nil {
-		t.Fatalf("GetDirectory returned error: %v", err)
+		t.Fatalf("GetScanDirectory returned error: %v", err)
 	}
-	if got := resp.Msg.GetDirectory().GetDirectory(); got != "/arranged/movies" {
+	if got := resp.Msg.GetDirectory(); got != "/arranged/movies" {
 		t.Errorf("directory = %q, want %q", got, "/arranged/movies")
 	}
 }

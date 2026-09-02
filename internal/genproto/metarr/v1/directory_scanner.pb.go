@@ -10,6 +10,8 @@ import (
 	v1 "Metarr/internal/genproto/metarr/bus/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -26,6 +28,11 @@ const (
 // many directories it scans concurrently, which it scans, and how it
 // classifies the sidecar files it finds. This message is the single
 // definition of that config across the Go server, the UI and storage.
+//
+// parallel_count is the scalar section GetDirectoryScannerConfig /
+// UpdateDirectoryScannerConfig own; scan_directories and sidecar_types are
+// managed through their own AIP standard methods below and are read-only on
+// the scalar section's response.
 type DirectoryScannerConfig struct {
 	state           protoimpl.MessageState      `protogen:"open.v1"`
 	ParallelCount   int32                       `protobuf:"varint,1,opt,name=parallel_count,json=parallelCount,proto3" json:"parallel_count,omitempty"`
@@ -88,6 +95,10 @@ func (x *DirectoryScannerConfig) GetSidecarTypes() []*v1.SidecarTypeDefinition {
 
 // ScanDirectory is one filesystem path the directory scanner watches,
 // tagged with the media type expected under it.
+//
+// scanner_slug is the operator-chosen identifier the collection is addressed
+// by (docs/adr/0010): GetScanDirectory / DeleteScanDirectory take it as
+// slug, CreateScanDirectory carries it in scan_directory_id.
 type ScanDirectory struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ScannerSlug   string                 `protobuf:"bytes,1,opt,name=scanner_slug,json=scannerSlug,proto3" json:"scanner_slug,omitempty"`
@@ -148,26 +159,26 @@ func (x *ScanDirectory) GetDirectory() string {
 	return ""
 }
 
-type DirectoryScannerServiceGetRequest struct {
+type GetDirectoryScannerConfigRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DirectoryScannerServiceGetRequest) Reset() {
-	*x = DirectoryScannerServiceGetRequest{}
+func (x *GetDirectoryScannerConfigRequest) Reset() {
+	*x = GetDirectoryScannerConfigRequest{}
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DirectoryScannerServiceGetRequest) String() string {
+func (x *GetDirectoryScannerConfigRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DirectoryScannerServiceGetRequest) ProtoMessage() {}
+func (*GetDirectoryScannerConfigRequest) ProtoMessage() {}
 
-func (x *DirectoryScannerServiceGetRequest) ProtoReflect() protoreflect.Message {
+func (x *GetDirectoryScannerConfigRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -179,32 +190,32 @@ func (x *DirectoryScannerServiceGetRequest) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryScannerServiceGetRequest.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceGetRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetDirectoryScannerConfigRequest.ProtoReflect.Descriptor instead.
+func (*GetDirectoryScannerConfigRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{2}
 }
 
-type DirectoryScannerServiceGetResponse struct {
+type GetDirectoryScannerConfigResponse struct {
 	state         protoimpl.MessageState  `protogen:"open.v1"`
 	Config        *DirectoryScannerConfig `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DirectoryScannerServiceGetResponse) Reset() {
-	*x = DirectoryScannerServiceGetResponse{}
+func (x *GetDirectoryScannerConfigResponse) Reset() {
+	*x = GetDirectoryScannerConfigResponse{}
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DirectoryScannerServiceGetResponse) String() string {
+func (x *GetDirectoryScannerConfigResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DirectoryScannerServiceGetResponse) ProtoMessage() {}
+func (*GetDirectoryScannerConfigResponse) ProtoMessage() {}
 
-func (x *DirectoryScannerServiceGetResponse) ProtoReflect() protoreflect.Message {
+func (x *GetDirectoryScannerConfigResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -216,42 +227,47 @@ func (x *DirectoryScannerServiceGetResponse) ProtoReflect() protoreflect.Message
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryScannerServiceGetResponse.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceGetResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetDirectoryScannerConfigResponse.ProtoReflect.Descriptor instead.
+func (*GetDirectoryScannerConfigResponse) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *DirectoryScannerServiceGetResponse) GetConfig() *DirectoryScannerConfig {
+func (x *GetDirectoryScannerConfigResponse) GetConfig() *DirectoryScannerConfig {
 	if x != nil {
 		return x.Config
 	}
 	return nil
 }
 
-// DirectoryScannerServiceUpdateRequest is a partial update: only
-// parallel_count, if set, is changed. scan_directories is managed through
-// the dedicated Upsert/DeleteDirectory RPCs instead.
-type DirectoryScannerServiceUpdateRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ParallelCount *int32                 `protobuf:"varint,1,opt,name=parallel_count,json=parallelCount,proto3,oneof" json:"parallel_count,omitempty"`
+// UpdateDirectoryScannerConfigRequest is an AIP-134 partial update of the
+// scalar section: update_mask may name only parallel_count and config
+// carries its new value. An empty mask, or a mask naming anything other than
+// parallel_count, is InvalidArgument — scan_directories and sidecar_types
+// are edited through their own methods. The write is synchronous: it
+// persists and propagates in-process before returning the stored section
+// (docs/adr/0002).
+type UpdateDirectoryScannerConfigRequest struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Config        *DirectoryScannerConfig `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	UpdateMask    *fieldmaskpb.FieldMask  `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DirectoryScannerServiceUpdateRequest) Reset() {
-	*x = DirectoryScannerServiceUpdateRequest{}
+func (x *UpdateDirectoryScannerConfigRequest) Reset() {
+	*x = UpdateDirectoryScannerConfigRequest{}
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DirectoryScannerServiceUpdateRequest) String() string {
+func (x *UpdateDirectoryScannerConfigRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DirectoryScannerServiceUpdateRequest) ProtoMessage() {}
+func (*UpdateDirectoryScannerConfigRequest) ProtoMessage() {}
 
-func (x *DirectoryScannerServiceUpdateRequest) ProtoReflect() protoreflect.Message {
+func (x *UpdateDirectoryScannerConfigRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -263,163 +279,219 @@ func (x *DirectoryScannerServiceUpdateRequest) ProtoReflect() protoreflect.Messa
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryScannerServiceUpdateRequest.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceUpdateRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateDirectoryScannerConfigRequest.ProtoReflect.Descriptor instead.
+func (*UpdateDirectoryScannerConfigRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *DirectoryScannerServiceUpdateRequest) GetParallelCount() int32 {
-	if x != nil && x.ParallelCount != nil {
-		return *x.ParallelCount
+func (x *UpdateDirectoryScannerConfigRequest) GetConfig() *DirectoryScannerConfig {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
+func (x *UpdateDirectoryScannerConfigRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
+// CreateScanDirectoryRequest carries the new directory's slug in
+// scan_directory_id (AIP-133). A slug set in scan_directory must match it or
+// be empty, else InvalidArgument. A slug already used by a scan directory is
+// AlreadyExists.
+type CreateScanDirectoryRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ScanDirectoryId string                 `protobuf:"bytes,1,opt,name=scan_directory_id,json=scanDirectoryId,proto3" json:"scan_directory_id,omitempty"`
+	ScanDirectory   *ScanDirectory         `protobuf:"bytes,2,opt,name=scan_directory,json=scanDirectory,proto3" json:"scan_directory,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *CreateScanDirectoryRequest) Reset() {
+	*x = CreateScanDirectoryRequest{}
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateScanDirectoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateScanDirectoryRequest) ProtoMessage() {}
+
+func (x *CreateScanDirectoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateScanDirectoryRequest.ProtoReflect.Descriptor instead.
+func (*CreateScanDirectoryRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CreateScanDirectoryRequest) GetScanDirectoryId() string {
+	if x != nil {
+		return x.ScanDirectoryId
+	}
+	return ""
+}
+
+func (x *CreateScanDirectoryRequest) GetScanDirectory() *ScanDirectory {
+	if x != nil {
+		return x.ScanDirectory
+	}
+	return nil
+}
+
+type GetScanDirectoryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetScanDirectoryRequest) Reset() {
+	*x = GetScanDirectoryRequest{}
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetScanDirectoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetScanDirectoryRequest) ProtoMessage() {}
+
+func (x *GetScanDirectoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetScanDirectoryRequest.ProtoReflect.Descriptor instead.
+func (*GetScanDirectoryRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetScanDirectoryRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+// ListScanDirectoriesRequest is the AIP-158 / 132 / 160 List contract: a
+// page_size / page_token window, an order_by sort (scanner_slug,
+// scan_type), and a filter entry point. filter translation is deferred
+// (docs/adr/0010) — any non-empty filter is Unimplemented.
+type ListScanDirectoriesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	Filter        string                 `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
+	OrderBy       string                 `protobuf:"bytes,4,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListScanDirectoriesRequest) Reset() {
+	*x = ListScanDirectoriesRequest{}
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListScanDirectoriesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListScanDirectoriesRequest) ProtoMessage() {}
+
+func (x *ListScanDirectoriesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListScanDirectoriesRequest.ProtoReflect.Descriptor instead.
+func (*ListScanDirectoriesRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListScanDirectoriesRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
 	}
 	return 0
 }
 
-type DirectoryScannerServiceListDirectoriesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DirectoryScannerServiceListDirectoriesRequest) Reset() {
-	*x = DirectoryScannerServiceListDirectoriesRequest{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DirectoryScannerServiceListDirectoriesRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DirectoryScannerServiceListDirectoriesRequest) ProtoMessage() {}
-
-func (x *DirectoryScannerServiceListDirectoriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[5]
+func (x *ListScanDirectoriesRequest) GetPageToken() string {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DirectoryScannerServiceListDirectoriesRequest.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceListDirectoriesRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{5}
-}
-
-type DirectoryScannerServiceListDirectoriesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Directories   []*ScanDirectory       `protobuf:"bytes,1,rep,name=directories,proto3" json:"directories,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DirectoryScannerServiceListDirectoriesResponse) Reset() {
-	*x = DirectoryScannerServiceListDirectoriesResponse{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DirectoryScannerServiceListDirectoriesResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DirectoryScannerServiceListDirectoriesResponse) ProtoMessage() {}
-
-func (x *DirectoryScannerServiceListDirectoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DirectoryScannerServiceListDirectoriesResponse.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceListDirectoriesResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *DirectoryScannerServiceListDirectoriesResponse) GetDirectories() []*ScanDirectory {
-	if x != nil {
-		return x.Directories
-	}
-	return nil
-}
-
-type DirectoryScannerServiceGetDirectoryRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DirectoryScannerServiceGetDirectoryRequest) Reset() {
-	*x = DirectoryScannerServiceGetDirectoryRequest{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DirectoryScannerServiceGetDirectoryRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DirectoryScannerServiceGetDirectoryRequest) ProtoMessage() {}
-
-func (x *DirectoryScannerServiceGetDirectoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DirectoryScannerServiceGetDirectoryRequest.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceGetDirectoryRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *DirectoryScannerServiceGetDirectoryRequest) GetSlug() string {
-	if x != nil {
-		return x.Slug
+		return x.PageToken
 	}
 	return ""
 }
 
-type DirectoryScannerServiceGetDirectoryResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Directory     *ScanDirectory         `protobuf:"bytes,1,opt,name=directory,proto3" json:"directory,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+func (x *ListScanDirectoriesRequest) GetFilter() string {
+	if x != nil {
+		return x.Filter
+	}
+	return ""
 }
 
-func (x *DirectoryScannerServiceGetDirectoryResponse) Reset() {
-	*x = DirectoryScannerServiceGetDirectoryResponse{}
+func (x *ListScanDirectoriesRequest) GetOrderBy() string {
+	if x != nil {
+		return x.OrderBy
+	}
+	return ""
+}
+
+type ListScanDirectoriesResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ScanDirectories []*ScanDirectory       `protobuf:"bytes,1,rep,name=scan_directories,json=scanDirectories,proto3" json:"scan_directories,omitempty"`
+	NextPageToken   string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ListScanDirectoriesResponse) Reset() {
+	*x = ListScanDirectoriesResponse{}
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DirectoryScannerServiceGetDirectoryResponse) String() string {
+func (x *ListScanDirectoriesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DirectoryScannerServiceGetDirectoryResponse) ProtoMessage() {}
+func (*ListScanDirectoriesResponse) ProtoMessage() {}
 
-func (x *DirectoryScannerServiceGetDirectoryResponse) ProtoReflect() protoreflect.Message {
+func (x *ListScanDirectoriesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -431,39 +503,54 @@ func (x *DirectoryScannerServiceGetDirectoryResponse) ProtoReflect() protoreflec
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryScannerServiceGetDirectoryResponse.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceGetDirectoryResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListScanDirectoriesResponse.ProtoReflect.Descriptor instead.
+func (*ListScanDirectoriesResponse) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *DirectoryScannerServiceGetDirectoryResponse) GetDirectory() *ScanDirectory {
+func (x *ListScanDirectoriesResponse) GetScanDirectories() []*ScanDirectory {
 	if x != nil {
-		return x.Directory
+		return x.ScanDirectories
 	}
 	return nil
 }
 
-type DirectoryScannerServiceUpsertDirectoryRequest struct {
+func (x *ListScanDirectoriesResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+// UpdateScanDirectoryRequest is an AIP-134 partial update: update_mask names
+// the fields to change and scan_directory carries their new values, matched
+// to a stored directory by its scanner_slug. An empty mask or a path naming
+// no field is InvalidArgument. allow_missing:true makes an Update against an
+// unknown slug create — the mask is ignored on that branch and the whole
+// resource is validated as a Create; allow_missing:false is NotFound.
+type UpdateScanDirectoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Directory     *ScanDirectory         `protobuf:"bytes,1,opt,name=directory,proto3" json:"directory,omitempty"`
+	ScanDirectory *ScanDirectory         `protobuf:"bytes,1,opt,name=scan_directory,json=scanDirectory,proto3" json:"scan_directory,omitempty"`
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	AllowMissing  bool                   `protobuf:"varint,3,opt,name=allow_missing,json=allowMissing,proto3" json:"allow_missing,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DirectoryScannerServiceUpsertDirectoryRequest) Reset() {
-	*x = DirectoryScannerServiceUpsertDirectoryRequest{}
+func (x *UpdateScanDirectoryRequest) Reset() {
+	*x = UpdateScanDirectoryRequest{}
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DirectoryScannerServiceUpsertDirectoryRequest) String() string {
+func (x *UpdateScanDirectoryRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DirectoryScannerServiceUpsertDirectoryRequest) ProtoMessage() {}
+func (*UpdateScanDirectoryRequest) ProtoMessage() {}
 
-func (x *DirectoryScannerServiceUpsertDirectoryRequest) ProtoReflect() protoreflect.Message {
+func (x *UpdateScanDirectoryRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -475,39 +562,53 @@ func (x *DirectoryScannerServiceUpsertDirectoryRequest) ProtoReflect() protorefl
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryScannerServiceUpsertDirectoryRequest.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceUpsertDirectoryRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateScanDirectoryRequest.ProtoReflect.Descriptor instead.
+func (*UpdateScanDirectoryRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *DirectoryScannerServiceUpsertDirectoryRequest) GetDirectory() *ScanDirectory {
+func (x *UpdateScanDirectoryRequest) GetScanDirectory() *ScanDirectory {
 	if x != nil {
-		return x.Directory
+		return x.ScanDirectory
 	}
 	return nil
 }
 
-type DirectoryScannerServiceDeleteDirectoryRequest struct {
+func (x *UpdateScanDirectoryRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
+func (x *UpdateScanDirectoryRequest) GetAllowMissing() bool {
+	if x != nil {
+		return x.AllowMissing
+	}
+	return false
+}
+
+type DeleteScanDirectoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DirectoryScannerServiceDeleteDirectoryRequest) Reset() {
-	*x = DirectoryScannerServiceDeleteDirectoryRequest{}
+func (x *DeleteScanDirectoryRequest) Reset() {
+	*x = DeleteScanDirectoryRequest{}
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DirectoryScannerServiceDeleteDirectoryRequest) String() string {
+func (x *DeleteScanDirectoryRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DirectoryScannerServiceDeleteDirectoryRequest) ProtoMessage() {}
+func (*DeleteScanDirectoryRequest) ProtoMessage() {}
 
-func (x *DirectoryScannerServiceDeleteDirectoryRequest) ProtoReflect() protoreflect.Message {
+func (x *DeleteScanDirectoryRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -519,38 +620,43 @@ func (x *DirectoryScannerServiceDeleteDirectoryRequest) ProtoReflect() protorefl
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryScannerServiceDeleteDirectoryRequest.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceDeleteDirectoryRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteScanDirectoryRequest.ProtoReflect.Descriptor instead.
+func (*DeleteScanDirectoryRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{10}
 }
 
-func (x *DirectoryScannerServiceDeleteDirectoryRequest) GetSlug() string {
+func (x *DeleteScanDirectoryRequest) GetSlug() string {
 	if x != nil {
 		return x.Slug
 	}
 	return ""
 }
 
-type DirectoryScannerServiceListSidecarTypesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+// CreateSidecarTypeRequest carries no id — the server mints one and returns
+// the stored resource with it set (docs/adr/0010, "Minted id"). A new type
+// is created disabled (order zero) regardless of the order field; setting a
+// non-zero order here is InvalidArgument.
+type CreateSidecarTypeRequest struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	SidecarType   *v1.SidecarTypeDefinition `protobuf:"bytes,1,opt,name=sidecar_type,json=sidecarType,proto3" json:"sidecar_type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DirectoryScannerServiceListSidecarTypesRequest) Reset() {
-	*x = DirectoryScannerServiceListSidecarTypesRequest{}
+func (x *CreateSidecarTypeRequest) Reset() {
+	*x = CreateSidecarTypeRequest{}
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DirectoryScannerServiceListSidecarTypesRequest) String() string {
+func (x *CreateSidecarTypeRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DirectoryScannerServiceListSidecarTypesRequest) ProtoMessage() {}
+func (*CreateSidecarTypeRequest) ProtoMessage() {}
 
-func (x *DirectoryScannerServiceListSidecarTypesRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateSidecarTypeRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -562,32 +668,39 @@ func (x *DirectoryScannerServiceListSidecarTypesRequest) ProtoReflect() protoref
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryScannerServiceListSidecarTypesRequest.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceListSidecarTypesRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateSidecarTypeRequest.ProtoReflect.Descriptor instead.
+func (*CreateSidecarTypeRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{11}
 }
 
-type DirectoryScannerServiceListSidecarTypesResponse struct {
-	state         protoimpl.MessageState      `protogen:"open.v1"`
-	Types         []*v1.SidecarTypeDefinition `protobuf:"bytes,1,rep,name=types,proto3" json:"types,omitempty"`
+func (x *CreateSidecarTypeRequest) GetSidecarType() *v1.SidecarTypeDefinition {
+	if x != nil {
+		return x.SidecarType
+	}
+	return nil
+}
+
+type GetSidecarTypeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DirectoryScannerServiceListSidecarTypesResponse) Reset() {
-	*x = DirectoryScannerServiceListSidecarTypesResponse{}
+func (x *GetSidecarTypeRequest) Reset() {
+	*x = GetSidecarTypeRequest{}
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DirectoryScannerServiceListSidecarTypesResponse) String() string {
+func (x *GetSidecarTypeRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DirectoryScannerServiceListSidecarTypesResponse) ProtoMessage() {}
+func (*GetSidecarTypeRequest) ProtoMessage() {}
 
-func (x *DirectoryScannerServiceListSidecarTypesResponse) ProtoReflect() protoreflect.Message {
+func (x *GetSidecarTypeRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -599,39 +712,44 @@ func (x *DirectoryScannerServiceListSidecarTypesResponse) ProtoReflect() protore
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryScannerServiceListSidecarTypesResponse.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceListSidecarTypesResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetSidecarTypeRequest.ProtoReflect.Descriptor instead.
+func (*GetSidecarTypeRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *DirectoryScannerServiceListSidecarTypesResponse) GetTypes() []*v1.SidecarTypeDefinition {
+func (x *GetSidecarTypeRequest) GetId() string {
 	if x != nil {
-		return x.Types
+		return x.Id
 	}
-	return nil
+	return ""
 }
 
-type DirectoryScannerServiceGetSidecarTypeRequest struct {
+// ListSidecarTypesRequest is the AIP-158 / 132 / 160 List contract, same
+// shape as ListScanDirectoriesRequest. order_by accepts id, type, order.
+type ListSidecarTypesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	Filter        string                 `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
+	OrderBy       string                 `protobuf:"bytes,4,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DirectoryScannerServiceGetSidecarTypeRequest) Reset() {
-	*x = DirectoryScannerServiceGetSidecarTypeRequest{}
+func (x *ListSidecarTypesRequest) Reset() {
+	*x = ListSidecarTypesRequest{}
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DirectoryScannerServiceGetSidecarTypeRequest) String() string {
+func (x *ListSidecarTypesRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DirectoryScannerServiceGetSidecarTypeRequest) ProtoMessage() {}
+func (*ListSidecarTypesRequest) ProtoMessage() {}
 
-func (x *DirectoryScannerServiceGetSidecarTypeRequest) ProtoReflect() protoreflect.Message {
+func (x *ListSidecarTypesRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -643,39 +761,61 @@ func (x *DirectoryScannerServiceGetSidecarTypeRequest) ProtoReflect() protorefle
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryScannerServiceGetSidecarTypeRequest.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceGetSidecarTypeRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListSidecarTypesRequest.ProtoReflect.Descriptor instead.
+func (*ListSidecarTypesRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{13}
 }
 
-func (x *DirectoryScannerServiceGetSidecarTypeRequest) GetId() string {
+func (x *ListSidecarTypesRequest) GetPageSize() int32 {
 	if x != nil {
-		return x.Id
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListSidecarTypesRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
 	}
 	return ""
 }
 
-type DirectoryScannerServiceGetSidecarTypeResponse struct {
-	state         protoimpl.MessageState    `protogen:"open.v1"`
-	Type          *v1.SidecarTypeDefinition `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+func (x *ListSidecarTypesRequest) GetFilter() string {
+	if x != nil {
+		return x.Filter
+	}
+	return ""
+}
+
+func (x *ListSidecarTypesRequest) GetOrderBy() string {
+	if x != nil {
+		return x.OrderBy
+	}
+	return ""
+}
+
+type ListSidecarTypesResponse struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	SidecarTypes  []*v1.SidecarTypeDefinition `protobuf:"bytes,1,rep,name=sidecar_types,json=sidecarTypes,proto3" json:"sidecar_types,omitempty"`
+	NextPageToken string                      `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DirectoryScannerServiceGetSidecarTypeResponse) Reset() {
-	*x = DirectoryScannerServiceGetSidecarTypeResponse{}
+func (x *ListSidecarTypesResponse) Reset() {
+	*x = ListSidecarTypesResponse{}
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DirectoryScannerServiceGetSidecarTypeResponse) String() string {
+func (x *ListSidecarTypesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DirectoryScannerServiceGetSidecarTypeResponse) ProtoMessage() {}
+func (*ListSidecarTypesResponse) ProtoMessage() {}
 
-func (x *DirectoryScannerServiceGetSidecarTypeResponse) ProtoReflect() protoreflect.Message {
+func (x *ListSidecarTypesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -687,39 +827,53 @@ func (x *DirectoryScannerServiceGetSidecarTypeResponse) ProtoReflect() protorefl
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryScannerServiceGetSidecarTypeResponse.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceGetSidecarTypeResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListSidecarTypesResponse.ProtoReflect.Descriptor instead.
+func (*ListSidecarTypesResponse) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{14}
 }
 
-func (x *DirectoryScannerServiceGetSidecarTypeResponse) GetType() *v1.SidecarTypeDefinition {
+func (x *ListSidecarTypesResponse) GetSidecarTypes() []*v1.SidecarTypeDefinition {
 	if x != nil {
-		return x.Type
+		return x.SidecarTypes
 	}
 	return nil
 }
 
-type DirectoryScannerServiceUpsertSidecarTypeRequest struct {
+func (x *ListSidecarTypesResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+// UpdateSidecarTypeRequest is an AIP-134 partial update matched to a stored
+// type by its minted id. There is no allow_missing — an Update against an
+// unknown id is NotFound, never a create, since the id is server-minted. The
+// order field cannot be moved by the mask; use ReorderSidecarTypes. The
+// resulting table is compiled on the write path and a table that fails to
+// compile is InvalidArgument.
+type UpdateSidecarTypeRequest struct {
 	state         protoimpl.MessageState    `protogen:"open.v1"`
-	Type          *v1.SidecarTypeDefinition `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	SidecarType   *v1.SidecarTypeDefinition `protobuf:"bytes,1,opt,name=sidecar_type,json=sidecarType,proto3" json:"sidecar_type,omitempty"`
+	UpdateMask    *fieldmaskpb.FieldMask    `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DirectoryScannerServiceUpsertSidecarTypeRequest) Reset() {
-	*x = DirectoryScannerServiceUpsertSidecarTypeRequest{}
+func (x *UpdateSidecarTypeRequest) Reset() {
+	*x = UpdateSidecarTypeRequest{}
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DirectoryScannerServiceUpsertSidecarTypeRequest) String() string {
+func (x *UpdateSidecarTypeRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DirectoryScannerServiceUpsertSidecarTypeRequest) ProtoMessage() {}
+func (*UpdateSidecarTypeRequest) ProtoMessage() {}
 
-func (x *DirectoryScannerServiceUpsertSidecarTypeRequest) ProtoReflect() protoreflect.Message {
+func (x *UpdateSidecarTypeRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -731,39 +885,46 @@ func (x *DirectoryScannerServiceUpsertSidecarTypeRequest) ProtoReflect() protore
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryScannerServiceUpsertSidecarTypeRequest.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceUpsertSidecarTypeRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateSidecarTypeRequest.ProtoReflect.Descriptor instead.
+func (*UpdateSidecarTypeRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *DirectoryScannerServiceUpsertSidecarTypeRequest) GetType() *v1.SidecarTypeDefinition {
+func (x *UpdateSidecarTypeRequest) GetSidecarType() *v1.SidecarTypeDefinition {
 	if x != nil {
-		return x.Type
+		return x.SidecarType
 	}
 	return nil
 }
 
-type DirectoryScannerServiceDeleteSidecarTypeRequest struct {
+func (x *UpdateSidecarTypeRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
+type DeleteSidecarTypeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DirectoryScannerServiceDeleteSidecarTypeRequest) Reset() {
-	*x = DirectoryScannerServiceDeleteSidecarTypeRequest{}
+func (x *DeleteSidecarTypeRequest) Reset() {
+	*x = DeleteSidecarTypeRequest{}
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DirectoryScannerServiceDeleteSidecarTypeRequest) String() string {
+func (x *DeleteSidecarTypeRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DirectoryScannerServiceDeleteSidecarTypeRequest) ProtoMessage() {}
+func (*DeleteSidecarTypeRequest) ProtoMessage() {}
 
-func (x *DirectoryScannerServiceDeleteSidecarTypeRequest) ProtoReflect() protoreflect.Message {
+func (x *DeleteSidecarTypeRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -775,43 +936,42 @@ func (x *DirectoryScannerServiceDeleteSidecarTypeRequest) ProtoReflect() protore
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryScannerServiceDeleteSidecarTypeRequest.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceDeleteSidecarTypeRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteSidecarTypeRequest.ProtoReflect.Descriptor instead.
+func (*DeleteSidecarTypeRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{16}
 }
 
-func (x *DirectoryScannerServiceDeleteSidecarTypeRequest) GetId() string {
+func (x *DeleteSidecarTypeRequest) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-// DirectoryScannerServiceReorderSidecarTypesRequest maps every sidecar type
-// id to its evaluation order in one transaction — see
-// ReorderSidecarTypes's doc comment on the Go side for why this can't be a
-// per-entry field.
-type DirectoryScannerServiceReorderSidecarTypesRequest struct {
+// ReorderSidecarTypesRequest maps every sidecar type id to its evaluation
+// order in one transaction — uniqueness is a property of the whole table, so
+// it cannot be a per-entry field. The updated list is returned.
+type ReorderSidecarTypesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Orders        map[string]int32       `protobuf:"bytes,1,rep,name=orders,proto3" json:"orders,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DirectoryScannerServiceReorderSidecarTypesRequest) Reset() {
-	*x = DirectoryScannerServiceReorderSidecarTypesRequest{}
+func (x *ReorderSidecarTypesRequest) Reset() {
+	*x = ReorderSidecarTypesRequest{}
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DirectoryScannerServiceReorderSidecarTypesRequest) String() string {
+func (x *ReorderSidecarTypesRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DirectoryScannerServiceReorderSidecarTypesRequest) ProtoMessage() {}
+func (*ReorderSidecarTypesRequest) ProtoMessage() {}
 
-func (x *DirectoryScannerServiceReorderSidecarTypesRequest) ProtoReflect() protoreflect.Message {
+func (x *ReorderSidecarTypesRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -823,38 +983,39 @@ func (x *DirectoryScannerServiceReorderSidecarTypesRequest) ProtoReflect() proto
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryScannerServiceReorderSidecarTypesRequest.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceReorderSidecarTypesRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ReorderSidecarTypesRequest.ProtoReflect.Descriptor instead.
+func (*ReorderSidecarTypesRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *DirectoryScannerServiceReorderSidecarTypesRequest) GetOrders() map[string]int32 {
+func (x *ReorderSidecarTypesRequest) GetOrders() map[string]int32 {
 	if x != nil {
 		return x.Orders
 	}
 	return nil
 }
 
-type DirectoryScannerServiceResetSidecarTypesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+type ReorderSidecarTypesResponse struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	SidecarTypes  []*v1.SidecarTypeDefinition `protobuf:"bytes,1,rep,name=sidecar_types,json=sidecarTypes,proto3" json:"sidecar_types,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DirectoryScannerServiceResetSidecarTypesRequest) Reset() {
-	*x = DirectoryScannerServiceResetSidecarTypesRequest{}
+func (x *ReorderSidecarTypesResponse) Reset() {
+	*x = ReorderSidecarTypesResponse{}
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DirectoryScannerServiceResetSidecarTypesRequest) String() string {
+func (x *ReorderSidecarTypesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DirectoryScannerServiceResetSidecarTypesRequest) ProtoMessage() {}
+func (*ReorderSidecarTypesResponse) ProtoMessage() {}
 
-func (x *DirectoryScannerServiceResetSidecarTypesRequest) ProtoReflect() protoreflect.Message {
+func (x *ReorderSidecarTypesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -866,16 +1027,103 @@ func (x *DirectoryScannerServiceResetSidecarTypesRequest) ProtoReflect() protore
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryScannerServiceResetSidecarTypesRequest.ProtoReflect.Descriptor instead.
-func (*DirectoryScannerServiceResetSidecarTypesRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ReorderSidecarTypesResponse.ProtoReflect.Descriptor instead.
+func (*ReorderSidecarTypesResponse) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ReorderSidecarTypesResponse) GetSidecarTypes() []*v1.SidecarTypeDefinition {
+	if x != nil {
+		return x.SidecarTypes
+	}
+	return nil
+}
+
+type ResetSidecarTypesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResetSidecarTypesRequest) Reset() {
+	*x = ResetSidecarTypesRequest{}
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResetSidecarTypesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResetSidecarTypesRequest) ProtoMessage() {}
+
+func (x *ResetSidecarTypesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResetSidecarTypesRequest.ProtoReflect.Descriptor instead.
+func (*ResetSidecarTypesRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{19}
+}
+
+type ResetSidecarTypesResponse struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	SidecarTypes  []*v1.SidecarTypeDefinition `protobuf:"bytes,1,rep,name=sidecar_types,json=sidecarTypes,proto3" json:"sidecar_types,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResetSidecarTypesResponse) Reset() {
+	*x = ResetSidecarTypesResponse{}
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResetSidecarTypesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResetSidecarTypesResponse) ProtoMessage() {}
+
+func (x *ResetSidecarTypesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResetSidecarTypesResponse.ProtoReflect.Descriptor instead.
+func (*ResetSidecarTypesResponse) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *ResetSidecarTypesResponse) GetSidecarTypes() []*v1.SidecarTypeDefinition {
+	if x != nil {
+		return x.SidecarTypes
+	}
+	return nil
 }
 
 var File_metarr_v1_directory_scanner_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_directory_scanner_proto_rawDesc = "" +
 	"\n" +
-	"!metarr/v1/directory_scanner.proto\x12\tmetarr.v1\x1a\"metarr/bus/v1/agent_contract.proto\x1a\x16metarr/v1/common.proto\"\xcf\x01\n" +
+	"!metarr/v1/directory_scanner.proto\x12\tmetarr.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\"metarr/bus/v1/agent_contract.proto\"\xcf\x01\n" +
 	"\x16DirectoryScannerConfig\x12%\n" +
 	"\x0eparallel_count\x18\x01 \x01(\x05R\rparallelCount\x12C\n" +
 	"\x10scan_directories\x18\x02 \x03(\v2\x18.metarr.v1.ScanDirectoryR\x0fscanDirectories\x12I\n" +
@@ -883,55 +1131,80 @@ const file_metarr_v1_directory_scanner_proto_rawDesc = "" +
 	"\rScanDirectory\x12!\n" +
 	"\fscanner_slug\x18\x01 \x01(\tR\vscannerSlug\x12\x1b\n" +
 	"\tscan_type\x18\x02 \x01(\tR\bscanType\x12\x1c\n" +
-	"\tdirectory\x18\x03 \x01(\tR\tdirectory\"#\n" +
-	"!DirectoryScannerServiceGetRequest\"_\n" +
-	"\"DirectoryScannerServiceGetResponse\x129\n" +
-	"\x06config\x18\x01 \x01(\v2!.metarr.v1.DirectoryScannerConfigR\x06config\"e\n" +
-	"$DirectoryScannerServiceUpdateRequest\x12*\n" +
-	"\x0eparallel_count\x18\x01 \x01(\x05H\x00R\rparallelCount\x88\x01\x01B\x11\n" +
-	"\x0f_parallel_count\"/\n" +
-	"-DirectoryScannerServiceListDirectoriesRequest\"l\n" +
-	".DirectoryScannerServiceListDirectoriesResponse\x12:\n" +
-	"\vdirectories\x18\x01 \x03(\v2\x18.metarr.v1.ScanDirectoryR\vdirectories\"@\n" +
-	"*DirectoryScannerServiceGetDirectoryRequest\x12\x12\n" +
-	"\x04slug\x18\x01 \x01(\tR\x04slug\"e\n" +
-	"+DirectoryScannerServiceGetDirectoryResponse\x126\n" +
-	"\tdirectory\x18\x01 \x01(\v2\x18.metarr.v1.ScanDirectoryR\tdirectory\"g\n" +
-	"-DirectoryScannerServiceUpsertDirectoryRequest\x126\n" +
-	"\tdirectory\x18\x01 \x01(\v2\x18.metarr.v1.ScanDirectoryR\tdirectory\"C\n" +
-	"-DirectoryScannerServiceDeleteDirectoryRequest\x12\x12\n" +
-	"\x04slug\x18\x01 \x01(\tR\x04slug\"0\n" +
-	".DirectoryScannerServiceListSidecarTypesRequest\"m\n" +
-	"/DirectoryScannerServiceListSidecarTypesResponse\x12:\n" +
-	"\x05types\x18\x01 \x03(\v2$.metarr.bus.v1.SidecarTypeDefinitionR\x05types\">\n" +
-	",DirectoryScannerServiceGetSidecarTypeRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"i\n" +
-	"-DirectoryScannerServiceGetSidecarTypeResponse\x128\n" +
-	"\x04type\x18\x01 \x01(\v2$.metarr.bus.v1.SidecarTypeDefinitionR\x04type\"k\n" +
-	"/DirectoryScannerServiceUpsertSidecarTypeRequest\x128\n" +
-	"\x04type\x18\x01 \x01(\v2$.metarr.bus.v1.SidecarTypeDefinitionR\x04type\"A\n" +
-	"/DirectoryScannerServiceDeleteSidecarTypeRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xd0\x01\n" +
-	"1DirectoryScannerServiceReorderSidecarTypesRequest\x12`\n" +
-	"\x06orders\x18\x01 \x03(\v2H.metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest.OrdersEntryR\x06orders\x1a9\n" +
+	"\tdirectory\x18\x03 \x01(\tR\tdirectory\"\"\n" +
+	" GetDirectoryScannerConfigRequest\"^\n" +
+	"!GetDirectoryScannerConfigResponse\x129\n" +
+	"\x06config\x18\x01 \x01(\v2!.metarr.v1.DirectoryScannerConfigR\x06config\"\x9d\x01\n" +
+	"#UpdateDirectoryScannerConfigRequest\x129\n" +
+	"\x06config\x18\x01 \x01(\v2!.metarr.v1.DirectoryScannerConfigR\x06config\x12;\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
+	"updateMask\"\x89\x01\n" +
+	"\x1aCreateScanDirectoryRequest\x12*\n" +
+	"\x11scan_directory_id\x18\x01 \x01(\tR\x0fscanDirectoryId\x12?\n" +
+	"\x0escan_directory\x18\x02 \x01(\v2\x18.metarr.v1.ScanDirectoryR\rscanDirectory\"-\n" +
+	"\x17GetScanDirectoryRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\"\x8b\x01\n" +
+	"\x1aListScanDirectoriesRequest\x12\x1b\n" +
+	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x16\n" +
+	"\x06filter\x18\x03 \x01(\tR\x06filter\x12\x19\n" +
+	"\border_by\x18\x04 \x01(\tR\aorderBy\"\x8a\x01\n" +
+	"\x1bListScanDirectoriesResponse\x12C\n" +
+	"\x10scan_directories\x18\x01 \x03(\v2\x18.metarr.v1.ScanDirectoryR\x0fscanDirectories\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xbf\x01\n" +
+	"\x1aUpdateScanDirectoryRequest\x12?\n" +
+	"\x0escan_directory\x18\x01 \x01(\v2\x18.metarr.v1.ScanDirectoryR\rscanDirectory\x12;\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
+	"updateMask\x12#\n" +
+	"\rallow_missing\x18\x03 \x01(\bR\fallowMissing\"0\n" +
+	"\x1aDeleteScanDirectoryRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\"c\n" +
+	"\x18CreateSidecarTypeRequest\x12G\n" +
+	"\fsidecar_type\x18\x01 \x01(\v2$.metarr.bus.v1.SidecarTypeDefinitionR\vsidecarType\"'\n" +
+	"\x15GetSidecarTypeRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x88\x01\n" +
+	"\x17ListSidecarTypesRequest\x12\x1b\n" +
+	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x16\n" +
+	"\x06filter\x18\x03 \x01(\tR\x06filter\x12\x19\n" +
+	"\border_by\x18\x04 \x01(\tR\aorderBy\"\x8d\x01\n" +
+	"\x18ListSidecarTypesResponse\x12I\n" +
+	"\rsidecar_types\x18\x01 \x03(\v2$.metarr.bus.v1.SidecarTypeDefinitionR\fsidecarTypes\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa0\x01\n" +
+	"\x18UpdateSidecarTypeRequest\x12G\n" +
+	"\fsidecar_type\x18\x01 \x01(\v2$.metarr.bus.v1.SidecarTypeDefinitionR\vsidecarType\x12;\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
+	"updateMask\"*\n" +
+	"\x18DeleteSidecarTypeRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xa2\x01\n" +
+	"\x1aReorderSidecarTypesRequest\x12I\n" +
+	"\x06orders\x18\x01 \x03(\v21.metarr.v1.ReorderSidecarTypesRequest.OrdersEntryR\x06orders\x1a9\n" +
 	"\vOrdersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"1\n" +
-	"/DirectoryScannerServiceResetSidecarTypesRequest2\xff\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"h\n" +
+	"\x1bReorderSidecarTypesResponse\x12I\n" +
+	"\rsidecar_types\x18\x01 \x03(\v2$.metarr.bus.v1.SidecarTypeDefinitionR\fsidecarTypes\"\x1a\n" +
+	"\x18ResetSidecarTypesRequest\"f\n" +
+	"\x19ResetSidecarTypesResponse\x12I\n" +
+	"\rsidecar_types\x18\x01 \x03(\v2$.metarr.bus.v1.SidecarTypeDefinitionR\fsidecarTypes2\xd1\n" +
 	"\n" +
-	"\x17DirectoryScannerService\x12b\n" +
-	"\x03Get\x12,.metarr.v1.DirectoryScannerServiceGetRequest\x1a-.metarr.v1.DirectoryScannerServiceGetResponse\x12V\n" +
-	"\x06Update\x12/.metarr.v1.DirectoryScannerServiceUpdateRequest\x1a\x1b.metarr.v1.AcceptedResponse\x12\x86\x01\n" +
-	"\x0fListDirectories\x128.metarr.v1.DirectoryScannerServiceListDirectoriesRequest\x1a9.metarr.v1.DirectoryScannerServiceListDirectoriesResponse\x12}\n" +
-	"\fGetDirectory\x125.metarr.v1.DirectoryScannerServiceGetDirectoryRequest\x1a6.metarr.v1.DirectoryScannerServiceGetDirectoryResponse\x12h\n" +
-	"\x0fUpsertDirectory\x128.metarr.v1.DirectoryScannerServiceUpsertDirectoryRequest\x1a\x1b.metarr.v1.AcceptedResponse\x12h\n" +
-	"\x0fDeleteDirectory\x128.metarr.v1.DirectoryScannerServiceDeleteDirectoryRequest\x1a\x1b.metarr.v1.AcceptedResponse\x12\x89\x01\n" +
-	"\x10ListSidecarTypes\x129.metarr.v1.DirectoryScannerServiceListSidecarTypesRequest\x1a:.metarr.v1.DirectoryScannerServiceListSidecarTypesResponse\x12\x83\x01\n" +
-	"\x0eGetSidecarType\x127.metarr.v1.DirectoryScannerServiceGetSidecarTypeRequest\x1a8.metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse\x12l\n" +
-	"\x11UpsertSidecarType\x12:.metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest\x1a\x1b.metarr.v1.AcceptedResponse\x12l\n" +
-	"\x11DeleteSidecarType\x12:.metarr.v1.DirectoryScannerServiceDeleteSidecarTypeRequest\x1a\x1b.metarr.v1.AcceptedResponse\x12p\n" +
-	"\x13ReorderSidecarTypes\x12<.metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest\x1a\x1b.metarr.v1.AcceptedResponse\x12l\n" +
-	"\x11ResetSidecarTypes\x12:.metarr.v1.DirectoryScannerServiceResetSidecarTypesRequest\x1a\x1b.metarr.v1.AcceptedResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
+	"\x17DirectoryScannerService\x12v\n" +
+	"\x19GetDirectoryScannerConfig\x12+.metarr.v1.GetDirectoryScannerConfigRequest\x1a,.metarr.v1.GetDirectoryScannerConfigResponse\x12q\n" +
+	"\x1cUpdateDirectoryScannerConfig\x12..metarr.v1.UpdateDirectoryScannerConfigRequest\x1a!.metarr.v1.DirectoryScannerConfig\x12V\n" +
+	"\x13CreateScanDirectory\x12%.metarr.v1.CreateScanDirectoryRequest\x1a\x18.metarr.v1.ScanDirectory\x12P\n" +
+	"\x10GetScanDirectory\x12\".metarr.v1.GetScanDirectoryRequest\x1a\x18.metarr.v1.ScanDirectory\x12d\n" +
+	"\x13ListScanDirectories\x12%.metarr.v1.ListScanDirectoriesRequest\x1a&.metarr.v1.ListScanDirectoriesResponse\x12V\n" +
+	"\x13UpdateScanDirectory\x12%.metarr.v1.UpdateScanDirectoryRequest\x1a\x18.metarr.v1.ScanDirectory\x12T\n" +
+	"\x13DeleteScanDirectory\x12%.metarr.v1.DeleteScanDirectoryRequest\x1a\x16.google.protobuf.Empty\x12^\n" +
+	"\x11CreateSidecarType\x12#.metarr.v1.CreateSidecarTypeRequest\x1a$.metarr.bus.v1.SidecarTypeDefinition\x12X\n" +
+	"\x0eGetSidecarType\x12 .metarr.v1.GetSidecarTypeRequest\x1a$.metarr.bus.v1.SidecarTypeDefinition\x12[\n" +
+	"\x10ListSidecarTypes\x12\".metarr.v1.ListSidecarTypesRequest\x1a#.metarr.v1.ListSidecarTypesResponse\x12^\n" +
+	"\x11UpdateSidecarType\x12#.metarr.v1.UpdateSidecarTypeRequest\x1a$.metarr.bus.v1.SidecarTypeDefinition\x12P\n" +
+	"\x11DeleteSidecarType\x12#.metarr.v1.DeleteSidecarTypeRequest\x1a\x16.google.protobuf.Empty\x12d\n" +
+	"\x13ReorderSidecarTypes\x12%.metarr.v1.ReorderSidecarTypesRequest\x1a&.metarr.v1.ReorderSidecarTypesResponse\x12^\n" +
+	"\x11ResetSidecarTypes\x12#.metarr.v1.ResetSidecarTypesRequest\x1a$.metarr.v1.ResetSidecarTypesResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
 
 var (
 	file_metarr_v1_directory_scanner_proto_rawDescOnce sync.Once
@@ -945,71 +1218,84 @@ func file_metarr_v1_directory_scanner_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_directory_scanner_proto_rawDescData
 }
 
-var file_metarr_v1_directory_scanner_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_metarr_v1_directory_scanner_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_metarr_v1_directory_scanner_proto_goTypes = []any{
-	(*DirectoryScannerConfig)(nil),                            // 0: metarr.v1.DirectoryScannerConfig
-	(*ScanDirectory)(nil),                                     // 1: metarr.v1.ScanDirectory
-	(*DirectoryScannerServiceGetRequest)(nil),                 // 2: metarr.v1.DirectoryScannerServiceGetRequest
-	(*DirectoryScannerServiceGetResponse)(nil),                // 3: metarr.v1.DirectoryScannerServiceGetResponse
-	(*DirectoryScannerServiceUpdateRequest)(nil),              // 4: metarr.v1.DirectoryScannerServiceUpdateRequest
-	(*DirectoryScannerServiceListDirectoriesRequest)(nil),     // 5: metarr.v1.DirectoryScannerServiceListDirectoriesRequest
-	(*DirectoryScannerServiceListDirectoriesResponse)(nil),    // 6: metarr.v1.DirectoryScannerServiceListDirectoriesResponse
-	(*DirectoryScannerServiceGetDirectoryRequest)(nil),        // 7: metarr.v1.DirectoryScannerServiceGetDirectoryRequest
-	(*DirectoryScannerServiceGetDirectoryResponse)(nil),       // 8: metarr.v1.DirectoryScannerServiceGetDirectoryResponse
-	(*DirectoryScannerServiceUpsertDirectoryRequest)(nil),     // 9: metarr.v1.DirectoryScannerServiceUpsertDirectoryRequest
-	(*DirectoryScannerServiceDeleteDirectoryRequest)(nil),     // 10: metarr.v1.DirectoryScannerServiceDeleteDirectoryRequest
-	(*DirectoryScannerServiceListSidecarTypesRequest)(nil),    // 11: metarr.v1.DirectoryScannerServiceListSidecarTypesRequest
-	(*DirectoryScannerServiceListSidecarTypesResponse)(nil),   // 12: metarr.v1.DirectoryScannerServiceListSidecarTypesResponse
-	(*DirectoryScannerServiceGetSidecarTypeRequest)(nil),      // 13: metarr.v1.DirectoryScannerServiceGetSidecarTypeRequest
-	(*DirectoryScannerServiceGetSidecarTypeResponse)(nil),     // 14: metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse
-	(*DirectoryScannerServiceUpsertSidecarTypeRequest)(nil),   // 15: metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest
-	(*DirectoryScannerServiceDeleteSidecarTypeRequest)(nil),   // 16: metarr.v1.DirectoryScannerServiceDeleteSidecarTypeRequest
-	(*DirectoryScannerServiceReorderSidecarTypesRequest)(nil), // 17: metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest
-	(*DirectoryScannerServiceResetSidecarTypesRequest)(nil),   // 18: metarr.v1.DirectoryScannerServiceResetSidecarTypesRequest
-	nil,                              // 19: metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest.OrdersEntry
-	(*v1.SidecarTypeDefinition)(nil), // 20: metarr.bus.v1.SidecarTypeDefinition
-	(*AcceptedResponse)(nil),         // 21: metarr.v1.AcceptedResponse
+	(*DirectoryScannerConfig)(nil),              // 0: metarr.v1.DirectoryScannerConfig
+	(*ScanDirectory)(nil),                       // 1: metarr.v1.ScanDirectory
+	(*GetDirectoryScannerConfigRequest)(nil),    // 2: metarr.v1.GetDirectoryScannerConfigRequest
+	(*GetDirectoryScannerConfigResponse)(nil),   // 3: metarr.v1.GetDirectoryScannerConfigResponse
+	(*UpdateDirectoryScannerConfigRequest)(nil), // 4: metarr.v1.UpdateDirectoryScannerConfigRequest
+	(*CreateScanDirectoryRequest)(nil),          // 5: metarr.v1.CreateScanDirectoryRequest
+	(*GetScanDirectoryRequest)(nil),             // 6: metarr.v1.GetScanDirectoryRequest
+	(*ListScanDirectoriesRequest)(nil),          // 7: metarr.v1.ListScanDirectoriesRequest
+	(*ListScanDirectoriesResponse)(nil),         // 8: metarr.v1.ListScanDirectoriesResponse
+	(*UpdateScanDirectoryRequest)(nil),          // 9: metarr.v1.UpdateScanDirectoryRequest
+	(*DeleteScanDirectoryRequest)(nil),          // 10: metarr.v1.DeleteScanDirectoryRequest
+	(*CreateSidecarTypeRequest)(nil),            // 11: metarr.v1.CreateSidecarTypeRequest
+	(*GetSidecarTypeRequest)(nil),               // 12: metarr.v1.GetSidecarTypeRequest
+	(*ListSidecarTypesRequest)(nil),             // 13: metarr.v1.ListSidecarTypesRequest
+	(*ListSidecarTypesResponse)(nil),            // 14: metarr.v1.ListSidecarTypesResponse
+	(*UpdateSidecarTypeRequest)(nil),            // 15: metarr.v1.UpdateSidecarTypeRequest
+	(*DeleteSidecarTypeRequest)(nil),            // 16: metarr.v1.DeleteSidecarTypeRequest
+	(*ReorderSidecarTypesRequest)(nil),          // 17: metarr.v1.ReorderSidecarTypesRequest
+	(*ReorderSidecarTypesResponse)(nil),         // 18: metarr.v1.ReorderSidecarTypesResponse
+	(*ResetSidecarTypesRequest)(nil),            // 19: metarr.v1.ResetSidecarTypesRequest
+	(*ResetSidecarTypesResponse)(nil),           // 20: metarr.v1.ResetSidecarTypesResponse
+	nil,                                         // 21: metarr.v1.ReorderSidecarTypesRequest.OrdersEntry
+	(*v1.SidecarTypeDefinition)(nil),            // 22: metarr.bus.v1.SidecarTypeDefinition
+	(*fieldmaskpb.FieldMask)(nil),               // 23: google.protobuf.FieldMask
+	(*emptypb.Empty)(nil),                       // 24: google.protobuf.Empty
 }
 var file_metarr_v1_directory_scanner_proto_depIdxs = []int32{
 	1,  // 0: metarr.v1.DirectoryScannerConfig.scan_directories:type_name -> metarr.v1.ScanDirectory
-	20, // 1: metarr.v1.DirectoryScannerConfig.sidecar_types:type_name -> metarr.bus.v1.SidecarTypeDefinition
-	0,  // 2: metarr.v1.DirectoryScannerServiceGetResponse.config:type_name -> metarr.v1.DirectoryScannerConfig
-	1,  // 3: metarr.v1.DirectoryScannerServiceListDirectoriesResponse.directories:type_name -> metarr.v1.ScanDirectory
-	1,  // 4: metarr.v1.DirectoryScannerServiceGetDirectoryResponse.directory:type_name -> metarr.v1.ScanDirectory
-	1,  // 5: metarr.v1.DirectoryScannerServiceUpsertDirectoryRequest.directory:type_name -> metarr.v1.ScanDirectory
-	20, // 6: metarr.v1.DirectoryScannerServiceListSidecarTypesResponse.types:type_name -> metarr.bus.v1.SidecarTypeDefinition
-	20, // 7: metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse.type:type_name -> metarr.bus.v1.SidecarTypeDefinition
-	20, // 8: metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest.type:type_name -> metarr.bus.v1.SidecarTypeDefinition
-	19, // 9: metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest.orders:type_name -> metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest.OrdersEntry
-	2,  // 10: metarr.v1.DirectoryScannerService.Get:input_type -> metarr.v1.DirectoryScannerServiceGetRequest
-	4,  // 11: metarr.v1.DirectoryScannerService.Update:input_type -> metarr.v1.DirectoryScannerServiceUpdateRequest
-	5,  // 12: metarr.v1.DirectoryScannerService.ListDirectories:input_type -> metarr.v1.DirectoryScannerServiceListDirectoriesRequest
-	7,  // 13: metarr.v1.DirectoryScannerService.GetDirectory:input_type -> metarr.v1.DirectoryScannerServiceGetDirectoryRequest
-	9,  // 14: metarr.v1.DirectoryScannerService.UpsertDirectory:input_type -> metarr.v1.DirectoryScannerServiceUpsertDirectoryRequest
-	10, // 15: metarr.v1.DirectoryScannerService.DeleteDirectory:input_type -> metarr.v1.DirectoryScannerServiceDeleteDirectoryRequest
-	11, // 16: metarr.v1.DirectoryScannerService.ListSidecarTypes:input_type -> metarr.v1.DirectoryScannerServiceListSidecarTypesRequest
-	13, // 17: metarr.v1.DirectoryScannerService.GetSidecarType:input_type -> metarr.v1.DirectoryScannerServiceGetSidecarTypeRequest
-	15, // 18: metarr.v1.DirectoryScannerService.UpsertSidecarType:input_type -> metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest
-	16, // 19: metarr.v1.DirectoryScannerService.DeleteSidecarType:input_type -> metarr.v1.DirectoryScannerServiceDeleteSidecarTypeRequest
-	17, // 20: metarr.v1.DirectoryScannerService.ReorderSidecarTypes:input_type -> metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest
-	18, // 21: metarr.v1.DirectoryScannerService.ResetSidecarTypes:input_type -> metarr.v1.DirectoryScannerServiceResetSidecarTypesRequest
-	3,  // 22: metarr.v1.DirectoryScannerService.Get:output_type -> metarr.v1.DirectoryScannerServiceGetResponse
-	21, // 23: metarr.v1.DirectoryScannerService.Update:output_type -> metarr.v1.AcceptedResponse
-	6,  // 24: metarr.v1.DirectoryScannerService.ListDirectories:output_type -> metarr.v1.DirectoryScannerServiceListDirectoriesResponse
-	8,  // 25: metarr.v1.DirectoryScannerService.GetDirectory:output_type -> metarr.v1.DirectoryScannerServiceGetDirectoryResponse
-	21, // 26: metarr.v1.DirectoryScannerService.UpsertDirectory:output_type -> metarr.v1.AcceptedResponse
-	21, // 27: metarr.v1.DirectoryScannerService.DeleteDirectory:output_type -> metarr.v1.AcceptedResponse
-	12, // 28: metarr.v1.DirectoryScannerService.ListSidecarTypes:output_type -> metarr.v1.DirectoryScannerServiceListSidecarTypesResponse
-	14, // 29: metarr.v1.DirectoryScannerService.GetSidecarType:output_type -> metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse
-	21, // 30: metarr.v1.DirectoryScannerService.UpsertSidecarType:output_type -> metarr.v1.AcceptedResponse
-	21, // 31: metarr.v1.DirectoryScannerService.DeleteSidecarType:output_type -> metarr.v1.AcceptedResponse
-	21, // 32: metarr.v1.DirectoryScannerService.ReorderSidecarTypes:output_type -> metarr.v1.AcceptedResponse
-	21, // 33: metarr.v1.DirectoryScannerService.ResetSidecarTypes:output_type -> metarr.v1.AcceptedResponse
-	22, // [22:34] is the sub-list for method output_type
-	10, // [10:22] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	22, // 1: metarr.v1.DirectoryScannerConfig.sidecar_types:type_name -> metarr.bus.v1.SidecarTypeDefinition
+	0,  // 2: metarr.v1.GetDirectoryScannerConfigResponse.config:type_name -> metarr.v1.DirectoryScannerConfig
+	0,  // 3: metarr.v1.UpdateDirectoryScannerConfigRequest.config:type_name -> metarr.v1.DirectoryScannerConfig
+	23, // 4: metarr.v1.UpdateDirectoryScannerConfigRequest.update_mask:type_name -> google.protobuf.FieldMask
+	1,  // 5: metarr.v1.CreateScanDirectoryRequest.scan_directory:type_name -> metarr.v1.ScanDirectory
+	1,  // 6: metarr.v1.ListScanDirectoriesResponse.scan_directories:type_name -> metarr.v1.ScanDirectory
+	1,  // 7: metarr.v1.UpdateScanDirectoryRequest.scan_directory:type_name -> metarr.v1.ScanDirectory
+	23, // 8: metarr.v1.UpdateScanDirectoryRequest.update_mask:type_name -> google.protobuf.FieldMask
+	22, // 9: metarr.v1.CreateSidecarTypeRequest.sidecar_type:type_name -> metarr.bus.v1.SidecarTypeDefinition
+	22, // 10: metarr.v1.ListSidecarTypesResponse.sidecar_types:type_name -> metarr.bus.v1.SidecarTypeDefinition
+	22, // 11: metarr.v1.UpdateSidecarTypeRequest.sidecar_type:type_name -> metarr.bus.v1.SidecarTypeDefinition
+	23, // 12: metarr.v1.UpdateSidecarTypeRequest.update_mask:type_name -> google.protobuf.FieldMask
+	21, // 13: metarr.v1.ReorderSidecarTypesRequest.orders:type_name -> metarr.v1.ReorderSidecarTypesRequest.OrdersEntry
+	22, // 14: metarr.v1.ReorderSidecarTypesResponse.sidecar_types:type_name -> metarr.bus.v1.SidecarTypeDefinition
+	22, // 15: metarr.v1.ResetSidecarTypesResponse.sidecar_types:type_name -> metarr.bus.v1.SidecarTypeDefinition
+	2,  // 16: metarr.v1.DirectoryScannerService.GetDirectoryScannerConfig:input_type -> metarr.v1.GetDirectoryScannerConfigRequest
+	4,  // 17: metarr.v1.DirectoryScannerService.UpdateDirectoryScannerConfig:input_type -> metarr.v1.UpdateDirectoryScannerConfigRequest
+	5,  // 18: metarr.v1.DirectoryScannerService.CreateScanDirectory:input_type -> metarr.v1.CreateScanDirectoryRequest
+	6,  // 19: metarr.v1.DirectoryScannerService.GetScanDirectory:input_type -> metarr.v1.GetScanDirectoryRequest
+	7,  // 20: metarr.v1.DirectoryScannerService.ListScanDirectories:input_type -> metarr.v1.ListScanDirectoriesRequest
+	9,  // 21: metarr.v1.DirectoryScannerService.UpdateScanDirectory:input_type -> metarr.v1.UpdateScanDirectoryRequest
+	10, // 22: metarr.v1.DirectoryScannerService.DeleteScanDirectory:input_type -> metarr.v1.DeleteScanDirectoryRequest
+	11, // 23: metarr.v1.DirectoryScannerService.CreateSidecarType:input_type -> metarr.v1.CreateSidecarTypeRequest
+	12, // 24: metarr.v1.DirectoryScannerService.GetSidecarType:input_type -> metarr.v1.GetSidecarTypeRequest
+	13, // 25: metarr.v1.DirectoryScannerService.ListSidecarTypes:input_type -> metarr.v1.ListSidecarTypesRequest
+	15, // 26: metarr.v1.DirectoryScannerService.UpdateSidecarType:input_type -> metarr.v1.UpdateSidecarTypeRequest
+	16, // 27: metarr.v1.DirectoryScannerService.DeleteSidecarType:input_type -> metarr.v1.DeleteSidecarTypeRequest
+	17, // 28: metarr.v1.DirectoryScannerService.ReorderSidecarTypes:input_type -> metarr.v1.ReorderSidecarTypesRequest
+	19, // 29: metarr.v1.DirectoryScannerService.ResetSidecarTypes:input_type -> metarr.v1.ResetSidecarTypesRequest
+	3,  // 30: metarr.v1.DirectoryScannerService.GetDirectoryScannerConfig:output_type -> metarr.v1.GetDirectoryScannerConfigResponse
+	0,  // 31: metarr.v1.DirectoryScannerService.UpdateDirectoryScannerConfig:output_type -> metarr.v1.DirectoryScannerConfig
+	1,  // 32: metarr.v1.DirectoryScannerService.CreateScanDirectory:output_type -> metarr.v1.ScanDirectory
+	1,  // 33: metarr.v1.DirectoryScannerService.GetScanDirectory:output_type -> metarr.v1.ScanDirectory
+	8,  // 34: metarr.v1.DirectoryScannerService.ListScanDirectories:output_type -> metarr.v1.ListScanDirectoriesResponse
+	1,  // 35: metarr.v1.DirectoryScannerService.UpdateScanDirectory:output_type -> metarr.v1.ScanDirectory
+	24, // 36: metarr.v1.DirectoryScannerService.DeleteScanDirectory:output_type -> google.protobuf.Empty
+	22, // 37: metarr.v1.DirectoryScannerService.CreateSidecarType:output_type -> metarr.bus.v1.SidecarTypeDefinition
+	22, // 38: metarr.v1.DirectoryScannerService.GetSidecarType:output_type -> metarr.bus.v1.SidecarTypeDefinition
+	14, // 39: metarr.v1.DirectoryScannerService.ListSidecarTypes:output_type -> metarr.v1.ListSidecarTypesResponse
+	22, // 40: metarr.v1.DirectoryScannerService.UpdateSidecarType:output_type -> metarr.bus.v1.SidecarTypeDefinition
+	24, // 41: metarr.v1.DirectoryScannerService.DeleteSidecarType:output_type -> google.protobuf.Empty
+	18, // 42: metarr.v1.DirectoryScannerService.ReorderSidecarTypes:output_type -> metarr.v1.ReorderSidecarTypesResponse
+	20, // 43: metarr.v1.DirectoryScannerService.ResetSidecarTypes:output_type -> metarr.v1.ResetSidecarTypesResponse
+	30, // [30:44] is the sub-list for method output_type
+	16, // [16:30] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_directory_scanner_proto_init() }
@@ -1017,15 +1303,13 @@ func file_metarr_v1_directory_scanner_proto_init() {
 	if File_metarr_v1_directory_scanner_proto != nil {
 		return
 	}
-	file_metarr_v1_common_proto_init()
-	file_metarr_v1_directory_scanner_proto_msgTypes[4].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_directory_scanner_proto_rawDesc), len(file_metarr_v1_directory_scanner_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -2,8 +2,9 @@ syntax = "proto3";
 
 package metarr.v1;
 
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
 import "metarr/bus/v1/agent_contract.proto";
-import "metarr/v1/common.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
@@ -11,6 +12,11 @@ option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 // many directories it scans concurrently, which it scans, and how it
 // classifies the sidecar files it finds. This message is the single
 // definition of that config across the Go server, the UI and storage.
+//
+// parallel_count is the scalar section GetDirectoryScannerConfig /
+// UpdateDirectoryScannerConfig own; scan_directories and sidecar_types are
+// managed through their own AIP standard methods below and are read-only on
+// the scalar section's response.
 message DirectoryScannerConfig {
   int32 parallel_count = 1;
   repeated ScanDirectory scan_directories = 2;
@@ -19,92 +25,168 @@ message DirectoryScannerConfig {
 
 // ScanDirectory is one filesystem path the directory scanner watches,
 // tagged with the media type expected under it.
+//
+// scanner_slug is the operator-chosen identifier the collection is addressed
+// by (docs/adr/0010): GetScanDirectory / DeleteScanDirectory take it as
+// slug, CreateScanDirectory carries it in scan_directory_id.
 message ScanDirectory {
   string scanner_slug = 1;
   string scan_type = 2;
   string directory = 3;
 }
 
-message DirectoryScannerServiceGetRequest {}
+// --- Scalar section -------------------------------------------------------
 
-message DirectoryScannerServiceGetResponse {
+message GetDirectoryScannerConfigRequest {}
+
+message GetDirectoryScannerConfigResponse {
   DirectoryScannerConfig config = 1;
 }
 
-// DirectoryScannerServiceUpdateRequest is a partial update: only
-// parallel_count, if set, is changed. scan_directories is managed through
-// the dedicated Upsert/DeleteDirectory RPCs instead.
-message DirectoryScannerServiceUpdateRequest {
-  optional int32 parallel_count = 1;
+// UpdateDirectoryScannerConfigRequest is an AIP-134 partial update of the
+// scalar section: update_mask may name only parallel_count and config
+// carries its new value. An empty mask, or a mask naming anything other than
+// parallel_count, is InvalidArgument — scan_directories and sidecar_types
+// are edited through their own methods. The write is synchronous: it
+// persists and propagates in-process before returning the stored section
+// (docs/adr/0002).
+message UpdateDirectoryScannerConfigRequest {
+  DirectoryScannerConfig config = 1;
+  google.protobuf.FieldMask update_mask = 2;
 }
 
-message DirectoryScannerServiceListDirectoriesRequest {}
+// --- Scan directories: slug-addressed collection ------------------------
 
-message DirectoryScannerServiceListDirectoriesResponse {
-  repeated ScanDirectory directories = 1;
+// CreateScanDirectoryRequest carries the new directory's slug in
+// scan_directory_id (AIP-133). A slug set in scan_directory must match it or
+// be empty, else InvalidArgument. A slug already used by a scan directory is
+// AlreadyExists.
+message CreateScanDirectoryRequest {
+  string scan_directory_id = 1;
+  ScanDirectory scan_directory = 2;
 }
 
-message DirectoryScannerServiceGetDirectoryRequest {
+message GetScanDirectoryRequest {
   string slug = 1;
 }
 
-message DirectoryScannerServiceGetDirectoryResponse {
-  ScanDirectory directory = 1;
+// ListScanDirectoriesRequest is the AIP-158 / 132 / 160 List contract: a
+// page_size / page_token window, an order_by sort (scanner_slug,
+// scan_type), and a filter entry point. filter translation is deferred
+// (docs/adr/0010) — any non-empty filter is Unimplemented.
+message ListScanDirectoriesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  string filter = 3;
+  string order_by = 4;
 }
 
-message DirectoryScannerServiceUpsertDirectoryRequest {
-  ScanDirectory directory = 1;
+message ListScanDirectoriesResponse {
+  repeated ScanDirectory scan_directories = 1;
+  string next_page_token = 2;
 }
 
-message DirectoryScannerServiceDeleteDirectoryRequest {
+// UpdateScanDirectoryRequest is an AIP-134 partial update: update_mask names
+// the fields to change and scan_directory carries their new values, matched
+// to a stored directory by its scanner_slug. An empty mask or a path naming
+// no field is InvalidArgument. allow_missing:true makes an Update against an
+// unknown slug create — the mask is ignored on that branch and the whole
+// resource is validated as a Create; allow_missing:false is NotFound.
+message UpdateScanDirectoryRequest {
+  ScanDirectory scan_directory = 1;
+  google.protobuf.FieldMask update_mask = 2;
+  bool allow_missing = 3;
+}
+
+message DeleteScanDirectoryRequest {
   string slug = 1;
 }
 
-message DirectoryScannerServiceListSidecarTypesRequest {}
+// --- Sidecar types: minted-id collection -------------------------------
 
-message DirectoryScannerServiceListSidecarTypesResponse {
-  repeated metarr.bus.v1.SidecarTypeDefinition types = 1;
+// CreateSidecarTypeRequest carries no id — the server mints one and returns
+// the stored resource with it set (docs/adr/0010, "Minted id"). A new type
+// is created disabled (order zero) regardless of the order field; setting a
+// non-zero order here is InvalidArgument.
+message CreateSidecarTypeRequest {
+  metarr.bus.v1.SidecarTypeDefinition sidecar_type = 1;
 }
 
-message DirectoryScannerServiceGetSidecarTypeRequest {
+message GetSidecarTypeRequest {
   string id = 1;
 }
 
-message DirectoryScannerServiceGetSidecarTypeResponse {
-  metarr.bus.v1.SidecarTypeDefinition type = 1;
+// ListSidecarTypesRequest is the AIP-158 / 132 / 160 List contract, same
+// shape as ListScanDirectoriesRequest. order_by accepts id, type, order.
+message ListSidecarTypesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  string filter = 3;
+  string order_by = 4;
 }
 
-message DirectoryScannerServiceUpsertSidecarTypeRequest {
-  metarr.bus.v1.SidecarTypeDefinition type = 1;
+message ListSidecarTypesResponse {
+  repeated metarr.bus.v1.SidecarTypeDefinition sidecar_types = 1;
+  string next_page_token = 2;
 }
 
-message DirectoryScannerServiceDeleteSidecarTypeRequest {
+// UpdateSidecarTypeRequest is an AIP-134 partial update matched to a stored
+// type by its minted id. There is no allow_missing — an Update against an
+// unknown id is NotFound, never a create, since the id is server-minted. The
+// order field cannot be moved by the mask; use ReorderSidecarTypes. The
+// resulting table is compiled on the write path and a table that fails to
+// compile is InvalidArgument.
+message UpdateSidecarTypeRequest {
+  metarr.bus.v1.SidecarTypeDefinition sidecar_type = 1;
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+message DeleteSidecarTypeRequest {
   string id = 1;
 }
 
-// DirectoryScannerServiceReorderSidecarTypesRequest maps every sidecar type
-// id to its evaluation order in one transaction — see
-// ReorderSidecarTypes's doc comment on the Go side for why this can't be a
-// per-entry field.
-message DirectoryScannerServiceReorderSidecarTypesRequest {
+// ReorderSidecarTypesRequest maps every sidecar type id to its evaluation
+// order in one transaction — uniqueness is a property of the whole table, so
+// it cannot be a per-entry field. The updated list is returned.
+message ReorderSidecarTypesRequest {
   map<string, int32> orders = 1;
 }
 
-message DirectoryScannerServiceResetSidecarTypesRequest {}
+message ReorderSidecarTypesResponse {
+  repeated metarr.bus.v1.SidecarTypeDefinition sidecar_types = 1;
+}
 
+message ResetSidecarTypesRequest {}
+
+message ResetSidecarTypesResponse {
+  repeated metarr.bus.v1.SidecarTypeDefinition sidecar_types = 1;
+}
+
+// DirectoryScannerService is the Directory Scanner settings on AIP standard
+// methods (docs/adr/0010): a scalar section, a slug-addressed scan-directory
+// collection, and a minted-id sidecar-type collection. Reads come from live
+// config; every write goes through AppConfigStore.MutateSync — persist under
+// the store lock, propagate in-process, return the stored resource, no
+// system_config_update event (docs/adr/0002).
 service DirectoryScannerService {
-  rpc Get(DirectoryScannerServiceGetRequest) returns (DirectoryScannerServiceGetResponse);
-  rpc Update(DirectoryScannerServiceUpdateRequest) returns (metarr.v1.AcceptedResponse);
+  rpc GetDirectoryScannerConfig(GetDirectoryScannerConfigRequest) returns (GetDirectoryScannerConfigResponse);
+  // UpdateDirectoryScannerConfig returns the stored section after the
+  // synchronous write has landed (AIP-134).
+  rpc UpdateDirectoryScannerConfig(UpdateDirectoryScannerConfigRequest) returns (DirectoryScannerConfig);
 
-  rpc ListDirectories(DirectoryScannerServiceListDirectoriesRequest) returns (DirectoryScannerServiceListDirectoriesResponse);
-  rpc GetDirectory(DirectoryScannerServiceGetDirectoryRequest) returns (DirectoryScannerServiceGetDirectoryResponse);
-  rpc UpsertDirectory(DirectoryScannerServiceUpsertDirectoryRequest) returns (metarr.v1.AcceptedResponse);
-  rpc DeleteDirectory(DirectoryScannerServiceDeleteDirectoryRequest) returns (metarr.v1.AcceptedResponse);
+  rpc CreateScanDirectory(CreateScanDirectoryRequest) returns (ScanDirectory);
+  rpc GetScanDirectory(GetScanDirectoryRequest) returns (ScanDirectory);
+  rpc ListScanDirectories(ListScanDirectoriesRequest) returns (ListScanDirectoriesResponse);
+  rpc UpdateScanDirectory(UpdateScanDirectoryRequest) returns (ScanDirectory);
+  rpc DeleteScanDirectory(DeleteScanDirectoryRequest) returns (google.protobuf.Empty);
 
-  rpc ListSidecarTypes(DirectoryScannerServiceListSidecarTypesRequest) returns (DirectoryScannerServiceListSidecarTypesResponse);
-  rpc GetSidecarType(DirectoryScannerServiceGetSidecarTypeRequest) returns (DirectoryScannerServiceGetSidecarTypeResponse);
-  rpc UpsertSidecarType(DirectoryScannerServiceUpsertSidecarTypeRequest) returns (metarr.v1.AcceptedResponse);
-  rpc DeleteSidecarType(DirectoryScannerServiceDeleteSidecarTypeRequest) returns (metarr.v1.AcceptedResponse);
-  rpc ReorderSidecarTypes(DirectoryScannerServiceReorderSidecarTypesRequest) returns (metarr.v1.AcceptedResponse);
-  rpc ResetSidecarTypes(DirectoryScannerServiceResetSidecarTypesRequest) returns (metarr.v1.AcceptedResponse);
+  rpc CreateSidecarType(CreateSidecarTypeRequest) returns (metarr.bus.v1.SidecarTypeDefinition);
+  rpc GetSidecarType(GetSidecarTypeRequest) returns (metarr.bus.v1.SidecarTypeDefinition);
+  rpc ListSidecarTypes(ListSidecarTypesRequest) returns (ListSidecarTypesResponse);
+  rpc UpdateSidecarType(UpdateSidecarTypeRequest) returns (metarr.bus.v1.SidecarTypeDefinition);
+  rpc DeleteSidecarType(DeleteSidecarTypeRequest) returns (google.protobuf.Empty);
+  // ReorderSidecarTypes and ResetSidecarTypes are custom methods (AIP-136),
+  // synchronous, returning the updated list.
+  rpc ReorderSidecarTypes(ReorderSidecarTypesRequest) returns (ReorderSidecarTypesResponse);
+  rpc ResetSidecarTypes(ResetSidecarTypesRequest) returns (ResetSidecarTypesResponse);
 }

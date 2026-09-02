@@ -13,10 +13,11 @@ import { ArrowDownOutlined, ArrowUpOutlined } from "@ant-design/icons";
 
 import {
   queryKeys,
+  useCreateSidecarType,
   useDeleteSidecarType,
   useReorderSidecarTypes,
   useResetSidecarTypes,
-  useUpsertSidecarType,
+  useUpdateSidecarType,
 } from "../../api/queries";
 import { sidecarCategories } from "../../api/vocab";
 import type { SidecarTypeDefinition } from "../../gen/metarr/bus/v1/agent_contract_pb";
@@ -54,7 +55,8 @@ export function SidecarTypesSection({
 }: {
   types: SidecarTypeDefinition[];
 }) {
-  const upsertMutation = useUpsertSidecarType();
+  const create = useCreateSidecarType();
+  const update = useUpdateSidecarType();
   const remove = useDeleteSidecarType();
   const reorder = useReorderSidecarTypes();
   const reset = useResetSidecarTypes();
@@ -62,15 +64,13 @@ export function SidecarTypesSection({
   const [adding, setAdding] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  // The upsert endpoint rejects any non-zero order outright — order belongs to
-  // the ordering transaction, and sending one here is treated as a mistake
-  // worth surfacing rather than something to ignore. Editing an enabled entry
-  // would otherwise always fail, since its stored order is non-zero. The server
-  // keeps the entry's existing order when updating, so zero loses nothing.
+  // Update's field mask names only type/category/patterns/extensions — order
+  // belongs to the reorder transaction and id is the addressing key, so
+  // neither is sent from a row edit even though the whole entry is passed.
   const upsert = {
     mutateAsync: (
       entry: MessageInitShape<typeof SidecarTypeDefinitionSchema>,
-    ) => upsertMutation.mutateAsync({ ...entry, order: 0 }),
+    ) => update.mutateAsync(entry),
   };
 
   // Enabled entries in evaluation order, then the disabled ones — which have no
@@ -268,7 +268,7 @@ export function SidecarTypesSection({
           existingTypes={types.map((entry) => entry.type)}
           onCancel={() => setAdding(false)}
           onCreate={async (entry) => {
-            await upsert.mutateAsync(entry);
+            await create.mutateAsync(entry);
             setAdding(false);
           }}
         />

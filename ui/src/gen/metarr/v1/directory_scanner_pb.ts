@@ -4,23 +4,28 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { SidecarTypeDefinition } from "../bus/v1/agent_contract_pb";
+import type { EmptySchema, FieldMask } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_empty, file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
+import type { SidecarTypeDefinition, SidecarTypeDefinitionSchema } from "../bus/v1/agent_contract_pb";
 import { file_metarr_bus_v1_agent_contract } from "../bus/v1/agent_contract_pb";
-import type { AcceptedResponseSchema } from "./common_pb";
-import { file_metarr_v1_common } from "./common_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metarr/v1/directory_scanner.proto.
  */
 export const file_metarr_v1_directory_scanner: GenFile = /*@__PURE__*/
-  fileDesc("CiFtZXRhcnIvdjEvZGlyZWN0b3J5X3NjYW5uZXIucHJvdG8SCW1ldGFyci52MSKhAQoWRGlyZWN0b3J5U2Nhbm5lckNvbmZpZxIWCg5wYXJhbGxlbF9jb3VudBgBIAEoBRIyChBzY2FuX2RpcmVjdG9yaWVzGAIgAygLMhgubWV0YXJyLnYxLlNjYW5EaXJlY3RvcnkSOwoNc2lkZWNhcl90eXBlcxgDIAMoCzIkLm1ldGFyci5idXMudjEuU2lkZWNhclR5cGVEZWZpbml0aW9uIksKDVNjYW5EaXJlY3RvcnkSFAoMc2Nhbm5lcl9zbHVnGAEgASgJEhEKCXNjYW5fdHlwZRgCIAEoCRIRCglkaXJlY3RvcnkYAyABKAkiIwohRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VHZXRSZXF1ZXN0IlcKIkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0UmVzcG9uc2USMQoGY29uZmlnGAEgASgLMiEubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJDb25maWciVgokRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VVcGRhdGVSZXF1ZXN0EhsKDnBhcmFsbGVsX2NvdW50GAEgASgFSACIAQFCEQoPX3BhcmFsbGVsX2NvdW50Ii8KLURpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlTGlzdERpcmVjdG9yaWVzUmVxdWVzdCJfCi5EaXJlY3RvcnlTY2FubmVyU2VydmljZUxpc3REaXJlY3Rvcmllc1Jlc3BvbnNlEi0KC2RpcmVjdG9yaWVzGAEgAygLMhgubWV0YXJyLnYxLlNjYW5EaXJlY3RvcnkiOgoqRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VHZXREaXJlY3RvcnlSZXF1ZXN0EgwKBHNsdWcYASABKAkiWgorRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VHZXREaXJlY3RvcnlSZXNwb25zZRIrCglkaXJlY3RvcnkYASABKAsyGC5tZXRhcnIudjEuU2NhbkRpcmVjdG9yeSJcCi1EaXJlY3RvcnlTY2FubmVyU2VydmljZVVwc2VydERpcmVjdG9yeVJlcXVlc3QSKwoJZGlyZWN0b3J5GAEgASgLMhgubWV0YXJyLnYxLlNjYW5EaXJlY3RvcnkiPQotRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VEZWxldGVEaXJlY3RvcnlSZXF1ZXN0EgwKBHNsdWcYASABKAkiMAouRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VMaXN0U2lkZWNhclR5cGVzUmVxdWVzdCJmCi9EaXJlY3RvcnlTY2FubmVyU2VydmljZUxpc3RTaWRlY2FyVHlwZXNSZXNwb25zZRIzCgV0eXBlcxgBIAMoCzIkLm1ldGFyci5idXMudjEuU2lkZWNhclR5cGVEZWZpbml0aW9uIjoKLERpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0U2lkZWNhclR5cGVSZXF1ZXN0EgoKAmlkGAEgASgJImMKLURpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0U2lkZWNhclR5cGVSZXNwb25zZRIyCgR0eXBlGAEgASgLMiQubWV0YXJyLmJ1cy52MS5TaWRlY2FyVHlwZURlZmluaXRpb24iZQovRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VVcHNlcnRTaWRlY2FyVHlwZVJlcXVlc3QSMgoEdHlwZRgBIAEoCzIkLm1ldGFyci5idXMudjEuU2lkZWNhclR5cGVEZWZpbml0aW9uIj0KL0RpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlRGVsZXRlU2lkZWNhclR5cGVSZXF1ZXN0EgoKAmlkGAEgASgJIrwBCjFEaXJlY3RvcnlTY2FubmVyU2VydmljZVJlb3JkZXJTaWRlY2FyVHlwZXNSZXF1ZXN0ElgKBm9yZGVycxgBIAMoCzJILm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZVJlb3JkZXJTaWRlY2FyVHlwZXNSZXF1ZXN0Lk9yZGVyc0VudHJ5Gi0KC09yZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoBToCOAEiMQovRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VSZXNldFNpZGVjYXJUeXBlc1JlcXVlc3Qy/woKF0RpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlEmIKA0dldBIsLm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZUdldFJlcXVlc3QaLS5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VHZXRSZXNwb25zZRJWCgZVcGRhdGUSLy5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VVcGRhdGVSZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2UShgEKD0xpc3REaXJlY3RvcmllcxI4Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZUxpc3REaXJlY3Rvcmllc1JlcXVlc3QaOS5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VMaXN0RGlyZWN0b3JpZXNSZXNwb25zZRJ9CgxHZXREaXJlY3RvcnkSNS5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VHZXREaXJlY3RvcnlSZXF1ZXN0GjYubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0RGlyZWN0b3J5UmVzcG9uc2USaAoPVXBzZXJ0RGlyZWN0b3J5EjgubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlVXBzZXJ0RGlyZWN0b3J5UmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlEmgKD0RlbGV0ZURpcmVjdG9yeRI4Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZURlbGV0ZURpcmVjdG9yeVJlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZRKJAQoQTGlzdFNpZGVjYXJUeXBlcxI5Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZUxpc3RTaWRlY2FyVHlwZXNSZXF1ZXN0GjoubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlTGlzdFNpZGVjYXJUeXBlc1Jlc3BvbnNlEoMBCg5HZXRTaWRlY2FyVHlwZRI3Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZUdldFNpZGVjYXJUeXBlUmVxdWVzdBo4Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZUdldFNpZGVjYXJUeXBlUmVzcG9uc2USbAoRVXBzZXJ0U2lkZWNhclR5cGUSOi5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VVcHNlcnRTaWRlY2FyVHlwZVJlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZRJsChFEZWxldGVTaWRlY2FyVHlwZRI6Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZURlbGV0ZVNpZGVjYXJUeXBlUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlEnAKE1Jlb3JkZXJTaWRlY2FyVHlwZXMSPC5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VSZW9yZGVyU2lkZWNhclR5cGVzUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlEmwKEVJlc2V0U2lkZWNhclR5cGVzEjoubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlUmVzZXRTaWRlY2FyVHlwZXNSZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_metarr_bus_v1_agent_contract, file_metarr_v1_common]);
+  fileDesc("CiFtZXRhcnIvdjEvZGlyZWN0b3J5X3NjYW5uZXIucHJvdG8SCW1ldGFyci52MSKhAQoWRGlyZWN0b3J5U2Nhbm5lckNvbmZpZxIWCg5wYXJhbGxlbF9jb3VudBgBIAEoBRIyChBzY2FuX2RpcmVjdG9yaWVzGAIgAygLMhgubWV0YXJyLnYxLlNjYW5EaXJlY3RvcnkSOwoNc2lkZWNhcl90eXBlcxgDIAMoCzIkLm1ldGFyci5idXMudjEuU2lkZWNhclR5cGVEZWZpbml0aW9uIksKDVNjYW5EaXJlY3RvcnkSFAoMc2Nhbm5lcl9zbHVnGAEgASgJEhEKCXNjYW5fdHlwZRgCIAEoCRIRCglkaXJlY3RvcnkYAyABKAkiIgogR2V0RGlyZWN0b3J5U2Nhbm5lckNvbmZpZ1JlcXVlc3QiVgohR2V0RGlyZWN0b3J5U2Nhbm5lckNvbmZpZ1Jlc3BvbnNlEjEKBmNvbmZpZxgBIAEoCzIhLm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyQ29uZmlnIokBCiNVcGRhdGVEaXJlY3RvcnlTY2FubmVyQ29uZmlnUmVxdWVzdBIxCgZjb25maWcYASABKAsyIS5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lckNvbmZpZxIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2siaQoaQ3JlYXRlU2NhbkRpcmVjdG9yeVJlcXVlc3QSGQoRc2Nhbl9kaXJlY3RvcnlfaWQYASABKAkSMAoOc2Nhbl9kaXJlY3RvcnkYAiABKAsyGC5tZXRhcnIudjEuU2NhbkRpcmVjdG9yeSInChdHZXRTY2FuRGlyZWN0b3J5UmVxdWVzdBIMCgRzbHVnGAEgASgJImUKGkxpc3RTY2FuRGlyZWN0b3JpZXNSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJEg4KBmZpbHRlchgDIAEoCRIQCghvcmRlcl9ieRgEIAEoCSJqChtMaXN0U2NhbkRpcmVjdG9yaWVzUmVzcG9uc2USMgoQc2Nhbl9kaXJlY3RvcmllcxgBIAMoCzIYLm1ldGFyci52MS5TY2FuRGlyZWN0b3J5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSKWAQoaVXBkYXRlU2NhbkRpcmVjdG9yeVJlcXVlc3QSMAoOc2Nhbl9kaXJlY3RvcnkYASABKAsyGC5tZXRhcnIudjEuU2NhbkRpcmVjdG9yeRIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2sSFQoNYWxsb3dfbWlzc2luZxgDIAEoCCIqChpEZWxldGVTY2FuRGlyZWN0b3J5UmVxdWVzdBIMCgRzbHVnGAEgASgJIlYKGENyZWF0ZVNpZGVjYXJUeXBlUmVxdWVzdBI6CgxzaWRlY2FyX3R5cGUYASABKAsyJC5tZXRhcnIuYnVzLnYxLlNpZGVjYXJUeXBlRGVmaW5pdGlvbiIjChVHZXRTaWRlY2FyVHlwZVJlcXVlc3QSCgoCaWQYASABKAkiYgoXTGlzdFNpZGVjYXJUeXBlc1JlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgFEhIKCnBhZ2VfdG9rZW4YAiABKAkSDgoGZmlsdGVyGAMgASgJEhAKCG9yZGVyX2J5GAQgASgJInAKGExpc3RTaWRlY2FyVHlwZXNSZXNwb25zZRI7Cg1zaWRlY2FyX3R5cGVzGAEgAygLMiQubWV0YXJyLmJ1cy52MS5TaWRlY2FyVHlwZURlZmluaXRpb24SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIocBChhVcGRhdGVTaWRlY2FyVHlwZVJlcXVlc3QSOgoMc2lkZWNhcl90eXBlGAEgASgLMiQubWV0YXJyLmJ1cy52MS5TaWRlY2FyVHlwZURlZmluaXRpb24SLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrIiYKGERlbGV0ZVNpZGVjYXJUeXBlUmVxdWVzdBIKCgJpZBgBIAEoCSKOAQoaUmVvcmRlclNpZGVjYXJUeXBlc1JlcXVlc3QSQQoGb3JkZXJzGAEgAygLMjEubWV0YXJyLnYxLlJlb3JkZXJTaWRlY2FyVHlwZXNSZXF1ZXN0Lk9yZGVyc0VudHJ5Gi0KC09yZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoBToCOAEiWgobUmVvcmRlclNpZGVjYXJUeXBlc1Jlc3BvbnNlEjsKDXNpZGVjYXJfdHlwZXMYASADKAsyJC5tZXRhcnIuYnVzLnYxLlNpZGVjYXJUeXBlRGVmaW5pdGlvbiIaChhSZXNldFNpZGVjYXJUeXBlc1JlcXVlc3QiWAoZUmVzZXRTaWRlY2FyVHlwZXNSZXNwb25zZRI7Cg1zaWRlY2FyX3R5cGVzGAEgAygLMiQubWV0YXJyLmJ1cy52MS5TaWRlY2FyVHlwZURlZmluaXRpb24y0QoKF0RpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlEnYKGUdldERpcmVjdG9yeVNjYW5uZXJDb25maWcSKy5tZXRhcnIudjEuR2V0RGlyZWN0b3J5U2Nhbm5lckNvbmZpZ1JlcXVlc3QaLC5tZXRhcnIudjEuR2V0RGlyZWN0b3J5U2Nhbm5lckNvbmZpZ1Jlc3BvbnNlEnEKHFVwZGF0ZURpcmVjdG9yeVNjYW5uZXJDb25maWcSLi5tZXRhcnIudjEuVXBkYXRlRGlyZWN0b3J5U2Nhbm5lckNvbmZpZ1JlcXVlc3QaIS5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lckNvbmZpZxJWChNDcmVhdGVTY2FuRGlyZWN0b3J5EiUubWV0YXJyLnYxLkNyZWF0ZVNjYW5EaXJlY3RvcnlSZXF1ZXN0GhgubWV0YXJyLnYxLlNjYW5EaXJlY3RvcnkSUAoQR2V0U2NhbkRpcmVjdG9yeRIiLm1ldGFyci52MS5HZXRTY2FuRGlyZWN0b3J5UmVxdWVzdBoYLm1ldGFyci52MS5TY2FuRGlyZWN0b3J5EmQKE0xpc3RTY2FuRGlyZWN0b3JpZXMSJS5tZXRhcnIudjEuTGlzdFNjYW5EaXJlY3Rvcmllc1JlcXVlc3QaJi5tZXRhcnIudjEuTGlzdFNjYW5EaXJlY3Rvcmllc1Jlc3BvbnNlElYKE1VwZGF0ZVNjYW5EaXJlY3RvcnkSJS5tZXRhcnIudjEuVXBkYXRlU2NhbkRpcmVjdG9yeVJlcXVlc3QaGC5tZXRhcnIudjEuU2NhbkRpcmVjdG9yeRJUChNEZWxldGVTY2FuRGlyZWN0b3J5EiUubWV0YXJyLnYxLkRlbGV0ZVNjYW5EaXJlY3RvcnlSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5El4KEUNyZWF0ZVNpZGVjYXJUeXBlEiMubWV0YXJyLnYxLkNyZWF0ZVNpZGVjYXJUeXBlUmVxdWVzdBokLm1ldGFyci5idXMudjEuU2lkZWNhclR5cGVEZWZpbml0aW9uElgKDkdldFNpZGVjYXJUeXBlEiAubWV0YXJyLnYxLkdldFNpZGVjYXJUeXBlUmVxdWVzdBokLm1ldGFyci5idXMudjEuU2lkZWNhclR5cGVEZWZpbml0aW9uElsKEExpc3RTaWRlY2FyVHlwZXMSIi5tZXRhcnIudjEuTGlzdFNpZGVjYXJUeXBlc1JlcXVlc3QaIy5tZXRhcnIudjEuTGlzdFNpZGVjYXJUeXBlc1Jlc3BvbnNlEl4KEVVwZGF0ZVNpZGVjYXJUeXBlEiMubWV0YXJyLnYxLlVwZGF0ZVNpZGVjYXJUeXBlUmVxdWVzdBokLm1ldGFyci5idXMudjEuU2lkZWNhclR5cGVEZWZpbml0aW9uElAKEURlbGV0ZVNpZGVjYXJUeXBlEiMubWV0YXJyLnYxLkRlbGV0ZVNpZGVjYXJUeXBlUmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJkChNSZW9yZGVyU2lkZWNhclR5cGVzEiUubWV0YXJyLnYxLlJlb3JkZXJTaWRlY2FyVHlwZXNSZXF1ZXN0GiYubWV0YXJyLnYxLlJlb3JkZXJTaWRlY2FyVHlwZXNSZXNwb25zZRJeChFSZXNldFNpZGVjYXJUeXBlcxIjLm1ldGFyci52MS5SZXNldFNpZGVjYXJUeXBlc1JlcXVlc3QaJC5tZXRhcnIudjEuUmVzZXRTaWRlY2FyVHlwZXNSZXNwb25zZUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_google_protobuf_empty, file_google_protobuf_field_mask, file_metarr_bus_v1_agent_contract]);
 
 /**
  * DirectoryScannerConfig controls the background filesystem scanner: how
  * many directories it scans concurrently, which it scans, and how it
  * classifies the sidecar files it finds. This message is the single
  * definition of that config across the Go server, the UI and storage.
+ *
+ * parallel_count is the scalar section GetDirectoryScannerConfig /
+ * UpdateDirectoryScannerConfig own; scan_directories and sidecar_types are
+ * managed through their own AIP standard methods below and are read-only on
+ * the scalar section's response.
  *
  * @generated from message metarr.v1.DirectoryScannerConfig
  */
@@ -52,6 +57,10 @@ export const DirectoryScannerConfigSchema: GenMessage<DirectoryScannerConfig> = 
  * ScanDirectory is one filesystem path the directory scanner watches,
  * tagged with the media type expected under it.
  *
+ * scanner_slug is the operator-chosen identifier the collection is addressed
+ * by (docs/adr/0010): GetScanDirectory / DeleteScanDirectory take it as
+ * slug, CreateScanDirectory carries it in scan_directory_id.
+ *
  * @generated from message metarr.v1.ScanDirectory
  */
 export type ScanDirectory = Message<"metarr.v1.ScanDirectory"> & {
@@ -79,22 +88,22 @@ export const ScanDirectorySchema: GenMessage<ScanDirectory> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 1);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceGetRequest
+ * @generated from message metarr.v1.GetDirectoryScannerConfigRequest
  */
-export type DirectoryScannerServiceGetRequest = Message<"metarr.v1.DirectoryScannerServiceGetRequest"> & {
+export type GetDirectoryScannerConfigRequest = Message<"metarr.v1.GetDirectoryScannerConfigRequest"> & {
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceGetRequest.
- * Use `create(DirectoryScannerServiceGetRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.GetDirectoryScannerConfigRequest.
+ * Use `create(GetDirectoryScannerConfigRequestSchema)` to create a new message.
  */
-export const DirectoryScannerServiceGetRequestSchema: GenMessage<DirectoryScannerServiceGetRequest> = /*@__PURE__*/
+export const GetDirectoryScannerConfigRequestSchema: GenMessage<GetDirectoryScannerConfigRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 2);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceGetResponse
+ * @generated from message metarr.v1.GetDirectoryScannerConfigResponse
  */
-export type DirectoryScannerServiceGetResponse = Message<"metarr.v1.DirectoryScannerServiceGetResponse"> & {
+export type GetDirectoryScannerConfigResponse = Message<"metarr.v1.GetDirectoryScannerConfigResponse"> & {
   /**
    * @generated from field: metarr.v1.DirectoryScannerConfig config = 1;
    */
@@ -102,118 +111,183 @@ export type DirectoryScannerServiceGetResponse = Message<"metarr.v1.DirectorySca
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceGetResponse.
- * Use `create(DirectoryScannerServiceGetResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.GetDirectoryScannerConfigResponse.
+ * Use `create(GetDirectoryScannerConfigResponseSchema)` to create a new message.
  */
-export const DirectoryScannerServiceGetResponseSchema: GenMessage<DirectoryScannerServiceGetResponse> = /*@__PURE__*/
+export const GetDirectoryScannerConfigResponseSchema: GenMessage<GetDirectoryScannerConfigResponse> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 3);
 
 /**
- * DirectoryScannerServiceUpdateRequest is a partial update: only
- * parallel_count, if set, is changed. scan_directories is managed through
- * the dedicated Upsert/DeleteDirectory RPCs instead.
+ * UpdateDirectoryScannerConfigRequest is an AIP-134 partial update of the
+ * scalar section: update_mask may name only parallel_count and config
+ * carries its new value. An empty mask, or a mask naming anything other than
+ * parallel_count, is InvalidArgument — scan_directories and sidecar_types
+ * are edited through their own methods. The write is synchronous: it
+ * persists and propagates in-process before returning the stored section
+ * (docs/adr/0002).
  *
- * @generated from message metarr.v1.DirectoryScannerServiceUpdateRequest
+ * @generated from message metarr.v1.UpdateDirectoryScannerConfigRequest
  */
-export type DirectoryScannerServiceUpdateRequest = Message<"metarr.v1.DirectoryScannerServiceUpdateRequest"> & {
+export type UpdateDirectoryScannerConfigRequest = Message<"metarr.v1.UpdateDirectoryScannerConfigRequest"> & {
   /**
-   * @generated from field: optional int32 parallel_count = 1;
+   * @generated from field: metarr.v1.DirectoryScannerConfig config = 1;
    */
-  parallelCount?: number | undefined;
+  config?: DirectoryScannerConfig | undefined;
+
+  /**
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask | undefined;
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceUpdateRequest.
- * Use `create(DirectoryScannerServiceUpdateRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.UpdateDirectoryScannerConfigRequest.
+ * Use `create(UpdateDirectoryScannerConfigRequestSchema)` to create a new message.
  */
-export const DirectoryScannerServiceUpdateRequestSchema: GenMessage<DirectoryScannerServiceUpdateRequest> = /*@__PURE__*/
+export const UpdateDirectoryScannerConfigRequestSchema: GenMessage<UpdateDirectoryScannerConfigRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 4);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceListDirectoriesRequest
+ * CreateScanDirectoryRequest carries the new directory's slug in
+ * scan_directory_id (AIP-133). A slug set in scan_directory must match it or
+ * be empty, else InvalidArgument. A slug already used by a scan directory is
+ * AlreadyExists.
+ *
+ * @generated from message metarr.v1.CreateScanDirectoryRequest
  */
-export type DirectoryScannerServiceListDirectoriesRequest = Message<"metarr.v1.DirectoryScannerServiceListDirectoriesRequest"> & {
+export type CreateScanDirectoryRequest = Message<"metarr.v1.CreateScanDirectoryRequest"> & {
+  /**
+   * @generated from field: string scan_directory_id = 1;
+   */
+  scanDirectoryId: string;
+
+  /**
+   * @generated from field: metarr.v1.ScanDirectory scan_directory = 2;
+   */
+  scanDirectory?: ScanDirectory | undefined;
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceListDirectoriesRequest.
- * Use `create(DirectoryScannerServiceListDirectoriesRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.CreateScanDirectoryRequest.
+ * Use `create(CreateScanDirectoryRequestSchema)` to create a new message.
  */
-export const DirectoryScannerServiceListDirectoriesRequestSchema: GenMessage<DirectoryScannerServiceListDirectoriesRequest> = /*@__PURE__*/
+export const CreateScanDirectoryRequestSchema: GenMessage<CreateScanDirectoryRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 5);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceListDirectoriesResponse
+ * @generated from message metarr.v1.GetScanDirectoryRequest
  */
-export type DirectoryScannerServiceListDirectoriesResponse = Message<"metarr.v1.DirectoryScannerServiceListDirectoriesResponse"> & {
+export type GetScanDirectoryRequest = Message<"metarr.v1.GetScanDirectoryRequest"> & {
   /**
-   * @generated from field: repeated metarr.v1.ScanDirectory directories = 1;
+   * @generated from field: string slug = 1;
    */
-  directories: ScanDirectory[];
+  slug: string;
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceListDirectoriesResponse.
- * Use `create(DirectoryScannerServiceListDirectoriesResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.GetScanDirectoryRequest.
+ * Use `create(GetScanDirectoryRequestSchema)` to create a new message.
  */
-export const DirectoryScannerServiceListDirectoriesResponseSchema: GenMessage<DirectoryScannerServiceListDirectoriesResponse> = /*@__PURE__*/
+export const GetScanDirectoryRequestSchema: GenMessage<GetScanDirectoryRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 6);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceGetDirectoryRequest
+ * ListScanDirectoriesRequest is the AIP-158 / 132 / 160 List contract: a
+ * page_size / page_token window, an order_by sort (scanner_slug,
+ * scan_type), and a filter entry point. filter translation is deferred
+ * (docs/adr/0010) — any non-empty filter is Unimplemented.
+ *
+ * @generated from message metarr.v1.ListScanDirectoriesRequest
  */
-export type DirectoryScannerServiceGetDirectoryRequest = Message<"metarr.v1.DirectoryScannerServiceGetDirectoryRequest"> & {
+export type ListScanDirectoriesRequest = Message<"metarr.v1.ListScanDirectoriesRequest"> & {
   /**
-   * @generated from field: string slug = 1;
+   * @generated from field: int32 page_size = 1;
    */
-  slug: string;
+  pageSize: number;
+
+  /**
+   * @generated from field: string page_token = 2;
+   */
+  pageToken: string;
+
+  /**
+   * @generated from field: string filter = 3;
+   */
+  filter: string;
+
+  /**
+   * @generated from field: string order_by = 4;
+   */
+  orderBy: string;
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceGetDirectoryRequest.
- * Use `create(DirectoryScannerServiceGetDirectoryRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.ListScanDirectoriesRequest.
+ * Use `create(ListScanDirectoriesRequestSchema)` to create a new message.
  */
-export const DirectoryScannerServiceGetDirectoryRequestSchema: GenMessage<DirectoryScannerServiceGetDirectoryRequest> = /*@__PURE__*/
+export const ListScanDirectoriesRequestSchema: GenMessage<ListScanDirectoriesRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 7);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceGetDirectoryResponse
+ * @generated from message metarr.v1.ListScanDirectoriesResponse
  */
-export type DirectoryScannerServiceGetDirectoryResponse = Message<"metarr.v1.DirectoryScannerServiceGetDirectoryResponse"> & {
+export type ListScanDirectoriesResponse = Message<"metarr.v1.ListScanDirectoriesResponse"> & {
   /**
-   * @generated from field: metarr.v1.ScanDirectory directory = 1;
+   * @generated from field: repeated metarr.v1.ScanDirectory scan_directories = 1;
    */
-  directory?: ScanDirectory | undefined;
+  scanDirectories: ScanDirectory[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceGetDirectoryResponse.
- * Use `create(DirectoryScannerServiceGetDirectoryResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.ListScanDirectoriesResponse.
+ * Use `create(ListScanDirectoriesResponseSchema)` to create a new message.
  */
-export const DirectoryScannerServiceGetDirectoryResponseSchema: GenMessage<DirectoryScannerServiceGetDirectoryResponse> = /*@__PURE__*/
+export const ListScanDirectoriesResponseSchema: GenMessage<ListScanDirectoriesResponse> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 8);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceUpsertDirectoryRequest
+ * UpdateScanDirectoryRequest is an AIP-134 partial update: update_mask names
+ * the fields to change and scan_directory carries their new values, matched
+ * to a stored directory by its scanner_slug. An empty mask or a path naming
+ * no field is InvalidArgument. allow_missing:true makes an Update against an
+ * unknown slug create — the mask is ignored on that branch and the whole
+ * resource is validated as a Create; allow_missing:false is NotFound.
+ *
+ * @generated from message metarr.v1.UpdateScanDirectoryRequest
  */
-export type DirectoryScannerServiceUpsertDirectoryRequest = Message<"metarr.v1.DirectoryScannerServiceUpsertDirectoryRequest"> & {
+export type UpdateScanDirectoryRequest = Message<"metarr.v1.UpdateScanDirectoryRequest"> & {
   /**
-   * @generated from field: metarr.v1.ScanDirectory directory = 1;
+   * @generated from field: metarr.v1.ScanDirectory scan_directory = 1;
    */
-  directory?: ScanDirectory | undefined;
+  scanDirectory?: ScanDirectory | undefined;
+
+  /**
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask | undefined;
+
+  /**
+   * @generated from field: bool allow_missing = 3;
+   */
+  allowMissing: boolean;
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceUpsertDirectoryRequest.
- * Use `create(DirectoryScannerServiceUpsertDirectoryRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.UpdateScanDirectoryRequest.
+ * Use `create(UpdateScanDirectoryRequestSchema)` to create a new message.
  */
-export const DirectoryScannerServiceUpsertDirectoryRequestSchema: GenMessage<DirectoryScannerServiceUpsertDirectoryRequest> = /*@__PURE__*/
+export const UpdateScanDirectoryRequestSchema: GenMessage<UpdateScanDirectoryRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 9);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceDeleteDirectoryRequest
+ * @generated from message metarr.v1.DeleteScanDirectoryRequest
  */
-export type DirectoryScannerServiceDeleteDirectoryRequest = Message<"metarr.v1.DirectoryScannerServiceDeleteDirectoryRequest"> & {
+export type DeleteScanDirectoryRequest = Message<"metarr.v1.DeleteScanDirectoryRequest"> & {
   /**
    * @generated from field: string slug = 1;
    */
@@ -221,97 +295,141 @@ export type DirectoryScannerServiceDeleteDirectoryRequest = Message<"metarr.v1.D
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceDeleteDirectoryRequest.
- * Use `create(DirectoryScannerServiceDeleteDirectoryRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.DeleteScanDirectoryRequest.
+ * Use `create(DeleteScanDirectoryRequestSchema)` to create a new message.
  */
-export const DirectoryScannerServiceDeleteDirectoryRequestSchema: GenMessage<DirectoryScannerServiceDeleteDirectoryRequest> = /*@__PURE__*/
+export const DeleteScanDirectoryRequestSchema: GenMessage<DeleteScanDirectoryRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 10);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceListSidecarTypesRequest
+ * CreateSidecarTypeRequest carries no id — the server mints one and returns
+ * the stored resource with it set (docs/adr/0010, "Minted id"). A new type
+ * is created disabled (order zero) regardless of the order field; setting a
+ * non-zero order here is InvalidArgument.
+ *
+ * @generated from message metarr.v1.CreateSidecarTypeRequest
  */
-export type DirectoryScannerServiceListSidecarTypesRequest = Message<"metarr.v1.DirectoryScannerServiceListSidecarTypesRequest"> & {
+export type CreateSidecarTypeRequest = Message<"metarr.v1.CreateSidecarTypeRequest"> & {
+  /**
+   * @generated from field: metarr.bus.v1.SidecarTypeDefinition sidecar_type = 1;
+   */
+  sidecarType?: SidecarTypeDefinition | undefined;
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceListSidecarTypesRequest.
- * Use `create(DirectoryScannerServiceListSidecarTypesRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.CreateSidecarTypeRequest.
+ * Use `create(CreateSidecarTypeRequestSchema)` to create a new message.
  */
-export const DirectoryScannerServiceListSidecarTypesRequestSchema: GenMessage<DirectoryScannerServiceListSidecarTypesRequest> = /*@__PURE__*/
+export const CreateSidecarTypeRequestSchema: GenMessage<CreateSidecarTypeRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 11);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceListSidecarTypesResponse
+ * @generated from message metarr.v1.GetSidecarTypeRequest
  */
-export type DirectoryScannerServiceListSidecarTypesResponse = Message<"metarr.v1.DirectoryScannerServiceListSidecarTypesResponse"> & {
+export type GetSidecarTypeRequest = Message<"metarr.v1.GetSidecarTypeRequest"> & {
   /**
-   * @generated from field: repeated metarr.bus.v1.SidecarTypeDefinition types = 1;
+   * @generated from field: string id = 1;
    */
-  types: SidecarTypeDefinition[];
+  id: string;
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceListSidecarTypesResponse.
- * Use `create(DirectoryScannerServiceListSidecarTypesResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.GetSidecarTypeRequest.
+ * Use `create(GetSidecarTypeRequestSchema)` to create a new message.
  */
-export const DirectoryScannerServiceListSidecarTypesResponseSchema: GenMessage<DirectoryScannerServiceListSidecarTypesResponse> = /*@__PURE__*/
+export const GetSidecarTypeRequestSchema: GenMessage<GetSidecarTypeRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 12);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceGetSidecarTypeRequest
+ * ListSidecarTypesRequest is the AIP-158 / 132 / 160 List contract, same
+ * shape as ListScanDirectoriesRequest. order_by accepts id, type, order.
+ *
+ * @generated from message metarr.v1.ListSidecarTypesRequest
  */
-export type DirectoryScannerServiceGetSidecarTypeRequest = Message<"metarr.v1.DirectoryScannerServiceGetSidecarTypeRequest"> & {
+export type ListSidecarTypesRequest = Message<"metarr.v1.ListSidecarTypesRequest"> & {
   /**
-   * @generated from field: string id = 1;
+   * @generated from field: int32 page_size = 1;
    */
-  id: string;
+  pageSize: number;
+
+  /**
+   * @generated from field: string page_token = 2;
+   */
+  pageToken: string;
+
+  /**
+   * @generated from field: string filter = 3;
+   */
+  filter: string;
+
+  /**
+   * @generated from field: string order_by = 4;
+   */
+  orderBy: string;
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceGetSidecarTypeRequest.
- * Use `create(DirectoryScannerServiceGetSidecarTypeRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.ListSidecarTypesRequest.
+ * Use `create(ListSidecarTypesRequestSchema)` to create a new message.
  */
-export const DirectoryScannerServiceGetSidecarTypeRequestSchema: GenMessage<DirectoryScannerServiceGetSidecarTypeRequest> = /*@__PURE__*/
+export const ListSidecarTypesRequestSchema: GenMessage<ListSidecarTypesRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 13);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse
+ * @generated from message metarr.v1.ListSidecarTypesResponse
  */
-export type DirectoryScannerServiceGetSidecarTypeResponse = Message<"metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse"> & {
+export type ListSidecarTypesResponse = Message<"metarr.v1.ListSidecarTypesResponse"> & {
   /**
-   * @generated from field: metarr.bus.v1.SidecarTypeDefinition type = 1;
+   * @generated from field: repeated metarr.bus.v1.SidecarTypeDefinition sidecar_types = 1;
    */
-  type?: SidecarTypeDefinition | undefined;
+  sidecarTypes: SidecarTypeDefinition[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse.
- * Use `create(DirectoryScannerServiceGetSidecarTypeResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.ListSidecarTypesResponse.
+ * Use `create(ListSidecarTypesResponseSchema)` to create a new message.
  */
-export const DirectoryScannerServiceGetSidecarTypeResponseSchema: GenMessage<DirectoryScannerServiceGetSidecarTypeResponse> = /*@__PURE__*/
+export const ListSidecarTypesResponseSchema: GenMessage<ListSidecarTypesResponse> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 14);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest
+ * UpdateSidecarTypeRequest is an AIP-134 partial update matched to a stored
+ * type by its minted id. There is no allow_missing — an Update against an
+ * unknown id is NotFound, never a create, since the id is server-minted. The
+ * order field cannot be moved by the mask; use ReorderSidecarTypes. The
+ * resulting table is compiled on the write path and a table that fails to
+ * compile is InvalidArgument.
+ *
+ * @generated from message metarr.v1.UpdateSidecarTypeRequest
  */
-export type DirectoryScannerServiceUpsertSidecarTypeRequest = Message<"metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest"> & {
+export type UpdateSidecarTypeRequest = Message<"metarr.v1.UpdateSidecarTypeRequest"> & {
   /**
-   * @generated from field: metarr.bus.v1.SidecarTypeDefinition type = 1;
+   * @generated from field: metarr.bus.v1.SidecarTypeDefinition sidecar_type = 1;
    */
-  type?: SidecarTypeDefinition | undefined;
+  sidecarType?: SidecarTypeDefinition | undefined;
+
+  /**
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask | undefined;
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest.
- * Use `create(DirectoryScannerServiceUpsertSidecarTypeRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.UpdateSidecarTypeRequest.
+ * Use `create(UpdateSidecarTypeRequestSchema)` to create a new message.
  */
-export const DirectoryScannerServiceUpsertSidecarTypeRequestSchema: GenMessage<DirectoryScannerServiceUpsertSidecarTypeRequest> = /*@__PURE__*/
+export const UpdateSidecarTypeRequestSchema: GenMessage<UpdateSidecarTypeRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 15);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceDeleteSidecarTypeRequest
+ * @generated from message metarr.v1.DeleteSidecarTypeRequest
  */
-export type DirectoryScannerServiceDeleteSidecarTypeRequest = Message<"metarr.v1.DirectoryScannerServiceDeleteSidecarTypeRequest"> & {
+export type DeleteSidecarTypeRequest = Message<"metarr.v1.DeleteSidecarTypeRequest"> & {
   /**
    * @generated from field: string id = 1;
    */
@@ -319,21 +437,20 @@ export type DirectoryScannerServiceDeleteSidecarTypeRequest = Message<"metarr.v1
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceDeleteSidecarTypeRequest.
- * Use `create(DirectoryScannerServiceDeleteSidecarTypeRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.DeleteSidecarTypeRequest.
+ * Use `create(DeleteSidecarTypeRequestSchema)` to create a new message.
  */
-export const DirectoryScannerServiceDeleteSidecarTypeRequestSchema: GenMessage<DirectoryScannerServiceDeleteSidecarTypeRequest> = /*@__PURE__*/
+export const DeleteSidecarTypeRequestSchema: GenMessage<DeleteSidecarTypeRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 16);
 
 /**
- * DirectoryScannerServiceReorderSidecarTypesRequest maps every sidecar type
- * id to its evaluation order in one transaction — see
- * ReorderSidecarTypes's doc comment on the Go side for why this can't be a
- * per-entry field.
+ * ReorderSidecarTypesRequest maps every sidecar type id to its evaluation
+ * order in one transaction — uniqueness is a property of the whole table, so
+ * it cannot be a per-entry field. The updated list is returned.
  *
- * @generated from message metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest
+ * @generated from message metarr.v1.ReorderSidecarTypesRequest
  */
-export type DirectoryScannerServiceReorderSidecarTypesRequest = Message<"metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest"> & {
+export type ReorderSidecarTypesRequest = Message<"metarr.v1.ReorderSidecarTypesRequest"> & {
   /**
    * @generated from field: map<string, int32> orders = 1;
    */
@@ -341,124 +458,187 @@ export type DirectoryScannerServiceReorderSidecarTypesRequest = Message<"metarr.
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest.
- * Use `create(DirectoryScannerServiceReorderSidecarTypesRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.ReorderSidecarTypesRequest.
+ * Use `create(ReorderSidecarTypesRequestSchema)` to create a new message.
  */
-export const DirectoryScannerServiceReorderSidecarTypesRequestSchema: GenMessage<DirectoryScannerServiceReorderSidecarTypesRequest> = /*@__PURE__*/
+export const ReorderSidecarTypesRequestSchema: GenMessage<ReorderSidecarTypesRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 17);
 
 /**
- * @generated from message metarr.v1.DirectoryScannerServiceResetSidecarTypesRequest
+ * @generated from message metarr.v1.ReorderSidecarTypesResponse
  */
-export type DirectoryScannerServiceResetSidecarTypesRequest = Message<"metarr.v1.DirectoryScannerServiceResetSidecarTypesRequest"> & {
+export type ReorderSidecarTypesResponse = Message<"metarr.v1.ReorderSidecarTypesResponse"> & {
+  /**
+   * @generated from field: repeated metarr.bus.v1.SidecarTypeDefinition sidecar_types = 1;
+   */
+  sidecarTypes: SidecarTypeDefinition[];
 };
 
 /**
- * Describes the message metarr.v1.DirectoryScannerServiceResetSidecarTypesRequest.
- * Use `create(DirectoryScannerServiceResetSidecarTypesRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.ReorderSidecarTypesResponse.
+ * Use `create(ReorderSidecarTypesResponseSchema)` to create a new message.
  */
-export const DirectoryScannerServiceResetSidecarTypesRequestSchema: GenMessage<DirectoryScannerServiceResetSidecarTypesRequest> = /*@__PURE__*/
+export const ReorderSidecarTypesResponseSchema: GenMessage<ReorderSidecarTypesResponse> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 18);
 
 /**
+ * @generated from message metarr.v1.ResetSidecarTypesRequest
+ */
+export type ResetSidecarTypesRequest = Message<"metarr.v1.ResetSidecarTypesRequest"> & {
+};
+
+/**
+ * Describes the message metarr.v1.ResetSidecarTypesRequest.
+ * Use `create(ResetSidecarTypesRequestSchema)` to create a new message.
+ */
+export const ResetSidecarTypesRequestSchema: GenMessage<ResetSidecarTypesRequest> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_directory_scanner, 19);
+
+/**
+ * @generated from message metarr.v1.ResetSidecarTypesResponse
+ */
+export type ResetSidecarTypesResponse = Message<"metarr.v1.ResetSidecarTypesResponse"> & {
+  /**
+   * @generated from field: repeated metarr.bus.v1.SidecarTypeDefinition sidecar_types = 1;
+   */
+  sidecarTypes: SidecarTypeDefinition[];
+};
+
+/**
+ * Describes the message metarr.v1.ResetSidecarTypesResponse.
+ * Use `create(ResetSidecarTypesResponseSchema)` to create a new message.
+ */
+export const ResetSidecarTypesResponseSchema: GenMessage<ResetSidecarTypesResponse> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_directory_scanner, 20);
+
+/**
+ * DirectoryScannerService is the Directory Scanner settings on AIP standard
+ * methods (docs/adr/0010): a scalar section, a slug-addressed scan-directory
+ * collection, and a minted-id sidecar-type collection. Reads come from live
+ * config; every write goes through AppConfigStore.MutateSync — persist under
+ * the store lock, propagate in-process, return the stored resource, no
+ * system_config_update event (docs/adr/0002).
+ *
  * @generated from service metarr.v1.DirectoryScannerService
  */
 export const DirectoryScannerService: GenService<{
   /**
-   * @generated from rpc metarr.v1.DirectoryScannerService.Get
+   * @generated from rpc metarr.v1.DirectoryScannerService.GetDirectoryScannerConfig
    */
-  get: {
+  getDirectoryScannerConfig: {
     methodKind: "unary";
-    input: typeof DirectoryScannerServiceGetRequestSchema;
-    output: typeof DirectoryScannerServiceGetResponseSchema;
+    input: typeof GetDirectoryScannerConfigRequestSchema;
+    output: typeof GetDirectoryScannerConfigResponseSchema;
   },
   /**
-   * @generated from rpc metarr.v1.DirectoryScannerService.Update
+   * UpdateDirectoryScannerConfig returns the stored section after the
+   * synchronous write has landed (AIP-134).
+   *
+   * @generated from rpc metarr.v1.DirectoryScannerService.UpdateDirectoryScannerConfig
    */
-  update: {
+  updateDirectoryScannerConfig: {
     methodKind: "unary";
-    input: typeof DirectoryScannerServiceUpdateRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    input: typeof UpdateDirectoryScannerConfigRequestSchema;
+    output: typeof DirectoryScannerConfigSchema;
   },
   /**
-   * @generated from rpc metarr.v1.DirectoryScannerService.ListDirectories
+   * @generated from rpc metarr.v1.DirectoryScannerService.CreateScanDirectory
    */
-  listDirectories: {
+  createScanDirectory: {
     methodKind: "unary";
-    input: typeof DirectoryScannerServiceListDirectoriesRequestSchema;
-    output: typeof DirectoryScannerServiceListDirectoriesResponseSchema;
+    input: typeof CreateScanDirectoryRequestSchema;
+    output: typeof ScanDirectorySchema;
   },
   /**
-   * @generated from rpc metarr.v1.DirectoryScannerService.GetDirectory
+   * @generated from rpc metarr.v1.DirectoryScannerService.GetScanDirectory
    */
-  getDirectory: {
+  getScanDirectory: {
     methodKind: "unary";
-    input: typeof DirectoryScannerServiceGetDirectoryRequestSchema;
-    output: typeof DirectoryScannerServiceGetDirectoryResponseSchema;
+    input: typeof GetScanDirectoryRequestSchema;
+    output: typeof ScanDirectorySchema;
   },
   /**
-   * @generated from rpc metarr.v1.DirectoryScannerService.UpsertDirectory
+   * @generated from rpc metarr.v1.DirectoryScannerService.ListScanDirectories
    */
-  upsertDirectory: {
+  listScanDirectories: {
     methodKind: "unary";
-    input: typeof DirectoryScannerServiceUpsertDirectoryRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    input: typeof ListScanDirectoriesRequestSchema;
+    output: typeof ListScanDirectoriesResponseSchema;
   },
   /**
-   * @generated from rpc metarr.v1.DirectoryScannerService.DeleteDirectory
+   * @generated from rpc metarr.v1.DirectoryScannerService.UpdateScanDirectory
    */
-  deleteDirectory: {
+  updateScanDirectory: {
     methodKind: "unary";
-    input: typeof DirectoryScannerServiceDeleteDirectoryRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    input: typeof UpdateScanDirectoryRequestSchema;
+    output: typeof ScanDirectorySchema;
   },
   /**
-   * @generated from rpc metarr.v1.DirectoryScannerService.ListSidecarTypes
+   * @generated from rpc metarr.v1.DirectoryScannerService.DeleteScanDirectory
    */
-  listSidecarTypes: {
+  deleteScanDirectory: {
     methodKind: "unary";
-    input: typeof DirectoryScannerServiceListSidecarTypesRequestSchema;
-    output: typeof DirectoryScannerServiceListSidecarTypesResponseSchema;
+    input: typeof DeleteScanDirectoryRequestSchema;
+    output: typeof EmptySchema;
+  },
+  /**
+   * @generated from rpc metarr.v1.DirectoryScannerService.CreateSidecarType
+   */
+  createSidecarType: {
+    methodKind: "unary";
+    input: typeof CreateSidecarTypeRequestSchema;
+    output: typeof SidecarTypeDefinitionSchema;
   },
   /**
    * @generated from rpc metarr.v1.DirectoryScannerService.GetSidecarType
    */
   getSidecarType: {
     methodKind: "unary";
-    input: typeof DirectoryScannerServiceGetSidecarTypeRequestSchema;
-    output: typeof DirectoryScannerServiceGetSidecarTypeResponseSchema;
+    input: typeof GetSidecarTypeRequestSchema;
+    output: typeof SidecarTypeDefinitionSchema;
   },
   /**
-   * @generated from rpc metarr.v1.DirectoryScannerService.UpsertSidecarType
+   * @generated from rpc metarr.v1.DirectoryScannerService.ListSidecarTypes
    */
-  upsertSidecarType: {
+  listSidecarTypes: {
     methodKind: "unary";
-    input: typeof DirectoryScannerServiceUpsertSidecarTypeRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    input: typeof ListSidecarTypesRequestSchema;
+    output: typeof ListSidecarTypesResponseSchema;
+  },
+  /**
+   * @generated from rpc metarr.v1.DirectoryScannerService.UpdateSidecarType
+   */
+  updateSidecarType: {
+    methodKind: "unary";
+    input: typeof UpdateSidecarTypeRequestSchema;
+    output: typeof SidecarTypeDefinitionSchema;
   },
   /**
    * @generated from rpc metarr.v1.DirectoryScannerService.DeleteSidecarType
    */
   deleteSidecarType: {
     methodKind: "unary";
-    input: typeof DirectoryScannerServiceDeleteSidecarTypeRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    input: typeof DeleteSidecarTypeRequestSchema;
+    output: typeof EmptySchema;
   },
   /**
+   * ReorderSidecarTypes and ResetSidecarTypes are custom methods (AIP-136),
+   * synchronous, returning the updated list.
+   *
    * @generated from rpc metarr.v1.DirectoryScannerService.ReorderSidecarTypes
    */
   reorderSidecarTypes: {
     methodKind: "unary";
-    input: typeof DirectoryScannerServiceReorderSidecarTypesRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    input: typeof ReorderSidecarTypesRequestSchema;
+    output: typeof ReorderSidecarTypesResponseSchema;
   },
   /**
    * @generated from rpc metarr.v1.DirectoryScannerService.ResetSidecarTypes
    */
   resetSidecarTypes: {
     methodKind: "unary";
-    input: typeof DirectoryScannerServiceResetSidecarTypesRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    input: typeof ResetSidecarTypesRequestSchema;
+    output: typeof ResetSidecarTypesResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_metarr_v1_directory_scanner, 0);
