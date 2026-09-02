@@ -50,10 +50,11 @@ xref:configuration.adoc[Configuration] for the full field list.
 There is no registration endpoint and no handshake. An agent announces itself by
 claiming its slug in Redis and then heartbeating:
 
-. It takes a lock on its slug. If a *different* instance already holds that
-  lock, the agent refuses to start and tells you to choose another slug. If the
-  lock is held by its own previous run — a crash and restart within the timeout —
-  it takes it back.
+. It takes a lock on its slug, tagged with a random id unique to this run and
+  set to expire after fifteen seconds. While the agent runs it refreshes that
+  lock every five seconds; on a clean shutdown it deletes it. If the lock is
+  already held by a *different* id, the agent logs `agent slug is already
+  claimed by another running agent` and exits.
 . Every five seconds it writes a presence record containing its identity and
   telemetry, with a fifteen-second expiry. Three missed heartbeats and it
   disappears.
@@ -61,6 +62,25 @@ claiming its slug in Redis and then heartbeating:
 
 Because presence is a key with an expiry, an agent that dies simply stops
 existing. There is no tombstone to clean up and no stale entry to remove by hand.
+
+=== "Agent slug is already claimed by another running agent"
+
+This is fatal by design. Two processes sharing a slug would each take half the
+work sent to it and overwrite each other's presence, producing a fleet that
+looks healthy and behaves erratically — worse than refusing to start. The
+message names the instance id currently holding the lock.
+
+It means one of two things:
+
+* *A second agent with the same slug is genuinely running* — on another host, in
+  another container, or from a service that was scaled past one replica. Stop the
+  duplicate; run one agent per slug.
+* *A previous run with that slug was killed rather than stopped cleanly* — `kill
+  -9`, an OOM, a container killed, a crash. It never got to delete its lock, so
+  the lock lingers until its fifteen-second expiry, and because each start uses a
+  fresh random id the restarted process does not recognise the stale lock as its
+  own. Wait fifteen seconds and start again. If you are certain no other agent is
+  live, clear it by hand with `redis-cli DEL metarr:lock:<slug>`.
 
 A brand-new agent therefore shows up in *System → Agents* as **online but not
 configured**. That is the expected steady state until you map libraries to it —
