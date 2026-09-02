@@ -6,11 +6,14 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
 	"Metarr/internal/server/appconfigstore"
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/shared/appconfig"
+	"Metarr/internal/shared/correlation"
+	"Metarr/internal/shared/eventbus"
 )
 
 func newTestEventBusServer(seed *appconfig.Config) (*EventBusServer, *fakeConfigBackend) {
@@ -29,7 +32,16 @@ func validEventBusConfig() *metarrv1.EventBusConfig {
 	}
 }
 
-func TestEventBusUpdateConfig_WritesThroughAScopedMutation(t *testing.T) {
+// fullEventBusMask names every EventBusConfig field — a mask-driven update
+// with it is a whole-section replace, the shape the pre-AIP UpdateConfig had.
+func fullEventBusMask() *fieldmaskpb.FieldMask {
+	return &fieldmaskpb.FieldMask{Paths: []string{
+		"max_len", "retention_hours", "retry_attempts",
+		"retry_backoff_base_ms", "retry_backoff_max_ms",
+	}}
+}
+
+func TestEventBusUpdateEventBusConfig_WritesThroughAScopedMutation(t *testing.T) {
 	// A seed carrying an admin credential: a scoped mutation must touch only
 	// event_bus and leave everything else byte-identical.
 	seed := &appconfig.Config{
@@ -38,11 +50,15 @@ func TestEventBusUpdateConfig_WritesThroughAScopedMutation(t *testing.T) {
 	}
 	server, backend := newTestEventBusServer(seed)
 
+	ctx := correlation.WithID(context.Background(), "corr-eb-1")
 	next := validEventBusConfig()
 	next.RetentionHours = 72
-	_, err := server.UpdateConfig(context.Background(), connect.NewRequest(&metarrv1.EventBusServiceUpdateConfigRequest{Config: next}))
+	resp, err := server.UpdateEventBusConfig(ctx, connect.NewRequest(&metarrv1.UpdateEventBusConfigRequest{
+		Config:     next,
+		UpdateMask: fullEventBusMask(),
+	}))
 	if err != nil {
-		t.Fatalf("UpdateConfig: %v", err)
+		t.Fatalf("UpdateEventBusConfig: %v", err)
 	}
 
 	if got := backend.cfg.GetEventBus().GetRetentionHours(); got != 72 {
@@ -52,12 +68,101 @@ func TestEventBusUpdateConfig_WritesThroughAScopedMutation(t *testing.T) {
 		t.Errorf("a scoped event_bus write disturbed the admin credential: %+v", backend.cfg.GetAdmin())
 	}
 	if len(backend.fired) != 1 {
-		t.Errorf("expected exactly one system_config_update event, got %d", len(backend.fired))
+		t.Fatalf("expected exactly one system_config_update event, got %d", len(backend.fired))
+	}
+	if backend.fired[0].Name != eventbus.SystemConfigUpdateEventName {
+		t.Errorf("event name = %q, want %q", backend.fired[0].Name, eventbus.SystemConfigUpdateEventName)
+	}
+	if backend.fired[0].CorrelationId != "corr-eb-1" {
+		t.Errorf("fired event correlation id = %q, want %q", backend.fired[0].CorrelationId, "corr-eb-1")
+	}
+	if resp.Msg.GetStatus() != "accepted" ||
+		resp.Msg.GetEvent() != eventbus.SystemConfigUpdateEventName ||
+		resp.Msg.GetCorrelationId() != "corr-eb-1" {
+		t.Errorf("AcceptedResponse = %+v, want status=accepted event=%q correlation_id=%q",
+			resp.Msg, eventbus.SystemConfigUpdateEventName, "corr-eb-1")
 	}
 }
 
-func TestEventBusUpdateConfig_RejectsAnInvalidSection(t *testing.T) {
-	server, backend := newTestEventBusServer(&appconfig.Config{})
+// A dotted/partial mask changes exactly the fields it names and leaves every
+// sibling on the stored section untouched — EventBusConfig is a flat block of
+// scalars, so a single-path mask is the "nested field" case here (dotted
+// descent through a scalar is exercised by the unknown-path test below and by
+// internal/shared/aip/fieldmask_test.go).
+func TestEventBusUpdateEventBusConfig_AppliesMaskPartially(t *testing.T) {
+	seed := &appconfig.Config{EventBus: validEventBusConfig()}
+	server, backend := newTestEventBusServer(seed)
+
+	// Carry deliberately wrong values for the unmasked fields: only
+	// retention_hours is named, so only it may move.
+	_, err := server.UpdateEventBusConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateEventBusConfigRequest{
+		Config: &metarrv1.EventBusConfig{
+			MaxLen: 999999, RetentionHours: 96, RetryAttempts: 99,
+			RetryBackoffBaseMs: 1, RetryBackoffMaxMs: 2,
+		},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"retention_hours"}},
+	}))
+	if err != nil {
+		t.Fatalf("UpdateEventBusConfig: %v", err)
+	}
+
+	got := backend.cfg.GetEventBus()
+	if got.GetRetentionHours() != 96 {
+		t.Errorf("retention_hours = %d, want 96", got.GetRetentionHours())
+	}
+	if got.GetMaxLen() != 10000 {
+		t.Errorf("max_len = %d, want the seeded 10000 — an unmasked field moved", got.GetMaxLen())
+	}
+	if got.GetRetryAttempts() != 4 || got.GetRetryBackoffBaseMs() != 500 || got.GetRetryBackoffMaxMs() != 30000 {
+		t.Errorf("an unmasked retry field moved: %+v", got)
+	}
+}
+
+func TestEventBusUpdateEventBusConfig_RejectsEmptyMask(t *testing.T) {
+	server, backend := newTestEventBusServer(&appconfig.Config{EventBus: validEventBusConfig()})
+
+	_, err := server.UpdateEventBusConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateEventBusConfigRequest{
+		Config: validEventBusConfig(),
+	}))
+	if err == nil {
+		t.Fatal("expected an error for an absent update_mask")
+	}
+	if connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Errorf("code = %v, want InvalidArgument", connect.CodeOf(err))
+	}
+	if len(backend.fired) != 0 {
+		t.Errorf("a rejected update fired %d events", len(backend.fired))
+	}
+}
+
+func TestEventBusUpdateEventBusConfig_RejectsUnknownPath(t *testing.T) {
+	server, backend := newTestEventBusServer(&appconfig.Config{EventBus: validEventBusConfig()})
+
+	cases := map[string]string{
+		"no such field":          "max_length",
+		"descend through scalar": "retention_hours.value",
+	}
+	for name, path := range cases {
+		t.Run(name, func(t *testing.T) {
+			_, err := server.UpdateEventBusConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateEventBusConfigRequest{
+				Config:     validEventBusConfig(),
+				UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{path}},
+			}))
+			if err == nil {
+				t.Fatalf("expected an error for mask path %q", path)
+			}
+			if connect.CodeOf(err) != connect.CodeInvalidArgument {
+				t.Errorf("code = %v, want InvalidArgument", connect.CodeOf(err))
+			}
+		})
+	}
+	if len(backend.fired) != 0 {
+		t.Errorf("a rejected update fired %d events", len(backend.fired))
+	}
+}
+
+func TestEventBusUpdateEventBusConfig_RejectsAnInvalidSection(t *testing.T) {
+	server, backend := newTestEventBusServer(&appconfig.Config{EventBus: validEventBusConfig()})
 
 	cases := map[string]func(*metarrv1.EventBusConfig){
 		"zero max_len":           func(c *metarrv1.EventBusConfig) { c.MaxLen = 0 },
@@ -70,7 +175,10 @@ func TestEventBusUpdateConfig_RejectsAnInvalidSection(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			cfg := validEventBusConfig()
 			mutate(cfg)
-			_, err := server.UpdateConfig(context.Background(), connect.NewRequest(&metarrv1.EventBusServiceUpdateConfigRequest{Config: cfg}))
+			_, err := server.UpdateEventBusConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateEventBusConfigRequest{
+				Config:     cfg,
+				UpdateMask: fullEventBusMask(),
+			}))
 			if err == nil {
 				t.Fatal("expected a validation error")
 			}
@@ -85,15 +193,15 @@ func TestEventBusUpdateConfig_RejectsAnInvalidSection(t *testing.T) {
 	}
 }
 
-func TestEventBusGetConfig_ReadsLiveConfig(t *testing.T) {
+func TestEventBusGetEventBusConfig_ReadsLiveConfig(t *testing.T) {
 	withLiveConfig(t, &appconfig.Config{
 		EventBus: &appconfig.EventBusConfig{MaxLen: 12345, RetentionHours: 96},
 	})
 	server := &EventBusServer{Handlers: &handlers.Handlers{}}
 
-	resp, err := server.GetConfig(context.Background(), connect.NewRequest(&metarrv1.EventBusServiceGetConfigRequest{}))
+	resp, err := server.GetEventBusConfig(context.Background(), connect.NewRequest(&metarrv1.GetEventBusConfigRequest{}))
 	if err != nil {
-		t.Fatalf("GetConfig: %v", err)
+		t.Fatalf("GetEventBusConfig: %v", err)
 	}
 	if got := resp.Msg.GetConfig().GetMaxLen(); got != 12345 {
 		t.Errorf("max_len = %d, want 12345", got)

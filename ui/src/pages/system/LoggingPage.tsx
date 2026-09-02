@@ -118,7 +118,9 @@ function ServerLevelCard({ config }: { config: LoggingConfig }) {
     if (level === config.serverLevel) return;
     setError(null);
     try {
-      await update.mutateAsync({ ...config, serverLevel: level });
+      // Partial update: only server_level, with the update_mask the hook
+      // derives from this patch.
+      await update.mutateAsync({ serverLevel: level });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     }

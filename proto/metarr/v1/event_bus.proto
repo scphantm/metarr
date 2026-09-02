@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package metarr.v1;
 
+import "google/protobuf/field_mask.proto";
 import "metarr/v1/common.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
@@ -35,24 +36,26 @@ message EventBusConfig {
   int32 retry_backoff_max_ms = 6;
 }
 
-message EventBusServiceGetConfigRequest {}
+message GetEventBusConfigRequest {}
 
-message EventBusServiceGetConfigResponse {
+message GetEventBusConfigResponse {
   EventBusConfig config = 1;
 }
 
-// EventBusServiceUpdateConfigRequest carries the whole section: it is one
-// small fixed-shape block of scalars, not a collection, so a single
-// upserting write is the CRUD shape (see CLAUDE.md). The write still goes
-// through the config store as a scoped mutation — cfg.EventBus = config —
-// never a whole-document write.
-message EventBusServiceUpdateConfigRequest {
+// UpdateEventBusConfigRequest is an AIP-134 partial update: update_mask names
+// the fields to change and config carries their new values. A missing config,
+// an empty mask, or a path naming no EventBusConfig field is rejected with
+// InvalidArgument (docs/adr/0010). The write still goes through the config
+// store as a scoped mutation — the masked fields are merged onto cfg.EventBus
+// — never a whole-document write.
+message UpdateEventBusConfigRequest {
   EventBusConfig config = 1;
+  google.protobuf.FieldMask update_mask = 2;
 }
 
 // EventBusService views and edits the event_bus config section. Both reads
 // and writes go through the same config store path as every other setting.
 service EventBusService {
-  rpc GetConfig(EventBusServiceGetConfigRequest) returns (EventBusServiceGetConfigResponse);
-  rpc UpdateConfig(EventBusServiceUpdateConfigRequest) returns (metarr.v1.AcceptedResponse);
+  rpc GetEventBusConfig(GetEventBusConfigRequest) returns (GetEventBusConfigResponse);
+  rpc UpdateEventBusConfig(UpdateEventBusConfigRequest) returns (metarr.v1.AcceptedResponse);
 }

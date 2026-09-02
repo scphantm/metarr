@@ -212,14 +212,14 @@ export function usePurgeStreams() {
 export function useLoggingConfig() {
   return useQuery({
     queryKey: queryKeys.logging,
-    queryFn: async () => (await loggingClient.getConfig({})).config,
+    queryFn: async () => (await loggingClient.getLoggingConfig({})).config,
   });
 }
 
 export function useEventBusConfig() {
   return useQuery({
     queryKey: queryKeys.eventBus,
-    queryFn: async () => (await eventBusClient.getConfig({})).config,
+    queryFn: async () => (await eventBusClient.getEventBusConfig({})).config,
   });
 }
 
@@ -311,27 +311,52 @@ export function useDeleteApiKey() {
   >((body) => configClient.deleteApiKey(body), [queryKeys.config]);
 }
 
-// A single upsert POST, like the other newer config sections — see the
-// upsert-not-PUT convention in CLAUDE.md.
+// The keys of a config patch are camelCase message-field names; a protobuf
+// FieldMask carries them lower_snake_case. Each scalar-section update sends
+// only the fields the operator changed, so the patch's own keys are the mask
+// (metarr.v1 AIP config CRUD, docs/adr/0010). The camelCase→snake_case rule is
+// exact for these flat scalar sections; a later section with nested/dotted
+// paths must pass its mask paths explicitly rather than lean on this. The `$`
+// filter drops protobuf-es marker keys ($typeName) if a whole message is ever
+// passed instead of a plain patch.
+function updateMaskFor(patch: Record<string, unknown>): { paths: string[] } {
+  return {
+    paths: Object.keys(patch)
+      .filter((key) => !key.startsWith("$"))
+      .map((key) => key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)),
+  };
+}
+
+// AIP-134 partial update: LoggingService.UpdateLoggingConfig takes the changed
+// fields plus an update_mask naming them. The server merges the masked fields
+// onto cfg.Logging under the config-store lock.
 export function useUpdateLoggingConfig() {
   return useConfigMutation<
     MessageInitShape<typeof LoggingConfigSchema>,
     ConnectAcceptedResponse
   >(
-    (config) => loggingClient.updateConfig({ config }),
+    (config) =>
+      loggingClient.updateLoggingConfig({
+        config,
+        updateMask: updateMaskFor(config),
+      }),
     [queryKeys.logging, queryKeys.config],
   );
 }
 
-// One upserting write for the whole section — it is a fixed block of
-// scalars, not a collection. The server still applies it as a scoped
-// mutation on cfg.EventBus.
+// AIP-134 partial update, same shape as logging: EventBusConfig is a flat
+// block of scalars, so the patch's keys map one-for-one to the update_mask
+// paths. The server merges them onto cfg.EventBus as a scoped mutation.
 export function useUpdateEventBusConfig() {
   return useConfigMutation<
     MessageInitShape<typeof EventBusConfigSchema>,
     ConnectAcceptedResponse
   >(
-    (config) => eventBusClient.updateConfig({ config }),
+    (config) =>
+      eventBusClient.updateEventBusConfig({
+        config,
+        updateMask: updateMaskFor(config),
+      }),
     [queryKeys.eventBus, queryKeys.config],
   );
 }

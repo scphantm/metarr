@@ -13,7 +13,7 @@ import (
 // cmd/metarr-server/main.go.
 
 // ValidateLogLevel is exported so the gRPC-Web services package (SetAgentLogLevel,
-// LoggingService.UpdateConfig) can reuse the same rule.
+// LoggingService.UpdateLoggingConfig) can reuse the same rule.
 func ValidateLogLevel(level string) error {
 	switch level {
 	case appconfig.LogLevelInfo, appconfig.LogLevelDebug:

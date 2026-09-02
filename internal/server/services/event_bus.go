@@ -31,38 +31,50 @@ type EventBusServer struct {
 // EventBusAuthPolicies is this service's method-name -> policy map, matching
 // every other config section: GroupConfig, read-only for the getter.
 var EventBusAuthPolicies = map[string]httpserver.RPCPolicy{
-	"GetConfig":    {Group: auth.GroupConfig, ReadOnly: true},
-	"UpdateConfig": {Group: auth.GroupConfig},
+	"GetEventBusConfig":    {Group: auth.GroupConfig, ReadOnly: true},
+	"UpdateEventBusConfig": {Group: auth.GroupConfig},
 }
 
-func (s *EventBusServer) GetConfig(
+func (s *EventBusServer) GetEventBusConfig(
 	ctx context.Context,
-	req *connect.Request[metarrv1.EventBusServiceGetConfigRequest],
-) (*connect.Response[metarrv1.EventBusServiceGetConfigResponse], error) {
+	req *connect.Request[metarrv1.GetEventBusConfigRequest],
+) (*connect.Response[metarrv1.GetEventBusConfigResponse], error) {
 	appConfig := appconfig.Get()
-	return connect.NewResponse(&metarrv1.EventBusServiceGetConfigResponse{
+	return connect.NewResponse(&metarrv1.GetEventBusConfigResponse{
 		Config: cloneMsg(appConfig.EventBus),
 	}), nil
 }
 
-func (s *EventBusServer) UpdateConfig(
+// UpdateEventBusConfig is an AIP-134 partial update: update_mask names the
+// EventBusConfig fields to change, req.Config carries their new values, and
+// the masked fields are merged onto the stored section under the config
+// store's lock. An empty mask or an unknown path returns InvalidArgument
+// (mapped from the aip sentinels by mutateConfigError); the merged section is
+// then validated as a whole so a partial edit can't leave a contradictory
+// combination (a max backoff below the base).
+func (s *EventBusServer) UpdateEventBusConfig(
 	ctx context.Context,
-	req *connect.Request[metarrv1.EventBusServiceUpdateConfigRequest],
+	req *connect.Request[metarrv1.UpdateEventBusConfigRequest],
 ) (*connect.Response[metarrv1.AcceptedResponse], error) {
 	correlationID := correlation.FromContext(ctx)
 
-	entry := req.Msg.GetConfig()
-	if entry == nil {
+	patch := req.Msg.GetConfig()
+	if patch == nil {
 		return nil, connectError(http.StatusBadRequest, fmt.Errorf("event_bus config is required"))
-	}
-	entry = cloneMsg(entry)
-
-	if err := validateEventBusConfig(entry); err != nil {
-		return nil, connectError(http.StatusBadRequest, err)
 	}
 
 	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
-		cfg.EventBus = entry
+		merged := cloneMsg(cfg.EventBus)
+		if merged == nil {
+			merged = &metarrv1.EventBusConfig{}
+		}
+		if err := applyUpdateMask(merged, patch, req.Msg.GetUpdateMask()); err != nil {
+			return err
+		}
+		if err := validateEventBusConfig(merged); err != nil {
+			return connectError(http.StatusBadRequest, err)
+		}
+		cfg.EventBus = merged
 		return nil
 	})
 	if err != nil {

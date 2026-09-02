@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package metarr.v1;
 
+import "google/protobuf/field_mask.proto";
 import "google/protobuf/struct.proto";
 import "metarr/v1/common.proto";
 
@@ -17,14 +18,20 @@ message LoggingConfig {
   string stream = 4;
 }
 
-message LoggingServiceGetConfigRequest {}
+message GetLoggingConfigRequest {}
 
-message LoggingServiceGetConfigResponse {
+message GetLoggingConfigResponse {
   LoggingConfig config = 1;
 }
 
-message LoggingServiceUpdateConfigRequest {
+// UpdateLoggingConfigRequest is an AIP-134 partial update: update_mask names
+// the fields to change and config carries their new values. A missing config,
+// an empty mask, or a path naming no LoggingConfig field is rejected with
+// InvalidArgument (docs/adr/0010). The write goes through the config store as
+// a scoped mutation — the masked fields are merged onto cfg.Logging.
+message UpdateLoggingConfigRequest {
   LoggingConfig config = 1;
+  google.protobuf.FieldMask update_mask = 2;
 }
 
 // LogRecord is the vendor-neutral shape of one log line, shared by both
@@ -69,8 +76,8 @@ message LoggingServiceStreamTailResponse {
 // StreamTail (the same tail buffer pushed continuously, replacing the
 // logging.tail wsbus topic).
 service LoggingService {
-  rpc GetConfig(LoggingServiceGetConfigRequest) returns (LoggingServiceGetConfigResponse);
-  rpc UpdateConfig(LoggingServiceUpdateConfigRequest) returns (metarr.v1.AcceptedResponse);
+  rpc GetLoggingConfig(GetLoggingConfigRequest) returns (GetLoggingConfigResponse);
+  rpc UpdateLoggingConfig(UpdateLoggingConfigRequest) returns (metarr.v1.AcceptedResponse);
   rpc GetTail(LoggingServiceGetTailRequest) returns (LoggingServiceGetTailResponse);
   rpc StreamTail(LoggingServiceStreamTailRequest) returns (stream LoggingServiceStreamTailResponse);
 }

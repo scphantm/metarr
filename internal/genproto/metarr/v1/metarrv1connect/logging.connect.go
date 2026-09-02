@@ -33,12 +33,12 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// LoggingServiceGetConfigProcedure is the fully-qualified name of the LoggingService's GetConfig
-	// RPC.
-	LoggingServiceGetConfigProcedure = "/metarr.v1.LoggingService/GetConfig"
-	// LoggingServiceUpdateConfigProcedure is the fully-qualified name of the LoggingService's
-	// UpdateConfig RPC.
-	LoggingServiceUpdateConfigProcedure = "/metarr.v1.LoggingService/UpdateConfig"
+	// LoggingServiceGetLoggingConfigProcedure is the fully-qualified name of the LoggingService's
+	// GetLoggingConfig RPC.
+	LoggingServiceGetLoggingConfigProcedure = "/metarr.v1.LoggingService/GetLoggingConfig"
+	// LoggingServiceUpdateLoggingConfigProcedure is the fully-qualified name of the LoggingService's
+	// UpdateLoggingConfig RPC.
+	LoggingServiceUpdateLoggingConfigProcedure = "/metarr.v1.LoggingService/UpdateLoggingConfig"
 	// LoggingServiceGetTailProcedure is the fully-qualified name of the LoggingService's GetTail RPC.
 	LoggingServiceGetTailProcedure = "/metarr.v1.LoggingService/GetTail"
 	// LoggingServiceStreamTailProcedure is the fully-qualified name of the LoggingService's StreamTail
@@ -48,8 +48,8 @@ const (
 
 // LoggingServiceClient is a client for the metarr.v1.LoggingService service.
 type LoggingServiceClient interface {
-	GetConfig(context.Context, *connect.Request[v1.LoggingServiceGetConfigRequest]) (*connect.Response[v1.LoggingServiceGetConfigResponse], error)
-	UpdateConfig(context.Context, *connect.Request[v1.LoggingServiceUpdateConfigRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	GetLoggingConfig(context.Context, *connect.Request[v1.GetLoggingConfigRequest]) (*connect.Response[v1.GetLoggingConfigResponse], error)
+	UpdateLoggingConfig(context.Context, *connect.Request[v1.UpdateLoggingConfigRequest]) (*connect.Response[v1.AcceptedResponse], error)
 	GetTail(context.Context, *connect.Request[v1.LoggingServiceGetTailRequest]) (*connect.Response[v1.LoggingServiceGetTailResponse], error)
 	StreamTail(context.Context, *connect.Request[v1.LoggingServiceStreamTailRequest]) (*connect.ServerStreamForClient[v1.LoggingServiceStreamTailResponse], error)
 }
@@ -65,16 +65,16 @@ func NewLoggingServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 	baseURL = strings.TrimRight(baseURL, "/")
 	loggingServiceMethods := v1.File_metarr_v1_logging_proto.Services().ByName("LoggingService").Methods()
 	return &loggingServiceClient{
-		getConfig: connect.NewClient[v1.LoggingServiceGetConfigRequest, v1.LoggingServiceGetConfigResponse](
+		getLoggingConfig: connect.NewClient[v1.GetLoggingConfigRequest, v1.GetLoggingConfigResponse](
 			httpClient,
-			baseURL+LoggingServiceGetConfigProcedure,
-			connect.WithSchema(loggingServiceMethods.ByName("GetConfig")),
+			baseURL+LoggingServiceGetLoggingConfigProcedure,
+			connect.WithSchema(loggingServiceMethods.ByName("GetLoggingConfig")),
 			connect.WithClientOptions(opts...),
 		),
-		updateConfig: connect.NewClient[v1.LoggingServiceUpdateConfigRequest, v1.AcceptedResponse](
+		updateLoggingConfig: connect.NewClient[v1.UpdateLoggingConfigRequest, v1.AcceptedResponse](
 			httpClient,
-			baseURL+LoggingServiceUpdateConfigProcedure,
-			connect.WithSchema(loggingServiceMethods.ByName("UpdateConfig")),
+			baseURL+LoggingServiceUpdateLoggingConfigProcedure,
+			connect.WithSchema(loggingServiceMethods.ByName("UpdateLoggingConfig")),
 			connect.WithClientOptions(opts...),
 		),
 		getTail: connect.NewClient[v1.LoggingServiceGetTailRequest, v1.LoggingServiceGetTailResponse](
@@ -94,20 +94,20 @@ func NewLoggingServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // loggingServiceClient implements LoggingServiceClient.
 type loggingServiceClient struct {
-	getConfig    *connect.Client[v1.LoggingServiceGetConfigRequest, v1.LoggingServiceGetConfigResponse]
-	updateConfig *connect.Client[v1.LoggingServiceUpdateConfigRequest, v1.AcceptedResponse]
-	getTail      *connect.Client[v1.LoggingServiceGetTailRequest, v1.LoggingServiceGetTailResponse]
-	streamTail   *connect.Client[v1.LoggingServiceStreamTailRequest, v1.LoggingServiceStreamTailResponse]
+	getLoggingConfig    *connect.Client[v1.GetLoggingConfigRequest, v1.GetLoggingConfigResponse]
+	updateLoggingConfig *connect.Client[v1.UpdateLoggingConfigRequest, v1.AcceptedResponse]
+	getTail             *connect.Client[v1.LoggingServiceGetTailRequest, v1.LoggingServiceGetTailResponse]
+	streamTail          *connect.Client[v1.LoggingServiceStreamTailRequest, v1.LoggingServiceStreamTailResponse]
 }
 
-// GetConfig calls metarr.v1.LoggingService.GetConfig.
-func (c *loggingServiceClient) GetConfig(ctx context.Context, req *connect.Request[v1.LoggingServiceGetConfigRequest]) (*connect.Response[v1.LoggingServiceGetConfigResponse], error) {
-	return c.getConfig.CallUnary(ctx, req)
+// GetLoggingConfig calls metarr.v1.LoggingService.GetLoggingConfig.
+func (c *loggingServiceClient) GetLoggingConfig(ctx context.Context, req *connect.Request[v1.GetLoggingConfigRequest]) (*connect.Response[v1.GetLoggingConfigResponse], error) {
+	return c.getLoggingConfig.CallUnary(ctx, req)
 }
 
-// UpdateConfig calls metarr.v1.LoggingService.UpdateConfig.
-func (c *loggingServiceClient) UpdateConfig(ctx context.Context, req *connect.Request[v1.LoggingServiceUpdateConfigRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return c.updateConfig.CallUnary(ctx, req)
+// UpdateLoggingConfig calls metarr.v1.LoggingService.UpdateLoggingConfig.
+func (c *loggingServiceClient) UpdateLoggingConfig(ctx context.Context, req *connect.Request[v1.UpdateLoggingConfigRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+	return c.updateLoggingConfig.CallUnary(ctx, req)
 }
 
 // GetTail calls metarr.v1.LoggingService.GetTail.
@@ -122,8 +122,8 @@ func (c *loggingServiceClient) StreamTail(ctx context.Context, req *connect.Requ
 
 // LoggingServiceHandler is an implementation of the metarr.v1.LoggingService service.
 type LoggingServiceHandler interface {
-	GetConfig(context.Context, *connect.Request[v1.LoggingServiceGetConfigRequest]) (*connect.Response[v1.LoggingServiceGetConfigResponse], error)
-	UpdateConfig(context.Context, *connect.Request[v1.LoggingServiceUpdateConfigRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	GetLoggingConfig(context.Context, *connect.Request[v1.GetLoggingConfigRequest]) (*connect.Response[v1.GetLoggingConfigResponse], error)
+	UpdateLoggingConfig(context.Context, *connect.Request[v1.UpdateLoggingConfigRequest]) (*connect.Response[v1.AcceptedResponse], error)
 	GetTail(context.Context, *connect.Request[v1.LoggingServiceGetTailRequest]) (*connect.Response[v1.LoggingServiceGetTailResponse], error)
 	StreamTail(context.Context, *connect.Request[v1.LoggingServiceStreamTailRequest], *connect.ServerStream[v1.LoggingServiceStreamTailResponse]) error
 }
@@ -135,16 +135,16 @@ type LoggingServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewLoggingServiceHandler(svc LoggingServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	loggingServiceMethods := v1.File_metarr_v1_logging_proto.Services().ByName("LoggingService").Methods()
-	loggingServiceGetConfigHandler := connect.NewUnaryHandler(
-		LoggingServiceGetConfigProcedure,
-		svc.GetConfig,
-		connect.WithSchema(loggingServiceMethods.ByName("GetConfig")),
+	loggingServiceGetLoggingConfigHandler := connect.NewUnaryHandler(
+		LoggingServiceGetLoggingConfigProcedure,
+		svc.GetLoggingConfig,
+		connect.WithSchema(loggingServiceMethods.ByName("GetLoggingConfig")),
 		connect.WithHandlerOptions(opts...),
 	)
-	loggingServiceUpdateConfigHandler := connect.NewUnaryHandler(
-		LoggingServiceUpdateConfigProcedure,
-		svc.UpdateConfig,
-		connect.WithSchema(loggingServiceMethods.ByName("UpdateConfig")),
+	loggingServiceUpdateLoggingConfigHandler := connect.NewUnaryHandler(
+		LoggingServiceUpdateLoggingConfigProcedure,
+		svc.UpdateLoggingConfig,
+		connect.WithSchema(loggingServiceMethods.ByName("UpdateLoggingConfig")),
 		connect.WithHandlerOptions(opts...),
 	)
 	loggingServiceGetTailHandler := connect.NewUnaryHandler(
@@ -161,10 +161,10 @@ func NewLoggingServiceHandler(svc LoggingServiceHandler, opts ...connect.Handler
 	)
 	return "/metarr.v1.LoggingService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case LoggingServiceGetConfigProcedure:
-			loggingServiceGetConfigHandler.ServeHTTP(w, r)
-		case LoggingServiceUpdateConfigProcedure:
-			loggingServiceUpdateConfigHandler.ServeHTTP(w, r)
+		case LoggingServiceGetLoggingConfigProcedure:
+			loggingServiceGetLoggingConfigHandler.ServeHTTP(w, r)
+		case LoggingServiceUpdateLoggingConfigProcedure:
+			loggingServiceUpdateLoggingConfigHandler.ServeHTTP(w, r)
 		case LoggingServiceGetTailProcedure:
 			loggingServiceGetTailHandler.ServeHTTP(w, r)
 		case LoggingServiceStreamTailProcedure:
@@ -178,12 +178,12 @@ func NewLoggingServiceHandler(svc LoggingServiceHandler, opts ...connect.Handler
 // UnimplementedLoggingServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedLoggingServiceHandler struct{}
 
-func (UnimplementedLoggingServiceHandler) GetConfig(context.Context, *connect.Request[v1.LoggingServiceGetConfigRequest]) (*connect.Response[v1.LoggingServiceGetConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.LoggingService.GetConfig is not implemented"))
+func (UnimplementedLoggingServiceHandler) GetLoggingConfig(context.Context, *connect.Request[v1.GetLoggingConfigRequest]) (*connect.Response[v1.GetLoggingConfigResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.LoggingService.GetLoggingConfig is not implemented"))
 }
 
-func (UnimplementedLoggingServiceHandler) UpdateConfig(context.Context, *connect.Request[v1.LoggingServiceUpdateConfigRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.LoggingService.UpdateConfig is not implemented"))
+func (UnimplementedLoggingServiceHandler) UpdateLoggingConfig(context.Context, *connect.Request[v1.UpdateLoggingConfigRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.LoggingService.UpdateLoggingConfig is not implemented"))
 }
 
 func (UnimplementedLoggingServiceHandler) GetTail(context.Context, *connect.Request[v1.LoggingServiceGetTailRequest]) (*connect.Response[v1.LoggingServiceGetTailResponse], error) {

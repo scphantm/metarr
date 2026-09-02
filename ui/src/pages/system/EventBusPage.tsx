@@ -58,9 +58,19 @@ export function EventBusPage() {
   );
 }
 
-// One field is a Row + EditableNumber that saves the whole section with this
-// one value replaced; the server validates the combination.
-type SaveField = (patch: Partial<EventBusConfig>) => Promise<unknown>;
+// The numeric EventBusConfig fields the screen edits. Each Row saves exactly
+// one of them; the hook turns the patch key into the update_mask path and the
+// server validates the merged section.
+type EventBusField =
+  | "maxLen"
+  | "retentionHours"
+  | "retryAttempts"
+  | "retryBackoffBaseMs"
+  | "retryBackoffMaxMs";
+
+type SaveField = (
+  patch: Partial<Record<EventBusField, number>>,
+) => Promise<unknown>;
 
 function NumberField({
   label,
@@ -74,7 +84,7 @@ function NumberField({
   hint: string;
   value: number;
   min: number;
-  field: keyof EventBusConfig;
+  field: EventBusField;
   save: SaveField;
 }) {
   return (
@@ -92,8 +102,9 @@ function NumberField({
 
 function EventBusFields({ config }: { config: EventBusConfig }) {
   const update = useUpdateEventBusConfig();
-  const save: SaveField = (patch) =>
-    update.mutateAsync({ ...config, ...patch });
+  // Send only the one field the operator edited — the hook derives the
+  // update_mask from the patch's keys.
+  const save: SaveField = (patch) => update.mutateAsync(patch);
 
   return (
     <>
