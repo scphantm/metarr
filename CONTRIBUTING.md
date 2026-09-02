@@ -1,12 +1,15 @@
 # Contributing to Metarr
 
-Thanks for your interest in improving Metarr! This guide will help you understand the project structure, development workflow, and conventions.
+Thanks for your interest in improving Metarr! This guide will help you understand the project structure, development
+workflow, and conventions.
 
 ## Before You Start
 
-Read [`CLAUDE.md`](./CLAUDE.md) — it documents project-specific conventions, architectural boundaries, and rules that override general practices. Key areas:
+Read [`CLAUDE.md`](./CLAUDE.md) — it documents project-specific conventions, architectural boundaries, and rules that
+override general practices. Key areas:
 
-- **Architectural boundaries**: `metarr-server` (MongoDB, HTTP, listeners) ↔ `metarr-agent` (filesystem, subprocess, Redis only)
+- **Architectural boundaries**: `metarr-server` (MongoDB, HTTP, listeners) ↔ `metarr-agent` (filesystem, subprocess,
+  Redis only)
 - **Design documentation**: Read `documentation/modules/design/` before implementing changes in covered areas
 - **Logging**: Always use key-value pairs, never `fmt.Sprintf`; never use `fmt.Sprintf` to build log messages
 - **Configuration changes**: Require CRUD API routes, UI, and init/agent registry updates
@@ -17,6 +20,7 @@ Read [`CLAUDE.md`](./CLAUDE.md) — it documents project-specific conventions, a
 ### Setup
 
 1. **Clone and install dependencies**
+
    ```bash
    git clone https://github.com/yourusername/Metarr.git
    cd Metarr
@@ -24,6 +28,7 @@ Read [`CLAUDE.md`](./CLAUDE.md) — it documents project-specific conventions, a
    ```
 
 2. **Start the dev environment**
+
    ```bash
    make run        # builds and runs the full stack
    ```
@@ -47,10 +52,11 @@ Read [`CLAUDE.md`](./CLAUDE.md) — it documents project-specific conventions, a
    - Use the `agentregistry.PathTranslator` for OS-agnostic agent paths (agent runs on Windows, Linux, macOS)
    - Use cached HTTP client for metadata calls (Sonarr, etc.); plain client for one-shots
 
-2. **Add regression tests**
-   After validating a change, add unit tests in the same package. Token efficiency matters; tests are rerun often.
+2. **Add regression tests** After validating a change, add unit tests in the same package. Token efficiency matters;
+   tests are rerun often.
 
 3. **Build and test**
+
    ```bash
    go build ./...                   # Check compilation
    go test -run TestName ./...      # Run specific tests
@@ -66,27 +72,32 @@ Read [`CLAUDE.md`](./CLAUDE.md) — it documents project-specific conventions, a
 1. **Edit files under `ui/src`**
 
 2. **Type-check and lint incrementally**
+
    ```bash
    make ui-build                    # incremental tsc
    make lint-ui                     # diff-scoped eslint
    ```
 
-3. **Test in the browser**
-   The dev server watches for changes; refresh your browser to see them. Test the golden path and edge cases; watch for regressions in other features.
+3. **Test in the browser** The dev server watches for changes; refresh your browser to see them. Test the golden path
+   and edge cases; watch for regressions in other features.
 
 #### Configuration Structure Changes
 
 Configuration changes also require:
+
 1. CRUD methods in the config API router
 2. UI to manage the new settings
 3. Initialization in `/cmd/metarr-server/main.go`
-4. If agent-needed: add to `agentregistry.BuildProjection` (readable by every agent host — add deliberately, never expose secrets)
+4. If agent-needed: add to `agentregistry.BuildProjection` (readable by every agent host — add deliberately, never
+   expose secrets)
 
 #### Documentation Changes
 
-1. **Design docs**: Read [`documentation/modules/design/`](./documentation/modules/design/) first. **Do not edit design docs** without explicit approval — ask first if a change requires the design itself to be different.
+1. **Design docs**: Read [`documentation/modules/design/`](./documentation/modules/design/) first. **Do not edit design
+   docs** without explicit approval — ask first if a change requires the design itself to be different.
 
-2. **System docs**: In `documentation/modules/ROOT/`. When asked to update docs, assume the code is correct and update the docs to match.
+2. **System docs**: In `documentation/modules/ROOT/`. When asked to update docs, assume the code is correct and update
+   the docs to match.
 
 3. **AsciiDoc style**: Use code examples from the actual codebase, not made-up snippets. Verify xrefs before pushing.
 
@@ -99,15 +110,19 @@ Configuration changes also require:
 ### Code Style & Conventions
 
 - **Descriptive names**: Variables, functions, and types should be self-documenting.
-- **Comments**: Only when *why* is non-obvious (hidden constraint, workaround, subtle invariant). Never explain *what* — well-named code already does that.
-- **Log messages**: Pass dynamic values as trailing key-value pairs: `logger.Info("scan started", "scan_id", id)` — never `fmt.Sprintf`.
-- **Error handling**: Validate at system boundaries (user input, external APIs). Trust internal code and framework guarantees.
+- **Comments**: Only when _why_ is non-obvious (hidden constraint, workaround, subtle invariant). Never explain _what_ —
+  well-named code already does that.
+- **Log messages**: Pass dynamic values as trailing key-value pairs: `logger.Info("scan started", "scan_id", id)` —
+  never `fmt.Sprintf`.
+- **Error handling**: Validate at system boundaries (user input, external APIs). Trust internal code and framework
+  guarantees.
 - **No premature abstractions**: Three similar lines is better than a premature helper.
 
 ## Testing
 
 - **Go tests**: Cover the packages your change touches. Run with `go test -run TestName ./...` for focused testing.
-- **UI tests**: TypeScript type-checking via `make ui-build` catches most issues; manual browser testing for UI behavior.
+- **UI tests**: TypeScript type-checking via `make ui-build` catches most issues; manual browser testing for UI
+  behavior.
 - **Integration**: Before submitting, run `make test` (Go) and `make ui-test` (UI) to catch regressions.
 
 ## Submitting Changes
@@ -115,7 +130,7 @@ Configuration changes also require:
 ### Commits
 
 - Create **one commit per logical change** (don't batch unrelated work).
-- Write concise commit messages: 1–2 sentences describing the *why*, not the *what*.
+- Write concise commit messages: 1–2 sentences describing the _why_, not the _what_.
   ```
   Add rate limiter to scan endpoint to prevent thundering herd
 
@@ -136,7 +151,8 @@ Configuration changes also require:
 
 ## Getting Help
 
-- **Questions about Claude Code or the SDK**: See the [`claude-api` skill reference](https://claude.com/claude-api) or search GitHub issues.
+- **Questions about Claude Code or the SDK**: See the [`claude-api` skill reference](https://claude.com/claude-api) or
+  search GitHub issues.
 - **Design questions**: Read `documentation/modules/design/` first, then open a discussion if you need clarification.
 - **Stuck on a feature**: Open a draft PR and describe what you're trying to do — feedback often unblocks.
 
@@ -152,7 +168,7 @@ Before submitting, verify:
 - [ ] Architecture boundaries respected (agent ↔ server, no Mongo in agent, etc.)
 - [ ] Log messages use key-value pairs, not `fmt.Sprintf`
 - [ ] Configuration changes include API CRUD, UI, and init
-- [ ] Commit message explains *why*, not *what*
+- [ ] Commit message explains _why_, not _what_
 
 ## Project Structure
 
@@ -189,6 +205,7 @@ These Claude Code skills automate common tasks:
 
 ## Questions?
 
-Open an issue on GitHub or start a discussion. We welcome contributions of all kinds — code, documentation, design feedback, and bug reports.
+Open an issue on GitHub or start a discussion. We welcome contributions of all kinds — code, documentation, design
+feedback, and bug reports.
 
 Happy coding!
