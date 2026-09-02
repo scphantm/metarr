@@ -178,6 +178,25 @@ One issued key, held in an access-level group. Its name is optional and not
 unique, so it is identified by a minted id.
 _Avoid_: token, credential
 
+### API surface
+
+**Config resource**:
+One addressable entry in the application config — an agent, a Sonarr instance, a
+scan directory, a sidecar type, an API key entry. Each is created, read, and
+changed only through its own AIP standard methods (`Create` / `Get` / `List` /
+`Update` / `Delete`), never by writing the whole document. Which naming idiom
+addresses it — slug or minted id — is fixed by the Identity decision and shapes
+its API (`docs/adr/0010-crud-api-shape-follows-aip-standard-methods.md`).
+_Avoid_: config entry, config item, section row
+
+**Resource name**:
+The string that addresses one config resource in the API: `agents/{slug}`,
+`sonarrInstances/{slug}`, `scanDirectories/{slug}`, `sidecarTypes/{id}`,
+`accessLevels/{level}/apiKeys/{id}`. Derived from the resource's slug or minted
+id — populated on read, cleared before the document is stored, so it is never a
+second source of truth for identity.
+_Avoid_: path, id, key, url
+
 ### Models
 
 **Cross-language model**:
