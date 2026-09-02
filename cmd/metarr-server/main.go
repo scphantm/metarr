@@ -101,13 +101,7 @@ func run() error {
 	// destination, never gates the first.
 	logShipper.Attach(redisClient)
 
-	pubsubBus := eventbus.NewPubSubBus(redisClient)
-	// The Pub/Sub counterpart of the durable-stream Bus: every notification
-	// subscriber and the answering side of every request/reply on this
-	// process register on it, then one Run(ctx) drives them (docs/adr/0006).
-	pubsubRouter := eventbus.NewPubSubRouter(redisClient, eventbus.SourceServer, logger)
-
-	// The one durable-stream Bus (docs/adr/0008,
+	// The one Bus (docs/adr/0008,
 	// docs/design/eventbus-bus-interface.md), built once. Its tuning is
 	// late-bound: before bootstrap has seeded the event_bus config section
 	// the closure falls back to DefaultBusPolicy(); after appconfig.Set below
@@ -233,7 +227,8 @@ func run() error {
 	}
 
 	// Listeners run for the lifetime of the process, independent of any
-	agentRegistry := agentregistry.New(redisClient, logger)
+	// single HTTP request.
+	agentRegistry := agentregistry.New(redisClient, bus, logger)
 
 	// Publish each agent's configuration before anything else starts, so an
 	// agent that is already connected picks up its mapping without waiting for
@@ -242,9 +237,11 @@ func run() error {
 		logger.Warn("could not publish agent configuration at startup", "error", err)
 	}
 
-	// single HTTP request. Registered on the Pub/Sub router; pubsubRouter.Run
-	// below drives it once every registration is in.
-	listeners.RegisterHeartbeatResponder(pubsubRouter, logger)
+	// The heartbeat responder registers on the Bus; bus.Run below drives it
+	// once every registration is in.
+	if err := listeners.RegisterHeartbeatResponder(bus, logger); err != nil {
+		return err
+	}
 
 	// One process-wide watcher for agents losing their presence key. It emits
 	// an "agent offline" signal that in-flight work reacts to; the workflow
@@ -294,7 +291,9 @@ func run() error {
 	// every process publishing to eventbus.LogChannel — this server included
 	// — regardless of which one is running the listener that fills it.
 	logTailBuffer := logtail.NewBuffer(200)
-	listeners.RegisterLogTailListener(pubsubRouter, logTailBuffer, logger)
+	if err := listeners.RegisterLogTailListener(bus, logTailBuffer, logger); err != nil {
+		return err
+	}
 
 	// The one hop that leaves Metarr's own infrastructure: forwarding to
 	// Fluent Bit, which ships on to OpenObserve (or whatever it's configured
@@ -303,31 +302,26 @@ func run() error {
 	if cfg.LogForwardURL != "" {
 		forwarder := logforward.New(cfg.LogForwardURL)
 		go forwarder.Run(ctx)
-		listeners.RegisterLogForwardListener(pubsubRouter, forwarder, logger)
+		if err := listeners.RegisterLogForwardListener(bus, forwarder, logger); err != nil {
+			return err
+		}
 	}
 
-	// Every handler is registered on the Bus and the Pub/Sub router now;
-	// drive each for the lifetime of the process through the one lifecycle
-	// helper so it is written once, not twice. A warm-up publisher can wait
-	// on bus.Ready() / pubsubRouter.Running().
-	startRouter := func(name string, run func(context.Context) error) {
-		go func() {
-			if err := run(ctx); err != nil && ctx.Err() == nil {
-				logger.Error("router stopped unexpectedly", "router", name, "error", err)
-			}
-		}()
-	}
-	// The Bus is load-bearing — config propagation and the scan path both run
-	// through it — so a Run failure (router or subscriber construction, or the
-	// router exiting on its own) triggers a graceful shutdown rather than
-	// leaving the process up with a dead bus.
+	// Every handler — durable-stream and Pub/Sub alike — is registered on the
+	// one Bus now, driven for the lifetime of the process by a single
+	// bus.Run. A warm-up publisher can wait on bus.Ready().
+	//
+	// The Bus is load-bearing — config propagation, the scan path, the
+	// heartbeat, the NFO read, and the log fan-out all run through it — so a
+	// Run failure (router or subscriber construction, or the router exiting on
+	// its own) triggers a graceful shutdown rather than leaving the process up
+	// with a dead bus.
 	go func() {
 		if err := bus.Run(ctx); err != nil && ctx.Err() == nil {
 			logger.Error("event bus stopped unexpectedly; shutting down", "error", err)
 			stop()
 		}
 	}()
-	startRouter("pubsub", pubsubRouter.Run)
 
 	// The streaming layer: the bus snapshot, agents.presence and logging.tail
 	// all migrated to their own server-streaming gRPC-Web RPCs — see
@@ -335,7 +329,7 @@ func run() error {
 	// metarr.v1.LoggingService.StreamTail (internal/server/services), mounted
 	// via connectServices below. wsbus.Hub and GET /api/ws are retired.
 
-	apiHandlers := handlers.New(pubsubBus, bus, appConfigStore, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, busSampler, redisClient, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
+	apiHandlers := handlers.New(bus, appConfigStore, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, busSampler, redisClient, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
 	uiFS, uiEmbedded := webui.FS()
 	if uiEmbedded {
 		logger.Info("ui embed", "enabled", true)

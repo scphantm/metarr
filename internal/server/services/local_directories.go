@@ -194,8 +194,8 @@ func (s *LocalDirectoryServer) GetDirectoryNFO(
 	timeoutCtx, cancel := context.WithTimeout(ctx, s.HeartbeatTimeout)
 	defer cancel()
 
-	reply, err := s.PubSub.Request(timeoutCtx, eventbus.AgentRequestChannel(agent),
-		eventbus.NewEvent(eventbus.SourceServer, eventbus.AgentNFOReadEventName, correlationID, payload))
+	reply, err := s.Bus.Request(timeoutCtx, eventbus.AgentRequestTopic(agent),
+		eventbus.AgentNFOReadEventName, correlationID, payload)
 	if err != nil {
 		// No answer means the agent is not there, which is a different problem
 		// from the file being unreadable and deserves its own status.
