@@ -40,9 +40,9 @@ func TestConfigServerGet_ReadsLiveConfig(t *testing.T) {
 
 	server := &ConfigServer{Handlers: &handlers.Handlers{}}
 
-	resp, err := server.Get(context.Background(), connect.NewRequest(&metarrv1.ConfigServiceGetRequest{}))
+	resp, err := server.GetConfig(context.Background(), connect.NewRequest(&metarrv1.GetConfigRequest{}))
 	if err != nil {
-		t.Fatalf("Get returned error: %v", err)
+		t.Fatalf("GetConfig returned error: %v", err)
 	}
 	if got := resp.Msg.GetConfig().GetAdmin().GetUsername(); got != "arranged-admin" {
 		t.Errorf("admin username = %q, want %q", got, "arranged-admin")
@@ -67,9 +67,9 @@ func TestConfigServerGet_RedactsAdminCredentialsWithoutDisturbingLiveConfig(t *t
 
 	server := &ConfigServer{Handlers: &handlers.Handlers{}}
 
-	resp, err := server.Get(context.Background(), connect.NewRequest(&metarrv1.ConfigServiceGetRequest{}))
+	resp, err := server.GetConfig(context.Background(), connect.NewRequest(&metarrv1.GetConfigRequest{}))
 	if err != nil {
-		t.Fatalf("Get returned error: %v", err)
+		t.Fatalf("GetConfig returned error: %v", err)
 	}
 
 	admin := resp.Msg.GetConfig().GetAdmin()

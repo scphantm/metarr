@@ -10,7 +10,7 @@ import (
 	"connectrpc.com/connect"
 )
 
-// mutateConfigError is the sole error-mapping seam every config write funnels
+// mutateConfigErr is the sole error-mapping seam every config write funnels
 // through. These pin the Connect codes the AIP reshape depends on: NotFound and
 // AlreadyExists carried through from a mutation closure, and InvalidArgument
 // synthesised from a field-mask sentinel that never learned about transport.
@@ -28,7 +28,7 @@ func TestMutateConfigError_CodeMapping(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := mutateConfigError(slog.Default(), "corr-1", tc.err)
+			err := mutateConfigErr(slog.Default(), "corr-1", tc.err)
 			if got := connect.CodeOf(err); got != tc.want {
 				t.Fatalf("got code %v, want %v (err %v)", got, tc.want, err)
 			}
@@ -37,7 +37,7 @@ func TestMutateConfigError_CodeMapping(t *testing.T) {
 }
 
 func TestMutateConfigError_UnknownErrorIsInternal(t *testing.T) {
-	_, err := mutateConfigError(slog.Default(), "corr-1", errors.New("mongo is on fire"))
+	err := mutateConfigErr(slog.Default(), "corr-1", errors.New("mongo is on fire"))
 	if got := connect.CodeOf(err); got != connect.CodeInternal {
 		t.Fatalf("got code %v, want Internal", got)
 	}

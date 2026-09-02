@@ -8,7 +8,9 @@ import {
 } from "@tanstack/react-query";
 
 import {
+  adminClient,
   agentClient,
+  apiKeyClient,
   configClient,
   directoryScannerClient,
   eventBusClient,
@@ -33,11 +35,11 @@ import {
   SonarrInstanceSchema,
   type SonarrInstance as ConnectSonarrInstance,
 } from "../gen/metarr/v1/sonarr_interfaces_pb";
+import type { AdminUser as ConnectAdminUser } from "../gen/metarr/v1/admin_pb";
 import {
-  ConfigServiceDeleteApiKeyRequestSchema,
-  ConfigServiceUpdateAdminRequestSchema,
-  ConfigServiceUpsertApiKeyRequestSchema,
-} from "../gen/metarr/v1/config_pb";
+  AccessLevel,
+  type APIKeyEntry as ConnectAPIKeyEntry,
+} from "../gen/metarr/v1/api_keys_pb";
 import {
   AgentSchema,
   type Agent as ConnectAgent,
@@ -91,7 +93,7 @@ export const queryKeys = {
 export function useConfig() {
   return useQuery({
     queryKey: queryKeys.config,
-    queryFn: async () => (await configClient.get({})).config,
+    queryFn: async () => (await configClient.getConfig({})).config,
   });
 }
 
@@ -388,25 +390,72 @@ function useConfigMutation<TVariables, TResult = ConnectAcceptedResponse>(
   });
 }
 
+// AdminService.UpdateAdminUser is an AIP-134 partial update: update_mask
+// names the identity fields the operator changed (username / email) and a
+// new password rides new_password, never the mask (docs/adr/0010). The
+// caller passes only what it is changing; the hook derives the mask. The
+// response is the stored account with the credential blanked; nothing reads
+// it, so the hook just invalidates the aggregate GetConfig read the Security
+// screen paints from.
+type AdminPatch = { username?: string; email?: string; password?: string };
+
 export function useUpdateAdmin() {
-  return useConfigMutation<
-    MessageInitShape<typeof ConfigServiceUpdateAdminRequestSchema>,
-    ConnectAcceptedResponse
-  >((body) => configClient.updateAdmin(body), [queryKeys.config]);
+  return useConfigMutation<AdminPatch, ConnectAdminUser>(
+    ({ username, email, password }) => {
+      const admin: { username?: string; email?: string } = {};
+      if (username !== undefined) admin.username = username;
+      if (email !== undefined) admin.email = email;
+      return adminClient.updateAdminUser({
+        admin,
+        updateMask: updateMaskFor(admin),
+        newPassword: password ?? "",
+      });
+    },
+    [queryKeys.config],
+  );
 }
 
-export function useUpsertApiKey() {
+// ApiKeyService is a minted-id collection scoped by the AccessLevel enum
+// (docs/adr/0010). Create takes no id — the server mints one; Update is a
+// FieldMask partial update matched by id; Delete is id-only. Each returns the
+// stored resource (Delete returns empty); nothing reads it, so the hooks
+// invalidate the aggregate GetConfig read the Security screen paints from.
+export function useCreateApiKey() {
   return useConfigMutation<
-    MessageInitShape<typeof ConfigServiceUpsertApiKeyRequestSchema>,
-    ConnectAcceptedResponse
-  >((body) => configClient.upsertApiKey(body), [queryKeys.config]);
+    { accessLevel: AccessLevel; name: string },
+    ConnectAPIKeyEntry
+  >(
+    ({ accessLevel, name }) =>
+      apiKeyClient.createApiKey({ accessLevel, apiKey: { name } }),
+    [queryKeys.config],
+  );
+}
+
+export function useUpdateApiKey() {
+  return useConfigMutation<
+    { id: string; name?: string; apiKey?: string },
+    ConnectAPIKeyEntry
+  >(
+    ({ id, name, apiKey }) => {
+      const fields: { name?: string; apiKey?: string } = {};
+      if (name !== undefined) fields.name = name;
+      if (apiKey !== undefined) fields.apiKey = apiKey;
+      return apiKeyClient.updateApiKey({
+        apiKey: { id, ...fields },
+        updateMask: updateMaskFor(fields),
+      });
+    },
+    [queryKeys.config],
+  );
 }
 
 export function useDeleteApiKey() {
-  return useConfigMutation<
-    MessageInitShape<typeof ConfigServiceDeleteApiKeyRequestSchema>,
-    ConnectAcceptedResponse
-  >((body) => configClient.deleteApiKey(body), [queryKeys.config]);
+  // Delete-by-id, bare string like useDeleteSonarrInstance / useDeleteAgent;
+  // the empty response is unused, only the invalidation matters.
+  return useConfigMutation<string, unknown>(
+    (id) => apiKeyClient.deleteApiKey({ id }),
+    [queryKeys.config],
+  );
 }
 
 // The keys of a config patch are camelCase message-field names; a protobuf

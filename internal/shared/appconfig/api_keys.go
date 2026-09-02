@@ -17,6 +17,10 @@ const (
 	APIKeyGroupReadOnly APIKeyGroup = "read_only"
 )
 
+// AllAPIKeyGroups is the four groups in a fixed order, for callers that scan
+// every group (an id-addressed lookup, an id backfill).
+var AllAPIKeyGroups = []APIKeyGroup{APIKeyGroupAdmin, APIKeyGroupUser, APIKeyGroupWebhook, APIKeyGroupReadOnly}
+
 // ParseAPIKeyGroup validates s as one of the four known group names,
 // rejecting anything else — the wire vocabulary a scoped API key operation
 // accepts.
@@ -27,6 +31,23 @@ func ParseAPIKeyGroup(s string) (APIKeyGroup, error) {
 	default:
 		return "", fmt.Errorf("unknown API key group %q", s)
 	}
+}
+
+// FindAPIKeyByID locates the entry with the given id across every group —
+// the minted id is unique across the whole table, so an id-addressed
+// GetApiKey / UpdateApiKey / DeleteApiKey needs no group. It returns the
+// group the entry lives in and its index within that group, or ("", -1) if
+// no group holds it.
+func FindAPIKeyByID(keys *APIKeysConfig, id string) (APIKeyGroup, int) {
+	if id == "" {
+		return "", -1
+	}
+	for _, group := range AllAPIKeyGroups {
+		if index := FindAPIKeyIndex(keys, group, id); index != -1 {
+			return group, index
+		}
+	}
+	return "", -1
 }
 
 // APIKeyEntriesFor returns the entries held in group, or nil if group names
