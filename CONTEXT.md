@@ -157,7 +157,9 @@ _Avoid_: bus client, bus wrapper, facade
 
 ### Identity
 
-Two idioms exist, and which one a thing uses is a decision, not an accident.
+Two idioms exist, and which one a thing uses is a decision, not an accident. It
+also fixes the shape of the API that addresses the thing — see
+`docs/adr/0010-crud-api-shape-follows-aip-standard-methods.md`.
 
 **Slug**:
 A short human-chosen name that identifies a thing the operator named — an agent,
