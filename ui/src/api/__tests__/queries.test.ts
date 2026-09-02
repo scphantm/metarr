@@ -4,22 +4,34 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 
 const purge = vi.fn();
+const updateEventBusConfig = vi.fn();
+const updateLoggingConfig = vi.fn();
 
 vi.mock("../clients", () => ({
   statsClient: { purge: (...args: unknown[]) => purge(...args) },
-  // queries.ts pulls the rest of the clients in at module load; the purge
-  // hook is the only one under test here, so the others just need to exist.
+  // queries.ts pulls the rest of the clients in at module load; only the
+  // hooks exercised below need real mock methods, the others just need to
+  // exist.
   agentClient: {},
   configClient: {},
   directoryScannerClient: {},
-  eventBusClient: {},
-  loggingClient: {},
+  eventBusClient: {
+    updateEventBusConfig: (...args: unknown[]) => updateEventBusConfig(...args),
+  },
+  loggingClient: {
+    updateLoggingConfig: (...args: unknown[]) => updateLoggingConfig(...args),
+  },
   sonarrInterfaceClient: {},
   workflowCatalogClient: {},
   workflowClient: {},
 }));
 
-import { queryKeys, usePurgeStreams } from "../queries";
+import {
+  queryKeys,
+  usePurgeStreams,
+  useUpdateEventBusConfig,
+  useUpdateLoggingConfig,
+} from "../queries";
 
 describe("queryKeys", () => {
   describe("static keys", () => {
@@ -113,6 +125,84 @@ describe("usePurgeStreams", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: queryKeys.busSnapshot,
+    });
+  });
+});
+
+// The two scalar-section update hooks each send an AIP-134 partial update:
+// the changed fields plus an update_mask naming exactly those fields, in the
+// lower_snake_case a protobuf FieldMask carries.
+function mutationHarness() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(QueryClientProvider, { client: queryClient }, children);
+  return { invalidate, wrapper };
+}
+
+describe("useUpdateEventBusConfig", () => {
+  it("calls updateEventBusConfig with a well-formed update_mask for the changed field", async () => {
+    updateEventBusConfig
+      .mockReset()
+      .mockResolvedValue({ status: "accepted", correlationId: "c1" });
+    const { wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useUpdateEventBusConfig(), { wrapper });
+    result.current.mutate({ retentionHours: 96 });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(updateEventBusConfig).toHaveBeenCalledWith({
+      config: { retentionHours: 96 },
+      updateMask: { paths: ["retention_hours"] },
+    });
+  });
+
+  it("maps every changed camelCase key to its snake_case mask path", async () => {
+    updateEventBusConfig.mockReset().mockResolvedValue({ status: "accepted" });
+    const { wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useUpdateEventBusConfig(), { wrapper });
+    result.current.mutate({ retryBackoffBaseMs: 250, retryBackoffMaxMs: 5000 });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(updateEventBusConfig).toHaveBeenCalledWith({
+      config: { retryBackoffBaseMs: 250, retryBackoffMaxMs: 5000 },
+      updateMask: { paths: ["retry_backoff_base_ms", "retry_backoff_max_ms"] },
+    });
+  });
+
+  it("invalidates the event-bus and whole-config reads on success", async () => {
+    updateEventBusConfig.mockReset().mockResolvedValue({ status: "accepted" });
+    const { invalidate, wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useUpdateEventBusConfig(), { wrapper });
+    result.current.mutate({ maxLen: 20000 });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.eventBus });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.config });
+  });
+});
+
+describe("useUpdateLoggingConfig", () => {
+  it("calls updateLoggingConfig with a server_level-only update_mask", async () => {
+    updateLoggingConfig
+      .mockReset()
+      .mockResolvedValue({ status: "accepted", correlationId: "c1" });
+    const { wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useUpdateLoggingConfig(), { wrapper });
+    result.current.mutate({ serverLevel: "debug" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(updateLoggingConfig).toHaveBeenCalledWith({
+      config: { serverLevel: "debug" },
+      updateMask: { paths: ["server_level"] },
     });
   });
 });

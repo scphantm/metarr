@@ -8,15 +8,12 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-
-	"Metarr/internal/shared/aip"
 )
 
 // mutateConfigError is the sole error-mapping seam every config write funnels
-// through. These pin the three Connect codes the AIP reshape depends on:
-// NotFound and AlreadyExists carried through from a mutation closure, and
-// InvalidArgument synthesised from an aip sentinel that never learned about
-// transport.
+// through. These pin the Connect codes the AIP reshape depends on: NotFound and
+// AlreadyExists carried through from a mutation closure, and InvalidArgument
+// synthesised from a field-mask sentinel that never learned about transport.
 func TestMutateConfigError_CodeMapping(t *testing.T) {
 	cases := []struct {
 		name string
@@ -26,9 +23,8 @@ func TestMutateConfigError_CodeMapping(t *testing.T) {
 		{"closure NotFound passes through", connectError(http.StatusNotFound, errors.New("no such slug")), connect.CodeNotFound},
 		{"closure AlreadyExists passes through", connectError(http.StatusConflict, errors.New("slug taken")), connect.CodeAlreadyExists},
 		{"closure InvalidArgument passes through", connectError(http.StatusBadRequest, errors.New("bad input")), connect.CodeInvalidArgument},
-		{"aip empty mask maps to InvalidArgument", aip.ErrEmptyMask, connect.CodeInvalidArgument},
-		{"wrapped aip unknown path maps to InvalidArgument", fmt.Errorf("apply: %w", aip.ErrUnknownPath), connect.CodeInvalidArgument},
-		{"wrapped aip malformed name maps to InvalidArgument", fmt.Errorf("parse: %w", aip.ErrMalformedName), connect.CodeInvalidArgument},
+		{"empty mask maps to InvalidArgument", errEmptyMask, connect.CodeInvalidArgument},
+		{"wrapped unknown path maps to InvalidArgument", fmt.Errorf("apply: %w", errUnknownPath), connect.CodeInvalidArgument},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

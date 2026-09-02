@@ -15,6 +15,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.26.7
 	github.com/swaggo/http-swagger/v2 v2.0.2
 	github.com/swaggo/swag v1.16.6
+	go.einride.tech/aip v0.86.3
 	go.mongodb.org/mongo-driver/v2 v2.8.0
 	golang.org/x/image v0.45.0
 	google.golang.org/protobuf v1.36.12

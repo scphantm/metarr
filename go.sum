@@ -753,6 +753,8 @@ go.augendre.info/arangolint v0.4.0 h1:xSCZjRoS93nXazBSg5d0OGCi9APPLNMmmLrC995tR5
 go.augendre.info/arangolint v0.4.0/go.mod h1:l+f/b4plABuFISuKnTGD4RioXiCCgghv2xqst/xOvAA=
 go.augendre.info/fatcontext v0.10.0 h1:HhFopmivh8U1+AU7f0kuwUeg2eiIns7YsGQOMHwSJ90=
 go.augendre.info/fatcontext v0.10.0/go.mod h1:pqpGvA9GlrXy+aXkp8L2dKz12Zp4g2FhzcAtwToU+2w=
+go.einride.tech/aip v0.86.3 h1:jg80Ec4XBPYg1i7avzrl3MJol/dUwmMMLHtcmEMyxgM=
+go.einride.tech/aip v0.86.3/go.mod h1:dZuN/0sXeoscfWqsW8QLcLrGZdvsCC1B2R2CZ4kHmao=
 go.lsp.dev/jsonrpc2 v0.10.0 h1:Pr/YcXJoEOTMc/b6OTmcR1DPJ3mSWl/SWiU1Cct6VmI=
 go.lsp.dev/jsonrpc2 v0.10.0/go.mod h1:fmEzIdXPi/rf6d4uFcayi8HpFP1nBF99ERP1htC72Ac=
 go.lsp.dev/pkg v0.0.0-20210717090340-384b27a52fb2 h1:hCzQgh6UcwbKgNSRurYWSqh8MufqRRPODRBblutn4TE=
@@ -897,10 +899,14 @@ golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8T
 golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 google.golang.org/appengine v1.6.8 h1:IhEN5q69dyKagZPYMSdIjS2HqprW324FRQZJcGqPAsM=
 google.golang.org/appengine v1.6.8/go.mod h1:1jJ3jBArFh5pcgW8gCtRJnepW8FzD1V44FJffLiz/Ds=
+google.golang.org/genproto v0.0.0-20240711142825-46eb208f015d h1:/hmn0Ku5kWij/kjGsrcJeC1T/MrJi2iNWwgAqrihFwc=
+google.golang.org/genproto v0.0.0-20240711142825-46eb208f015d/go.mod h1:FfBgJBJg9GcpPvKIuHSZ/aE1g2ecGL74upMzGZjiGEY=
 google.golang.org/genproto/googleapis/api v0.0.0-20260825221802-da73d73af1c5 h1:izFU9hz7aeLI/Mi1J0991ae+xcwRLr7hTqWnB/9aIIU=
 google.golang.org/genproto/googleapis/api v0.0.0-20260825221802-da73d73af1c5/go.mod h1:3LhxRw4YYkf+ylAfgaY9JlVLFKhokkCV8duhLLe7+t0=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20260825221802-da73d73af1c5 h1:1VUiZAXyC+zmiFYi+WLtBzr68Cj8wOofHjjrA/kkizc=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20260825221802-da73d73af1c5/go.mod h1:DjtHYE8FKJLivXcBEjGwndXfIC23G0VpXiXKqG179uA=
+google.golang.org/grpc v1.82.0 h1:vguDnZUPjE26w09A63VoxZPnvPjB5Riyc0mkXPFmAIU=
+google.golang.org/grpc v1.82.0/go.mod h1:yzTZ1TB1Z3SG+LIYaI+WiE8D5+PZ3ArnrSp8zF3+/ZA=
 google.golang.org/protobuf v0.0.0-20200109180630-ec00e32a8dfd/go.mod h1:DFci5gLYBciE7Vtevhsrf46CRTquxDuWsQurQQe4oz8=
 google.golang.org/protobuf v0.0.0-20200221191635-4d8936d0db64/go.mod h1:kwYJMbMJ01Woi6D6+Kah6886xMZcty6N08ah7+eCXa0=
 google.golang.org/protobuf v0.0.0-20200228230310-ab0ca4ff8a60/go.mod h1:cfTl7dwQJ+fmap5saPgwCLgHXTUD7jkjRqWcaiX5VyM=

@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { FieldMask } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { AcceptedResponseSchema } from "./common_pb";
 import { file_metarr_v1_common } from "./common_pb";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/event_bus.proto.
  */
 export const file_metarr_v1_event_bus: GenFile = /*@__PURE__*/
-  fileDesc("ChltZXRhcnIvdjEvZXZlbnRfYnVzLnByb3RvEgltZXRhcnIudjEitAEKDkV2ZW50QnVzQ29uZmlnEg8KB21heF9sZW4YASABKAUSFwoPcmV0ZW50aW9uX2hvdXJzGAMgASgFEhYKDnJldHJ5X2F0dGVtcHRzGAQgASgFEh0KFXJldHJ5X2JhY2tvZmZfYmFzZV9tcxgFIAEoBRIcChRyZXRyeV9iYWNrb2ZmX21heF9tcxgGIAEoBUoECAIQA1IMbWF4X2xlbl9oaWdoUg9tYXhfbGVuX2RlZmF1bHQiIQofRXZlbnRCdXNTZXJ2aWNlR2V0Q29uZmlnUmVxdWVzdCJNCiBFdmVudEJ1c1NlcnZpY2VHZXRDb25maWdSZXNwb25zZRIpCgZjb25maWcYASABKAsyGS5tZXRhcnIudjEuRXZlbnRCdXNDb25maWciTwoiRXZlbnRCdXNTZXJ2aWNlVXBkYXRlQ29uZmlnUmVxdWVzdBIpCgZjb25maWcYASABKAsyGS5tZXRhcnIudjEuRXZlbnRCdXNDb25maWcy0wEKD0V2ZW50QnVzU2VydmljZRJkCglHZXRDb25maWcSKi5tZXRhcnIudjEuRXZlbnRCdXNTZXJ2aWNlR2V0Q29uZmlnUmVxdWVzdBorLm1ldGFyci52MS5FdmVudEJ1c1NlcnZpY2VHZXRDb25maWdSZXNwb25zZRJaCgxVcGRhdGVDb25maWcSLS5tZXRhcnIudjEuRXZlbnRCdXNTZXJ2aWNlVXBkYXRlQ29uZmlnUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_metarr_v1_common]);
+  fileDesc("ChltZXRhcnIvdjEvZXZlbnRfYnVzLnByb3RvEgltZXRhcnIudjEitAEKDkV2ZW50QnVzQ29uZmlnEg8KB21heF9sZW4YASABKAUSFwoPcmV0ZW50aW9uX2hvdXJzGAMgASgFEhYKDnJldHJ5X2F0dGVtcHRzGAQgASgFEh0KFXJldHJ5X2JhY2tvZmZfYmFzZV9tcxgFIAEoBRIcChRyZXRyeV9iYWNrb2ZmX21heF9tcxgGIAEoBUoECAIQA1IMbWF4X2xlbl9oaWdoUg9tYXhfbGVuX2RlZmF1bHQiGgoYR2V0RXZlbnRCdXNDb25maWdSZXF1ZXN0IkYKGUdldEV2ZW50QnVzQ29uZmlnUmVzcG9uc2USKQoGY29uZmlnGAEgASgLMhkubWV0YXJyLnYxLkV2ZW50QnVzQ29uZmlnInkKG1VwZGF0ZUV2ZW50QnVzQ29uZmlnUmVxdWVzdBIpCgZjb25maWcYASABKAsyGS5tZXRhcnIudjEuRXZlbnRCdXNDb25maWcSLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrMs4BCg9FdmVudEJ1c1NlcnZpY2USXgoRR2V0RXZlbnRCdXNDb25maWcSIy5tZXRhcnIudjEuR2V0RXZlbnRCdXNDb25maWdSZXF1ZXN0GiQubWV0YXJyLnYxLkdldEV2ZW50QnVzQ29uZmlnUmVzcG9uc2USWwoUVXBkYXRlRXZlbnRCdXNDb25maWcSJi5tZXRhcnIudjEuVXBkYXRlRXZlbnRCdXNDb25maWdSZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_google_protobuf_field_mask, file_metarr_v1_common]);
 
 /**
  * EventBusConfig tunes the Redis event bus without a rebuild (docs/adr/0006):
@@ -73,22 +75,22 @@ export const EventBusConfigSchema: GenMessage<EventBusConfig> = /*@__PURE__*/
   messageDesc(file_metarr_v1_event_bus, 0);
 
 /**
- * @generated from message metarr.v1.EventBusServiceGetConfigRequest
+ * @generated from message metarr.v1.GetEventBusConfigRequest
  */
-export type EventBusServiceGetConfigRequest = Message<"metarr.v1.EventBusServiceGetConfigRequest"> & {
+export type GetEventBusConfigRequest = Message<"metarr.v1.GetEventBusConfigRequest"> & {
 };
 
 /**
- * Describes the message metarr.v1.EventBusServiceGetConfigRequest.
- * Use `create(EventBusServiceGetConfigRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.GetEventBusConfigRequest.
+ * Use `create(GetEventBusConfigRequestSchema)` to create a new message.
  */
-export const EventBusServiceGetConfigRequestSchema: GenMessage<EventBusServiceGetConfigRequest> = /*@__PURE__*/
+export const GetEventBusConfigRequestSchema: GenMessage<GetEventBusConfigRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_event_bus, 1);
 
 /**
- * @generated from message metarr.v1.EventBusServiceGetConfigResponse
+ * @generated from message metarr.v1.GetEventBusConfigResponse
  */
-export type EventBusServiceGetConfigResponse = Message<"metarr.v1.EventBusServiceGetConfigResponse"> & {
+export type GetEventBusConfigResponse = Message<"metarr.v1.GetEventBusConfigResponse"> & {
   /**
    * @generated from field: metarr.v1.EventBusConfig config = 1;
    */
@@ -96,33 +98,39 @@ export type EventBusServiceGetConfigResponse = Message<"metarr.v1.EventBusServic
 };
 
 /**
- * Describes the message metarr.v1.EventBusServiceGetConfigResponse.
- * Use `create(EventBusServiceGetConfigResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.GetEventBusConfigResponse.
+ * Use `create(GetEventBusConfigResponseSchema)` to create a new message.
  */
-export const EventBusServiceGetConfigResponseSchema: GenMessage<EventBusServiceGetConfigResponse> = /*@__PURE__*/
+export const GetEventBusConfigResponseSchema: GenMessage<GetEventBusConfigResponse> = /*@__PURE__*/
   messageDesc(file_metarr_v1_event_bus, 2);
 
 /**
- * EventBusServiceUpdateConfigRequest carries the whole section: it is one
- * small fixed-shape block of scalars, not a collection, so a single
- * upserting write is the CRUD shape (see CLAUDE.md). The write still goes
- * through the config store as a scoped mutation — cfg.EventBus = config —
- * never a whole-document write.
+ * UpdateEventBusConfigRequest is an AIP-134 partial update: update_mask names
+ * the fields to change and config carries their new values. A missing config,
+ * an empty mask, or a path naming no EventBusConfig field is rejected with
+ * InvalidArgument (docs/adr/0010). The write still goes through the config
+ * store as a scoped mutation — the masked fields are merged onto cfg.EventBus
+ * — never a whole-document write.
  *
- * @generated from message metarr.v1.EventBusServiceUpdateConfigRequest
+ * @generated from message metarr.v1.UpdateEventBusConfigRequest
  */
-export type EventBusServiceUpdateConfigRequest = Message<"metarr.v1.EventBusServiceUpdateConfigRequest"> & {
+export type UpdateEventBusConfigRequest = Message<"metarr.v1.UpdateEventBusConfigRequest"> & {
   /**
    * @generated from field: metarr.v1.EventBusConfig config = 1;
    */
   config?: EventBusConfig | undefined;
+
+  /**
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask | undefined;
 };
 
 /**
- * Describes the message metarr.v1.EventBusServiceUpdateConfigRequest.
- * Use `create(EventBusServiceUpdateConfigRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.UpdateEventBusConfigRequest.
+ * Use `create(UpdateEventBusConfigRequestSchema)` to create a new message.
  */
-export const EventBusServiceUpdateConfigRequestSchema: GenMessage<EventBusServiceUpdateConfigRequest> = /*@__PURE__*/
+export const UpdateEventBusConfigRequestSchema: GenMessage<UpdateEventBusConfigRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_event_bus, 3);
 
 /**
@@ -133,19 +141,19 @@ export const EventBusServiceUpdateConfigRequestSchema: GenMessage<EventBusServic
  */
 export const EventBusService: GenService<{
   /**
-   * @generated from rpc metarr.v1.EventBusService.GetConfig
+   * @generated from rpc metarr.v1.EventBusService.GetEventBusConfig
    */
-  getConfig: {
+  getEventBusConfig: {
     methodKind: "unary";
-    input: typeof EventBusServiceGetConfigRequestSchema;
-    output: typeof EventBusServiceGetConfigResponseSchema;
+    input: typeof GetEventBusConfigRequestSchema;
+    output: typeof GetEventBusConfigResponseSchema;
   },
   /**
-   * @generated from rpc metarr.v1.EventBusService.UpdateConfig
+   * @generated from rpc metarr.v1.EventBusService.UpdateEventBusConfig
    */
-  updateConfig: {
+  updateEventBusConfig: {
     methodKind: "unary";
-    input: typeof EventBusServiceUpdateConfigRequestSchema;
+    input: typeof UpdateEventBusConfigRequestSchema;
     output: typeof AcceptedResponseSchema;
   },
 }> = /*@__PURE__*/
