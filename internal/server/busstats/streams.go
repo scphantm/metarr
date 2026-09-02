@@ -39,7 +39,7 @@ func (s *Sampler) collectStreams(ctx context.Context) ([]*StreamStat, map[string
 	return stats, published, consumed
 }
 
-func (s *Sampler) collectStream(ctx context.Context, topic eventbus.StreamTopic, published, consumed map[string]int64) *StreamStat {
+func (s *Sampler) collectStream(ctx context.Context, topic eventbus.Topic, published, consumed map[string]int64) *StreamStat {
 	stat := &StreamStat{
 		Stream:    topic.Name,
 		EventName: strings.Join(topic.Events, ", "),

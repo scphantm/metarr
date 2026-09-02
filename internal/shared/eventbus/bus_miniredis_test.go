@@ -86,6 +86,35 @@ func TestBusOverRedisWireEntryIsPayloadOnly(t *testing.T) {
 	}
 }
 
+// Bus.Close must never reach through to the shared Redis client: the config
+// store, the presence watcher and the stats sampler all keep using that same
+// client for the life of the process. A Close that called redis.Client.Close
+// would leave every one of them on a dead connection.
+func TestBusCloseLeavesSharedClientUsable(t *testing.T) {
+	server := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: server.Addr()})
+	t.Cleanup(func() { _ = client.Close() })
+
+	transport := RedisStreamTransport(client, NewSlogAdapter(slog.New(slog.NewTextHandler(io.Discard, nil))))
+	bus := newRedisBus(t, transport, client, SourceServer)
+
+	if err := bus.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	if err := client.Ping(context.Background()).Err(); err != nil {
+		t.Fatalf("shared client unusable after Bus.Close: %v", err)
+	}
+
+	// A fresh Bus on the same client still publishes.
+	next := newRedisBus(t, transport, client, SourceServer)
+	if err := next.Publish(context.Background(), AgentScanResultTopic(), AgentScanResultEventName, "corr-close", []byte(`{}`)); err != nil {
+		t.Fatalf("Publish after Close + rebuild: %v", err)
+	}
+	if got := xlen(t, client, AgentScanResultStream); got != 1 {
+		t.Errorf("%s length = %d, want 1", AgentScanResultStream, got)
+	}
+}
+
 // tunedRedisTransport is RedisStreamTransport with the library's claim/idle
 // windows tightened so a reclaim happens in test time rather than the 5s/60s
 // defaults. Publish side is the production redisStreamPublisher unchanged.
@@ -150,7 +179,7 @@ func TestBusOverRedisReclaimsAfterConsumerDies(t *testing.T) {
 
 	// Publish straight to Redis via the production publisher.
 	pub := &redisStreamPublisher{client: client}
-	envelope := MarshalEventOrFatal(t, NewEvent(AgentSource("nas-01"), AgentScanResultEventName, "corr-reclaim", []byte(`{}`)))
+	envelope := MarshalEventOrFatal(t, newEnvelope(AgentSource("nas-01"), AgentScanResultEventName, "corr-reclaim", []byte(`{}`)))
 	if err := pub.Publish(context.Background(), topic.Name, envelope, 1000); err != nil {
 		t.Fatalf("publish: %v", err)
 	}

@@ -210,10 +210,6 @@ type Topic struct {
 	ReplyName string
 }
 
-// StreamTopic is the former name for Topic, kept as a compiling alias while
-// call sites migrate. New code names Topic.
-type StreamTopic = Topic
-
 // streamScanCount is the COUNT hint for the per-agent stream SCAN. It only
 // tunes how many keys Redis returns per round trip; the iterator still walks
 // the whole keyspace.
@@ -243,7 +239,7 @@ func Topics() []Topic {
 	return append(StreamTopics(), HeartbeatTopic(), LogTopic())
 }
 
-// streamTopicPublishable reports whether StreamBus.Publish may append to
+// streamTopicPublishable reports whether Bus.Publish may append to
 // topic. It returns an error for a pattern topic — a glob names many streams,
 // not one — and for a non-pattern topic whose Name is not one the stream
 // topic table resolves to, whether a static row or a concrete per-agent
