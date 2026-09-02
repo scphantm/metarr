@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/alicebob/miniredis/v2"
@@ -21,11 +22,31 @@ func newTestTaskServer(t *testing.T) (*TaskServer, redis.UniversalClient) {
 	client := redis.NewClient(&redis.Options{Addr: server.Addr()})
 	t.Cleanup(func() { _ = client.Close() })
 
-	bus, err := eventbus.NewStreamBus(client, eventbus.DefaultBusPolicy().Retention, eventbus.NewSlogAdapter(slog.Default()))
+	bus, err := eventbus.New(eventbus.Config{
+		Redis:   client,
+		Source:  eventbus.SourceServer,
+		Streams: eventbus.RedisStreamTransport(client, eventbus.NewSlogAdapter(slog.Default())),
+		Policy:  eventbus.DefaultBusPolicy,
+		Logger:  slog.Default(),
+	})
 	if err != nil {
-		t.Fatalf("NewStreamBus: %v", err)
+		t.Fatalf("eventbus.New: %v", err)
 	}
-	return &TaskServer{Handlers: &handlers.Handlers{Streams: bus, Logger: slog.Default()}}, client
+
+	// The bus builds its stream publisher inside Run, so Publish is only live
+	// after Ready. This server publishes but consumes nothing.
+	runCtx, cancel := context.WithCancel(context.Background())
+	runDone := make(chan struct{})
+	go func() { _ = bus.Run(runCtx); close(runDone) }()
+	select {
+	case <-bus.Ready():
+	case <-time.After(2 * time.Second):
+		cancel()
+		t.Fatal("bus did not become ready")
+	}
+	t.Cleanup(func() { cancel(); <-runDone; _ = bus.Close() })
+
+	return &TaskServer{Handlers: &handlers.Handlers{Bus: bus, Logger: slog.Default()}}, client
 }
 
 func configWithMappedAgent() *appconfig.Config {

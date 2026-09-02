@@ -22,7 +22,7 @@ import (
 // Handlers bundles the dependencies shared by every HTTP handler.
 type Handlers struct {
 	PubSub             *eventbus.PubSubBus
-	Streams            *eventbus.StreamBus
+	Bus                *eventbus.Bus
 	AppConfigStore     *appconfigstore.Store
 	LocalDirectoryRepo *mongostore.LocalDirectoryRepo
 	WorkflowRepo       *mongostore.WorkflowRepo
@@ -39,7 +39,7 @@ type Handlers struct {
 // New constructs a Handlers from its dependencies.
 func New(
 	pubsub *eventbus.PubSubBus,
-	streams *eventbus.StreamBus,
+	bus *eventbus.Bus,
 	appConfigStore *appconfigstore.Store,
 	localDirectoryRepo *mongostore.LocalDirectoryRepo,
 	workflowRepo *mongostore.WorkflowRepo,
@@ -54,7 +54,7 @@ func New(
 ) *Handlers {
 	return &Handlers{
 		PubSub:             pubsub,
-		Streams:            streams,
+		Bus:                bus,
 		AppConfigStore:     appConfigStore,
 		LocalDirectoryRepo: localDirectoryRepo,
 		WorkflowRepo:       workflowRepo,
