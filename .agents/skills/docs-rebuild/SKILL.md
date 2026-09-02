@@ -1,6 +1,7 @@
 # Documentation rebuild
 
-Metarr's documentation is built with Antora from AsciiDoc sources under `documentation/`. The build output goes to `build/site/`, and the rendered HTML is viewable at `build/site/index.html` after a successful build.
+Metarr's documentation is built with Antora from AsciiDoc sources under `documentation/`. The build output goes to
+`build/site/`, and the rendered HTML is viewable at `build/site/index.html` after a successful build.
 
 ## Setup (one-time only)
 
@@ -8,7 +9,8 @@ Metarr's documentation is built with Antora from AsciiDoc sources under `documen
 make docs-initialize
 ```
 
-Downloads Node dependencies and the UI theme bundle. Only needed once, or after deleting `node_modules/` or `documentation-theme/`.
+Downloads Node dependencies and the UI theme bundle. Only needed once, or after deleting `node_modules/` or
+`documentation-theme/`.
 
 ## Build
 
@@ -16,7 +18,8 @@ Downloads Node dependencies and the UI theme bundle. Only needed once, or after 
 make docs-build
 ```
 
-Regenerates all HTML from `documentation/modules/*/pages/*.adoc`, including xref resolution across modules. Fast (~3–5s on a warm build). Antora reports warnings (e.g., stale xrefs) but does not fail on them.
+Regenerates all HTML from `documentation/modules/*/pages/*.adoc`, including xref resolution across modules. Fast (~3–5s
+on a warm build). Antora reports warnings (e.g., stale xrefs) but does not fail on them.
 
 ## Clean + rebuild (force fresh)
 
@@ -25,6 +28,7 @@ rm -rf build/site && make docs-build
 ```
 
 Useful after:
+
 - Renaming or deleting documentation files (orphaned xrefs don't get cleaned automatically)
 - Switching between branches with incompatible doc structure
 - Debugging a suspected cache corruption in Antora's intermediate state
@@ -34,6 +38,7 @@ A plain `make docs-build` (without the `rm`) is sufficient for regular edits —
 ## Verify the build
 
 After running `make docs-build`, check:
+
 - Exit code is 0 (no fatal errors)
 - No `"level":"error"` or `"level":"fatal"` lines in the output
 - `build/site/index.html` exists

@@ -5,10 +5,13 @@
 # Ignore the whole tree, then re-include what Prettier owns.
 /*
 
+!/.agents
 !/ui
+!/docs
 !/package.json
 !/eslint.config.mjs
 !/.prettierrc.json
+!**/*.md
 
 # ...but never these, even inside ui/
 ui/node_modules/
@@ -17,5 +20,3 @@ ui/.vite/
 ui/src/gen/
 **/*.tsbuildinfo
 
-# Leave Markdown prose formatting alone (repo docs weren't written to Prettier).
-*.md
