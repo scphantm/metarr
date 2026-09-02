@@ -10,12 +10,36 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+// newEnvelope assembles an EventEnvelope for tests that publish straight to
+// the transport or Redis — simulating another process (or another language)
+// putting a well-formed envelope on the wire. Production code never
+// hand-builds an envelope: Bus.Publish / Bus.Request / Bus.Notify stamp it.
+func newEnvelope(source, name, correlationID string, payload []byte) *Event {
+	return &Event{
+		Name:          name,
+		Source:        source,
+		CorrelationId: correlationID,
+		Timestamp:     timestamppb.Now(),
+		Payload:       payload,
+	}
+}
 
 // The Bus's durable-stream half is exercised over ChannelStreamTransport —
 // no Redis, just the middleware stack and per-(topic, name) dispatch doing
 // what the acceptance criteria describe. The one Redis-specific behaviour
 // (consumer group create + XAUTOCLAIM reclaim) is in bus_miniredis_test.go.
+
+func testPolicy() RetryPolicy {
+	return RetryPolicy{MaxAttempts: 3, BackoffBase: time.Millisecond, BackoffMax: 2 * time.Millisecond}
+}
+
+// errUnreachable stands in for a "could not process at all" handler failure —
+// the only case the failure convention says a handler should return an error
+// for. Tests assert it survives the retry stack via errors.Is.
+var errUnreachable = errors.New("datastore unreachable")
 
 func testBusPolicy() BusPolicy {
 	return BusPolicy{

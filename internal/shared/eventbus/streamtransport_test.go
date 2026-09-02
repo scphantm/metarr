@@ -10,7 +10,7 @@ import (
 // JSON — no _watermill_message_uuid, no msgpack metadata blob.
 
 func TestMinimalStreamValuesCarriesOnlyPayload(t *testing.T) {
-	envelope := MarshalEventOrFatal(t, NewEvent(SourceServer, SystemConfigUpdateEventName, "corr-1", []byte(`{"k":1}`)))
+	envelope := MarshalEventOrFatal(t, newEnvelope(SourceServer, SystemConfigUpdateEventName, "corr-1", []byte(`{"k":1}`)))
 
 	values := minimalStreamValues(envelope)
 
@@ -27,7 +27,7 @@ func TestMinimalStreamValuesCarriesOnlyPayload(t *testing.T) {
 }
 
 func TestPayloadFromStreamValuesRoundTrips(t *testing.T) {
-	envelope := MarshalEventOrFatal(t, NewEvent(AgentSource("nas-01"), AgentScanResultEventName, "corr-2", []byte(`{}`)))
+	envelope := MarshalEventOrFatal(t, newEnvelope(AgentSource("nas-01"), AgentScanResultEventName, "corr-2", []byte(`{}`)))
 
 	// Redis hands entry values back as strings, not []byte.
 	back, err := payloadFromStreamValues(map[string]any{"payload": string(envelope)})
@@ -54,7 +54,7 @@ func TestPayloadFromStreamValuesRejectsMissingField(t *testing.T) {
 }
 
 func TestMinimalUnmarshallerYieldsEnvelopePayload(t *testing.T) {
-	envelope := MarshalEventOrFatal(t, NewEvent(SourceServer, SystemConfigUpdateEventName, "corr-3", []byte(`{"a":true}`)))
+	envelope := MarshalEventOrFatal(t, newEnvelope(SourceServer, SystemConfigUpdateEventName, "corr-3", []byte(`{"a":true}`)))
 
 	msg, err := minimalUnmarshaller{}.Unmarshal(map[string]any{"payload": string(envelope)})
 	if err != nil {

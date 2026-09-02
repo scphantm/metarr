@@ -11,7 +11,7 @@ import (
 // as JSON in its payload, with proto field names, so an integrator needs only
 // a Redis client and a JSON parser. Pin that shape.
 func TestMarshalEventProducesTheDocumentedJSONShape(t *testing.T) {
-	event := NewEvent(SourceServer, "system_config_update", "corr-1", []byte(`{"logging":{"server_level":"debug"}}`))
+	event := newEnvelope(SourceServer, "system_config_update", "corr-1", []byte(`{"logging":{"server_level":"debug"}}`))
 
 	data, err := MarshalEvent(event)
 	if err != nil {
@@ -36,7 +36,7 @@ func TestMarshalEventProducesTheDocumentedJSONShape(t *testing.T) {
 // encoding/json. One encoding on both sides removes that by construction —
 // MarshalEvent's output must feed straight back into UnmarshalEvent.
 func TestEventRoundTripsThroughTheBusEncoding(t *testing.T) {
-	original := NewEvent(AgentSource("nas-01"), "agent.scan_result", "corr-42", []byte(`{"scan_id":"corr-42"}`))
+	original := newEnvelope(AgentSource("nas-01"), "agent.scan_result", "corr-42", []byte(`{"scan_id":"corr-42"}`))
 
 	data, err := MarshalEvent(original)
 	if err != nil {

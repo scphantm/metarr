@@ -23,30 +23,39 @@ func newRetentionRedis(t *testing.T) (*miniredis.Miniredis, redis.UniversalClien
 }
 
 // Every stream is held at the one cap under sustained publishing (acceptance
-// criterion): there is no tier, so the same MAXLEN applies to all of them.
-func TestStreamBusCapsEveryPublish(t *testing.T) {
+// criterion): there is no tier, so the same MAXLEN — read from the late-bound
+// policy on every Bus.Publish — applies to all of them.
+func TestBusCapsEveryPublish(t *testing.T) {
 	_, client := newRetentionRedis(t)
 
-	policy := RetentionPolicy{MaxLen: 4, RetentionHours: 48}
-	bus, err := NewStreamBus(client, policy, NewSlogAdapter(discardSlog()))
+	const maxLen int64 = 4
+	policy := testBusPolicy()
+	policy.Retention.MaxLen = maxLen
+	bus, err := New(Config{
+		Redis:   client,
+		Source:  SourceServer,
+		Streams: RedisStreamTransport(client, NewSlogAdapter(discardSlog())),
+		Policy:  func() BusPolicy { return policy },
+		Logger:  discardSlog(),
+	})
 	if err != nil {
-		t.Fatalf("NewStreamBus: %v", err)
+		t.Fatalf("New: %v", err)
 	}
 
 	ctx := context.Background()
 	for i := range 50 {
 		id := strconv.Itoa(i)
-		if err := bus.Publish(ctx, SystemConfigUpdateTopic(), NewEvent(SourceServer, SystemConfigUpdateEventName, id, []byte(`{}`))); err != nil {
+		if err := bus.Publish(ctx, SystemConfigUpdateTopic(), SystemConfigUpdateEventName, id, []byte(`{}`)); err != nil {
 			t.Fatalf("publish system_config_update: %v", err)
 		}
-		if err := bus.Publish(ctx, AgentScanResultTopic(), NewEvent(AgentSource("nas-01"), AgentScanResultEventName, id, []byte(`{}`))); err != nil {
+		if err := bus.Publish(ctx, AgentScanResultTopic(), AgentScanResultEventName, id, []byte(`{}`)); err != nil {
 			t.Fatalf("publish agent_scan_results: %v", err)
 		}
 	}
 
 	for _, stream := range []string{SystemConfigUpdateStream, AgentScanResultStream} {
-		if got := xlen(t, client, stream); got > policy.MaxLen {
-			t.Errorf("%s length %d exceeds the one cap %d", stream, got, policy.MaxLen)
+		if got := xlen(t, client, stream); got > maxLen {
+			t.Errorf("%s length %d exceeds the one cap %d", stream, got, maxLen)
 		}
 	}
 }

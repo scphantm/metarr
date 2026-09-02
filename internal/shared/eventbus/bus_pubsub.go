@@ -25,6 +25,21 @@ import (
 // under one call; Ready waits for both (every stream handler live AND every
 // SUBSCRIBE acknowledged).
 
+// ErrNoResponder is returned by Request when no reply comes back — the
+// timeout elapsed with nothing listening on the request channel or the
+// responder too slow, or the reply subscription closed under it. On the
+// timeout path (the common one) it also wraps the context's deadline error,
+// so errors.Is(err, context.DeadlineExceeded) still matches there.
+var ErrNoResponder = errors.New("eventbus: no responder answered the request")
+
+// ReplyChannel returns the per-request reply channel name for a correlation
+// ID. Scoping the reply channel to the correlation ID lets many concurrent
+// callers share the same request channel without stealing each other's
+// replies.
+func ReplyChannel(correlationID string) string {
+	return fmt.Sprintf("reply.%s", correlationID)
+}
+
 // RequestHandler is the answering side of a request/reply exchange. It
 // receives the decoded request envelope and returns the reply payload. On a
 // non-nil replyPayload the Bus assembles the reply envelope — Source from
