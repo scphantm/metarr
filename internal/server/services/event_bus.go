@@ -39,12 +39,10 @@ func (s *EventBusServer) GetEventBusConfig(
 	ctx context.Context,
 	req *connect.Request[metarrv1.GetEventBusConfigRequest],
 ) (*connect.Response[metarrv1.GetEventBusConfigResponse], error) {
-	section := appconfig.Get().EventBus
-	if section == nil {
-		section = &metarrv1.EventBusConfig{}
-	}
+	// Live config is always Normalized, so the section already carries its
+	// derived etag — the read just clones it out.
 	return connect.NewResponse(&metarrv1.GetEventBusConfigResponse{
-		Config: withETag(section),
+		Config: cloneMsg(appconfig.Get().EventBus),
 	}), nil
 }
 
@@ -68,20 +66,20 @@ func (s *EventBusServer) UpdateEventBusConfig(
 	}
 
 	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		// cfg is Normalized, so cfg.EventBus carries its current etag;
+		// checkETag recomputes with that field cleared, so it matches a token
+		// a client read. MarshalStored strips the derived etag before the
+		// section is persisted or fired.
 		merged := cloneMsg(cfg.EventBus)
 		if merged == nil {
 			merged = &metarrv1.EventBusConfig{}
 		}
-		clearETagField(merged)
 		if err := checkETag(merged, req.Msg.GetEtag()); err != nil {
 			return err
 		}
 		if err := applyUpdateMask(merged, patch, req.Msg.GetUpdateMask()); err != nil {
 			return err
 		}
-		// Nothing derived reaches the stored document: a client that named
-		// "etag" in the mask, or left one on config, must not persist it.
-		clearETagField(merged)
 		if err := validateEventBusConfig(merged); err != nil {
 			return connectError(http.StatusBadRequest, err)
 		}

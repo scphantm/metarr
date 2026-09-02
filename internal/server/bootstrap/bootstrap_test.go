@@ -138,6 +138,9 @@ func TestRun_AgreesWithDefaultOnTheStaticSections(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	// Read returns a Normalized config, so the scalar sections carry a
+	// derived etag Default() does not; strip it before comparing values.
+	appconfig.ClearDerived(final)
 
 	want := appconfig.Default()
 	if final.DirectoryScanner.ParallelCount != want.DirectoryScanner.ParallelCount {
