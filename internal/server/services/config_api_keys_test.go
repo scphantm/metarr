@@ -32,13 +32,15 @@ func (f *fakeConfigBackend) Get(_ context.Context) (*appconfig.Config, error) {
 	return proto.Clone(f.cfg).(*appconfig.Config), nil
 }
 
-func (f *fakeConfigBackend) Publish(_ context.Context, _ eventbus.StreamTopic, event *eventbus.Event) error {
-	cfg, err := appconfig.UnmarshalStored(event.Payload)
+// Publish mirrors *eventbus.Bus: it is handed name, correlation ID and
+// payload, and stamps the envelope Source itself.
+func (f *fakeConfigBackend) Publish(_ context.Context, _ eventbus.Topic, name, correlationID string, payload []byte) error {
+	cfg, err := appconfig.UnmarshalStored(payload)
 	if err != nil {
 		return err
 	}
 	f.cfg = cfg
-	f.fired = append(f.fired, event)
+	f.fired = append(f.fired, eventbus.NewEvent(eventbus.SourceServer, name, correlationID, payload))
 	return nil
 }
 

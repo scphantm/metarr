@@ -33,39 +33,30 @@ import (
 // work is an in-memory config lookup, and a logged drop of a handful of
 // orphaned results beats losing them silently.
 func RegisterAgentScanResultListener(
-	router *eventbus.Router,
+	bus *eventbus.Bus,
 	repo *mongostore.LocalDirectoryRepo,
 	logger *slog.Logger,
 ) error {
 	logger.Info("registering agent scan result listener", "stream", eventbus.AgentScanResultStream)
 
-	return router.Handle(
+	// Per-(topic, name) dispatch lives in the bus now; this map is the
+	// dispatch table. An event on the stream whose name is not a key here
+	// hits the bus's single unknown-name default (logged once, acked).
+	return bus.HandleStream(
 		eventbus.AgentScanResultTopic(),
-		eventbus.ConsumerName,
-		func(ctx context.Context, event *eventbus.Event) error {
-			return handleAgentScanEvent(ctx, repo, logger, event)
+		map[string]eventbus.StreamHandler{
+			eventbus.AgentScanResultEventName: func(ctx context.Context, event *eventbus.Event) error {
+				return storeScanResult(ctx, repo, logger, event)
+			},
+			eventbus.AgentScanCompleteEventName: func(ctx context.Context, event *eventbus.Event) error {
+				return completeScan(ctx, repo, logger, event)
+			},
+			eventbus.AgentScanFailedEventName: func(_ context.Context, event *eventbus.Event) error {
+				reportScanFailure(logger, event)
+				return nil
+			},
 		},
 	)
-}
-
-func handleAgentScanEvent(
-	ctx context.Context,
-	repo *mongostore.LocalDirectoryRepo,
-	logger *slog.Logger,
-	event *eventbus.Event,
-) error {
-	switch event.Name {
-	case eventbus.AgentScanResultEventName:
-		return storeScanResult(ctx, repo, logger, event)
-	case eventbus.AgentScanCompleteEventName:
-		return completeScan(ctx, repo, logger, event)
-	case eventbus.AgentScanFailedEventName:
-		reportScanFailure(logger, event)
-		return nil
-	default:
-		logger.Warn("ignoring unknown agent scan event", "event", event.Name)
-		return nil
-	}
 }
 
 func storeScanResult(

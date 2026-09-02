@@ -82,9 +82,7 @@ func (s *TaskServer) RunDirectoryScan(
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue task"))
 	}
 
-	event := eventbus.NewEvent(eventbus.SourceServer, eventbus.AgentScanCommandEventName, correlationID, payload)
-
-	if err := s.Streams.Publish(ctx, eventbus.AgentCommandTopic(agent.Slug), event); err != nil {
+	if err := s.Bus.Publish(ctx, eventbus.AgentCommandTopic(agent.Slug), eventbus.AgentScanCommandEventName, correlationID, payload); err != nil {
 		s.Logger.Error("failed to send scan command to agent", "agent", agent.Slug, "correlation_id", correlationID, "error", err)
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue task"))
 	}

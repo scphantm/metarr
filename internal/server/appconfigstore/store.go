@@ -29,9 +29,11 @@ type configReader interface {
 }
 
 // updatePublisher is the store's write dependency, satisfied by
-// *eventbus.StreamBus without any change to that type.
+// *eventbus.Bus without any change to that type. The Bus stamps the envelope
+// Source and validates the event name against the topic row, so the store
+// hands it only name, correlation ID, and the encoded payload.
 type updatePublisher interface {
-	Publish(ctx context.Context, topic eventbus.StreamTopic, event *eventbus.Event) error
+	Publish(ctx context.Context, topic eventbus.Topic, name, correlationID string, payload []byte) error
 }
 
 // configWriter is Bootstrap's persistence dependency — a direct, synchronous
@@ -91,14 +93,13 @@ func (s *Store) Mutate(ctx context.Context, apply func(*appconfig.Config) error)
 		return err
 	}
 
-	event := eventbus.NewEvent(
-		eventbus.SourceServer,
+	return s.publisher.Publish(
+		ctx,
+		eventbus.SystemConfigUpdateTopic(),
 		eventbus.SystemConfigUpdateEventName,
 		correlation.FromContext(ctx),
 		payload,
 	)
-
-	return s.publisher.Publish(ctx, eventbus.SystemConfigUpdateTopic(), event)
 }
 
 // Bootstrap reads the current application config, applies apply to it, and

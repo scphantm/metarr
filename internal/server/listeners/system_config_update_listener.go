@@ -31,7 +31,7 @@ import (
 // instead, which is what the republish step writes — see
 // agentregistry.BuildProjection.
 func RegisterSystemConfigUpdateListener(
-	router *eventbus.Router,
+	bus *eventbus.Bus,
 	repo *mongostore.AppConfigRepo,
 	agents *agentregistry.Registry,
 	logShipper *logging.Shipper,
@@ -41,27 +41,28 @@ func RegisterSystemConfigUpdateListener(
 
 	propagator := newConfigPropagator(repo, liveConfigSetterFunc(appconfig.Set), sidecarRegistryAdapter{}, agents, logShipper, logger)
 
-	return router.Handle(
+	return bus.HandleStream(
 		eventbus.SystemConfigUpdateTopic(),
-		eventbus.ConsumerName,
-		func(ctx context.Context, event *eventbus.Event) error {
-			// Decode through the same protojson path the payload was published
-			// with (appconfig.MarshalStored). Reading a proto message back with
-			// encoding/json is what the old listener did, and it silently
-			// mishandled well-known types like the timestamps in this document.
-			cfg, err := appconfig.UnmarshalStored(event.Payload)
-			if err != nil {
-				logger.Error("system_config_update listener: invalid payload", "correlation_id", event.CorrelationId, "error", err)
-				return err
-			}
+		map[string]eventbus.StreamHandler{
+			eventbus.SystemConfigUpdateEventName: func(ctx context.Context, event *eventbus.Event) error {
+				// Decode through the same protojson path the payload was published
+				// with (appconfig.MarshalStored). Reading a proto message back with
+				// encoding/json is what the old listener did, and it silently
+				// mishandled well-known types like the timestamps in this document.
+				cfg, err := appconfig.UnmarshalStored(event.Payload)
+				if err != nil {
+					logger.Error("system_config_update listener: invalid payload", "correlation_id", event.CorrelationId, "error", err)
+					return err
+				}
 
-			ctx = correlation.WithID(ctx, event.CorrelationId)
-			if err := propagator.Apply(ctx, cfg); err != nil {
-				return err
-			}
+				ctx = correlation.WithID(ctx, event.CorrelationId)
+				if err := propagator.Apply(ctx, cfg); err != nil {
+					return err
+				}
 
-			logger.Info("system config updated", "correlation_id", event.CorrelationId)
-			return nil
+				logger.Info("system config updated", "correlation_id", event.CorrelationId)
+				return nil
+			},
 		},
 	)
 }

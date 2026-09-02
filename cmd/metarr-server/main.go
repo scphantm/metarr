@@ -102,22 +102,39 @@ func run() error {
 	logShipper.Attach(redisClient)
 
 	pubsubBus := eventbus.NewPubSubBus(redisClient)
-	// The Pub/Sub counterpart of the stream Router: every notification
+	// The Pub/Sub counterpart of the durable-stream Bus: every notification
 	// subscriber and the answering side of every request/reply on this
 	// process register on it, then one Run(ctx) drives them (docs/adr/0006).
-	// It and the stream router are wired the same way — register every
-	// handler, then drive both through startRouter near the end of run().
 	pubsubRouter := eventbus.NewPubSubRouter(redisClient, eventbus.SourceServer, logger)
-	// A first StreamBus with built-in caps, enough for bootstrap to fire
-	// through. Once bootstrap has seeded the config and the live singleton is
-	// warm, both the StreamBus and the config store are rebuilt against the
-	// live event_bus policy just below.
-	streamBus, err := eventbus.NewStreamBus(redisClient, eventbus.DefaultBusPolicy().Retention, eventbus.NewSlogAdapter(logger))
+
+	// The one durable-stream Bus (docs/adr/0008,
+	// docs/design/eventbus-bus-interface.md), built once. Its tuning is
+	// late-bound: before bootstrap has seeded the event_bus config section
+	// the closure falls back to DefaultBusPolicy(); after appconfig.Set below
+	// it returns the live values. bus.Run reads it once for the retry stack +
+	// publish MAXLEN, and the retention sweep reads it every iteration — so
+	// there is no build-on-default-then-rebuild-on-live sequence any more.
+	// Bootstrap only writes synchronously (it fires no event), so the
+	// fallback is never actually published through.
+	liveBusPolicy := func() eventbus.BusPolicy {
+		if live := appconfig.Get(); live != nil && live.EventBus != nil {
+			return eventbus.BusPolicyFromConfig(live.EventBus)
+		}
+		return eventbus.DefaultBusPolicy()
+	}
+	bus, err := eventbus.New(eventbus.Config{
+		Redis:          redisClient,
+		Source:         eventbus.SourceServer,
+		Streams:        eventbus.RedisStreamTransport(redisClient, eventbus.NewSlogAdapter(logger)),
+		Policy:         liveBusPolicy,
+		Logger:         logger,
+		RetentionSweep: true,
+	})
 	if err != nil {
 		return err
 	}
 	appConfigRepo := mongostore.NewAppConfigRepo(mongoClient, cfg.MongoDatabase)
-	appConfigStore := appconfigstore.New(appConfigRepo, appConfigRepo, streamBus)
+	appConfigStore := appconfigstore.New(appConfigRepo, appConfigRepo, bus)
 	localDirectoryRepo := mongostore.NewLocalDirectoryRepo(mongoClient, cfg.MongoDatabase)
 	workflowRepo := mongostore.NewWorkflowRepo(mongoClient, cfg.MongoDatabase)
 	sessions := session.NewStore(redisClient)
@@ -200,21 +217,9 @@ func run() error {
 	startupCfg := bootstrapReport.FinalConfig
 	appconfig.Set(startupCfg)
 
-	// The event bus tuning is now known. Assemble the one BusPolicy from the
-	// live event_bus section and rebuild the StreamBus and the config store
-	// against it so publish-time MAXLEN caps track configuration, not just the
-	// build-time default (docs/adr/0006). The Router and the retention sweep
-	// below take their own slice of the same policy.
-	busPolicy := eventbus.BusPolicyFromConfig(startupCfg.EventBus)
-	// The bootstrap StreamBus owns nothing to release — its publisher rides
-	// the shared redisClient, which main closes on shutdown — so it is simply
-	// replaced with one carrying the configured retention policy. (Closing it
-	// here would close that shared client out from under everything else.)
-	streamBus, err = eventbus.NewStreamBus(redisClient, busPolicy.Retention, eventbus.NewSlogAdapter(logger))
-	if err != nil {
-		return err
-	}
-	appConfigStore = appconfigstore.New(appConfigRepo, appConfigRepo, streamBus)
+	// From here on liveBusPolicy() (above) returns the configured event_bus
+	// tuning rather than the built-in default — bus.Run and the retention
+	// sweep pick it up when they start below.
 
 	// Compile the stored sidecar table into the registry the scanner reads.
 	// A bad pattern here is a stored-configuration problem, not a reason to
@@ -251,26 +256,22 @@ func run() error {
 	presenceWatcher := agentregistry.NewPresenceWatcher(agentRegistry, func() time.Time { return time.Now().UTC() }, logger)
 	go presenceWatcher.Run(ctx, agentregistry.DefaultPresenceWatchInterval)
 
-	// Every durable stream this process consumes runs under one Watermill
-	// Router with the Recoverer/drop-after-retry/Retry middleware stack: a
-	// handler that errors past the retry cap has its message logged at error
-	// level and acked, instead of redelivering forever (docs/adr/0006).
+	// Every durable stream this process consumes runs through the one Bus
+	// with the Recoverer/drop-after-retry/Retry middleware stack: a handler
+	// that errors past the retry cap has its message logged at error level
+	// and acked, instead of redelivering forever (docs/adr/0006,
+	// docs/adr/0008). Per-(topic, name) dispatch and the unknown-name default
+	// live inside the Bus, so each listener registers a name->handler map.
 	// Scanning itself now happens on the agents; the scan-result listener is
-	// the half that persists what they report.
-	eventRouter, err := eventbus.NewRedisRouter(redisClient, busPolicy.Retry, eventbus.NewSlogAdapter(logger))
-	if err != nil {
+	// the half that persists what they report. The age-based retention sweep
+	// runs inside bus.Run (Config.RetentionSweep) rather than as its own
+	// goroutine.
+	if err := listeners.RegisterSystemConfigUpdateListener(bus, appConfigRepo, agentRegistry, logShipper, logger); err != nil {
 		return err
 	}
-	if err := listeners.RegisterSystemConfigUpdateListener(eventRouter, appConfigRepo, agentRegistry, logShipper, logger); err != nil {
+	if err := listeners.RegisterAgentScanResultListener(bus, localDirectoryRepo, logger); err != nil {
 		return err
 	}
-	if err := listeners.RegisterAgentScanResultListener(eventRouter, localDirectoryRepo, logger); err != nil {
-		return err
-	}
-
-	// The age half of retention: publish-time MAXLEN bounds a stream by count,
-	// this bounds a low-volume stream by age so nothing outlives the window.
-	go eventbus.NewRetentionSweeper(redisClient, busPolicy.Retention, busPolicy.SweepInterval, logger).Run(ctx)
 
 	// One sampler goroutine per process polls Redis on a fixed cadence into a
 	// shared snapshot; every StatsService.Stream client fans out from it, so a
@@ -305,10 +306,10 @@ func run() error {
 		listeners.RegisterLogForwardListener(pubsubRouter, forwarder, logger)
 	}
 
-	// Every handler is registered on both routers now; drive each for the
-	// lifetime of the process through the one lifecycle helper so it is
-	// written once, not twice. A warm-up publisher can wait on Running() on
-	// either.
+	// Every handler is registered on the Bus and the Pub/Sub router now;
+	// drive each for the lifetime of the process through the one lifecycle
+	// helper so it is written once, not twice. A warm-up publisher can wait
+	// on bus.Ready() / pubsubRouter.Running().
 	startRouter := func(name string, run func(context.Context) error) {
 		go func() {
 			if err := run(ctx); err != nil && ctx.Err() == nil {
@@ -316,7 +317,16 @@ func run() error {
 			}
 		}()
 	}
-	startRouter("event", eventRouter.Run)
+	// The Bus is load-bearing — config propagation and the scan path both run
+	// through it — so a Run failure (router or subscriber construction, or the
+	// router exiting on its own) triggers a graceful shutdown rather than
+	// leaving the process up with a dead bus.
+	go func() {
+		if err := bus.Run(ctx); err != nil && ctx.Err() == nil {
+			logger.Error("event bus stopped unexpectedly; shutting down", "error", err)
+			stop()
+		}
+	}()
 	startRouter("pubsub", pubsubRouter.Run)
 
 	// The streaming layer: the bus snapshot, agents.presence and logging.tail
@@ -325,7 +335,7 @@ func run() error {
 	// metarr.v1.LoggingService.StreamTail (internal/server/services), mounted
 	// via connectServices below. wsbus.Hub and GET /api/ws are retired.
 
-	apiHandlers := handlers.New(pubsubBus, streamBus, appConfigStore, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, busSampler, redisClient, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
+	apiHandlers := handlers.New(pubsubBus, bus, appConfigStore, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, busSampler, redisClient, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
 	uiFS, uiEmbedded := webui.FS()
 	if uiEmbedded {
 		logger.Info("ui embed", "enabled", true)

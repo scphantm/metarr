@@ -97,16 +97,23 @@ func run() error {
 	)
 
 	// The agent has no live config to read (operator tuning of the event_bus
-	// section does not reach agents, per ADR-0006), so it assembles the one
-	// BusPolicy from the built-in defaults and passes the sub-slices on.
-	busPolicy := eventbus.DefaultBusPolicy()
-	streamBus, err := eventbus.NewStreamBus(redisClient, busPolicy.Retention, eventbus.NewSlogAdapter(logger))
+	// section does not reach agents, per ADR-0006), so the Bus's policy
+	// provider is a constant: the built-in defaults.
+	bus, err := eventbus.New(eventbus.Config{
+		Redis:          redisClient,
+		Source:         eventbus.AgentSource(cfg.Slug),
+		Streams:        eventbus.RedisStreamTransport(redisClient, eventbus.NewSlogAdapter(logger)),
+		Policy:         eventbus.DefaultBusPolicy,
+		Logger:         logger,
+		RetentionSweep: false, // the agent has no canonical view to trim
+	})
 	if err != nil {
 		return err
 	}
-	// The Pub/Sub counterpart of the stream Router: the NFO-read responder and
-	// the config-changed watch register on it, then one Run(ctx) drives it
-	// (docs/adr/0006), the same shape the stream router is driven with below.
+	// The Pub/Sub counterpart of the durable-stream Bus: the NFO-read
+	// responder and the config-changed watch register on it, then one
+	// Run(ctx) drives it (docs/adr/0006), the same shape the Bus is driven
+	// with below.
 	pubsubRouter := eventbus.NewPubSubRouter(redisClient, eventbus.AgentSource(cfg.Slug), logger)
 
 	configStore := runtime.NewConfigStore(redisClient, logger, cfg.Slug, logShipper)
@@ -117,20 +124,15 @@ func run() error {
 		logger.Warn("could not read configuration at startup; will retry", "error", err)
 	}
 
-	// One Watermill Router per process consumes every durable stream this
-	// agent reads, with the Recoverer/drop-after-retry/Retry middleware
-	// stack; a command that errors past the retry cap is logged at error
-	// level and acked rather than redelivered forever (docs/adr/0006). The
-	// agent enforces dry-run and reports business failures as result events
-	// itself, so the scan handler only ever returns an error for a message it
-	// could not process at all.
-	eventRouter, err := eventbus.NewRedisRouter(redisClient, busPolicy.Retry, eventbus.NewSlogAdapter(logger))
-	if err != nil {
-		return err
-	}
-
-	scanner := runtime.NewScanner(streamBus, configStore, logger, cfg.Slug)
-	if err := scanner.Register(eventRouter); err != nil {
+	// The one Bus consumes every durable stream this agent reads, with the
+	// Recoverer/drop-after-retry/Retry middleware stack; a command that
+	// errors past the retry cap is logged at error level and acked rather
+	// than redelivered forever (docs/adr/0006, docs/adr/0008). The agent
+	// enforces dry-run and reports business failures as result events itself,
+	// so the scan handler only ever returns an error for a message it could
+	// not process at all.
+	scanner := runtime.NewScanner(bus, configStore, logger, cfg.Slug)
+	if err := scanner.Register(bus); err != nil {
 		return err
 	}
 	nfoReader := runtime.NewNFOReader(configStore, logger, cfg.Slug)
@@ -150,9 +152,10 @@ func run() error {
 		}()
 	}
 
-	// Both routers now have every handler registered; drive each with the one
-	// tracked-goroutine helper so their lifecycle is written once, not twice.
-	// A warm-up publisher can wait on Running() on either.
+	// The Bus and the Pub/Sub router now have every handler registered; drive
+	// each with the one tracked-goroutine helper so their lifecycle is
+	// written once, not twice. A warm-up publisher can wait on bus.Ready() /
+	// pubsubRouter.Running().
 	startRouter := func(name string, run func(context.Context) error) {
 		start(name, func() {
 			if err := run(ctx); err != nil && ctx.Err() == nil {
@@ -164,7 +167,15 @@ func run() error {
 	start("presence", func() { presence.Run(ctx) })
 	start("config", func() { configStore.RefreshPeriodically(ctx) })
 	startRouter("pubsub", pubsubRouter.Run)
-	startRouter("event", eventRouter.Run)
+	// The Bus carries this agent's scan command and result streams, so a Run
+	// failure triggers a graceful shutdown rather than a running-but-deaf
+	// agent.
+	start("bus", func() {
+		if err := bus.Run(ctx); err != nil && ctx.Err() == nil {
+			logger.Error("event bus stopped unexpectedly; shutting down", "error", err)
+			stop()
+		}
+	})
 
 	<-ctx.Done()
 	logger.Info("agent shutting down")
