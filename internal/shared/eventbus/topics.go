@@ -147,13 +147,18 @@ func AgentRequestChannel(slug string) string { return "agent." + slug + ".reques
 
 // AgentPubSubChannels lists the per-agent Pub/Sub channels addressed to
 // slug: the config-changed notification the agent subscribes to, and the
-// agent's request channel its responder subscribes to. It is the Pub/Sub
-// counterpart to AgentCommandTopic — the family the expected-topology
-// derivation enumerates for every registered agent, so an offline agent's
-// channels still show as rows on the dashboard rather than vanishing. Both
-// carry the agent as their one expected subscriber.
+// agent's request channel its responder subscribes to. It is the non-stream
+// slice of AgentTopics — the same relationship KnownPubSubChannels has to
+// Topics() — kept for callers that want only the channel names. Both carry
+// the agent as their one expected subscriber.
 func AgentPubSubChannels(slug string) []string {
-	return []string{AgentConfigChangedChannel(slug), AgentRequestChannel(slug)}
+	var channels []string
+	for _, topic := range AgentTopics(slug) {
+		if topic.Kind != KindStream {
+			channels = append(channels, topic.Name)
+		}
+	}
+	return channels
 }
 
 // TopicKind tags a Topic row with the delivery shape it describes, so one
@@ -237,6 +242,21 @@ func StreamTopics() []Topic {
 // them per registered agent with AgentConfigChangedTopic / AgentRequestTopic.
 func Topics() []Topic {
 	return append(StreamTopics(), HeartbeatTopic(), LogTopic())
+}
+
+// AgentTopics is the per-agent counterpart to Topics(): every bus
+// destination addressed to one agent slug — its command stream, its
+// config-changed notify channel, and its request/reply channel — each
+// tagged by Kind. The expected-vs-actual topology derivation expands this
+// for every registered agent and places each row by Kind exactly as it does
+// the static Topics() rows, so an offline agent's streams and channels still
+// appear on the dashboard rather than vanishing.
+func AgentTopics(slug string) []Topic {
+	return []Topic{
+		AgentCommandTopic(slug),
+		AgentConfigChangedTopic(slug),
+		AgentRequestTopic(slug),
+	}
 }
 
 // streamTopicPublishable reports whether Bus.Publish may append to

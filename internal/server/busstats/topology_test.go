@@ -24,7 +24,7 @@ func samplerWithSlugs(t *testing.T, slugs ...string) (*Sampler, *miniredis.Minir
 	})), mr
 }
 
-// DeriveTopology is a pure function of the durable stream-topic list and the
+// DeriveTopology is a pure function of the unified topic table and the
 // registered agent slug set. This walks it for zero, one, and several agents.
 func TestDeriveTopology(t *testing.T) {
 	const server = "metarr-server"
@@ -78,7 +78,7 @@ func TestDeriveTopology(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			top := DeriveTopology(eventbus.StreamTopics(), tc.slugs)
+			top := DeriveTopology(eventbus.Topics(), tc.slugs)
 
 			for name, want := range tc.wantStreamIdentities {
 				got, ok := top.Streams[name]
@@ -108,6 +108,51 @@ func TestDeriveTopology(t *testing.T) {
 				t.Errorf("channel count = %d, want %d", len(top.Channels), want)
 			}
 		})
+	}
+}
+
+// DeriveTopology takes the one unified topic table and splits it by Kind: a
+// KindStream row lands in Streams, a KindNotify or KindRequestReply row in
+// Channels. It no longer reads a streams-only list plus KnownPubSubChannels
+// plus AgentPubSubChannels — feeding it eventbus.Topics() alone must yield
+// both the stream rows and the fixed channel rows.
+func TestDeriveTopologyConsumesTheUnifiedTable(t *testing.T) {
+	top := DeriveTopology(eventbus.Topics(), []string{"nas-01"})
+
+	// KindStream rows -> Streams.
+	for _, name := range []string{
+		eventbus.SystemConfigUpdateStream,
+		eventbus.AgentScanResultStream,
+		eventbus.AgentNodeResultStream,
+		eventbus.AgentCommandStream("nas-01"),
+	} {
+		if _, ok := top.Streams[name]; !ok {
+			t.Errorf("stream %q missing from Streams", name)
+		}
+		if _, wrong := top.Channels[name]; wrong {
+			t.Errorf("stream %q wrongly landed in Channels", name)
+		}
+	}
+
+	// KindRequestReply / KindNotify rows -> Channels, including the fixed
+	// channels that used to come from a separate KnownPubSubChannels call.
+	for _, name := range []string{
+		eventbus.HeartbeatRequestChannel, // request_reply
+		eventbus.LogChannel,              // notify
+		eventbus.AgentConfigChangedChannel("nas-01"),
+		eventbus.AgentRequestChannel("nas-01"),
+	} {
+		if _, ok := top.Channels[name]; !ok {
+			t.Errorf("channel %q missing from Channels", name)
+		}
+		if _, wrong := top.Streams[name]; wrong {
+			t.Errorf("channel %q wrongly landed in Streams", name)
+		}
+	}
+
+	// The pattern row is skipped, not placed anywhere.
+	if _, ok := top.Streams[eventbus.AgentCommandStreamPattern]; ok {
+		t.Errorf("pattern row %q leaked into Streams", eventbus.AgentCommandStreamPattern)
 	}
 }
 
@@ -164,7 +209,7 @@ func TestNameMissing(t *testing.T) {
 // — a fresh start, before the Router's first XREADGROUP — is not flagged:
 // durable streams are created lazily and that is cold-start, not a fault.
 func TestApplyStreamTopologyDoesNotFlagColdStartServerStream(t *testing.T) {
-	top := DeriveTopology(eventbus.StreamTopics(), nil)
+	top := DeriveTopology(eventbus.Topics(), nil)
 	// The scan-result stream row exists but has no groups yet.
 	streams := []*StreamStat{{Stream: eventbus.AgentScanResultStream, Groups: []*GroupStat{}}}
 
@@ -185,7 +230,7 @@ func TestApplyStreamTopologyDoesNotFlagColdStartServerStream(t *testing.T) {
 // The same stream is flagged once its group exists but nothing is consuming
 // it — a real "the server stopped reading this" fault.
 func TestApplyStreamTopologyFlagsUnconsumedServerGroup(t *testing.T) {
-	top := DeriveTopology(eventbus.StreamTopics(), nil)
+	top := DeriveTopology(eventbus.Topics(), nil)
 	streams := []*StreamStat{{
 		Stream: eventbus.AgentScanResultStream,
 		Groups: []*GroupStat{{Name: eventbus.AgentScanResultGroup, Consumers: 0}},
