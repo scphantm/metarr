@@ -17,9 +17,9 @@ import (
 
 // NFOReader answers the one synchronous call an HTTP request is waiting on:
 // reading a single NFO file off this agent's disk. It reads the file and
-// applies the path-traversal guards; the PubSubRouter it registers on owns
-// the subscription loop and stamps source, correlation ID, and reply name on
-// the answer.
+// applies the path-traversal guards; the Bus it registers on owns the
+// subscription loop and stamps source, correlation ID, and reply name on the
+// answer.
 //
 // Pub/Sub rather than a stream because the caller is a browser: an answer
 // that arrives after the request timed out is worthless, so durability would
@@ -35,13 +35,13 @@ func NewNFOReader(config *ConfigStore, logger *slog.Logger, slug string) *NFORea
 	return &NFOReader{config: config, logger: logger, slug: slug}
 }
 
-// Register wires the NFO-read responder onto router. The router decodes the
+// Register wires the NFO-read responder onto the Bus. The Bus decodes the
 // request envelope, calls the handler, and on a non-nil payload builds the
 // reply — stamping this agent's source, the request's correlation ID, and
-// eventbus.AgentNFOReadReplyEventName — then publishes it on the
-// correlation-scoped reply channel.
-func (r *NFOReader) Register(router *eventbus.PubSubRouter) {
-	router.Respond(eventbus.AgentRequestChannel(r.slug), eventbus.AgentNFOReadReplyEventName,
+// the topic's reply event name (eventbus.AgentNFOReadReplyEventName) — then
+// publishes it on the correlation-scoped reply channel.
+func (r *NFOReader) Register(bus *eventbus.Bus) error {
+	return bus.HandleRequest(eventbus.AgentRequestTopic(r.slug),
 		func(_ context.Context, request *eventbus.Event) ([]byte, error) {
 			payload, err := json.Marshal(r.readNFO(request))
 			if err != nil {

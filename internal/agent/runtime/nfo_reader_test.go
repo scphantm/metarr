@@ -1,8 +1,19 @@
 package runtime
 
 import (
+	"context"
+	"encoding/json"
+	"io"
+	"log/slog"
 	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
+
+	"Metarr/internal/shared/agentproto"
+	"Metarr/internal/shared/eventbus"
 )
 
 // These two functions are the only thing standing between a metadata endpoint
@@ -81,6 +92,83 @@ func TestResolveWithinDirectoryRejectsEscapesAndNonNFO(t *testing.T) {
 		if got, err := resolveWithinDirectory(directory, requested); err == nil {
 			t.Errorf("%s: resolveWithinDirectory(%q) = %q, want an error", name, requested, got)
 		}
+	}
+}
+
+// A directory NFO read reaches the agent and returns through the Bus: the
+// responder registered by NFOReader.Register answers a bus.Request on the
+// agent's request/reply topic, and the reply carries the topic's reply event
+// name. With no projection installed the reader's answer is a structured
+// "not configured yet" error — which is exactly what proves the request got
+// to the handler and a reply came back.
+func TestNFOReaderRegisterAnswersThroughTheBus(t *testing.T) {
+	server := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: server.Addr()})
+	t.Cleanup(func() { _ = client.Close() })
+
+	const slug = "nas-01"
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	configStore := NewConfigStore(client, logger, slug, nil)
+	reader := NewNFOReader(configStore, logger, slug)
+
+	bus, err := eventbus.New(eventbus.Config{
+		Redis:   client,
+		Source:  eventbus.AgentSource(slug),
+		Streams: eventbus.ChannelStreamTransport(),
+		Policy:  eventbus.DefaultBusPolicy,
+		Logger:  logger,
+	})
+	if err != nil {
+		t.Fatalf("eventbus.New: %v", err)
+	}
+	if err := reader.Register(bus); err != nil {
+		t.Fatalf("reader.Register: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	runDone := make(chan error, 1)
+	go func() { runDone <- bus.Run(ctx) }()
+	select {
+	case <-bus.Ready():
+	case err := <-runDone:
+		t.Fatalf("bus stopped before ready: %v", err)
+	case <-time.After(2 * time.Second):
+		t.Fatal("bus never became ready")
+	}
+	t.Cleanup(func() {
+		cancel()
+		<-runDone
+		_ = bus.Close()
+	})
+
+	payload, err := json.Marshal(agentproto.NFOReadRequest{
+		ScannerSlug:       "movies",
+		RelativeDirectory: "Blade Runner (1982)",
+		RelativePath:      "movie.nfo",
+	})
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+
+	reqCtx, reqCancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer reqCancel()
+
+	reply, err := bus.Request(reqCtx, eventbus.AgentRequestTopic(slug),
+		eventbus.AgentNFOReadEventName, "corr-nfo", payload)
+	if err != nil {
+		t.Fatalf("bus.Request: %v", err)
+	}
+	if reply.GetName() != eventbus.AgentNFOReadReplyEventName {
+		t.Errorf("reply name = %q, want %q", reply.GetName(), eventbus.AgentNFOReadReplyEventName)
+	}
+
+	var body agentproto.NFOReadReply
+	if err := json.Unmarshal(reply.GetPayload(), &body); err != nil {
+		t.Fatalf("unmarshal reply: %v", err)
+	}
+	if body.Error == "" {
+		t.Error("expected a structured error in the reply (no projection installed)")
 	}
 }
 

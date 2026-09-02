@@ -16,9 +16,9 @@ import (
 )
 
 // The config-changed watch used to run its own hand-rolled Redis Pub/Sub loop.
-// It now registers on the shared PubSubRouter like every other notification
-// consumer; this proves the wake-up still re-reads the projection when the
-// server publishes to the agent's AgentConfigChangedChannel.
+// It now registers a notify handler on the shared Bus like every other
+// notification consumer; this proves the wake-up still re-reads the projection
+// when the server notifies the agent's AgentConfigChangedTopic.
 func TestConfigStoreRegisterRefreshesOnChangeNotification(t *testing.T) {
 	server := miniredis.RunT(t)
 	client := redis.NewClient(&redis.Options{Addr: server.Addr()})
@@ -28,17 +28,36 @@ func TestConfigStoreRegisterRefreshesOnChangeNotification(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	store := NewConfigStore(client, logger, slug, nil)
 
-	router := eventbus.NewPubSubRouter(client, eventbus.AgentSource(slug), logger)
-	store.Register(router)
+	bus, err := eventbus.New(eventbus.Config{
+		Redis:   client,
+		Source:  eventbus.AgentSource(slug),
+		Streams: eventbus.ChannelStreamTransport(),
+		Policy:  eventbus.DefaultBusPolicy,
+		Logger:  logger,
+	})
+	if err != nil {
+		t.Fatalf("eventbus.New: %v", err)
+	}
+	if err := store.Register(bus); err != nil {
+		t.Fatalf("store.Register: %v", err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go func() { _ = router.Run(ctx) }()
+	runDone := make(chan error, 1)
+	go func() { runDone <- bus.Run(ctx) }()
 	select {
-	case <-router.Running():
+	case <-bus.Ready():
+	case err := <-runDone:
+		t.Fatalf("bus stopped before ready: %v", err)
 	case <-time.After(2 * time.Second):
-		t.Fatal("router never signalled Running()")
+		t.Fatal("bus never became ready")
 	}
+	t.Cleanup(func() {
+		cancel()
+		<-runDone
+		_ = bus.Close()
+	})
 
 	// Nothing published yet: the store has no projection.
 	if store.Current() != nil {
@@ -57,8 +76,8 @@ func TestConfigStoreRegisterRefreshesOnChangeNotification(t *testing.T) {
 		t.Fatalf("seed config key: %v", err)
 	}
 
-	if err := client.Publish(ctx, eventbus.AgentConfigChangedChannel(slug), "changed").Err(); err != nil {
-		t.Fatalf("publish change notification: %v", err)
+	if err := bus.Notify(ctx, eventbus.AgentConfigChangedTopic(slug), []byte("changed")); err != nil {
+		t.Fatalf("notify change: %v", err)
 	}
 
 	deadline := time.After(2 * time.Second)

@@ -18,12 +18,14 @@ import (
 // and what each of them has been told.
 type Registry struct {
 	client redis.UniversalClient
+	bus    *eventbus.Bus
 	logger *slog.Logger
 }
 
-// New returns a Registry backed by client.
-func New(client redis.UniversalClient, logger *slog.Logger) *Registry {
-	return &Registry{client: client, logger: logger}
+// New returns a Registry backed by client. bus carries the best-effort
+// config-changed notification to each agent.
+func New(client redis.UniversalClient, bus *eventbus.Bus, logger *slog.Logger) *Registry {
+	return &Registry{client: client, bus: bus, logger: logger}
 }
 
 // AgentView is one agent as the UI sees it: what the operator configured, what
@@ -198,7 +200,7 @@ func (r *Registry) publish(ctx context.Context, config *appconfig.Config, slug s
 
 	// Best effort: an agent that misses this re-reads on its own timer, so a
 	// failed notification is a delay rather than a stale configuration.
-	if err := r.client.Publish(ctx, eventbus.AgentConfigChangedChannel(slug), "changed").Err(); err != nil {
+	if err := r.bus.Notify(ctx, eventbus.AgentConfigChangedTopic(slug), []byte("changed")); err != nil {
 		r.logger.Debug("could not notify agent of a configuration change", "agent", slug, "error", err)
 	}
 	return nil
