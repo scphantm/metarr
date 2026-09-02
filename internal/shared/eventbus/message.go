@@ -17,14 +17,14 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	metarrv1 "Metarr/internal/genproto/metarr/v1"
+	busv1 "Metarr/internal/genproto/metarr/bus/v1"
 )
 
 // Event is the envelope for every message that flows through the event bus,
-// whether over Pub/Sub or Streams. It is the generated metarr.v1.EventEnvelope
-// proto message (docs/adr/0005, docs/adr/0006): there is no hand-written
-// mirror to keep in step with the wire form.
-type Event = metarrv1.EventEnvelope
+// whether over Pub/Sub or Streams. It is the generated metarr.bus.v1.EventEnvelope
+// proto message (docs/adr/0005, docs/adr/0006, docs/adr/0008): there is no
+// hand-written mirror to keep in step with the wire form.
+type Event = busv1.EventEnvelope
 
 // Source values for the envelope's Source field. They match the logging
 // `source` convention: one fixed value for the server, one per agent slug.

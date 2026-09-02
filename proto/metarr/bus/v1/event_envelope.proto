@@ -1,17 +1,17 @@
 syntax = "proto3";
 
-package metarr.v1;
+package metarr.bus.v1;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
+option go_package = "Metarr/internal/genproto/metarr/bus/v1;busv1";
 
 // EventEnvelope is the wire form of every message that flows through the
-// server<->agent event bus, over Redis Streams and Redis Pub/Sub alike. It
-// is encoded with protojson using the same options as the stored config
-// (proto field names, unpopulated fields emitted), so a durable stream entry
-// carries the envelope as readable JSON in its payload field and an external
-// subscriber needs only a Redis client and a JSON parser.
+// event bus, over Redis Streams and Redis Pub/Sub alike. It is encoded with
+// protojson using the same options as the stored config (proto field names,
+// unpopulated fields emitted), so a durable stream entry carries the
+// envelope as readable JSON in its payload field and a participant needs
+// only a Redis client and a JSON parser (docs/adr/0006, docs/adr/0008).
 //
 // A breaking change to an inner payload is expressed as a new value of
 // `name` with a `.vN` suffix rather than a schema-version field: a consumer
@@ -22,7 +22,9 @@ message EventEnvelope {
   string name = 1;
 
   // source is the process that published the event: "metarr-server" or
-  // "metarr-agent-{slug}". It matches the logging `source` convention.
+  // "metarr-agent-{slug}". It matches the logging `source` convention. The
+  // contract does not enumerate the valid values (docs/adr/0008): a
+  // participant identity model will add more without a breaking change.
   string source = 2;
 
   // correlation_id ties an event to the request or run that produced it, so
@@ -33,8 +35,7 @@ message EventEnvelope {
   google.protobuf.Timestamp timestamp = 4;
 
   // payload is the inner message. It is opaque to the bus: publishers encode
-  // it and consumers decode it by `name`. Today's payloads are JSON; as the
-  // model-generation work converts them they become protojson of a proto
-  // message, with no change to this envelope.
+  // it and consumers decode it by `name`. No payload ever carries a
+  // credential (docs/adr/0009).
   bytes payload = 5;
 }

@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	metarrv1 "Metarr/internal/genproto/metarr/v1"
+	busv1 "Metarr/internal/genproto/metarr/bus/v1"
 	"Metarr/internal/shared/metadata"
 	"Metarr/internal/shared/scanmodel"
 )
@@ -72,23 +72,24 @@ func SlugFromPresenceKey(key string) string {
 // of a network. This package keeps only the Redis key helpers, the slug
 // rules, and the payload shapes below.
 
-// The contract models below are aliases to their generated metarr.v1
+// The contract models below are aliases to their generated metarr.bus.v1
 // messages — proto is the single definition for a model that crosses the
-// server↔agent boundary. AgentIdentity, AgentTelemetry and GPUTelemetry also
-// reach the UI through AgentService; AgentConfigProjection and AgentPresence
-// are Go-only, serialized to Redis through MarshalStored / UnmarshalStored.
-// See docs/adr/0005.
+// server↔agent boundary, and the bus contract module is its home
+// (docs/adr/0008). AgentIdentity, AgentTelemetry and GPUTelemetry also reach
+// the UI through AgentService; AgentConfigProjection and AgentPresence are
+// Go-only, serialized to Redis through MarshalStored / UnmarshalStored. See
+// docs/adr/0005.
 type (
-	AgentIdentity  = metarrv1.AgentIdentity
-	AgentTelemetry = metarrv1.AgentTelemetry
-	GPUTelemetry   = metarrv1.GPUTelemetry
+	AgentIdentity  = busv1.AgentIdentity
+	AgentTelemetry = busv1.AgentTelemetry
+	GPUTelemetry   = busv1.GPUTelemetry
 	// AgentPresence is the whole value stored at PresenceKey.
-	AgentPresence = metarrv1.AgentPresence
+	AgentPresence = busv1.AgentPresence
 	// AgentConfigProjection is everything an agent is allowed to know — the
 	// security boundary of the agent design. See agentregistry.BuildProjection.
-	AgentConfigProjection = metarrv1.AgentConfigProjection
+	AgentConfigProjection = busv1.AgentConfigProjection
 	// MappedDirectory is one scan directory as one agent sees it.
-	MappedDirectory = metarrv1.MappedDirectory
+	MappedDirectory = busv1.MappedDirectory
 )
 
 // FindDirectory returns the projection's mapping for scannerSlug. It is a

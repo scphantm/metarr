@@ -33,10 +33,8 @@ import {
   ConfigServiceUpsertApiKeyRequestSchema,
 } from "../gen/metarr/v1/config_pb";
 import { AgentConfigSchema } from "../gen/metarr/v1/agents_pb";
-import {
-  ScanDirectorySchema,
-  SidecarTypeDefinitionSchema,
-} from "../gen/metarr/v1/directory_scanner_pb";
+import { SidecarTypeDefinitionSchema } from "../gen/metarr/bus/v1/agent_contract_pb";
+import { ScanDirectorySchema } from "../gen/metarr/v1/directory_scanner_pb";
 import { LoggingConfigSchema } from "../gen/metarr/v1/logging_pb";
 import { EventBusConfigSchema } from "../gen/metarr/v1/event_bus_pb";
 import { WorkflowServiceUpsertRequestSchema } from "../gen/metarr/v1/workflows_pb";
