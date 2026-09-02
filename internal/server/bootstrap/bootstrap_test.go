@@ -40,7 +40,7 @@ func (f *fakeStore) Upsert(_ context.Context, cfg *appconfig.Config) error {
 	return nil
 }
 
-func (f *fakeStore) Publish(_ context.Context, _ eventbus.StreamTopic, _ *eventbus.Event) error {
+func (f *fakeStore) Publish(_ context.Context, _ eventbus.Topic, _, _ string, _ []byte) error {
 	return nil
 }
 

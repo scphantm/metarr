@@ -27,30 +27,27 @@ const maxResultBytes = 256 * 1024
 // Scanner walks the libraries this agent has been mapped to and streams the
 // results back to the server.
 type Scanner struct {
-	bus    *eventbus.StreamBus
+	bus    *eventbus.Bus
 	config *ConfigStore
 	logger *slog.Logger
 	slug   string
 }
 
 // NewScanner returns a Scanner for one agent.
-func NewScanner(bus *eventbus.StreamBus, config *ConfigStore, logger *slog.Logger, slug string) *Scanner {
+func NewScanner(bus *eventbus.Bus, config *ConfigStore, logger *slog.Logger, slug string) *Scanner {
 	return &Scanner{bus: bus, config: config, logger: logger, slug: slug}
 }
 
-// Register wires the scan-command consumer onto the agent's process Router.
-// The command topic is per-slug, so its Watermill handler name is per-slug
-// too — uniqueness does not depend on one router per process.
-func (s *Scanner) Register(router *eventbus.Router) error {
-	return router.Handle(eventbus.AgentCommandTopic(s.slug), s.slug, s.handle)
+// Register wires the scan-command consumer onto the agent's Bus. The command
+// topic is per-slug; per-(topic, name) dispatch and the unknown-name default
+// live in the bus, so this is one handler map with one entry.
+func (s *Scanner) Register(bus *eventbus.Bus) error {
+	return bus.HandleStream(eventbus.AgentCommandTopic(s.slug), map[string]eventbus.StreamHandler{
+		eventbus.AgentScanCommandEventName: s.handle,
+	})
 }
 
 func (s *Scanner) handle(ctx context.Context, event *eventbus.Event) error {
-	if event.Name != eventbus.AgentScanCommandEventName {
-		s.logger.Warn("ignoring unknown command", "event", event.Name)
-		return nil
-	}
-
 	var command agentproto.ScanCommand
 	if err := json.Unmarshal(event.Payload, &command); err != nil {
 		// An undecodable command cannot be processed at all: let the Router
@@ -289,8 +286,7 @@ func (s *Scanner) sendResultInParts(
 }
 
 func (s *Scanner) publish(ctx context.Context, correlationID, name string, payload []byte) error {
-	return s.bus.Publish(ctx, eventbus.AgentScanResultTopic(),
-		eventbus.NewEvent(eventbus.AgentSource(s.slug), name, correlationID, payload))
+	return s.bus.Publish(ctx, eventbus.AgentScanResultTopic(), name, correlationID, payload)
 }
 
 func (s *Scanner) report(ctx context.Context, correlationID, name string, message any) error {
