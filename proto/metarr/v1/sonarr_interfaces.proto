@@ -2,13 +2,19 @@ syntax = "proto3";
 
 package metarr.v1;
 
-import "metarr/v1/common.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
 // SonarrInstance configures a single Sonarr instance to cache data from.
 // This message is the single definition of that config across the Go
 // server, the UI and the stored document.
+//
+// instance_slug is the operator-chosen identifier the collection is
+// addressed by (docs/adr/0010): Get / Delete take it as slug, Create
+// carries it in sonarr_instance_id, and it is unique across every
+// interface type, not just Sonarr.
 message SonarrInstance {
   string instance_name = 1;
   string instance_slug = 2;
@@ -29,31 +35,65 @@ message StorageConfig {
   int32 max_count = 3;
 }
 
-message SonarrInterfaceServiceListRequest {}
-
-message SonarrInterfaceServiceListResponse {
-  repeated SonarrInstance instances = 1;
+// CreateSonarrInstanceRequest carries the new instance's slug in
+// sonarr_instance_id (AIP-133). A slug set in sonarr_instance must match it
+// or be empty, else InvalidArgument. A slug already used by a Sonarr
+// instance is AlreadyExists; one already used by a different interface type
+// is FailedPrecondition (the cross-entry check, docs/adr/0010).
+message CreateSonarrInstanceRequest {
+  string sonarr_instance_id = 1;
+  SonarrInstance sonarr_instance = 2;
 }
 
-message SonarrInterfaceServiceGetRequest {
+message GetSonarrInstanceRequest {
   string slug = 1;
 }
 
-message SonarrInterfaceServiceGetResponse {
-  SonarrInstance instance = 1;
+// ListSonarrInstancesRequest is the AIP-158 / 132 / 160 List contract: a
+// page_size / page_token window, an order_by sort (instance_slug,
+// instance_name), and a filter entry point. filter translation is deferred
+// (docs/adr/0010) — any non-empty filter is Unimplemented.
+message ListSonarrInstancesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  string filter = 3;
+  string order_by = 4;
 }
 
-message SonarrInterfaceServiceUpsertRequest {
-  SonarrInstance instance = 1;
+message ListSonarrInstancesResponse {
+  repeated SonarrInstance sonarr_instances = 1;
+  string next_page_token = 2;
 }
 
-message SonarrInterfaceServiceDeleteRequest {
+// UpdateSonarrInstanceRequest is an AIP-134 partial update: update_mask names
+// the fields to change (dotted paths honoured, e.g. storage.ttl) and
+// sonarr_instance carries their new values, matched to a stored instance by
+// its instance_slug. An empty mask or a path naming no field is
+// InvalidArgument. allow_missing:true makes an Update against an unknown slug
+// create — the mask is ignored on that branch and the whole resource is
+// validated as a Create; allow_missing:false is NotFound.
+message UpdateSonarrInstanceRequest {
+  SonarrInstance sonarr_instance = 1;
+  google.protobuf.FieldMask update_mask = 2;
+  bool allow_missing = 3;
+}
+
+message DeleteSonarrInstanceRequest {
   string slug = 1;
 }
 
+// SonarrInterfaceService is the first config collection on AIP standard
+// methods (docs/adr/0010): slug-addressed, FieldMask partial update,
+// paginated List, synchronous writes that return the stored resource
+// (docs/adr/0002). Every write goes through AppConfigStore.MutateSync — see
+// internal/server/appconfigstore.
 service SonarrInterfaceService {
-  rpc List(SonarrInterfaceServiceListRequest) returns (SonarrInterfaceServiceListResponse);
-  rpc Get(SonarrInterfaceServiceGetRequest) returns (SonarrInterfaceServiceGetResponse);
-  rpc Upsert(SonarrInterfaceServiceUpsertRequest) returns (metarr.v1.AcceptedResponse);
-  rpc Delete(SonarrInterfaceServiceDeleteRequest) returns (metarr.v1.AcceptedResponse);
+  // CreateSonarrInstance appends a new instance and returns it as stored.
+  rpc CreateSonarrInstance(CreateSonarrInstanceRequest) returns (SonarrInstance);
+  rpc GetSonarrInstance(GetSonarrInstanceRequest) returns (SonarrInstance);
+  rpc ListSonarrInstances(ListSonarrInstancesRequest) returns (ListSonarrInstancesResponse);
+  // UpdateSonarrInstance returns the stored instance after the synchronous
+  // write has landed (AIP-134).
+  rpc UpdateSonarrInstance(UpdateSonarrInstanceRequest) returns (SonarrInstance);
+  rpc DeleteSonarrInstance(DeleteSonarrInstanceRequest) returns (google.protobuf.Empty);
 }

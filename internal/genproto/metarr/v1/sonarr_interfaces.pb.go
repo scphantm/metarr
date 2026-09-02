@@ -9,6 +9,8 @@ package metarrv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -24,6 +26,11 @@ const (
 // SonarrInstance configures a single Sonarr instance to cache data from.
 // This message is the single definition of that config across the Go
 // server, the UI and the stored document.
+//
+// instance_slug is the operator-chosen identifier the collection is
+// addressed by (docs/adr/0010): Get / Delete take it as slug, Create
+// carries it in sonarr_instance_id, and it is unique across every
+// interface type, not just Sonarr.
 type SonarrInstance struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	InstanceName  string                 `protobuf:"bytes,1,opt,name=instance_name,json=instanceName,proto3" json:"instance_name,omitempty"`
@@ -220,26 +227,33 @@ func (x *StorageConfig) GetMaxCount() int32 {
 	return 0
 }
 
-type SonarrInterfaceServiceListRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+// CreateSonarrInstanceRequest carries the new instance's slug in
+// sonarr_instance_id (AIP-133). A slug set in sonarr_instance must match it
+// or be empty, else InvalidArgument. A slug already used by a Sonarr
+// instance is AlreadyExists; one already used by a different interface type
+// is FailedPrecondition (the cross-entry check, docs/adr/0010).
+type CreateSonarrInstanceRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	SonarrInstanceId string                 `protobuf:"bytes,1,opt,name=sonarr_instance_id,json=sonarrInstanceId,proto3" json:"sonarr_instance_id,omitempty"`
+	SonarrInstance   *SonarrInstance        `protobuf:"bytes,2,opt,name=sonarr_instance,json=sonarrInstance,proto3" json:"sonarr_instance,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
-func (x *SonarrInterfaceServiceListRequest) Reset() {
-	*x = SonarrInterfaceServiceListRequest{}
+func (x *CreateSonarrInstanceRequest) Reset() {
+	*x = CreateSonarrInstanceRequest{}
 	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SonarrInterfaceServiceListRequest) String() string {
+func (x *CreateSonarrInstanceRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SonarrInterfaceServiceListRequest) ProtoMessage() {}
+func (*CreateSonarrInstanceRequest) ProtoMessage() {}
 
-func (x *SonarrInterfaceServiceListRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateSonarrInstanceRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -251,77 +265,47 @@ func (x *SonarrInterfaceServiceListRequest) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SonarrInterfaceServiceListRequest.ProtoReflect.Descriptor instead.
-func (*SonarrInterfaceServiceListRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateSonarrInstanceRequest.ProtoReflect.Descriptor instead.
+func (*CreateSonarrInstanceRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_sonarr_interfaces_proto_rawDescGZIP(), []int{3}
 }
 
-type SonarrInterfaceServiceListResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Instances     []*SonarrInstance      `protobuf:"bytes,1,rep,name=instances,proto3" json:"instances,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SonarrInterfaceServiceListResponse) Reset() {
-	*x = SonarrInterfaceServiceListResponse{}
-	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SonarrInterfaceServiceListResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SonarrInterfaceServiceListResponse) ProtoMessage() {}
-
-func (x *SonarrInterfaceServiceListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[4]
+func (x *CreateSonarrInstanceRequest) GetSonarrInstanceId() string {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+		return x.SonarrInstanceId
 	}
-	return mi.MessageOf(x)
+	return ""
 }
 
-// Deprecated: Use SonarrInterfaceServiceListResponse.ProtoReflect.Descriptor instead.
-func (*SonarrInterfaceServiceListResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_sonarr_interfaces_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *SonarrInterfaceServiceListResponse) GetInstances() []*SonarrInstance {
+func (x *CreateSonarrInstanceRequest) GetSonarrInstance() *SonarrInstance {
 	if x != nil {
-		return x.Instances
+		return x.SonarrInstance
 	}
 	return nil
 }
 
-type SonarrInterfaceServiceGetRequest struct {
+type GetSonarrInstanceRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SonarrInterfaceServiceGetRequest) Reset() {
-	*x = SonarrInterfaceServiceGetRequest{}
-	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[5]
+func (x *GetSonarrInstanceRequest) Reset() {
+	*x = GetSonarrInstanceRequest{}
+	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SonarrInterfaceServiceGetRequest) String() string {
+func (x *GetSonarrInstanceRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SonarrInterfaceServiceGetRequest) ProtoMessage() {}
+func (*GetSonarrInstanceRequest) ProtoMessage() {}
 
-func (x *SonarrInterfaceServiceGetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[5]
+func (x *GetSonarrInstanceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -332,39 +316,112 @@ func (x *SonarrInterfaceServiceGetRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SonarrInterfaceServiceGetRequest.ProtoReflect.Descriptor instead.
-func (*SonarrInterfaceServiceGetRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_sonarr_interfaces_proto_rawDescGZIP(), []int{5}
+// Deprecated: Use GetSonarrInstanceRequest.ProtoReflect.Descriptor instead.
+func (*GetSonarrInstanceRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_sonarr_interfaces_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *SonarrInterfaceServiceGetRequest) GetSlug() string {
+func (x *GetSonarrInstanceRequest) GetSlug() string {
 	if x != nil {
 		return x.Slug
 	}
 	return ""
 }
 
-type SonarrInterfaceServiceGetResponse struct {
+// ListSonarrInstancesRequest is the AIP-158 / 132 / 160 List contract: a
+// page_size / page_token window, an order_by sort (instance_slug,
+// instance_name), and a filter entry point. filter translation is deferred
+// (docs/adr/0010) — any non-empty filter is Unimplemented.
+type ListSonarrInstancesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Instance      *SonarrInstance        `protobuf:"bytes,1,opt,name=instance,proto3" json:"instance,omitempty"`
+	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	Filter        string                 `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
+	OrderBy       string                 `protobuf:"bytes,4,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SonarrInterfaceServiceGetResponse) Reset() {
-	*x = SonarrInterfaceServiceGetResponse{}
+func (x *ListSonarrInstancesRequest) Reset() {
+	*x = ListSonarrInstancesRequest{}
+	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSonarrInstancesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSonarrInstancesRequest) ProtoMessage() {}
+
+func (x *ListSonarrInstancesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSonarrInstancesRequest.ProtoReflect.Descriptor instead.
+func (*ListSonarrInstancesRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_sonarr_interfaces_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListSonarrInstancesRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListSonarrInstancesRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListSonarrInstancesRequest) GetFilter() string {
+	if x != nil {
+		return x.Filter
+	}
+	return ""
+}
+
+func (x *ListSonarrInstancesRequest) GetOrderBy() string {
+	if x != nil {
+		return x.OrderBy
+	}
+	return ""
+}
+
+type ListSonarrInstancesResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	SonarrInstances []*SonarrInstance      `protobuf:"bytes,1,rep,name=sonarr_instances,json=sonarrInstances,proto3" json:"sonarr_instances,omitempty"`
+	NextPageToken   string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ListSonarrInstancesResponse) Reset() {
+	*x = ListSonarrInstancesResponse{}
 	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SonarrInterfaceServiceGetResponse) String() string {
+func (x *ListSonarrInstancesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SonarrInterfaceServiceGetResponse) ProtoMessage() {}
+func (*ListSonarrInstancesResponse) ProtoMessage() {}
 
-func (x *SonarrInterfaceServiceGetResponse) ProtoReflect() protoreflect.Message {
+func (x *ListSonarrInstancesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -376,39 +433,55 @@ func (x *SonarrInterfaceServiceGetResponse) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SonarrInterfaceServiceGetResponse.ProtoReflect.Descriptor instead.
-func (*SonarrInterfaceServiceGetResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListSonarrInstancesResponse.ProtoReflect.Descriptor instead.
+func (*ListSonarrInstancesResponse) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_sonarr_interfaces_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *SonarrInterfaceServiceGetResponse) GetInstance() *SonarrInstance {
+func (x *ListSonarrInstancesResponse) GetSonarrInstances() []*SonarrInstance {
 	if x != nil {
-		return x.Instance
+		return x.SonarrInstances
 	}
 	return nil
 }
 
-type SonarrInterfaceServiceUpsertRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Instance      *SonarrInstance        `protobuf:"bytes,1,opt,name=instance,proto3" json:"instance,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+func (x *ListSonarrInstancesResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
-func (x *SonarrInterfaceServiceUpsertRequest) Reset() {
-	*x = SonarrInterfaceServiceUpsertRequest{}
+// UpdateSonarrInstanceRequest is an AIP-134 partial update: update_mask names
+// the fields to change (dotted paths honoured, e.g. storage.ttl) and
+// sonarr_instance carries their new values, matched to a stored instance by
+// its instance_slug. An empty mask or a path naming no field is
+// InvalidArgument. allow_missing:true makes an Update against an unknown slug
+// create — the mask is ignored on that branch and the whole resource is
+// validated as a Create; allow_missing:false is NotFound.
+type UpdateSonarrInstanceRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	SonarrInstance *SonarrInstance        `protobuf:"bytes,1,opt,name=sonarr_instance,json=sonarrInstance,proto3" json:"sonarr_instance,omitempty"`
+	UpdateMask     *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	AllowMissing   bool                   `protobuf:"varint,3,opt,name=allow_missing,json=allowMissing,proto3" json:"allow_missing,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *UpdateSonarrInstanceRequest) Reset() {
+	*x = UpdateSonarrInstanceRequest{}
 	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SonarrInterfaceServiceUpsertRequest) String() string {
+func (x *UpdateSonarrInstanceRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SonarrInterfaceServiceUpsertRequest) ProtoMessage() {}
+func (*UpdateSonarrInstanceRequest) ProtoMessage() {}
 
-func (x *SonarrInterfaceServiceUpsertRequest) ProtoReflect() protoreflect.Message {
+func (x *UpdateSonarrInstanceRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -420,39 +493,53 @@ func (x *SonarrInterfaceServiceUpsertRequest) ProtoReflect() protoreflect.Messag
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SonarrInterfaceServiceUpsertRequest.ProtoReflect.Descriptor instead.
-func (*SonarrInterfaceServiceUpsertRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateSonarrInstanceRequest.ProtoReflect.Descriptor instead.
+func (*UpdateSonarrInstanceRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_sonarr_interfaces_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *SonarrInterfaceServiceUpsertRequest) GetInstance() *SonarrInstance {
+func (x *UpdateSonarrInstanceRequest) GetSonarrInstance() *SonarrInstance {
 	if x != nil {
-		return x.Instance
+		return x.SonarrInstance
 	}
 	return nil
 }
 
-type SonarrInterfaceServiceDeleteRequest struct {
+func (x *UpdateSonarrInstanceRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
+func (x *UpdateSonarrInstanceRequest) GetAllowMissing() bool {
+	if x != nil {
+		return x.AllowMissing
+	}
+	return false
+}
+
+type DeleteSonarrInstanceRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SonarrInterfaceServiceDeleteRequest) Reset() {
-	*x = SonarrInterfaceServiceDeleteRequest{}
+func (x *DeleteSonarrInstanceRequest) Reset() {
+	*x = DeleteSonarrInstanceRequest{}
 	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SonarrInterfaceServiceDeleteRequest) String() string {
+func (x *DeleteSonarrInstanceRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SonarrInterfaceServiceDeleteRequest) ProtoMessage() {}
+func (*DeleteSonarrInstanceRequest) ProtoMessage() {}
 
-func (x *SonarrInterfaceServiceDeleteRequest) ProtoReflect() protoreflect.Message {
+func (x *DeleteSonarrInstanceRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_sonarr_interfaces_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -464,12 +551,12 @@ func (x *SonarrInterfaceServiceDeleteRequest) ProtoReflect() protoreflect.Messag
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SonarrInterfaceServiceDeleteRequest.ProtoReflect.Descriptor instead.
-func (*SonarrInterfaceServiceDeleteRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteSonarrInstanceRequest.ProtoReflect.Descriptor instead.
+func (*DeleteSonarrInstanceRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_sonarr_interfaces_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *SonarrInterfaceServiceDeleteRequest) GetSlug() string {
+func (x *DeleteSonarrInstanceRequest) GetSlug() string {
 	if x != nil {
 		return x.Slug
 	}
@@ -480,7 +567,7 @@ var File_metarr_v1_sonarr_interfaces_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_sonarr_interfaces_proto_rawDesc = "" +
 	"\n" +
-	"!metarr/v1/sonarr_interfaces.proto\x12\tmetarr.v1\x1a\x16metarr/v1/common.proto\"\x90\x02\n" +
+	"!metarr/v1/sonarr_interfaces.proto\x12\tmetarr.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\"\x90\x02\n" +
 	"\x0eSonarrInstance\x12#\n" +
 	"\rinstance_name\x18\x01 \x01(\tR\finstanceName\x12#\n" +
 	"\rinstance_slug\x18\x02 \x01(\tR\finstanceSlug\x12\x1d\n" +
@@ -498,23 +585,34 @@ const file_metarr_v1_sonarr_interfaces_proto_rawDesc = "" +
 	"\rStorageConfig\x12\x12\n" +
 	"\x04mode\x18\x01 \x01(\tR\x04mode\x12\x10\n" +
 	"\x03ttl\x18\x02 \x01(\tR\x03ttl\x12\x1b\n" +
-	"\tmax_count\x18\x03 \x01(\x05R\bmaxCount\"#\n" +
-	"!SonarrInterfaceServiceListRequest\"]\n" +
-	"\"SonarrInterfaceServiceListResponse\x127\n" +
-	"\tinstances\x18\x01 \x03(\v2\x19.metarr.v1.SonarrInstanceR\tinstances\"6\n" +
-	" SonarrInterfaceServiceGetRequest\x12\x12\n" +
-	"\x04slug\x18\x01 \x01(\tR\x04slug\"Z\n" +
-	"!SonarrInterfaceServiceGetResponse\x125\n" +
-	"\binstance\x18\x01 \x01(\v2\x19.metarr.v1.SonarrInstanceR\binstance\"\\\n" +
-	"#SonarrInterfaceServiceUpsertRequest\x125\n" +
-	"\binstance\x18\x01 \x01(\v2\x19.metarr.v1.SonarrInstanceR\binstance\"9\n" +
-	"#SonarrInterfaceServiceDeleteRequest\x12\x12\n" +
-	"\x04slug\x18\x01 \x01(\tR\x04slug2\x8d\x03\n" +
-	"\x16SonarrInterfaceService\x12c\n" +
-	"\x04List\x12,.metarr.v1.SonarrInterfaceServiceListRequest\x1a-.metarr.v1.SonarrInterfaceServiceListResponse\x12`\n" +
-	"\x03Get\x12+.metarr.v1.SonarrInterfaceServiceGetRequest\x1a,.metarr.v1.SonarrInterfaceServiceGetResponse\x12U\n" +
-	"\x06Upsert\x12..metarr.v1.SonarrInterfaceServiceUpsertRequest\x1a\x1b.metarr.v1.AcceptedResponse\x12U\n" +
-	"\x06Delete\x12..metarr.v1.SonarrInterfaceServiceDeleteRequest\x1a\x1b.metarr.v1.AcceptedResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
+	"\tmax_count\x18\x03 \x01(\x05R\bmaxCount\"\x8f\x01\n" +
+	"\x1bCreateSonarrInstanceRequest\x12,\n" +
+	"\x12sonarr_instance_id\x18\x01 \x01(\tR\x10sonarrInstanceId\x12B\n" +
+	"\x0fsonarr_instance\x18\x02 \x01(\v2\x19.metarr.v1.SonarrInstanceR\x0esonarrInstance\".\n" +
+	"\x18GetSonarrInstanceRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\"\x8b\x01\n" +
+	"\x1aListSonarrInstancesRequest\x12\x1b\n" +
+	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x16\n" +
+	"\x06filter\x18\x03 \x01(\tR\x06filter\x12\x19\n" +
+	"\border_by\x18\x04 \x01(\tR\aorderBy\"\x8b\x01\n" +
+	"\x1bListSonarrInstancesResponse\x12D\n" +
+	"\x10sonarr_instances\x18\x01 \x03(\v2\x19.metarr.v1.SonarrInstanceR\x0fsonarrInstances\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xc3\x01\n" +
+	"\x1bUpdateSonarrInstanceRequest\x12B\n" +
+	"\x0fsonarr_instance\x18\x01 \x01(\v2\x19.metarr.v1.SonarrInstanceR\x0esonarrInstance\x12;\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
+	"updateMask\x12#\n" +
+	"\rallow_missing\x18\x03 \x01(\bR\fallowMissing\"1\n" +
+	"\x1bDeleteSonarrInstanceRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug2\xe1\x03\n" +
+	"\x16SonarrInterfaceService\x12Y\n" +
+	"\x14CreateSonarrInstance\x12&.metarr.v1.CreateSonarrInstanceRequest\x1a\x19.metarr.v1.SonarrInstance\x12S\n" +
+	"\x11GetSonarrInstance\x12#.metarr.v1.GetSonarrInstanceRequest\x1a\x19.metarr.v1.SonarrInstance\x12d\n" +
+	"\x13ListSonarrInstances\x12%.metarr.v1.ListSonarrInstancesRequest\x1a&.metarr.v1.ListSonarrInstancesResponse\x12Y\n" +
+	"\x14UpdateSonarrInstance\x12&.metarr.v1.UpdateSonarrInstanceRequest\x1a\x19.metarr.v1.SonarrInstance\x12V\n" +
+	"\x14DeleteSonarrInstance\x12&.metarr.v1.DeleteSonarrInstanceRequest\x1a\x16.google.protobuf.EmptyB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
 
 var (
 	file_metarr_v1_sonarr_interfaces_proto_rawDescOnce sync.Once
@@ -530,36 +628,40 @@ func file_metarr_v1_sonarr_interfaces_proto_rawDescGZIP() []byte {
 
 var file_metarr_v1_sonarr_interfaces_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_metarr_v1_sonarr_interfaces_proto_goTypes = []any{
-	(*SonarrInstance)(nil),                      // 0: metarr.v1.SonarrInstance
-	(*RootDirMapping)(nil),                      // 1: metarr.v1.RootDirMapping
-	(*StorageConfig)(nil),                       // 2: metarr.v1.StorageConfig
-	(*SonarrInterfaceServiceListRequest)(nil),   // 3: metarr.v1.SonarrInterfaceServiceListRequest
-	(*SonarrInterfaceServiceListResponse)(nil),  // 4: metarr.v1.SonarrInterfaceServiceListResponse
-	(*SonarrInterfaceServiceGetRequest)(nil),    // 5: metarr.v1.SonarrInterfaceServiceGetRequest
-	(*SonarrInterfaceServiceGetResponse)(nil),   // 6: metarr.v1.SonarrInterfaceServiceGetResponse
-	(*SonarrInterfaceServiceUpsertRequest)(nil), // 7: metarr.v1.SonarrInterfaceServiceUpsertRequest
-	(*SonarrInterfaceServiceDeleteRequest)(nil), // 8: metarr.v1.SonarrInterfaceServiceDeleteRequest
-	(*AcceptedResponse)(nil),                    // 9: metarr.v1.AcceptedResponse
+	(*SonarrInstance)(nil),              // 0: metarr.v1.SonarrInstance
+	(*RootDirMapping)(nil),              // 1: metarr.v1.RootDirMapping
+	(*StorageConfig)(nil),               // 2: metarr.v1.StorageConfig
+	(*CreateSonarrInstanceRequest)(nil), // 3: metarr.v1.CreateSonarrInstanceRequest
+	(*GetSonarrInstanceRequest)(nil),    // 4: metarr.v1.GetSonarrInstanceRequest
+	(*ListSonarrInstancesRequest)(nil),  // 5: metarr.v1.ListSonarrInstancesRequest
+	(*ListSonarrInstancesResponse)(nil), // 6: metarr.v1.ListSonarrInstancesResponse
+	(*UpdateSonarrInstanceRequest)(nil), // 7: metarr.v1.UpdateSonarrInstanceRequest
+	(*DeleteSonarrInstanceRequest)(nil), // 8: metarr.v1.DeleteSonarrInstanceRequest
+	(*fieldmaskpb.FieldMask)(nil),       // 9: google.protobuf.FieldMask
+	(*emptypb.Empty)(nil),               // 10: google.protobuf.Empty
 }
 var file_metarr_v1_sonarr_interfaces_proto_depIdxs = []int32{
-	1, // 0: metarr.v1.SonarrInstance.root_dir_map:type_name -> metarr.v1.RootDirMapping
-	2, // 1: metarr.v1.SonarrInstance.storage:type_name -> metarr.v1.StorageConfig
-	0, // 2: metarr.v1.SonarrInterfaceServiceListResponse.instances:type_name -> metarr.v1.SonarrInstance
-	0, // 3: metarr.v1.SonarrInterfaceServiceGetResponse.instance:type_name -> metarr.v1.SonarrInstance
-	0, // 4: metarr.v1.SonarrInterfaceServiceUpsertRequest.instance:type_name -> metarr.v1.SonarrInstance
-	3, // 5: metarr.v1.SonarrInterfaceService.List:input_type -> metarr.v1.SonarrInterfaceServiceListRequest
-	5, // 6: metarr.v1.SonarrInterfaceService.Get:input_type -> metarr.v1.SonarrInterfaceServiceGetRequest
-	7, // 7: metarr.v1.SonarrInterfaceService.Upsert:input_type -> metarr.v1.SonarrInterfaceServiceUpsertRequest
-	8, // 8: metarr.v1.SonarrInterfaceService.Delete:input_type -> metarr.v1.SonarrInterfaceServiceDeleteRequest
-	4, // 9: metarr.v1.SonarrInterfaceService.List:output_type -> metarr.v1.SonarrInterfaceServiceListResponse
-	6, // 10: metarr.v1.SonarrInterfaceService.Get:output_type -> metarr.v1.SonarrInterfaceServiceGetResponse
-	9, // 11: metarr.v1.SonarrInterfaceService.Upsert:output_type -> metarr.v1.AcceptedResponse
-	9, // 12: metarr.v1.SonarrInterfaceService.Delete:output_type -> metarr.v1.AcceptedResponse
-	9, // [9:13] is the sub-list for method output_type
-	5, // [5:9] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	1,  // 0: metarr.v1.SonarrInstance.root_dir_map:type_name -> metarr.v1.RootDirMapping
+	2,  // 1: metarr.v1.SonarrInstance.storage:type_name -> metarr.v1.StorageConfig
+	0,  // 2: metarr.v1.CreateSonarrInstanceRequest.sonarr_instance:type_name -> metarr.v1.SonarrInstance
+	0,  // 3: metarr.v1.ListSonarrInstancesResponse.sonarr_instances:type_name -> metarr.v1.SonarrInstance
+	0,  // 4: metarr.v1.UpdateSonarrInstanceRequest.sonarr_instance:type_name -> metarr.v1.SonarrInstance
+	9,  // 5: metarr.v1.UpdateSonarrInstanceRequest.update_mask:type_name -> google.protobuf.FieldMask
+	3,  // 6: metarr.v1.SonarrInterfaceService.CreateSonarrInstance:input_type -> metarr.v1.CreateSonarrInstanceRequest
+	4,  // 7: metarr.v1.SonarrInterfaceService.GetSonarrInstance:input_type -> metarr.v1.GetSonarrInstanceRequest
+	5,  // 8: metarr.v1.SonarrInterfaceService.ListSonarrInstances:input_type -> metarr.v1.ListSonarrInstancesRequest
+	7,  // 9: metarr.v1.SonarrInterfaceService.UpdateSonarrInstance:input_type -> metarr.v1.UpdateSonarrInstanceRequest
+	8,  // 10: metarr.v1.SonarrInterfaceService.DeleteSonarrInstance:input_type -> metarr.v1.DeleteSonarrInstanceRequest
+	0,  // 11: metarr.v1.SonarrInterfaceService.CreateSonarrInstance:output_type -> metarr.v1.SonarrInstance
+	0,  // 12: metarr.v1.SonarrInterfaceService.GetSonarrInstance:output_type -> metarr.v1.SonarrInstance
+	6,  // 13: metarr.v1.SonarrInterfaceService.ListSonarrInstances:output_type -> metarr.v1.ListSonarrInstancesResponse
+	0,  // 14: metarr.v1.SonarrInterfaceService.UpdateSonarrInstance:output_type -> metarr.v1.SonarrInstance
+	10, // 15: metarr.v1.SonarrInterfaceService.DeleteSonarrInstance:output_type -> google.protobuf.Empty
+	11, // [11:16] is the sub-list for method output_type
+	6,  // [6:11] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_sonarr_interfaces_proto_init() }
@@ -567,7 +669,6 @@ func file_metarr_v1_sonarr_interfaces_proto_init() {
 	if File_metarr_v1_sonarr_interfaces_proto != nil {
 		return
 	}
-	file_metarr_v1_common_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
