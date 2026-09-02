@@ -3,7 +3,6 @@ syntax = "proto3";
 package metarr.v1;
 
 import "google/protobuf/field_mask.proto";
-import "metarr/v1/operations.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
@@ -34,10 +33,13 @@ message EventBusConfig {
   int32 retry_backoff_base_ms = 5;
   // retry_backoff_max_ms caps the exponential backoff between retries.
   int32 retry_backoff_max_ms = 6;
-  // etag is the AIP-154 concurrency token: a hash of the stored section,
-  // OUTPUT_ONLY (populated on read, ignored on write, never stored). Echo it
-  // back on UpdateEventBusConfig; a mismatch is ABORTED. See docs/adr/0010.
-  string etag = 7;
+
+  // Field 7 was etag, an AIP-154 concurrency token. Config writes are
+  // synchronous under a single-writer lock (docs/adr/0002) so there is no
+  // stale-read window to guard; the field was removed. Reserved so the
+  // number is not reused.
+  reserved 7;
+  reserved "etag";
 }
 
 message GetEventBusConfigRequest {}
@@ -49,20 +51,20 @@ message GetEventBusConfigResponse {
 // UpdateEventBusConfigRequest is an AIP-134 partial update: update_mask names
 // the fields to change and config carries their new values. A missing config,
 // an empty mask, or a path naming no EventBusConfig field is rejected with
-// InvalidArgument (docs/adr/0010). etag, when set, must match the stored
-// section or the write is ABORTED (AIP-154); an empty etag is a deliberate
-// blind write. The write goes through the config store as a scoped mutation —
-// the masked fields are merged onto cfg.EventBus — never a whole-document
-// write — and returns an Operation (docs/adr/0002).
+// InvalidArgument (docs/adr/0010). The write goes through the config store as a
+// scoped mutation — the masked fields are merged onto cfg.EventBus — never a
+// whole-document write, and blocks until the change has persisted and
+// propagated in-process (docs/adr/0002).
 message UpdateEventBusConfigRequest {
   EventBusConfig config = 1;
   google.protobuf.FieldMask update_mask = 2;
-  string etag = 3;
 }
 
 // EventBusService views and edits the event_bus config section. Both reads
 // and writes go through the same config store path as every other setting.
 service EventBusService {
   rpc GetEventBusConfig(GetEventBusConfigRequest) returns (GetEventBusConfigResponse);
-  rpc UpdateEventBusConfig(UpdateEventBusConfigRequest) returns (Operation);
+  // UpdateEventBusConfig returns the stored section after the synchronous
+  // write has landed (AIP-134).
+  rpc UpdateEventBusConfig(UpdateEventBusConfigRequest) returns (EventBusConfig);
 }

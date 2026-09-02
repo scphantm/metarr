@@ -66,17 +66,10 @@ var storedUnmarshal = protojson.UnmarshalOptions{DiscardUnknown: true}
 
 // MarshalStored encodes cfg as the canonical stored/wire JSON form. It is
 // the one place the config document's serialization is defined, shared by
-// the Mongo repo and the config-update event payload.
-//
-// Every AIP-derived field (the scalar sections' etag today; resource name and
-// presence as the collection slices land) is stripped first, on a clone, so
-// nothing recomputed on read ever reaches Mongo or the system_config_update
-// payload (ADR-0005). EmitUnpopulated still lists the key, so a stored section
-// carries `"etag": ""`.
+// the Mongo repo and the config-update event payload. The config API carries
+// no derived fields (ADR-0005), so cfg is marshalled as-is.
 func MarshalStored(cfg *Config) ([]byte, error) {
-	clean := proto.Clone(cfg).(*Config)
-	ClearDerived(clean)
-	return storedMarshal.Marshal(clean)
+	return storedMarshal.Marshal(cfg)
 }
 
 // UnmarshalStored decodes bytes produced by MarshalStored (or any protojson
@@ -105,9 +98,7 @@ func UnmarshalStored(data []byte) (*Config, error) {
 // decision (see docs/adr/0004).
 //
 // The body is a sequence of independent, single-purpose blocks so that a
-// later change can add one — the per-resource-kind `name` backfill the
-// AIP config reshape needs (ADR-0010) is the next one — without touching or
-// reordering the rest.
+// later change can add one without touching or reordering the rest.
 func Normalize(config *Config) *Config {
 	if config == nil {
 		return Default()
@@ -115,13 +106,6 @@ func Normalize(config *Config) *Config {
 
 	normalizeSections(config)
 	normalizeSonarrStorage(config)
-	normalizeDerivedETags(config)
-
-	// AIP `name` backfill blocks land alongside normalizeDerivedETags, one
-	// independent call per resource kind (agents, Sonarr instances, scan
-	// directories, sidecar types, API keys). Each reads only the slice / id
-	// it owns and writes only that kind's `name`, so the slices can be added
-	// one at a time.
 
 	return config
 }

@@ -129,7 +129,6 @@ func run() error {
 	}
 	appConfigRepo := mongostore.NewAppConfigRepo(mongoClient, cfg.MongoDatabase)
 	appConfigStore := appconfigstore.New(appConfigRepo, appConfigRepo, bus)
-	operationRepo := mongostore.NewOperationRepo(mongoClient, cfg.MongoDatabase)
 	localDirectoryRepo := mongostore.NewLocalDirectoryRepo(mongoClient, cfg.MongoDatabase)
 	workflowRepo := mongostore.NewWorkflowRepo(mongoClient, cfg.MongoDatabase)
 	sessions := session.NewStore(redisClient)
@@ -141,11 +140,6 @@ func run() error {
 		return err
 	}
 	if err := workflowRepo.EnsureIndexes(connectCtx); err != nil {
-		return err
-	}
-	// The TTL index that reaps finished config operations; a failure here
-	// would let the collection grow without bound, so it is fatal too.
-	if err := operationRepo.EnsureIndexes(connectCtx); err != nil {
 		return err
 	}
 
@@ -269,7 +263,13 @@ func run() error {
 	// the half that persists what they report. The age-based retention sweep
 	// runs inside bus.Run (Config.RetentionSweep) rather than as its own
 	// goroutine.
-	if err := listeners.RegisterSystemConfigUpdateListener(bus, appConfigRepo, operationRepo, agentRegistry, logShipper, logger); err != nil {
+	// The config propagator is shared: the system_config_update listener runs
+	// its Apply (persist + propagate) for the services that still fire an
+	// event, and the config store runs its PropagateInProcess after the
+	// synchronous MutateSync write (docs/adr/0002).
+	configPropagator := listeners.NewConfigPropagator(appConfigRepo, agentRegistry, logShipper, logger)
+	appConfigStore.SetPropagator(configPropagator)
+	if err := listeners.RegisterSystemConfigUpdateListener(bus, configPropagator, logger); err != nil {
 		return err
 	}
 	if err := listeners.RegisterAgentScanResultListener(bus, localDirectoryRepo, logger); err != nil {
@@ -335,7 +335,7 @@ func run() error {
 	// metarr.v1.LoggingService.StreamTail (internal/server/services), mounted
 	// via connectServices below. wsbus.Hub and GET /api/ws are retired.
 
-	apiHandlers := handlers.New(bus, appConfigStore, operationRepo, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, busSampler, redisClient, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
+	apiHandlers := handlers.New(bus, appConfigStore, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, busSampler, redisClient, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
 	uiFS, uiEmbedded := webui.FS()
 	if uiEmbedded {
 		logger.Info("ui embed", "enabled", true)
@@ -392,12 +392,6 @@ func run() error {
 			sessions,
 			services.EventBusAuthPolicies,
 		),
-		newConnectService[metarrv1connect.OperationsServiceHandler](
-			metarrv1connect.NewOperationsServiceHandler,
-			&services.OperationsServer{Handlers: apiHandlers},
-			sessions,
-			services.OperationsAuthPolicies,
-		),
 		newConnectService[metarrv1connect.TaskServiceHandler](
 			metarrv1connect.NewTaskServiceHandler,
 			&services.TaskServer{Handlers: apiHandlers},
@@ -442,7 +436,6 @@ func run() error {
 		metarrv1connect.AgentServiceName,
 		metarrv1connect.DirectoryScannerServiceName,
 		metarrv1connect.LoggingServiceName,
-		metarrv1connect.OperationsServiceName,
 		metarrv1connect.TaskServiceName,
 		metarrv1connect.WorkflowCatalogServiceName,
 		metarrv1connect.LocalDirectoryServiceName,

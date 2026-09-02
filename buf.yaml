@@ -3,12 +3,11 @@ modules:
   - path: proto
 # The AIP config protos import only well-known types bundled with buf itself
 # (google/protobuf/field_mask.proto, struct.proto, timestamp.proto), so there
-# is no dep entry. ADR-0010's OUTPUT_ONLY fields (etag, resource name, agent
-# presence) are plain fields documented as output-only rather than
-# google.api.field_behavior annotations: the annotation would add a
-# buf.build/googleapis/googleapis dependency and a generated import to every
-# proto for no runtime effect — the server clears the derived fields before a
-# write regardless (appconfig.ClearDerived).
+# is no dep entry and no buf.lock. The config API adopts AIP's method names,
+# resource shapes, FieldMask partial update and List contract only — not
+# long-running operations, etag concurrency, or resource-name addressing
+# (docs/adr/0010) — so nothing here needs google.api.field_behavior or
+# google.longrunning, and buf.build/googleapis/googleapis is not a dependency.
 # The proto/metarr/bus/v1 package is the language-agnostic event-bus contract
 # (docs/adr/0008): the EventEnvelope and the server<->agent contract messages a
 # participant in any language implements. It carries a strict breaking-change
@@ -23,10 +22,12 @@ lint:
   use:
     - STANDARD
   except:
-    # Deliberate: Upsert/Delete RPCs across every domain share the one
-    # AcceptedResponse message (mirrors the existing Go handlers' shared
-    # AcceptedResponse struct, see proto/metarr/v1/common.proto) rather than
-    # each minting its own identical-shaped wrapper type.
+    # Deliberate: the config services not yet reshaped to AIP synchronous
+    # writes share the one AcceptedResponse message (mirrors the Go handlers'
+    # shared AcceptedResponse struct, see proto/metarr/v1/common.proto)
+    # rather than each minting its own identical-shaped wrapper type. The AIP
+    # Update methods return the stored resource directly (AIP-134), which is
+    # not named {Method}Response.
     - RPC_REQUEST_RESPONSE_UNIQUE
     - RPC_RESPONSE_STANDARD_NAME
 breaking:

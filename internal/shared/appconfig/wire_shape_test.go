@@ -84,9 +84,8 @@ func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 	assertKeys(t, "config.directory_scanner.scan_directories[0]",
 		first(t, document, "directory_scanner", "scan_directories"),
 		[]string{"directory", "scan_type", "scanner_slug"})
-	// name is the AIP resource-name field (ADR-0010). It is derived on read
-	// and cleared by the config store's mutation closure before a write, so
-	// a stored entry only ever carries it empty — EmitUnpopulated still
+	// name is a wire-compatible field on the frozen metarr.bus.v1
+	// SidecarTypeDefinition, unused by the config API today; EmitUnpopulated
 	// lists the key, which is why it appears here.
 	assertKeys(t, "config.directory_scanner.sidecar_types[0]",
 		first(t, document, "directory_scanner", "sidecar_types"),
@@ -99,15 +98,12 @@ func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 	assertKeys(t, "config.agents[0].mappings[0]",
 		firstOf(t, agent.(map[string]any)["mappings"]), []string{"agent_path", "scanner_slug"})
 
-	// etag is the AIP-154 concurrency token (ADR-0010): derived on read,
-	// cleared before every write, so a stored section only ever carries it
-	// empty — EmitUnpopulated still lists the key, same as sidecar_types.name.
 	assertKeys(t, "config.logging", document["logging"], []string{
-		"endpoint", "etag", "server_level", "sink", "stream",
+		"endpoint", "server_level", "sink", "stream",
 	})
 
 	assertKeys(t, "config.event_bus", document["event_bus"], []string{
-		"etag", "max_len", "retention_hours",
+		"max_len", "retention_hours",
 		"retry_attempts", "retry_backoff_base_ms", "retry_backoff_max_ms",
 	})
 
@@ -136,7 +132,7 @@ func TestMarshalStoredEmitsUnpopulatedFields(t *testing.T) {
 		t.Fatalf("decoding: %v", err)
 	}
 	assertKeys(t, "config.logging", document["logging"], []string{
-		"endpoint", "etag", "server_level", "sink", "stream",
+		"endpoint", "server_level", "sink", "stream",
 	})
 }
 

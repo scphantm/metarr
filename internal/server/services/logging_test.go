@@ -13,18 +13,15 @@ import (
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/shared/appconfig"
 	"Metarr/internal/shared/correlation"
-	"Metarr/internal/shared/eventbus"
 )
 
-func newTestLoggingServer(seed *appconfig.Config) (*LoggingServer, *fakeConfigBackend, *fakeOperationStore) {
+func newTestLoggingServer(seed *appconfig.Config) (*LoggingServer, *fakeConfigBackend) {
 	backend := &fakeConfigBackend{cfg: seed}
-	ops := newFakeOperationStore()
 	store := appconfigstore.New(backend, backend, backend)
 	return &LoggingServer{Handlers: &handlers.Handlers{
 		AppConfigStore: store,
-		Operations:     ops,
 		Logger:         slog.Default(),
-	}}, backend, ops
+	}}, backend
 }
 
 func seededLoggingConfig() *metarrv1.LoggingConfig {
@@ -41,7 +38,7 @@ func TestLoggingUpdateLoggingConfig_WritesThroughAScopedMutation(t *testing.T) {
 		Admin:   &appconfig.AdminUser{Username: "admin", PasswordHash: "keep-me"},
 		Logging: seededLoggingConfig(),
 	}
-	server, backend, ops := newTestLoggingServer(seed)
+	server, backend := newTestLoggingServer(seed)
 
 	ctx := correlation.WithID(context.Background(), "corr-log-1")
 	resp, err := server.UpdateLoggingConfig(ctx, connect.NewRequest(&metarrv1.UpdateLoggingConfigRequest{
@@ -58,51 +55,11 @@ func TestLoggingUpdateLoggingConfig_WritesThroughAScopedMutation(t *testing.T) {
 	if backend.cfg.GetAdmin().GetPasswordHash() != "keep-me" {
 		t.Errorf("a scoped logging write disturbed the admin credential: %+v", backend.cfg.GetAdmin())
 	}
-	if backend.cfg.GetLogging().GetEtag() != "" {
-		t.Errorf("a derived etag reached the stored document: %q", backend.cfg.GetLogging().GetEtag())
+	if len(backend.fired) != 0 {
+		t.Fatalf("a synchronous write fired %d system_config_update events, want 0", len(backend.fired))
 	}
-	if len(backend.fired) != 1 {
-		t.Fatalf("expected exactly one system_config_update event, got %d", len(backend.fired))
-	}
-	if backend.fired[0].Name != eventbus.SystemConfigUpdateEventName {
-		t.Errorf("event name = %q, want %q", backend.fired[0].Name, eventbus.SystemConfigUpdateEventName)
-	}
-	if backend.fired[0].CorrelationId != "corr-log-1" {
-		t.Errorf("fired event correlation id = %q, want %q", backend.fired[0].CorrelationId, "corr-log-1")
-	}
-	if resp.Msg.GetName() != "operations/corr-log-1" || resp.Msg.GetDone() {
-		t.Errorf("Operation = %+v, want name=operations/corr-log-1 done=false", resp.Msg)
-	}
-	if _, ok := ops.ops["operations/corr-log-1"]; !ok {
-		t.Errorf("the operation was not recorded: %+v", ops.ops)
-	}
-}
-
-func TestLoggingUpdateLoggingConfig_RejectsAStaleETag(t *testing.T) {
-	seed := seededLoggingConfig()
-	server, backend, _ := newTestLoggingServer(&appconfig.Config{Logging: seed})
-
-	staleETag := appconfig.SectionETag(seed)
-
-	_, err := server.UpdateLoggingConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateLoggingConfigRequest{
-		Config:     &metarrv1.LoggingConfig{Sink: "splunk"},
-		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"sink"}},
-		Etag:       staleETag,
-	}))
-	if err != nil {
-		t.Fatalf("first update: %v", err)
-	}
-
-	_, err = server.UpdateLoggingConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateLoggingConfigRequest{
-		Config:     &metarrv1.LoggingConfig{Sink: "elk"},
-		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"sink"}},
-		Etag:       staleETag,
-	}))
-	if connect.CodeOf(err) != connect.CodeAborted {
-		t.Fatalf("code = %v, want Aborted", connect.CodeOf(err))
-	}
-	if got := backend.cfg.GetLogging().GetSink(); got != "splunk" {
-		t.Errorf("the aborted write still moved sink to %q", got)
+	if resp.Msg.GetServerLevel() != appconfig.LogLevelDebug {
+		t.Errorf("UpdateLoggingConfig returned server_level %q, want %q", resp.Msg.GetServerLevel(), appconfig.LogLevelDebug)
 	}
 }
 
@@ -110,7 +67,7 @@ func TestLoggingUpdateLoggingConfig_RejectsAStaleETag(t *testing.T) {
 // pipeline fields and the server level around it stay as stored even when the
 // request body carries other values.
 func TestLoggingUpdateLoggingConfig_AppliesMaskPartially(t *testing.T) {
-	server, backend, _ := newTestLoggingServer(&appconfig.Config{Logging: seededLoggingConfig()})
+	server, backend := newTestLoggingServer(&appconfig.Config{Logging: seededLoggingConfig()})
 
 	_, err := server.UpdateLoggingConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateLoggingConfigRequest{
 		Config: &metarrv1.LoggingConfig{
@@ -138,7 +95,7 @@ func TestLoggingUpdateLoggingConfig_AppliesMaskPartially(t *testing.T) {
 }
 
 func TestLoggingUpdateLoggingConfig_RejectsEmptyMask(t *testing.T) {
-	server, backend, _ := newTestLoggingServer(&appconfig.Config{Logging: seededLoggingConfig()})
+	server, backend := newTestLoggingServer(&appconfig.Config{Logging: seededLoggingConfig()})
 
 	_, err := server.UpdateLoggingConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateLoggingConfigRequest{
 		Config: seededLoggingConfig(),
@@ -155,7 +112,7 @@ func TestLoggingUpdateLoggingConfig_RejectsEmptyMask(t *testing.T) {
 }
 
 func TestLoggingUpdateLoggingConfig_RejectsAMissingConfig(t *testing.T) {
-	server, backend, _ := newTestLoggingServer(&appconfig.Config{Logging: seededLoggingConfig()})
+	server, backend := newTestLoggingServer(&appconfig.Config{Logging: seededLoggingConfig()})
 
 	_, err := server.UpdateLoggingConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateLoggingConfigRequest{
 		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"server_level"}},
@@ -172,7 +129,7 @@ func TestLoggingUpdateLoggingConfig_RejectsAMissingConfig(t *testing.T) {
 }
 
 func TestLoggingUpdateLoggingConfig_RejectsUnknownPath(t *testing.T) {
-	server, backend, _ := newTestLoggingServer(&appconfig.Config{Logging: seededLoggingConfig()})
+	server, backend := newTestLoggingServer(&appconfig.Config{Logging: seededLoggingConfig()})
 
 	cases := map[string]string{
 		"no such field":          "level",
@@ -198,7 +155,7 @@ func TestLoggingUpdateLoggingConfig_RejectsUnknownPath(t *testing.T) {
 }
 
 func TestLoggingUpdateLoggingConfig_RejectsAnInvalidLevel(t *testing.T) {
-	server, backend, _ := newTestLoggingServer(&appconfig.Config{Logging: seededLoggingConfig()})
+	server, backend := newTestLoggingServer(&appconfig.Config{Logging: seededLoggingConfig()})
 
 	_, err := server.UpdateLoggingConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateLoggingConfigRequest{
 		Config:     &metarrv1.LoggingConfig{ServerLevel: "trace"},
@@ -230,10 +187,6 @@ func TestLoggingGetLoggingConfig_ReadsLiveConfig(t *testing.T) {
 	}
 	if got := resp.Msg.GetConfig().GetSink(); got != "fluent-bit" {
 		t.Errorf("sink = %q, want %q", got, "fluent-bit")
-	}
-	// Normalize populates the derived etag; the read hands it back.
-	if resp.Msg.GetConfig().GetEtag() == "" {
-		t.Error("the read carried no etag")
 	}
 	// The response is a clone: mutating it must not reach live config.
 	resp.Msg.GetConfig().Sink = "changed"

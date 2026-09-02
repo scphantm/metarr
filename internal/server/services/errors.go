@@ -28,19 +28,20 @@ func connectError(status int, err error) error {
 
 // mutateConfigError turns an error returned by AppConfigStore.Mutate into the
 // response pair the AcceptedResponse-returning config RPCs return. It is the
-// two-value adapter over mutateConfigErr for those methods; operation-returning
-// methods call mutateConfigErr directly.
+// two-value adapter over mutateConfigErr for the config services not yet
+// reshaped to AIP synchronous writes.
 func mutateConfigError(logger *slog.Logger, correlationID string, err error) (*connect.Response[metarrv1.AcceptedResponse], error) {
 	return nil, mutateConfigErr(logger, correlationID, err)
 }
 
-// mutateConfigErr maps an error returned by AppConfigStore.Mutate to the
-// Connect error a config-mutating RPC surfaces. A mutation closure's own
-// rejection is already Connect-shaped (built with connectError, the same way
-// these methods built it before the config store existed) and passes through
-// unchanged; an aip sentinel (bad mask, stale etag) is mapped; anything else —
-// the store's own read or event failing — is logged and reported as a generic
-// 500, matching what every one of these methods already did for that case.
+// mutateConfigErr maps an error returned by AppConfigStore.Mutate /
+// MutateSync to the Connect error a config-mutating RPC surfaces. A mutation
+// closure's own rejection is already Connect-shaped (built with connectError,
+// the same way these methods built it before the config store existed) and
+// passes through unchanged; an aip sentinel (bad mask) is mapped; anything
+// else — the store's own read, persist, or event failing — is logged and
+// reported as a generic 500, matching what every one of these methods
+// already did for that case.
 func mutateConfigErr(logger *slog.Logger, correlationID string, err error) error {
 	var connectErr *connect.Error
 	if errors.As(err, &connectErr) {
@@ -49,29 +50,33 @@ func mutateConfigErr(logger *slog.Logger, correlationID string, err error) error
 	if mapped := aipConnectError(err); mapped != nil {
 		return mapped
 	}
-	logger.Error("failed to queue config update", "correlation_id", correlationID, "error", err)
-	return connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+	logger.Error("failed to write config update", "correlation_id", correlationID, "error", err)
+	return connectError(http.StatusInternalServerError, errors.New("failed to write config update"))
 }
 
 // aipConnectError maps the transport-agnostic AIP sentinels the services
-// package raises — an empty or bad update_mask (errEmptyMask / errUnknownPath)
-// to InvalidArgument, a stale etag (errStaleETag) to Aborted (AIP-154) — to
-// the Connect code the config API answers with. It returns nil for anything
-// that is not one of them, so a caller can fall through to its existing
-// handling. Read-path methods (Get / List) that call an AIP helper directly
-// wrap their error with this; write-path methods get the same mapping for free
-// through mutateConfigError.
+// package raises to the Connect code the config API answers with:
+//   - an empty or bad update_mask, a bad order_by, a bad page_token
+//     (errEmptyMask / errUnknownPath / errBadPageToken) → InvalidArgument
+//   - a filter expression (errFilterUnsupported) → Unimplemented (AIP-160
+//     translation is deferred)
+//
+// It returns nil for anything that is not one of them, so a caller can fall
+// through to its existing handling. Read-path methods (Get / List) that call
+// an AIP helper directly wrap their error with this; write-path methods get
+// the same mapping for free through mutateConfigErr.
 //
 // AlreadyExists is produced the same way NotFound always has been — a
 // mutation closure returning connectError(http.StatusConflict, …), which
-// mutateConfigError passes straight through — so it needs no entry here.
+// mutateConfigErr passes straight through — so it needs no entry here.
 func aipConnectError(err error) error {
 	switch {
 	case errors.Is(err, errEmptyMask),
-		errors.Is(err, errUnknownPath):
+		errors.Is(err, errUnknownPath),
+		errors.Is(err, errBadPageToken):
 		return connect.NewError(connect.CodeInvalidArgument, err)
-	case errors.Is(err, errStaleETag):
-		return connect.NewError(connect.CodeAborted, err)
+	case errors.Is(err, errFilterUnsupported):
+		return connect.NewError(connect.CodeUnimplemented, err)
 	default:
 		return nil
 	}

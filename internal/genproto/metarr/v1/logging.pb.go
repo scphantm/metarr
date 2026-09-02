@@ -27,15 +27,11 @@ const (
 // log level, plus informational fields describing where Fluent Bit ships
 // logs. Each agents own level lives on its AgentConfig entry instead.
 type LoggingConfig struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	ServerLevel string                 `protobuf:"bytes,1,opt,name=server_level,json=serverLevel,proto3" json:"server_level,omitempty"`
-	Sink        string                 `protobuf:"bytes,2,opt,name=sink,proto3" json:"sink,omitempty"`
-	Endpoint    string                 `protobuf:"bytes,3,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	Stream      string                 `protobuf:"bytes,4,opt,name=stream,proto3" json:"stream,omitempty"`
-	// etag is the AIP-154 concurrency token: a hash of the stored section,
-	// OUTPUT_ONLY (populated on read, ignored on write, never stored). Echo it
-	// back on UpdateLoggingConfig; a mismatch is ABORTED. See docs/adr/0010.
-	Etag          string `protobuf:"bytes,5,opt,name=etag,proto3" json:"etag,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ServerLevel   string                 `protobuf:"bytes,1,opt,name=server_level,json=serverLevel,proto3" json:"server_level,omitempty"`
+	Sink          string                 `protobuf:"bytes,2,opt,name=sink,proto3" json:"sink,omitempty"`
+	Endpoint      string                 `protobuf:"bytes,3,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	Stream        string                 `protobuf:"bytes,4,opt,name=stream,proto3" json:"stream,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -94,13 +90,6 @@ func (x *LoggingConfig) GetEndpoint() string {
 func (x *LoggingConfig) GetStream() string {
 	if x != nil {
 		return x.Stream
-	}
-	return ""
-}
-
-func (x *LoggingConfig) GetEtag() string {
-	if x != nil {
-		return x.Etag
 	}
 	return ""
 }
@@ -188,16 +177,13 @@ func (x *GetLoggingConfigResponse) GetConfig() *LoggingConfig {
 // UpdateLoggingConfigRequest is an AIP-134 partial update: update_mask names
 // the fields to change and config carries their new values. A missing config,
 // an empty mask, or a path naming no LoggingConfig field is rejected with
-// InvalidArgument (docs/adr/0010). etag, when set, must match the stored
-// section or the write is ABORTED (AIP-154); an empty etag is a deliberate
-// blind write. The write goes through the config store as a scoped mutation —
-// the masked fields are merged onto cfg.Logging — and returns an Operation
-// (docs/adr/0002).
+// InvalidArgument (docs/adr/0010). The write goes through the config store as a
+// scoped mutation — the masked fields are merged onto cfg.Logging — and blocks
+// until the change has persisted and propagated in-process (docs/adr/0002).
 type UpdateLoggingConfigRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Config        *LoggingConfig         `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
 	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
-	Etag          string                 `protobuf:"bytes,3,opt,name=etag,proto3" json:"etag,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -244,13 +230,6 @@ func (x *UpdateLoggingConfigRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
 		return x.UpdateMask
 	}
 	return nil
-}
-
-func (x *UpdateLoggingConfigRequest) GetEtag() string {
-	if x != nil {
-		return x.Etag
-	}
-	return ""
 }
 
 // LogRecord is the vendor-neutral shape of one log line, shared by both
@@ -510,21 +489,19 @@ var File_metarr_v1_logging_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_logging_proto_rawDesc = "" +
 	"\n" +
-	"\x17metarr/v1/logging.proto\x12\tmetarr.v1\x1a google/protobuf/field_mask.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1ametarr/v1/operations.proto\"\x8e\x01\n" +
+	"\x17metarr/v1/logging.proto\x12\tmetarr.v1\x1a google/protobuf/field_mask.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x86\x01\n" +
 	"\rLoggingConfig\x12!\n" +
 	"\fserver_level\x18\x01 \x01(\tR\vserverLevel\x12\x12\n" +
 	"\x04sink\x18\x02 \x01(\tR\x04sink\x12\x1a\n" +
 	"\bendpoint\x18\x03 \x01(\tR\bendpoint\x12\x16\n" +
-	"\x06stream\x18\x04 \x01(\tR\x06stream\x12\x12\n" +
-	"\x04etag\x18\x05 \x01(\tR\x04etag\"\x19\n" +
+	"\x06stream\x18\x04 \x01(\tR\x06streamJ\x04\b\x05\x10\x06R\x04etag\"\x19\n" +
 	"\x17GetLoggingConfigRequest\"L\n" +
 	"\x18GetLoggingConfigResponse\x120\n" +
-	"\x06config\x18\x01 \x01(\v2\x18.metarr.v1.LoggingConfigR\x06config\"\x9f\x01\n" +
+	"\x06config\x18\x01 \x01(\v2\x18.metarr.v1.LoggingConfigR\x06config\"\x8b\x01\n" +
 	"\x1aUpdateLoggingConfigRequest\x120\n" +
 	"\x06config\x18\x01 \x01(\v2\x18.metarr.v1.LoggingConfigR\x06config\x12;\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
-	"updateMask\x12\x12\n" +
-	"\x04etag\x18\x03 \x01(\tR\x04etag\"\x96\x01\n" +
+	"updateMask\"\x96\x01\n" +
 	"\tLogRecord\x12\x12\n" +
 	"\x04time\x18\x01 \x01(\tR\x04time\x12\x14\n" +
 	"\x05level\x18\x02 \x01(\tR\x05level\x12\x18\n" +
@@ -536,10 +513,10 @@ const file_metarr_v1_logging_proto_rawDesc = "" +
 	"\arecords\x18\x01 \x03(\v2\x14.metarr.v1.LogRecordR\arecords\"!\n" +
 	"\x1fLoggingServiceStreamTailRequest\"R\n" +
 	" LoggingServiceStreamTailResponse\x12.\n" +
-	"\arecords\x18\x01 \x03(\v2\x14.metarr.v1.LogRecordR\arecords2\x88\x03\n" +
+	"\arecords\x18\x01 \x03(\v2\x14.metarr.v1.LogRecordR\arecords2\x8c\x03\n" +
 	"\x0eLoggingService\x12[\n" +
-	"\x10GetLoggingConfig\x12\".metarr.v1.GetLoggingConfigRequest\x1a#.metarr.v1.GetLoggingConfigResponse\x12R\n" +
-	"\x13UpdateLoggingConfig\x12%.metarr.v1.UpdateLoggingConfigRequest\x1a\x14.metarr.v1.Operation\x12\\\n" +
+	"\x10GetLoggingConfig\x12\".metarr.v1.GetLoggingConfigRequest\x1a#.metarr.v1.GetLoggingConfigResponse\x12V\n" +
+	"\x13UpdateLoggingConfig\x12%.metarr.v1.UpdateLoggingConfigRequest\x1a\x18.metarr.v1.LoggingConfig\x12\\\n" +
 	"\aGetTail\x12'.metarr.v1.LoggingServiceGetTailRequest\x1a(.metarr.v1.LoggingServiceGetTailResponse\x12g\n" +
 	"\n" +
 	"StreamTail\x12*.metarr.v1.LoggingServiceStreamTailRequest\x1a+.metarr.v1.LoggingServiceStreamTailResponse0\x01B-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
@@ -569,7 +546,6 @@ var file_metarr_v1_logging_proto_goTypes = []any{
 	(*LoggingServiceStreamTailResponse)(nil), // 8: metarr.v1.LoggingServiceStreamTailResponse
 	(*fieldmaskpb.FieldMask)(nil),            // 9: google.protobuf.FieldMask
 	(*structpb.Struct)(nil),                  // 10: google.protobuf.Struct
-	(*Operation)(nil),                        // 11: metarr.v1.Operation
 }
 var file_metarr_v1_logging_proto_depIdxs = []int32{
 	0,  // 0: metarr.v1.GetLoggingConfigResponse.config:type_name -> metarr.v1.LoggingConfig
@@ -583,7 +559,7 @@ var file_metarr_v1_logging_proto_depIdxs = []int32{
 	5,  // 8: metarr.v1.LoggingService.GetTail:input_type -> metarr.v1.LoggingServiceGetTailRequest
 	7,  // 9: metarr.v1.LoggingService.StreamTail:input_type -> metarr.v1.LoggingServiceStreamTailRequest
 	2,  // 10: metarr.v1.LoggingService.GetLoggingConfig:output_type -> metarr.v1.GetLoggingConfigResponse
-	11, // 11: metarr.v1.LoggingService.UpdateLoggingConfig:output_type -> metarr.v1.Operation
+	0,  // 11: metarr.v1.LoggingService.UpdateLoggingConfig:output_type -> metarr.v1.LoggingConfig
 	6,  // 12: metarr.v1.LoggingService.GetTail:output_type -> metarr.v1.LoggingServiceGetTailResponse
 	8,  // 13: metarr.v1.LoggingService.StreamTail:output_type -> metarr.v1.LoggingServiceStreamTailResponse
 	10, // [10:14] is the sub-list for method output_type
@@ -598,7 +574,6 @@ func file_metarr_v1_logging_proto_init() {
 	if File_metarr_v1_logging_proto != nil {
 		return
 	}
-	file_metarr_v1_operations_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
