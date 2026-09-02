@@ -52,7 +52,7 @@ func configWithEverySecret() *appconfig.Config {
 			},
 			SidecarTypes: appconfig.DefaultSidecarTypes(),
 		},
-		Agents: []*appconfig.AgentConfig{{
+		Agents: []*appconfig.Agent{{
 			Slug:        "nas-01",
 			DisplayName: "The NAS",
 			Mappings: []*appconfig.AgentDirectoryMapping{

@@ -62,7 +62,7 @@ message Config {
   AdminUser admin = 2;
   InterfacesConfig interfaces = 3;
   DirectoryScannerConfig directory_scanner = 4;
-  repeated AgentConfig agents = 5;
+  repeated Agent agents = 5;
   LoggingConfig logging = 6;
   EventBusConfig event_bus = 7;
 }

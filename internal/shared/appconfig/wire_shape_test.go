@@ -39,7 +39,7 @@ func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 		Id: "i", Type: "t", Category: "image", Order: 10,
 		Patterns: []string{"p"}, Extensions: []string{".jpg"},
 	}}
-	config.Agents = []*AgentConfig{{
+	config.Agents = []*Agent{{
 		Slug: "a", DisplayName: "A", LogLevel: LogLevelInfo,
 		Mappings: []*AgentDirectoryMapping{{ScannerSlug: "s", AgentPath: "/p"}},
 	}}
@@ -89,8 +89,14 @@ func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 		[]string{"category", "extensions", "id", "order", "patterns", "type"})
 
 	agent := firstOf(t, document["agents"])
+	// slug / display_name / mappings / log_level are the operator fields that
+	// are actually persisted. configured / online / identity / telemetry /
+	// reported_at are output-only presence fields on the one Agent message
+	// (#92): a read populates them from Redis, a write ignores them, and they
+	// are never given a value here — EmitUnpopulated just lists the keys.
 	assertKeys(t, "config.agents[0]", agent, []string{
-		"display_name", "log_level", "mappings", "slug",
+		"configured", "display_name", "identity", "log_level", "mappings",
+		"online", "reported_at", "slug", "telemetry",
 	})
 	assertKeys(t, "config.agents[0].mappings[0]",
 		firstOf(t, agent.(map[string]any)["mappings"]), []string{"agent_path", "scanner_slug"})

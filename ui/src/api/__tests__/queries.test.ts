@@ -12,6 +12,10 @@ const listSonarrInstances = vi.fn();
 const createSonarrInstance = vi.fn();
 const updateSonarrInstance = vi.fn();
 const deleteSonarrInstance = vi.fn();
+const createAgent = vi.fn();
+const updateAgent = vi.fn();
+const deleteAgent = vi.fn();
+const setLogLevel = vi.fn();
 const getDirectoryScannerConfig = vi.fn();
 const updateDirectoryScannerConfig = vi.fn();
 const listScanDirectories = vi.fn();
@@ -30,7 +34,12 @@ vi.mock("../clients", () => ({
   // queries.ts pulls the rest of the clients in at module load; only the
   // hooks exercised below need real mock methods, the others just need to
   // exist.
-  agentClient: {},
+  agentClient: {
+    createAgent: (...args: unknown[]) => createAgent(...args),
+    updateAgent: (...args: unknown[]) => updateAgent(...args),
+    deleteAgent: (...args: unknown[]) => deleteAgent(...args),
+    setLogLevel: (...args: unknown[]) => setLogLevel(...args),
+  },
   configClient: {},
   eventBusClient: {
     getEventBusConfig: (...args: unknown[]) => getEventBusConfig(...args),
@@ -88,6 +97,10 @@ import {
   useDeleteSidecarType,
   useReorderSidecarTypes,
   useResetSidecarTypes,
+  useCreateAgent,
+  useUpdateAgent,
+  useDeleteAgent,
+  useSetAgentLogLevel,
 } from "../queries";
 
 describe("queryKeys", () => {
@@ -640,5 +653,78 @@ describe("Directory scanner hooks", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(resetSidecarTypes).toHaveBeenCalledWith({});
     expect(queryClient.getQueryData(queryKeys.sidecarTypes)).toEqual(defaults);
+  });
+});
+
+// AgentService is a slug-addressed collection on AIP standard methods. The
+// agents cache (["stats","agents"]) is socket-fed by StreamPresence, so each
+// write invalidates it (the refetch re-merges live presence) and the sibling
+// aggregate GetConfig read (exact), rather than splicing a presence-less
+// response into it.
+describe("Agent hooks", () => {
+  const agent = {
+    slug: "nas-01",
+    displayName: "NAS",
+    mappings: [{ scannerSlug: "movies", agentPath: "/mnt/movies" }],
+  };
+
+  it("useCreateAgent sends the slug in agent_id and invalidates", async () => {
+    createAgent.mockReset().mockResolvedValue({ ...agent, configured: true });
+    const { invalidate, wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useCreateAgent(), { wrapper });
+    result.current.mutate(agent);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(createAgent).toHaveBeenCalledWith({
+      agentId: "nas-01",
+      agent,
+    });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.agents });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.config,
+      exact: true,
+    });
+  });
+
+  it("useUpdateAgent sends the writable-field mask", async () => {
+    updateAgent.mockReset().mockResolvedValue({ ...agent, configured: true });
+    const { wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useUpdateAgent(), { wrapper });
+    result.current.mutate({ ...agent, displayName: "Renamed" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(updateAgent).toHaveBeenCalledWith({
+      agent: { ...agent, displayName: "Renamed" },
+      updateMask: { paths: ["display_name", "mappings"] },
+    });
+  });
+
+  it("useDeleteAgent sends the slug and invalidates", async () => {
+    deleteAgent.mockReset().mockResolvedValue({});
+    const { invalidate, wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useDeleteAgent(), { wrapper });
+    result.current.mutate("nas-01");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(deleteAgent).toHaveBeenCalledWith({ slug: "nas-01" });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.agents });
+  });
+
+  it("useSetAgentLogLevel maps log_level to logLevel", async () => {
+    setLogLevel.mockReset().mockResolvedValue({ ...agent, logLevel: "debug" });
+    const { invalidate, wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useSetAgentLogLevel(), { wrapper });
+    result.current.mutate({ slug: "nas-01", log_level: "debug" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(setLogLevel).toHaveBeenCalledWith({
+      slug: "nas-01",
+      logLevel: "debug",
+    });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.agents });
   });
 });
