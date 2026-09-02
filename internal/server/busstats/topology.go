@@ -26,25 +26,29 @@ type ExpectedChannel struct {
 }
 
 // Topology is the expected-vs-actual reference: every stream and channel the
-// bus should carry given the durable stream-topic list and the set of
-// registered agents, and per row the identities that should be attached. It
-// is a pure function of its inputs (DeriveTopology) — no Redis — so the
-// derivation is table-testable on its own.
+// bus should carry given the unified topic table and the set of registered
+// agents, and per row the identities that should be attached. It is a pure
+// function of its inputs (DeriveTopology) — no Redis — so the derivation is
+// table-testable on its own.
 type Topology struct {
 	Streams  map[string]ExpectedStream
 	Channels map[string]ExpectedChannel
 }
 
-// DeriveTopology builds the expected topology from the durable stream-topic
-// list and the registered agent slugs. It is pure: given the same inputs it
-// returns the same rows, and it touches no Redis.
+// DeriveTopology builds the expected topology from the unified topic table
+// (eventbus.Topics()) and the registered agent slugs. It is pure: given the
+// same inputs it returns the same rows, and it touches no Redis.
 //
-//   - A static stream that a listener consumes expects metarr-server on its
-//     group; a reserved stream with no group expects nothing.
-//   - The fixed known Pub/Sub channels expect metarr-server.
-//   - Every registered agent expects metarr-agent-<slug> on its command
-//     stream group and on each of its two per-agent Pub/Sub channels, whether
-//     or not that agent is online right now.
+// Every row is placed by Kind — a KindStream row is an expected stream,
+// every other kind an expected channel — so streams and channels come from
+// one walk of one list, not three separate enumerations:
+//
+//   - A static stream a listener consumes expects metarr-server on its
+//     group; a reserved stream with no group expects nothing. Every static
+//     channel expects metarr-server.
+//   - Every registered agent contributes its per-agent rows
+//     (eventbus.AgentTopics), placed by Kind the same way, each expecting
+//     metarr-agent-<slug>, whether or not that agent is online right now.
 //
 // Pattern rows in topics are skipped: the per-agent command streams come from
 // slugs here, not from expanding a glob against Redis.
@@ -58,39 +62,49 @@ func DeriveTopology(topics []eventbus.Topic, slugs []string) Topology {
 		if topic.Pattern {
 			continue
 		}
-		expected := ExpectedStream{Stream: topic.Name, Group: topic.Group}
-		if topic.Consumed && topic.Group != "" {
-			expected.Identities = []string{eventbus.SourceServer}
-		}
-		top.Streams[topic.Name] = expected
-	}
-
-	for _, channel := range eventbus.KnownPubSubChannels() {
-		top.Channels[channel] = ExpectedChannel{
-			Channel:    channel,
-			Identities: []string{eventbus.SourceServer},
-		}
+		top.add(topic, staticIdentities(topic))
 	}
 
 	for _, slug := range slugs {
 		agent := eventbus.AgentSource(slug)
-
-		command := eventbus.AgentCommandTopic(slug)
-		top.Streams[command.Name] = ExpectedStream{
-			Stream:     command.Name,
-			Group:      command.Group,
-			Identities: []string{agent},
-		}
-
-		for _, channel := range eventbus.AgentPubSubChannels(slug) {
-			top.Channels[channel] = ExpectedChannel{
-				Channel:    channel,
-				Identities: []string{agent},
-			}
+		for _, topic := range eventbus.AgentTopics(slug) {
+			top.add(topic, []string{agent})
 		}
 	}
 
 	return top
+}
+
+// staticIdentities is the identity set a non-per-agent topic row expects:
+// metarr-server on a consumed stream that has a consumer group, metarr-server
+// on every channel, and nothing on a reserved stream (no group) so such a
+// row is never flagged.
+func staticIdentities(topic eventbus.Topic) []string {
+	if topic.Kind == eventbus.KindStream {
+		if topic.Consumed && topic.Group != "" {
+			return []string{eventbus.SourceServer}
+		}
+		return nil
+	}
+	return []string{eventbus.SourceServer}
+}
+
+// add places one topic row into the topology by Kind: a KindStream row into
+// Streams, every other kind into Channels. A later row for the same name
+// wins, so a per-agent row overrides a same-named static row.
+func (t Topology) add(topic eventbus.Topic, identities []string) {
+	if topic.Kind == eventbus.KindStream {
+		t.Streams[topic.Name] = ExpectedStream{
+			Stream:     topic.Name,
+			Group:      topic.Group,
+			Identities: identities,
+		}
+		return
+	}
+	t.Channels[topic.Name] = ExpectedChannel{
+		Channel:    topic.Name,
+		Identities: identities,
+	}
 }
 
 // nameMissing attributes a shortfall on a flagged row to specific identities.
