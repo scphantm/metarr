@@ -84,9 +84,13 @@ func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 	assertKeys(t, "config.directory_scanner.scan_directories[0]",
 		first(t, document, "directory_scanner", "scan_directories"),
 		[]string{"directory", "scan_type", "scanner_slug"})
+	// name is the AIP resource-name field (ADR-0010). It is derived on read
+	// and cleared by the config store's mutation closure before a write, so
+	// a stored entry only ever carries it empty — EmitUnpopulated still
+	// lists the key, which is why it appears here.
 	assertKeys(t, "config.directory_scanner.sidecar_types[0]",
 		first(t, document, "directory_scanner", "sidecar_types"),
-		[]string{"category", "extensions", "id", "order", "patterns", "type"})
+		[]string{"category", "extensions", "id", "name", "order", "patterns", "type"})
 
 	agent := firstOf(t, document["agents"])
 	assertKeys(t, "config.agents[0]", agent, []string{
