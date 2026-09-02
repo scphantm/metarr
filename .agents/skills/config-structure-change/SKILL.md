@@ -7,7 +7,7 @@ description: The full checklist for any change to Metarr's config structure (the
 
 A change to config structure is not done until all of these land in the same change:
 
-* **CRUD methods in the config API service** — AIP standard methods, no `Upsert`: a new collection section needs `Create` + `Update` (+ `List` / `Get` / `Delete`); a new scalar section needs `Update` with a `google.protobuf.FieldMask`. See the CRUD-API rule in `AGENTS.md` and `docs/adr/0010-crud-api-shape-follows-aip-standard-methods.md`.
+* **CRUD methods in the config API service** — AIP standard methods, no `Upsert`: a new collection section needs `Create` + `Update` + `List` (paginated / filterable / orderable) + `Get` + `Delete`; a new scalar section needs `Get` + `Update` with a `google.protobuf.FieldMask`. Every resource and scalar section carries an `OUTPUT_ONLY` `etag` that `Update` / `Delete` echo back (`ABORTED` on mismatch). Writes return a `google.longrunning.Operation`, not the resource. The AIP plumbing is `go.einride.tech/aip`. See the CRUD-API rule in `AGENTS.md` and `docs/adr/0010-crud-api-shape-follows-aip-standard-methods.md`.
 * **UI to manage the new settings** — a screen or field under System settings.
 * **A startup default:**
   * Add a section to `internal/shared/appconfig/builtin_defaults.json`.

@@ -184,9 +184,10 @@ _Avoid_: token, credential
 One addressable entry in the application config — an agent, a Sonarr instance, a
 scan directory, a sidecar type, an API key entry. Each is created, read, and
 changed only through its own AIP standard methods (`Create` / `Get` / `List` /
-`Update` / `Delete`), never by writing the whole document. Which naming idiom
-addresses it — slug or minted id — is fixed by the Identity decision and shapes
-its API (`docs/adr/0010-crud-api-shape-follows-aip-standard-methods.md`).
+`Update` / `Delete`), never by writing the whole document. A write returns an
+Operation, not the resource. Which naming idiom addresses it — slug or minted
+id — is fixed by the Identity decision and shapes its API
+(`docs/adr/0010-crud-api-shape-follows-aip-standard-methods.md`).
 _Avoid_: config entry, config item, section row
 
 **Resource name**:
@@ -196,6 +197,21 @@ The string that addresses one config resource in the API: `agents/{slug}`,
 id — populated on read, cleared before the document is stored, so it is never a
 second source of truth for identity.
 _Avoid_: path, id, key, url
+
+**Operation**:
+The `google.longrunning.Operation` a config write returns. Its name is
+`operations/{correlation_id}`, reusing the correlation id the write already
+carries. It starts `done:false`; the `system_config_update` listener marks it
+done once persisted, with the resource in `response` or a failure in `error`.
+The UI polls `OperationsService.GetOperation` instead of re-reading the resource.
+_Avoid_: job, task, future, promise
+
+**etag**:
+The AIP-154 concurrency token on a config resource or scalar section — a hash of
+that section's stored bytes, populated on read, never itself stored. `Update`
+and `Delete` echo back the etag last read; a mismatch under the store lock is
+`ABORTED`. An empty etag skips the check (a deliberate blind write).
+_Avoid_: version, revision, generation, checksum
 
 ### Models
 
