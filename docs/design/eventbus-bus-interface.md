@@ -8,8 +8,16 @@ written from this plus the wire details); where this doc and that page disagree,
 the page wins.
 
 Chosen from a design-it-twice pass over four candidates: a **ports-and-adapters**
-spine (one real port, the tempting extras refused) with **one unified `Topic`
-table** covering streams and channels alike.
+spine with **one unified `Topic` table** covering streams and channels alike.
+
+> **Amended 2026-09-02**, after the first review of the built `Bus`: the verbs
+> now take **kind-typed topic handles** (`StreamTopic` / `NotifyTopic` /
+> `RequestTopic`, §2), retiring the runtime `ErrWrongKind`; and the **Pub/Sub
+> half gained a port** (`PubSubTransport`, §4.2) so the whole `Bus` is testable
+> with no Redis, not just its durable-stream half. Both were "refusals" in the
+> original design; the notes at §2 and §4.2 record why the trade-off changed.
+> The unified `Topic` row is unchanged — it stays the plain-data enumeration
+> shape; the handles wrap it only where a Go call site drives a verb.
 
 Related: ADR-0006 (one bus contract over Redis + the 2026-09-01 minimal-marshaller
 amendment), ADR-0009 (no credential in a bus payload), ADR-0007 (expected-vs-actual
@@ -76,6 +84,34 @@ type Topic struct {
 to the real `["agent.scan_result", "agent.scan_complete", "agent.scan_failed"]` — the
 field is now the dispatch table, not a comment.
 
+### Typed topic handles (amended 2026-09-02)
+
+The original design had one `Kind`-tagged `Topic` and every `Bus` verb taking a
+bare `Topic`, with a wrong-`Kind` call — `Publish` on a notify row, say — caught
+at run time as `ErrWrongKind`. That check turned out to be pure friction: it
+fires on the first test run, and six near-identical guard blocks plus six
+`…RejectsWrongKind` tests existed only to police it.
+
+So each verb now takes a one-field wrapper that carries the kind in the Go type:
+
+```go
+type StreamTopic  struct{ Topic } // HandleStream, Publish
+type NotifyTopic   struct{ Topic } // HandleNotify, Notify
+type RequestTopic  struct{ Topic } // HandleRequest, Request
+```
+
+The topic constructors return the matching wrapper (`SystemConfigUpdateTopic()
+StreamTopic`, `HeartbeatTopic() RequestTopic`, …). A verb handed the wrong one
+no longer compiles; `ErrWrongKind` is deleted.
+
+`Topic` is unchanged and stays the enumeration row: `Topics()`, `AgentTopics()`,
+`DiscoverStreamTopics()` still return `[]Topic` (built by unwrapping the
+constructors' `.Topic`), so ADR-0007's topology derivation and the stats
+dashboard are untouched — plain data for a participant in another language, a
+typed handle only where a Go call site drives a verb. A hand-assembled
+`StreamTopic{Topic{Name: "…"}}` with a bogus name is still caught by
+`streamTopicPublishable` inside `Publish` (`ErrNotPublishable`).
+
 ### Constructors (`topics.go`)
 
 ```go
@@ -128,6 +164,13 @@ type Config struct {
 	// RedisStreamTransport(client, adapter). Tests: ChannelStreamTransport().
 	Streams StreamTransport
 
+	// PubSub is the Pub/Sub transport (§4, amended 2026-09-02). Production
+	// leaves it nil and New defaults it to RedisPubSub(Redis), so both
+	// binaries stay on Redis with no wiring change. Tests pass
+	// InMemoryPubSub() to run notify + request/reply with no broker. Nil PubSub
+	// AND nil Redis → the Pub/Sub verbs error, as the old missing-Redis case did.
+	PubSub PubSubTransport
+
 	// Policy is the late-bound tuning provider. Never nil. Read once in Run for the
 	// retry stack + publish MAXLEN, and once per iteration by the retention sweep.
 	// Before the event_bus config section is bootstrapped it returns
@@ -161,7 +204,7 @@ type NotifyHandler  func(ctx context.Context, payload []byte)
 // not in the map hits the unknown-name default — logged once with stream + name,
 // then acked — which lives in exactly one place inside the Bus. Rejects a pattern
 // topic and a topic with Group == "".
-func (b *Bus) HandleStream(topic Topic, handlers map[string]StreamHandler) error
+func (b *Bus) HandleStream(topic StreamTopic, handlers map[string]StreamHandler) error
 
 // HandleRequest registers the answering side for a KindRequestReply topic. The Bus
 // decodes the request envelope, calls handler, and on a non-nil payload assembles
@@ -169,12 +212,12 @@ func (b *Bus) HandleStream(topic Topic, handlers map[string]StreamHandler) error
 // topic.ReplyName) and publishes it on ReplyChannel(correlation_id). A nil payload
 // OR a handler error sends no reply, so the caller hits ErrNoResponder. Requires
 // topic.ReplyName != "".
-func (b *Bus) HandleRequest(topic Topic, handler RequestHandler) error
+func (b *Bus) HandleRequest(topic RequestTopic, handler RequestHandler) error
 
 // HandleNotify registers a fire-and-forget consumer for a KindNotify topic. Payload
 // is opaque bytes — never decoded. Multiple handlers may share one topic; each
 // opens its own subscription.
-func (b *Bus) HandleNotify(topic Topic, handler NotifyHandler) error
+func (b *Bus) HandleNotify(topic NotifyTopic, handler NotifyHandler) error
 ```
 
 Registration after `Run` returns `ErrBusRunning`.
@@ -189,20 +232,21 @@ Registration after `Run` returns `ErrBusRunning`.
 // Rejects a pattern topic or a name the table does not resolve (ErrNotPublishable).
 // Non-blocking. correlationID is passed explicitly — the Bus does NOT read it from
 // ctx (the wire contract has no ctx; a non-Go publisher sets correlation_id itself).
-func (b *Bus) Publish(ctx context.Context, topic Topic, name, correlationID string, payload []byte) error
+func (b *Bus) Publish(ctx context.Context, topic StreamTopic, name, correlationID string, payload []byte) error
 
 // Notify publishes opaque bytes on a KindNotify topic. No envelope, no retry.
-func (b *Bus) Notify(ctx context.Context, topic Topic, payload []byte) error
+func (b *Bus) Notify(ctx context.Context, topic NotifyTopic, payload []byte) error
 
 // Request publishes a request envelope (Source = cfg.Source, the given name, the
 // given correlationID — minted if "") on a KindRequestReply topic and blocks until
 // the correlation-scoped reply arrives or ctx is done. On timeout it returns
 // ErrNoResponder wrapping ctx.Err(), so errors.Is(err, context.DeadlineExceeded)
 // still matches. name MUST be in topic.Events.
-func (b *Bus) Request(ctx context.Context, topic Topic, name, correlationID string, payload []byte) (*Event, error)
+func (b *Bus) Request(ctx context.Context, topic RequestTopic, name, correlationID string, payload []byte) (*Event, error)
 ```
 
-Passing a `Topic` of the wrong `Kind` to any of the three → `ErrWrongKind`.
+The verbs take `StreamTopic` / `NotifyTopic` / `RequestTopic` (§2), so a
+wrong-kind call does not compile — there is no `ErrWrongKind`.
 
 ### 3.4 Lifecycle
 
@@ -242,13 +286,20 @@ func (b *Bus) Close() error
   event and returns `nil`, and never touches the retry path. A `RequestHandler`
   returning `(nil, x)` or an error sends no reply → the caller hits `ErrNoResponder`.
 - **Errors** (all `errors.Is`-matchable): `ErrNoResponder`, `ErrBusRunning`,
-  `ErrUnknownEvent`, `ErrWrongKind`, `ErrNotPublishable`.
+  `ErrUnknownEvent`, `ErrNotPublishable`.
 - **ADR-0009:** no envelope payload — stream, notify or reply — may carry a
   credential. Not enforced by the type system; a review check per new payload.
 
 ---
 
-## 4. The one port
+## 4. The ports
+
+> **Amended 2026-09-02.** This section originally described **one** port,
+> `StreamTransport`, and listed `PubSubTransport` under "seams deliberately not
+> taken". The Pub/Sub seam was subsequently taken — see §4.2. Everything about
+> `StreamTransport` below is unchanged.
+
+### 4.1 `StreamTransport` — the durable-stream port
 
 ```go
 // StreamPublisher appends one durable-stream entry carrying `envelope` as its
@@ -279,17 +330,59 @@ func ChannelStreamTransport() StreamTransport // one gochannel.GoChannel as publ
 | `RedisStreamTransport` | production — watermill-redisstream publisher + per-group subscribers over the shared client; owns the minimal marshaller, consumer-group creation, `XAUTOCLAIM` reclaim | `cmd/metarr-server/main.go`, `cmd/metarr-agent/main.go` |
 | `ChannelStreamTransport` | tests — proves handler logic + middleware + `(topic, name)` dispatch with no Redis; `group`/`consumer` ignored | `internal/shared/eventbus/*_test.go`, `internal/server/listeners/*_test.go`, `internal/agent/runtime/*_test.go` |
 
-### Seams deliberately **not** taken
+### 4.2 `PubSubTransport` — the Pub/Sub port (added 2026-09-02)
+
+The original design refused this seam: one real implementation (go-redis
+`UniversalClient`), miniredis being the *same* adapter at an in-process server
+rather than a second one, and the worry that a generic port would erase the
+SUBSCRIBE-ack-before-publish and correlation-scoped-reply semantics.
+
+Two of those held; one did not. `ChannelStreamTransport` had already made the
+durable-stream half runnable with no Redis, and the Pub/Sub half was the only
+part of the `Bus` a test could not reach without a Redis-shaped thing — so
+`bus_pubsub_test.go` and every `listeners` / `runtime` test touching notify or
+request/reply carried a miniredis dependency the stream half had shed. That is
+real, recurring friction, and it is exactly the split ADR-0008's deferred
+conformance harness has to cross. The ack-and-reply worry is handled by keeping
+that logic on the `Bus` side of the seam: the port is two methods, `Subscribe`
+(returning a subscription whose `Receive` is the ack) and `Publish`.
+
+```go
+type PubSubTransport interface {
+	Subscribe(ctx context.Context, channel string) (PubSubSubscription, error)
+	Publish(ctx context.Context, channel string, payload []byte) error
+}
+type PubSubSubscription interface {
+	Receive(ctx context.Context) error // blocks until SUBSCRIBE is acked
+	Channel() <-chan []byte
+	Close() error
+}
+
+func RedisPubSub(client redis.UniversalClient) PubSubTransport
+func InMemoryPubSub() PubSubTransport // in-process broker for tests
+```
+
+| Adapter | Role | Used by |
+|---|---|---|
+| `RedisPubSub` | production — near-passthrough over the shared client; owns nothing, closes nothing. **Never named at a call site**: `Config.PubSub` is left nil and `New` defaults to it, so both binaries stay on Redis with no wiring change. | `eventbus.New` default |
+| `InMemoryPubSub` | tests — in-process broker with the two properties the `Bus` needs (a subscription live the instant `Subscribe` returns; `Publish` fans out to every subscriber). Retires miniredis from `bus_pubsub_test.go`. | `internal/shared/eventbus/*_test.go`, `internal/server/listeners/*_test.go` |
+
+It parallels `StreamTransport` exactly, including being an exported port whose
+"don't use this adapter in production" is convention, not structure — the same
+as nothing stopping `ChannelStreamTransport` being passed to `New` in a binary.
+
+### Seams still deliberately **not** taken
 
 | Would-be seam | Why not |
 |---|---|
-| `PubSubTransport` port | One real implementation (go-redis `UniversalClient`). miniredis in tests is the *same* adapter pointed at an in-process server, not a second one. A generic port would erase the SUBSCRIBE-ack-before-publish and correlation-scoped-reply semantics the code depends on. The `Bus` holds `redis.UniversalClient` directly for this half. |
 | `EnvelopeCodec` port | The protojson options (`UseProtoNames`, `EmitUnpopulated` / `DiscardUnknown`) and the `{"payload": …}` entry shape **are** the contract (ADR-0006/0008). One encoding on both sides is the point; a pluggable codec reintroduces the `system_config_update` protojson-vs-`encoding/json` asymmetry the rebuild killed. Hard-coded. |
 | `PolicyProvider` interface | Already a `func() BusPolicy`. Its "adapters" (server closure over `appconfig.Get().EventBus`; agent `DefaultBusPolicy`; test fixed value) are all a func returning a struct. `BusPolicyFromConfig(*metarrv1.EventBusConfig)` stays a wiring-layer mapping so the generated proto type never enters the `Bus` core. |
 | `Now` as an interface/port | Real seam (2 adapters: system clock, test clock) but a one-method one — a `func() time.Time` field, not a named interface. |
 
-Net: **one real port (`StreamTransport`)**, one function-typed seam (`Now`). Everything
-else is an internal detail or fixed, on purpose. That refusal is the maintainability
+Net: **two real ports (`StreamTransport`, `PubSubTransport`)** — each with a
+production Redis adapter and an in-memory test adapter, so the whole `Bus` is
+exercisable with no Redis — plus one function-typed seam (`Now`). Everything else
+is an internal detail or fixed, on purpose. That restraint is the maintainability
 property this design is chosen for.
 
 ---
@@ -333,7 +426,8 @@ Logic the `Bus` owns identically whether `StreamTransport` is Redis or gochannel
 
 | Dependency | DEEPENING category | Strategy | Test double |
 |---|---|---|---|
-| Redis client | 3, but **one impl** | held directly on the `Bus`; no port | miniredis (same adapter, in-process) |
+| Redis client (Pub/Sub half) | 3 | **port `PubSubTransport`** (added 2026-09-02; prod default `RedisPubSub`, near side of the port keeps the ack + reply-routing logic) | `InMemoryPubSub` (in-process broker) |
+| Redis client (retention sweep XTRIM/SCAN, stream transport construction) | 3, one impl | `cfg.Redis` held directly; no port | miniredis (`bus_miniredis_test.go`) |
 | Watermill publisher + subscriber | 3 | **port `StreamTransport`** | `ChannelStreamTransport` (gochannel) |
 | Watermill `message.Router` + `Recoverer`/`dropAfterRetry`/`Retry` | 1 | owned by the `Bus`, near side of the port — rules have one implementation | — |
 | `metarrv1.EventBusConfig` | 1 | `BusPolicyFromConfig` at the wiring layer; `Bus` core takes `BusPolicy` | — |
