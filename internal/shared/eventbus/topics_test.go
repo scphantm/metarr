@@ -158,10 +158,10 @@ func TestKnownPubSubChannelsUnchanged(t *testing.T) {
 // unknown name are rejected.
 func TestStreamTopicPublishableGuard(t *testing.T) {
 	ok := []Topic{
-		SystemConfigUpdateTopic(),
-		AgentScanResultTopic(),
-		agentNodeResultTopic(),
-		AgentCommandTopic("nas-01"),
+		SystemConfigUpdateTopic().Topic,
+		AgentScanResultTopic().Topic,
+		agentNodeResultTopic().Topic,
+		AgentCommandTopic("nas-01").Topic,
 		{Name: AgentScanResultStream}, // a hand-built row with just the name
 	}
 	for _, topic := range ok {
@@ -173,7 +173,7 @@ func TestStreamTopicPublishableGuard(t *testing.T) {
 	bad := []Topic{
 		{Name: "events.not_a_real_stream"},
 		{Name: AgentCommandStream("nas-01") + ".extra"},
-		agentCommandStreamPatternTopic(),
+		agentCommandStreamPatternTopic().Topic,
 		{Name: AgentScanResultStream, Pattern: true}, // Pattern flag alone is disqualifying
 	}
 	for _, topic := range bad {
@@ -294,9 +294,9 @@ func TestAgentPubSubChannels(t *testing.T) {
 func TestAgentTopics(t *testing.T) {
 	got := AgentTopics("nas-01")
 	want := []Topic{
-		AgentCommandTopic("nas-01"),
-		AgentConfigChangedTopic("nas-01"),
-		AgentRequestTopic("nas-01"),
+		AgentCommandTopic("nas-01").Topic,
+		AgentConfigChangedTopic("nas-01").Topic,
+		AgentRequestTopic("nas-01").Topic,
 	}
 	if len(got) != len(want) {
 		t.Fatalf("AgentTopics returned %d topics, want %d", len(got), len(want))
@@ -342,6 +342,31 @@ func TestSlugFromAgentSource(t *testing.T) {
 		if slug, ok := SlugFromAgentSource(bad); ok || slug != "" {
 			t.Errorf("SlugFromAgentSource(%q) = %q, %v; want \"\", false", bad, slug, ok)
 		}
+	}
+}
+
+func wantStreamTopic(StreamTopic)   {}
+func wantNotifyTopic(NotifyTopic)   {}
+func wantRequestTopic(RequestTopic) {}
+
+// The topic constructors return the wrapper that matches their Kind, so a
+// verb handed the wrong one is a compile error rather than a runtime
+// ErrWrongKind. These calls fail to build if a constructor's return type is
+// ever widened back to a bare Topic or changed to the wrong wrapper.
+func TestTopicConstructorsReturnTheKindTypedWrapper(t *testing.T) {
+	wantStreamTopic(SystemConfigUpdateTopic())
+	wantStreamTopic(AgentScanResultTopic())
+	wantStreamTopic(AgentCommandTopic("nas-01"))
+	wantNotifyTopic(LogTopic())
+	wantNotifyTopic(AgentConfigChangedTopic("nas-01"))
+	wantRequestTopic(HeartbeatTopic())
+	wantRequestTopic(AgentRequestTopic("nas-01"))
+
+	// The embedded row still carries the matching Kind.
+	if SystemConfigUpdateTopic().Kind != KindStream ||
+		LogTopic().Kind != KindNotify ||
+		HeartbeatTopic().Kind != KindRequestReply {
+		t.Fatal("a wrapper's embedded Topic.Kind disagrees with its wrapper type")
 	}
 }
 

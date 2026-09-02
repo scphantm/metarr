@@ -8,26 +8,20 @@ import (
 	"log/slog"
 	"testing"
 	"time"
-
-	"github.com/alicebob/miniredis/v2"
-	"github.com/redis/go-redis/v9"
 )
 
 // The Bus's Pub/Sub half — HandleNotify / HandleRequest / Notify / Request —
-// is exercised over miniredis, the same go-redis adapter pointed at an
-// in-process server (there is no transport port for this half). The stream
-// side uses ChannelStreamTransport so one Run drives both.
+// is exercised over InMemoryPubSub, the same seam ChannelStreamTransport
+// fills for the stream side, so one Run drives both halves with no Redis.
+// The Redis adapter (RedisPubSub) is a near-passthrough; its wire behaviour
+// is covered by bus_miniredis_test.go.
 
-func newBusOnRedis(t *testing.T, source string) *Bus {
+func newPubSubBus(t *testing.T, source string) *Bus {
 	t.Helper()
-	server := miniredis.RunT(t)
-	client := redis.NewClient(&redis.Options{Addr: server.Addr()})
-	t.Cleanup(func() { _ = client.Close() })
-
 	bus, err := New(Config{
-		Redis:   client,
 		Source:  source,
 		Streams: ChannelStreamTransport(),
+		PubSub:  InMemoryPubSub(),
 		Policy:  testBusPolicy,
 		Logger:  slog.New(slog.NewTextHandler(io.Discard, nil)),
 	})
@@ -38,7 +32,7 @@ func newBusOnRedis(t *testing.T, source string) *Bus {
 }
 
 func TestBusNotifyDeliversRawPayloadToEveryHandler(t *testing.T) {
-	bus := newBusOnRedis(t, SourceServer)
+	bus := newPubSubBus(t, SourceServer)
 	topic := AgentConfigChangedTopic("nas-01")
 
 	got := make(chan string, 2)
@@ -72,7 +66,7 @@ func TestBusNotifyDeliversRawPayloadToEveryHandler(t *testing.T) {
 }
 
 func TestBusRequestReturnsReplyWithCorrelationAndReplyName(t *testing.T) {
-	bus := newBusOnRedis(t, SourceServer)
+	bus := newPubSubBus(t, SourceServer)
 	topic := HeartbeatTopic()
 
 	if err := bus.HandleRequest(topic, func(_ context.Context, req *Event) ([]byte, error) {
@@ -107,7 +101,7 @@ func TestBusRequestReturnsReplyWithCorrelationAndReplyName(t *testing.T) {
 }
 
 func TestBusRequestMintsCorrelationIDWhenEmpty(t *testing.T) {
-	bus := newBusOnRedis(t, SourceServer)
+	bus := newPubSubBus(t, SourceServer)
 	topic := HeartbeatTopic()
 
 	responderSaw := make(chan string, 1)
@@ -140,7 +134,7 @@ func TestBusRequestMintsCorrelationIDWhenEmpty(t *testing.T) {
 }
 
 func TestBusRequestWithNoResponderReturnsErrNoResponder(t *testing.T) {
-	bus := newBusOnRedis(t, SourceServer)
+	bus := newPubSubBus(t, SourceServer)
 	runBus(t, bus) // nothing registered on the request channel
 
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
@@ -156,7 +150,7 @@ func TestBusRequestWithNoResponderReturnsErrNoResponder(t *testing.T) {
 }
 
 func TestBusRequestHandlerErrorSendsNoReply(t *testing.T) {
-	bus := newBusOnRedis(t, SourceServer)
+	bus := newPubSubBus(t, SourceServer)
 	if err := bus.HandleRequest(HeartbeatTopic(), func(context.Context, *Event) ([]byte, error) {
 		return nil, errUnreachable
 	}); err != nil {
@@ -174,7 +168,7 @@ func TestBusRequestHandlerErrorSendsNoReply(t *testing.T) {
 }
 
 func TestBusRequestHandlerNilPayloadSendsNoReply(t *testing.T) {
-	bus := newBusOnRedis(t, SourceServer)
+	bus := newPubSubBus(t, SourceServer)
 	if err := bus.HandleRequest(HeartbeatTopic(), func(context.Context, *Event) ([]byte, error) {
 		return nil, nil
 	}); err != nil {
@@ -194,7 +188,7 @@ func TestBusRequestHandlerNilPayloadSendsNoReply(t *testing.T) {
 // One Run drives the Watermill stream router and the Pub/Sub receive loops
 // together, and Ready does not close until both are live.
 func TestBusRunDrivesStreamAndPubSubUnderOneCall(t *testing.T) {
-	bus := newBusOnRedis(t, SourceServer)
+	bus := newPubSubBus(t, SourceServer)
 
 	streamGot := make(chan string, 1)
 	if err := bus.HandleStream(SystemConfigUpdateTopic(), map[string]StreamHandler{
@@ -241,20 +235,8 @@ func TestBusRunDrivesStreamAndPubSubUnderOneCall(t *testing.T) {
 
 // --- validation, no Run needed ----------------------------------------------
 
-func TestBusNotifyRejectsWrongKind(t *testing.T) {
-	bus := newChannelBus(t, SourceServer, nil)
-	if err := bus.Notify(context.Background(), HeartbeatTopic(), nil); !errors.Is(err, ErrWrongKind) {
-		t.Fatalf("err = %v, want ErrWrongKind", err)
-	}
-}
-
-func TestBusRequestRejectsWrongKind(t *testing.T) {
-	bus := newChannelBus(t, SourceServer, nil)
-	_, err := bus.Request(context.Background(), LogTopic(), "whatever", "corr", nil)
-	if !errors.Is(err, ErrWrongKind) {
-		t.Fatalf("err = %v, want ErrWrongKind", err)
-	}
-}
+// Wrong-Kind calls — Notify(HeartbeatTopic()), HandleRequest(LogTopic()) and
+// the rest — no longer compile: Notify/Request take NotifyTopic/RequestTopic.
 
 func TestBusRequestRejectsOffTableName(t *testing.T) {
 	bus := newChannelBus(t, SourceServer, nil)
@@ -264,33 +246,17 @@ func TestBusRequestRejectsOffTableName(t *testing.T) {
 	}
 }
 
-func TestBusHandleNotifyRejectsWrongKind(t *testing.T) {
-	bus := newChannelBus(t, SourceServer, nil)
-	err := bus.HandleNotify(HeartbeatTopic(), func(context.Context, []byte) {})
-	if !errors.Is(err, ErrWrongKind) {
-		t.Fatalf("err = %v, want ErrWrongKind", err)
-	}
-}
-
-func TestBusHandleRequestRejectsWrongKind(t *testing.T) {
-	bus := newChannelBus(t, SourceServer, nil)
-	err := bus.HandleRequest(LogTopic(), func(context.Context, *Event) ([]byte, error) { return nil, nil })
-	if !errors.Is(err, ErrWrongKind) {
-		t.Fatalf("err = %v, want ErrWrongKind", err)
-	}
-}
-
 func TestBusHandleRequestRequiresReplyName(t *testing.T) {
 	bus := newChannelBus(t, SourceServer, nil)
-	topic := Topic{Name: "x.request", Kind: KindRequestReply, Events: []string{"x.req"}}
+	topic := RequestTopic{Topic{Name: "x.request", Kind: KindRequestReply, Events: []string{"x.req"}}}
 	err := bus.HandleRequest(topic, func(context.Context, *Event) ([]byte, error) { return nil, nil })
-	if err == nil || errors.Is(err, ErrWrongKind) {
+	if err == nil {
 		t.Fatalf("err = %v, want a missing-ReplyName error", err)
 	}
 }
 
 func TestBusHandleRequestRejectsDuplicateResponder(t *testing.T) {
-	bus := newBusOnRedis(t, SourceServer)
+	bus := newPubSubBus(t, SourceServer)
 	h := func(context.Context, *Event) ([]byte, error) { return nil, nil }
 	if err := bus.HandleRequest(HeartbeatTopic(), h); err != nil {
 		t.Fatalf("first HandleRequest: %v", err)
@@ -301,7 +267,7 @@ func TestBusHandleRequestRejectsDuplicateResponder(t *testing.T) {
 }
 
 func TestBusPubSubRegistrationAfterRunIsRejected(t *testing.T) {
-	bus := newBusOnRedis(t, SourceServer)
+	bus := newPubSubBus(t, SourceServer)
 	if err := bus.HandleNotify(LogTopic(), func(context.Context, []byte) {}); err != nil {
 		t.Fatalf("HandleNotify: %v", err)
 	}

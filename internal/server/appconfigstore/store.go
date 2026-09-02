@@ -33,7 +33,7 @@ type configReader interface {
 // Source and validates the event name against the topic row, so the store
 // hands it only name, correlation ID, and the encoded payload.
 type updatePublisher interface {
-	Publish(ctx context.Context, topic eventbus.Topic, name, correlationID string, payload []byte) error
+	Publish(ctx context.Context, topic eventbus.StreamTopic, name, correlationID string, payload []byte) error
 }
 
 // configWriter is Bootstrap's persistence dependency — a direct, synchronous

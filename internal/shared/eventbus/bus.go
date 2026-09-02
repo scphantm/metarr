@@ -30,8 +30,9 @@ import (
 // bus_pubsub.go and holds cfg.Redis directly — no transport port. Run drives
 // both halves under one call; Ready waits for both.
 type Bus struct {
-	cfg Config
-	now func() time.Time
+	cfg    Config
+	now    func() time.Time
+	pubsub PubSubTransport // cfg.PubSub, or RedisPubSub(cfg.Redis) when unset
 
 	// publisher is built in New and never reassigned, so Publish reads it
 	// without the lock and works the instant New returns — there is no
@@ -66,6 +67,15 @@ type Config struct {
 	// RedisStreamTransport. Tests: ChannelStreamTransport.
 	Streams StreamTransport
 
+	// PubSub is the substitutable Pub/Sub transport
+	// (docs/design/eventbus-bus-interface.md §4 amendment). Production leaves
+	// it nil: New then defaults it to RedisPubSub over Redis, so both
+	// binaries stay on Redis. Tests pass InMemoryPubSub() to run the notify
+	// and request/reply halves with no broker. When it is nil AND Redis is
+	// nil the Pub/Sub verbs return an error, the same as the old
+	// missing-Redis case.
+	PubSub PubSubTransport
+
 	// Policy is the late-bound tuning provider — never nil. Read once per
 	// publish for the MAXLEN cap, and once in Run for the retry stack and for
 	// the retention sweep's window + interval (the sweeper is built from that
@@ -96,11 +106,10 @@ var (
 	// row's Events list — a publish or a handler registration naming it is
 	// rejected before any Redis call.
 	ErrUnknownEvent = errors.New("eventbus: event name is not legal on this topic")
-	// ErrWrongKind is returned when a Topic of the wrong Kind is passed to a
-	// verb — a KindNotify row to Publish, say.
-	ErrWrongKind = errors.New("eventbus: topic is the wrong kind for this operation")
 	// ErrNotPublishable is returned by Publish for a pattern topic or a name
-	// the stream topic table does not resolve.
+	// the stream topic table does not resolve. The wrong-Kind case it used to
+	// also cover is now a compile error: the verbs take StreamTopic /
+	// NotifyTopic / RequestTopic, not a bare Topic.
 	ErrNotPublishable = errors.New("eventbus: topic is not publishable")
 )
 
@@ -146,9 +155,18 @@ func New(cfg Config) (*Bus, error) {
 		return nil, fmt.Errorf("eventbus: stream publisher: %w", err)
 	}
 
+	// Production never sets cfg.PubSub, so the default keeps both binaries on
+	// Redis with no wiring change. A pure-stream unit test sets neither and
+	// leaves pubsub nil — the Pub/Sub verbs then error rather than panic.
+	pubsub := cfg.PubSub
+	if pubsub == nil && cfg.Redis != nil {
+		pubsub = RedisPubSub(cfg.Redis)
+	}
+
 	return &Bus{
 		cfg:           cfg,
 		now:           now,
+		pubsub:        pubsub,
 		publisher:     publisher,
 		registrations: map[string]streamRegistration{},
 		requestRegs:   map[string]requestRegistration{},
@@ -156,20 +174,17 @@ func New(cfg Config) (*Bus, error) {
 	}, nil
 }
 
-// HandleStream registers the sole consumer of a KindStream topic. The map key
-// is the envelope Name; dispatch is per (topic, Name). Every key MUST be in
+// HandleStream registers the sole consumer of a stream topic. The map key is
+// the envelope Name; dispatch is per (topic, Name). Every key MUST be in
 // topic.Events. An event whose Name is on the stream but not in the map hits
 // the unknown-name default — logged once, then acked — which lives in exactly
 // one place, dispatch below. All registration must precede Run.
-func (b *Bus) HandleStream(topic Topic, handlers map[string]StreamHandler) error {
+func (b *Bus) HandleStream(topic StreamTopic, handlers map[string]StreamHandler) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	if b.started {
 		return ErrBusRunning
-	}
-	if topic.Kind != KindStream {
-		return fmt.Errorf("%w: HandleStream needs a %s topic, got %q on %q", ErrWrongKind, KindStream, topic.Kind, topic.Name)
 	}
 	if topic.Pattern {
 		return fmt.Errorf("%w: %q is a pattern topic", ErrNotPublishable, topic.Name)
@@ -193,20 +208,17 @@ func (b *Bus) HandleStream(topic Topic, handlers map[string]StreamHandler) error
 	for name, handler := range handlers {
 		owned[name] = handler
 	}
-	b.registrations[topic.Name] = streamRegistration{topic: topic, handlers: owned}
+	b.registrations[topic.Name] = streamRegistration{topic: topic.Topic, handlers: owned}
 	return nil
 }
 
-// Publish appends one event to a KindStream topic. The caller supplies name,
+// Publish appends one event to a stream topic. The caller supplies name,
 // correlationID, payload; the Bus stamps Source from cfg.Source (unforgeable
 // at the call site) and Timestamp from cfg.Now(). name MUST be in
 // topic.Events, checked before any Redis call. Non-blocking. correlationID is
 // explicit — the Bus does not read it from ctx.
-func (b *Bus) Publish(ctx context.Context, topic Topic, name, correlationID string, payload []byte) error {
-	if topic.Kind != KindStream {
-		return fmt.Errorf("%w: Publish needs a %s topic, got %q on %q", ErrWrongKind, KindStream, topic.Kind, topic.Name)
-	}
-	if err := streamTopicPublishable(topic); err != nil {
+func (b *Bus) Publish(ctx context.Context, topic StreamTopic, name, correlationID string, payload []byte) error {
+	if err := streamTopicPublishable(topic.Topic); err != nil {
 		return fmt.Errorf("%w: %w", ErrNotPublishable, err)
 	}
 	if !slices.Contains(topic.Events, name) {
