@@ -118,9 +118,12 @@ function ServerLevelCard({ config }: { config: LoggingConfig }) {
     if (level === config.serverLevel) return;
     setError(null);
     try {
-      // Partial update: only server_level, with the update_mask the hook
-      // derives from this patch.
-      await update.mutateAsync({ serverLevel: level });
+      // Partial update: only server_level, plus the etag this render read so a
+      // stale-copy write is rejected (AIP-154).
+      await update.mutateAsync({
+        patch: { serverLevel: level },
+        etag: config.etag,
+      });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     }

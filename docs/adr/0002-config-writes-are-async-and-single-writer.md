@@ -64,8 +64,10 @@ listener rebuilds the registry — reach the original caller, which the old
 - **A caller is told "accepted," and can then learn the outcome.** The RPC
   returns an operation, not the stored resource. A failure during the listener's
   later persistence surfaces as `operation.error` on `GetOperation`; a success
-  surfaces as `operation.response`. The interface polls the operation instead of
-  re-reading the resource and diffing.
+  surfaces as `operation.response`. The UI's queued→confirmed indicator still
+  re-reads the resource until it reflects the write — the same eventual
+  consistency the operation reports — and moves to polling the operation once
+  every config write returns one.
 - **The lock does not order the eventual persistence, only the reads that
   precede it.** Two `Mutate` calls close enough together that the listener has
   not yet persisted the first one's event before the second one reads could

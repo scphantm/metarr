@@ -24,8 +24,9 @@ import {
   useStream,
   useStreamStatus,
 } from "./streams";
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { DescMessage, MessageInitShape } from "@bufbuild/protobuf";
 import type { AcceptedResponse as ConnectAcceptedResponse } from "../gen/metarr/v1/common_pb";
+import type { Operation as ConnectOperation } from "../gen/metarr/v1/operations_pb";
 import { SonarrInstanceSchema } from "../gen/metarr/v1/sonarr_interfaces_pb";
 import {
   ConfigServiceDeleteApiKeyRequestSchema,
@@ -327,18 +328,28 @@ function updateMaskFor(patch: Record<string, unknown>): { paths: string[] } {
   };
 }
 
-// AIP-134 partial update: LoggingService.UpdateLoggingConfig takes the changed
-// fields plus an update_mask naming them. The server merges the masked fields
-// onto cfg.Logging under the config-store lock.
+// A scalar-section partial update: the changed fields (patch), the update_mask
+// derived from them, and the etag the operator's screen last read — sent as
+// the request's own field, never in the mask, so the server can reject a write
+// computed from a stale copy (AIP-154). The write returns a
+// google.longrunning.Operation; useSaveState still confirms it by re-reading.
+type ScalarSectionUpdate<S extends DescMessage> = {
+  patch: MessageInitShape<S>;
+  etag?: string;
+};
+
+// AIP-134 partial update: LoggingService.UpdateLoggingConfig merges the masked
+// fields onto cfg.Logging under the config-store lock.
 export function useUpdateLoggingConfig() {
   return useConfigMutation<
-    MessageInitShape<typeof LoggingConfigSchema>,
-    ConnectAcceptedResponse
+    ScalarSectionUpdate<typeof LoggingConfigSchema>,
+    ConnectOperation
   >(
-    (config) =>
+    ({ patch, etag }) =>
       loggingClient.updateLoggingConfig({
-        config,
-        updateMask: updateMaskFor(config),
+        config: patch,
+        updateMask: updateMaskFor(patch),
+        etag,
       }),
     [queryKeys.logging, queryKeys.config],
   );
@@ -349,13 +360,14 @@ export function useUpdateLoggingConfig() {
 // paths. The server merges them onto cfg.EventBus as a scoped mutation.
 export function useUpdateEventBusConfig() {
   return useConfigMutation<
-    MessageInitShape<typeof EventBusConfigSchema>,
-    ConnectAcceptedResponse
+    ScalarSectionUpdate<typeof EventBusConfigSchema>,
+    ConnectOperation
   >(
-    (config) =>
+    ({ patch, etag }) =>
       eventBusClient.updateEventBusConfig({
-        config,
-        updateMask: updateMaskFor(config),
+        config: patch,
+        updateMask: updateMaskFor(patch),
+        etag,
       }),
     [queryKeys.eventBus, queryKeys.config],
   );

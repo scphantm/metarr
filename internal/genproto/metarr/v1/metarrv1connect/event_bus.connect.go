@@ -44,7 +44,7 @@ const (
 // EventBusServiceClient is a client for the metarr.v1.EventBusService service.
 type EventBusServiceClient interface {
 	GetEventBusConfig(context.Context, *connect.Request[v1.GetEventBusConfigRequest]) (*connect.Response[v1.GetEventBusConfigResponse], error)
-	UpdateEventBusConfig(context.Context, *connect.Request[v1.UpdateEventBusConfigRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	UpdateEventBusConfig(context.Context, *connect.Request[v1.UpdateEventBusConfigRequest]) (*connect.Response[v1.Operation], error)
 }
 
 // NewEventBusServiceClient constructs a client for the metarr.v1.EventBusService service. By
@@ -64,7 +64,7 @@ func NewEventBusServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(eventBusServiceMethods.ByName("GetEventBusConfig")),
 			connect.WithClientOptions(opts...),
 		),
-		updateEventBusConfig: connect.NewClient[v1.UpdateEventBusConfigRequest, v1.AcceptedResponse](
+		updateEventBusConfig: connect.NewClient[v1.UpdateEventBusConfigRequest, v1.Operation](
 			httpClient,
 			baseURL+EventBusServiceUpdateEventBusConfigProcedure,
 			connect.WithSchema(eventBusServiceMethods.ByName("UpdateEventBusConfig")),
@@ -76,7 +76,7 @@ func NewEventBusServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 // eventBusServiceClient implements EventBusServiceClient.
 type eventBusServiceClient struct {
 	getEventBusConfig    *connect.Client[v1.GetEventBusConfigRequest, v1.GetEventBusConfigResponse]
-	updateEventBusConfig *connect.Client[v1.UpdateEventBusConfigRequest, v1.AcceptedResponse]
+	updateEventBusConfig *connect.Client[v1.UpdateEventBusConfigRequest, v1.Operation]
 }
 
 // GetEventBusConfig calls metarr.v1.EventBusService.GetEventBusConfig.
@@ -85,14 +85,14 @@ func (c *eventBusServiceClient) GetEventBusConfig(ctx context.Context, req *conn
 }
 
 // UpdateEventBusConfig calls metarr.v1.EventBusService.UpdateEventBusConfig.
-func (c *eventBusServiceClient) UpdateEventBusConfig(ctx context.Context, req *connect.Request[v1.UpdateEventBusConfigRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+func (c *eventBusServiceClient) UpdateEventBusConfig(ctx context.Context, req *connect.Request[v1.UpdateEventBusConfigRequest]) (*connect.Response[v1.Operation], error) {
 	return c.updateEventBusConfig.CallUnary(ctx, req)
 }
 
 // EventBusServiceHandler is an implementation of the metarr.v1.EventBusService service.
 type EventBusServiceHandler interface {
 	GetEventBusConfig(context.Context, *connect.Request[v1.GetEventBusConfigRequest]) (*connect.Response[v1.GetEventBusConfigResponse], error)
-	UpdateEventBusConfig(context.Context, *connect.Request[v1.UpdateEventBusConfigRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	UpdateEventBusConfig(context.Context, *connect.Request[v1.UpdateEventBusConfigRequest]) (*connect.Response[v1.Operation], error)
 }
 
 // NewEventBusServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -133,6 +133,6 @@ func (UnimplementedEventBusServiceHandler) GetEventBusConfig(context.Context, *c
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.EventBusService.GetEventBusConfig is not implemented"))
 }
 
-func (UnimplementedEventBusServiceHandler) UpdateEventBusConfig(context.Context, *connect.Request[v1.UpdateEventBusConfigRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+func (UnimplementedEventBusServiceHandler) UpdateEventBusConfig(context.Context, *connect.Request[v1.UpdateEventBusConfigRequest]) (*connect.Response[v1.Operation], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.EventBusService.UpdateEventBusConfig is not implemented"))
 }
