@@ -5,6 +5,7 @@
 include make/ui.mk
 include make/docs.mk
 include make/lint.mk
+include make/proto.mk
 
 .PHONY: help generate build build-server build-agent build-server-production run run-server run-agent run-production down test tidy \
 	dist dist-agent-linux-amd64 dist-agent-linux-arm64 \
@@ -50,6 +51,11 @@ help:
 	@echo "DOCKER:"
 	@echo "  make docker-build     Build metarr-server and metarr-agent Docker images"
 	@echo "                        Use: make docker-build VERSION=1.0.0"
+	@echo ""
+	@echo "PROTO (from make/proto.mk):"
+	@echo "  make proto-check      Lint protos + gate metarr.bus.v1 for breaking changes"
+	@echo "  make buf-lint         Lint every proto module (buf STANDARD)"
+	@echo "  make buf-breaking     Fail on a breaking change to the metarr.bus.v1 contract"
 	@echo ""
 	@echo "TEST & LINT (from make/lint.mk):"
 	@echo "  make test             Run all Go tests"
