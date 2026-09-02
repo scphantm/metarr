@@ -55,6 +55,17 @@ func (f *fakeConfigBackend) Upsert(_ context.Context, cfg *appconfig.Config) err
 	return nil
 }
 
+// liveConfigPropagator is the in-process propagation MutateSync runs after a
+// successful write, reduced to the one step a handler round-trip test cares
+// about: making the freshly written document the live config a subsequent Get
+// reads. Pair it with withLiveConfig so the singleton is restored afterwards.
+type liveConfigPropagator struct{}
+
+func (liveConfigPropagator) PropagateInProcess(_ context.Context, cfg *appconfig.Config) error {
+	appconfig.Set(appconfig.Normalize(cfg))
+	return nil
+}
+
 func newTestConfigServer(seed *appconfig.Config) (*ConfigServer, *fakeConfigBackend) {
 	backend := &fakeConfigBackend{cfg: seed}
 	store := appconfigstore.New(backend, backend, backend)

@@ -184,6 +184,33 @@ func TestEventBusUpdateEventBusConfig_RejectsAnInvalidSection(t *testing.T) {
 	}
 }
 
+// The synchronous write propagates in-process before it returns, so the very
+// next GetEventBusConfig — reading live config, a different path from the store
+// the write touched — already reflects it, with no system_config_update round
+// trip in between.
+func TestEventBusUpdateEventBusConfig_VisibleOnNextGet(t *testing.T) {
+	withLiveConfig(t, &appconfig.Config{EventBus: validEventBusConfig()})
+	server, _ := newTestEventBusServer(&appconfig.Config{EventBus: validEventBusConfig()})
+	server.AppConfigStore.SetPropagator(liveConfigPropagator{})
+
+	next := validEventBusConfig()
+	next.RetentionHours = 72
+	if _, err := server.UpdateEventBusConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateEventBusConfigRequest{
+		Config:     next,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"retention_hours"}},
+	})); err != nil {
+		t.Fatalf("UpdateEventBusConfig: %v", err)
+	}
+
+	got, err := server.GetEventBusConfig(context.Background(), connect.NewRequest(&metarrv1.GetEventBusConfigRequest{}))
+	if err != nil {
+		t.Fatalf("GetEventBusConfig: %v", err)
+	}
+	if got.Msg.GetConfig().GetRetentionHours() != 72 {
+		t.Errorf("Get after Update returned retention_hours %d, want 72", got.Msg.GetConfig().GetRetentionHours())
+	}
+}
+
 func TestEventBusGetEventBusConfig_ReadsLiveConfig(t *testing.T) {
 	withLiveConfig(t, &appconfig.Config{
 		EventBus: &appconfig.EventBusConfig{MaxLen: 12345, RetentionHours: 96},
