@@ -4,7 +4,8 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
+import type { FieldMask } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask, file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
 import type { AcceptedResponseSchema } from "./common_pb";
 import { file_metarr_v1_common } from "./common_pb";
 import type { JsonObject, Message } from "@bufbuild/protobuf";
@@ -13,7 +14,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/logging.proto.
  */
 export const file_metarr_v1_logging: GenFile = /*@__PURE__*/
-  fileDesc("ChdtZXRhcnIvdjEvbG9nZ2luZy5wcm90bxIJbWV0YXJyLnYxIlUKDUxvZ2dpbmdDb25maWcSFAoMc2VydmVyX2xldmVsGAEgASgJEgwKBHNpbmsYAiABKAkSEAoIZW5kcG9pbnQYAyABKAkSDgoGc3RyZWFtGAQgASgJIiAKHkxvZ2dpbmdTZXJ2aWNlR2V0Q29uZmlnUmVxdWVzdCJLCh9Mb2dnaW5nU2VydmljZUdldENvbmZpZ1Jlc3BvbnNlEigKBmNvbmZpZxgBIAEoCzIYLm1ldGFyci52MS5Mb2dnaW5nQ29uZmlnIk0KIUxvZ2dpbmdTZXJ2aWNlVXBkYXRlQ29uZmlnUmVxdWVzdBIoCgZjb25maWcYASABKAsyGC5tZXRhcnIudjEuTG9nZ2luZ0NvbmZpZyJxCglMb2dSZWNvcmQSDAoEdGltZRgBIAEoCRINCgVsZXZlbBgCIAEoCRIPCgdtZXNzYWdlGAMgASgJEg4KBnNvdXJjZRgEIAEoCRImCgVhdHRycxgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QiHgocTG9nZ2luZ1NlcnZpY2VHZXRUYWlsUmVxdWVzdCJGCh1Mb2dnaW5nU2VydmljZUdldFRhaWxSZXNwb25zZRIlCgdyZWNvcmRzGAEgAygLMhQubWV0YXJyLnYxLkxvZ1JlY29yZCIhCh9Mb2dnaW5nU2VydmljZVN0cmVhbVRhaWxSZXF1ZXN0IkkKIExvZ2dpbmdTZXJ2aWNlU3RyZWFtVGFpbFJlc3BvbnNlEiUKB3JlY29yZHMYASADKAsyFC5tZXRhcnIudjEuTG9nUmVjb3JkMpYDCg5Mb2dnaW5nU2VydmljZRJiCglHZXRDb25maWcSKS5tZXRhcnIudjEuTG9nZ2luZ1NlcnZpY2VHZXRDb25maWdSZXF1ZXN0GioubWV0YXJyLnYxLkxvZ2dpbmdTZXJ2aWNlR2V0Q29uZmlnUmVzcG9uc2USWQoMVXBkYXRlQ29uZmlnEiwubWV0YXJyLnYxLkxvZ2dpbmdTZXJ2aWNlVXBkYXRlQ29uZmlnUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlElwKB0dldFRhaWwSJy5tZXRhcnIudjEuTG9nZ2luZ1NlcnZpY2VHZXRUYWlsUmVxdWVzdBooLm1ldGFyci52MS5Mb2dnaW5nU2VydmljZUdldFRhaWxSZXNwb25zZRJnCgpTdHJlYW1UYWlsEioubWV0YXJyLnYxLkxvZ2dpbmdTZXJ2aWNlU3RyZWFtVGFpbFJlcXVlc3QaKy5tZXRhcnIudjEuTG9nZ2luZ1NlcnZpY2VTdHJlYW1UYWlsUmVzcG9uc2UwAUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_google_protobuf_struct, file_metarr_v1_common]);
+  fileDesc("ChdtZXRhcnIvdjEvbG9nZ2luZy5wcm90bxIJbWV0YXJyLnYxIlUKDUxvZ2dpbmdDb25maWcSFAoMc2VydmVyX2xldmVsGAEgASgJEgwKBHNpbmsYAiABKAkSEAoIZW5kcG9pbnQYAyABKAkSDgoGc3RyZWFtGAQgASgJIhkKF0dldExvZ2dpbmdDb25maWdSZXF1ZXN0IkQKGEdldExvZ2dpbmdDb25maWdSZXNwb25zZRIoCgZjb25maWcYASABKAsyGC5tZXRhcnIudjEuTG9nZ2luZ0NvbmZpZyJ3ChpVcGRhdGVMb2dnaW5nQ29uZmlnUmVxdWVzdBIoCgZjb25maWcYASABKAsyGC5tZXRhcnIudjEuTG9nZ2luZ0NvbmZpZxIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2sicQoJTG9nUmVjb3JkEgwKBHRpbWUYASABKAkSDQoFbGV2ZWwYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIOCgZzb3VyY2UYBCABKAkSJgoFYXR0cnMYBSABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Ih4KHExvZ2dpbmdTZXJ2aWNlR2V0VGFpbFJlcXVlc3QiRgodTG9nZ2luZ1NlcnZpY2VHZXRUYWlsUmVzcG9uc2USJQoHcmVjb3JkcxgBIAMoCzIULm1ldGFyci52MS5Mb2dSZWNvcmQiIQofTG9nZ2luZ1NlcnZpY2VTdHJlYW1UYWlsUmVxdWVzdCJJCiBMb2dnaW5nU2VydmljZVN0cmVhbVRhaWxSZXNwb25zZRIlCgdyZWNvcmRzGAEgAygLMhQubWV0YXJyLnYxLkxvZ1JlY29yZDKPAwoOTG9nZ2luZ1NlcnZpY2USWwoQR2V0TG9nZ2luZ0NvbmZpZxIiLm1ldGFyci52MS5HZXRMb2dnaW5nQ29uZmlnUmVxdWVzdBojLm1ldGFyci52MS5HZXRMb2dnaW5nQ29uZmlnUmVzcG9uc2USWQoTVXBkYXRlTG9nZ2luZ0NvbmZpZxIlLm1ldGFyci52MS5VcGRhdGVMb2dnaW5nQ29uZmlnUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlElwKB0dldFRhaWwSJy5tZXRhcnIudjEuTG9nZ2luZ1NlcnZpY2VHZXRUYWlsUmVxdWVzdBooLm1ldGFyci52MS5Mb2dnaW5nU2VydmljZUdldFRhaWxSZXNwb25zZRJnCgpTdHJlYW1UYWlsEioubWV0YXJyLnYxLkxvZ2dpbmdTZXJ2aWNlU3RyZWFtVGFpbFJlcXVlc3QaKy5tZXRhcnIudjEuTG9nZ2luZ1NlcnZpY2VTdHJlYW1UYWlsUmVzcG9uc2UwAUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_google_protobuf_field_mask, file_google_protobuf_struct, file_metarr_v1_common]);
 
 /**
  * LoggingConfig controls the centralized logging pipeline: the servers own
@@ -52,22 +53,22 @@ export const LoggingConfigSchema: GenMessage<LoggingConfig> = /*@__PURE__*/
   messageDesc(file_metarr_v1_logging, 0);
 
 /**
- * @generated from message metarr.v1.LoggingServiceGetConfigRequest
+ * @generated from message metarr.v1.GetLoggingConfigRequest
  */
-export type LoggingServiceGetConfigRequest = Message<"metarr.v1.LoggingServiceGetConfigRequest"> & {
+export type GetLoggingConfigRequest = Message<"metarr.v1.GetLoggingConfigRequest"> & {
 };
 
 /**
- * Describes the message metarr.v1.LoggingServiceGetConfigRequest.
- * Use `create(LoggingServiceGetConfigRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.GetLoggingConfigRequest.
+ * Use `create(GetLoggingConfigRequestSchema)` to create a new message.
  */
-export const LoggingServiceGetConfigRequestSchema: GenMessage<LoggingServiceGetConfigRequest> = /*@__PURE__*/
+export const GetLoggingConfigRequestSchema: GenMessage<GetLoggingConfigRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_logging, 1);
 
 /**
- * @generated from message metarr.v1.LoggingServiceGetConfigResponse
+ * @generated from message metarr.v1.GetLoggingConfigResponse
  */
-export type LoggingServiceGetConfigResponse = Message<"metarr.v1.LoggingServiceGetConfigResponse"> & {
+export type GetLoggingConfigResponse = Message<"metarr.v1.GetLoggingConfigResponse"> & {
   /**
    * @generated from field: metarr.v1.LoggingConfig config = 1;
    */
@@ -75,27 +76,38 @@ export type LoggingServiceGetConfigResponse = Message<"metarr.v1.LoggingServiceG
 };
 
 /**
- * Describes the message metarr.v1.LoggingServiceGetConfigResponse.
- * Use `create(LoggingServiceGetConfigResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.GetLoggingConfigResponse.
+ * Use `create(GetLoggingConfigResponseSchema)` to create a new message.
  */
-export const LoggingServiceGetConfigResponseSchema: GenMessage<LoggingServiceGetConfigResponse> = /*@__PURE__*/
+export const GetLoggingConfigResponseSchema: GenMessage<GetLoggingConfigResponse> = /*@__PURE__*/
   messageDesc(file_metarr_v1_logging, 2);
 
 /**
- * @generated from message metarr.v1.LoggingServiceUpdateConfigRequest
+ * UpdateLoggingConfigRequest is an AIP-134 partial update: update_mask names
+ * the fields to change and config carries their new values. A missing config,
+ * an empty mask, or a path naming no LoggingConfig field is rejected with
+ * InvalidArgument (docs/adr/0010). The write goes through the config store as
+ * a scoped mutation — the masked fields are merged onto cfg.Logging.
+ *
+ * @generated from message metarr.v1.UpdateLoggingConfigRequest
  */
-export type LoggingServiceUpdateConfigRequest = Message<"metarr.v1.LoggingServiceUpdateConfigRequest"> & {
+export type UpdateLoggingConfigRequest = Message<"metarr.v1.UpdateLoggingConfigRequest"> & {
   /**
    * @generated from field: metarr.v1.LoggingConfig config = 1;
    */
   config?: LoggingConfig | undefined;
+
+  /**
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask | undefined;
 };
 
 /**
- * Describes the message metarr.v1.LoggingServiceUpdateConfigRequest.
- * Use `create(LoggingServiceUpdateConfigRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.UpdateLoggingConfigRequest.
+ * Use `create(UpdateLoggingConfigRequestSchema)` to create a new message.
  */
-export const LoggingServiceUpdateConfigRequestSchema: GenMessage<LoggingServiceUpdateConfigRequest> = /*@__PURE__*/
+export const UpdateLoggingConfigRequestSchema: GenMessage<UpdateLoggingConfigRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_logging, 3);
 
 /**
@@ -225,19 +237,19 @@ export const LoggingServiceStreamTailResponseSchema: GenMessage<LoggingServiceSt
  */
 export const LoggingService: GenService<{
   /**
-   * @generated from rpc metarr.v1.LoggingService.GetConfig
+   * @generated from rpc metarr.v1.LoggingService.GetLoggingConfig
    */
-  getConfig: {
+  getLoggingConfig: {
     methodKind: "unary";
-    input: typeof LoggingServiceGetConfigRequestSchema;
-    output: typeof LoggingServiceGetConfigResponseSchema;
+    input: typeof GetLoggingConfigRequestSchema;
+    output: typeof GetLoggingConfigResponseSchema;
   },
   /**
-   * @generated from rpc metarr.v1.LoggingService.UpdateConfig
+   * @generated from rpc metarr.v1.LoggingService.UpdateLoggingConfig
    */
-  updateConfig: {
+  updateLoggingConfig: {
     methodKind: "unary";
-    input: typeof LoggingServiceUpdateConfigRequestSchema;
+    input: typeof UpdateLoggingConfigRequestSchema;
     output: typeof AcceptedResponseSchema;
   },
   /**

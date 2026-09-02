@@ -33,18 +33,18 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// EventBusServiceGetConfigProcedure is the fully-qualified name of the EventBusService's GetConfig
-	// RPC.
-	EventBusServiceGetConfigProcedure = "/metarr.v1.EventBusService/GetConfig"
-	// EventBusServiceUpdateConfigProcedure is the fully-qualified name of the EventBusService's
-	// UpdateConfig RPC.
-	EventBusServiceUpdateConfigProcedure = "/metarr.v1.EventBusService/UpdateConfig"
+	// EventBusServiceGetEventBusConfigProcedure is the fully-qualified name of the EventBusService's
+	// GetEventBusConfig RPC.
+	EventBusServiceGetEventBusConfigProcedure = "/metarr.v1.EventBusService/GetEventBusConfig"
+	// EventBusServiceUpdateEventBusConfigProcedure is the fully-qualified name of the EventBusService's
+	// UpdateEventBusConfig RPC.
+	EventBusServiceUpdateEventBusConfigProcedure = "/metarr.v1.EventBusService/UpdateEventBusConfig"
 )
 
 // EventBusServiceClient is a client for the metarr.v1.EventBusService service.
 type EventBusServiceClient interface {
-	GetConfig(context.Context, *connect.Request[v1.EventBusServiceGetConfigRequest]) (*connect.Response[v1.EventBusServiceGetConfigResponse], error)
-	UpdateConfig(context.Context, *connect.Request[v1.EventBusServiceUpdateConfigRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	GetEventBusConfig(context.Context, *connect.Request[v1.GetEventBusConfigRequest]) (*connect.Response[v1.GetEventBusConfigResponse], error)
+	UpdateEventBusConfig(context.Context, *connect.Request[v1.UpdateEventBusConfigRequest]) (*connect.Response[v1.AcceptedResponse], error)
 }
 
 // NewEventBusServiceClient constructs a client for the metarr.v1.EventBusService service. By
@@ -58,16 +58,16 @@ func NewEventBusServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 	baseURL = strings.TrimRight(baseURL, "/")
 	eventBusServiceMethods := v1.File_metarr_v1_event_bus_proto.Services().ByName("EventBusService").Methods()
 	return &eventBusServiceClient{
-		getConfig: connect.NewClient[v1.EventBusServiceGetConfigRequest, v1.EventBusServiceGetConfigResponse](
+		getEventBusConfig: connect.NewClient[v1.GetEventBusConfigRequest, v1.GetEventBusConfigResponse](
 			httpClient,
-			baseURL+EventBusServiceGetConfigProcedure,
-			connect.WithSchema(eventBusServiceMethods.ByName("GetConfig")),
+			baseURL+EventBusServiceGetEventBusConfigProcedure,
+			connect.WithSchema(eventBusServiceMethods.ByName("GetEventBusConfig")),
 			connect.WithClientOptions(opts...),
 		),
-		updateConfig: connect.NewClient[v1.EventBusServiceUpdateConfigRequest, v1.AcceptedResponse](
+		updateEventBusConfig: connect.NewClient[v1.UpdateEventBusConfigRequest, v1.AcceptedResponse](
 			httpClient,
-			baseURL+EventBusServiceUpdateConfigProcedure,
-			connect.WithSchema(eventBusServiceMethods.ByName("UpdateConfig")),
+			baseURL+EventBusServiceUpdateEventBusConfigProcedure,
+			connect.WithSchema(eventBusServiceMethods.ByName("UpdateEventBusConfig")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -75,24 +75,24 @@ func NewEventBusServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 
 // eventBusServiceClient implements EventBusServiceClient.
 type eventBusServiceClient struct {
-	getConfig    *connect.Client[v1.EventBusServiceGetConfigRequest, v1.EventBusServiceGetConfigResponse]
-	updateConfig *connect.Client[v1.EventBusServiceUpdateConfigRequest, v1.AcceptedResponse]
+	getEventBusConfig    *connect.Client[v1.GetEventBusConfigRequest, v1.GetEventBusConfigResponse]
+	updateEventBusConfig *connect.Client[v1.UpdateEventBusConfigRequest, v1.AcceptedResponse]
 }
 
-// GetConfig calls metarr.v1.EventBusService.GetConfig.
-func (c *eventBusServiceClient) GetConfig(ctx context.Context, req *connect.Request[v1.EventBusServiceGetConfigRequest]) (*connect.Response[v1.EventBusServiceGetConfigResponse], error) {
-	return c.getConfig.CallUnary(ctx, req)
+// GetEventBusConfig calls metarr.v1.EventBusService.GetEventBusConfig.
+func (c *eventBusServiceClient) GetEventBusConfig(ctx context.Context, req *connect.Request[v1.GetEventBusConfigRequest]) (*connect.Response[v1.GetEventBusConfigResponse], error) {
+	return c.getEventBusConfig.CallUnary(ctx, req)
 }
 
-// UpdateConfig calls metarr.v1.EventBusService.UpdateConfig.
-func (c *eventBusServiceClient) UpdateConfig(ctx context.Context, req *connect.Request[v1.EventBusServiceUpdateConfigRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return c.updateConfig.CallUnary(ctx, req)
+// UpdateEventBusConfig calls metarr.v1.EventBusService.UpdateEventBusConfig.
+func (c *eventBusServiceClient) UpdateEventBusConfig(ctx context.Context, req *connect.Request[v1.UpdateEventBusConfigRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+	return c.updateEventBusConfig.CallUnary(ctx, req)
 }
 
 // EventBusServiceHandler is an implementation of the metarr.v1.EventBusService service.
 type EventBusServiceHandler interface {
-	GetConfig(context.Context, *connect.Request[v1.EventBusServiceGetConfigRequest]) (*connect.Response[v1.EventBusServiceGetConfigResponse], error)
-	UpdateConfig(context.Context, *connect.Request[v1.EventBusServiceUpdateConfigRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	GetEventBusConfig(context.Context, *connect.Request[v1.GetEventBusConfigRequest]) (*connect.Response[v1.GetEventBusConfigResponse], error)
+	UpdateEventBusConfig(context.Context, *connect.Request[v1.UpdateEventBusConfigRequest]) (*connect.Response[v1.AcceptedResponse], error)
 }
 
 // NewEventBusServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -102,24 +102,24 @@ type EventBusServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewEventBusServiceHandler(svc EventBusServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	eventBusServiceMethods := v1.File_metarr_v1_event_bus_proto.Services().ByName("EventBusService").Methods()
-	eventBusServiceGetConfigHandler := connect.NewUnaryHandler(
-		EventBusServiceGetConfigProcedure,
-		svc.GetConfig,
-		connect.WithSchema(eventBusServiceMethods.ByName("GetConfig")),
+	eventBusServiceGetEventBusConfigHandler := connect.NewUnaryHandler(
+		EventBusServiceGetEventBusConfigProcedure,
+		svc.GetEventBusConfig,
+		connect.WithSchema(eventBusServiceMethods.ByName("GetEventBusConfig")),
 		connect.WithHandlerOptions(opts...),
 	)
-	eventBusServiceUpdateConfigHandler := connect.NewUnaryHandler(
-		EventBusServiceUpdateConfigProcedure,
-		svc.UpdateConfig,
-		connect.WithSchema(eventBusServiceMethods.ByName("UpdateConfig")),
+	eventBusServiceUpdateEventBusConfigHandler := connect.NewUnaryHandler(
+		EventBusServiceUpdateEventBusConfigProcedure,
+		svc.UpdateEventBusConfig,
+		connect.WithSchema(eventBusServiceMethods.ByName("UpdateEventBusConfig")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/metarr.v1.EventBusService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case EventBusServiceGetConfigProcedure:
-			eventBusServiceGetConfigHandler.ServeHTTP(w, r)
-		case EventBusServiceUpdateConfigProcedure:
-			eventBusServiceUpdateConfigHandler.ServeHTTP(w, r)
+		case EventBusServiceGetEventBusConfigProcedure:
+			eventBusServiceGetEventBusConfigHandler.ServeHTTP(w, r)
+		case EventBusServiceUpdateEventBusConfigProcedure:
+			eventBusServiceUpdateEventBusConfigHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -129,10 +129,10 @@ func NewEventBusServiceHandler(svc EventBusServiceHandler, opts ...connect.Handl
 // UnimplementedEventBusServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedEventBusServiceHandler struct{}
 
-func (UnimplementedEventBusServiceHandler) GetConfig(context.Context, *connect.Request[v1.EventBusServiceGetConfigRequest]) (*connect.Response[v1.EventBusServiceGetConfigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.EventBusService.GetConfig is not implemented"))
+func (UnimplementedEventBusServiceHandler) GetEventBusConfig(context.Context, *connect.Request[v1.GetEventBusConfigRequest]) (*connect.Response[v1.GetEventBusConfigResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.EventBusService.GetEventBusConfig is not implemented"))
 }
 
-func (UnimplementedEventBusServiceHandler) UpdateConfig(context.Context, *connect.Request[v1.EventBusServiceUpdateConfigRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.EventBusService.UpdateConfig is not implemented"))
+func (UnimplementedEventBusServiceHandler) UpdateEventBusConfig(context.Context, *connect.Request[v1.UpdateEventBusConfigRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.EventBusService.UpdateEventBusConfig is not implemented"))
 }

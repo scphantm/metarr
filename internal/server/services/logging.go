@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -31,40 +32,52 @@ type LoggingServer struct {
 // LoggingAuthPolicies is this service's method-name -> policy map. Mirrors
 // the logging routes in router.go being GroupConfig.
 var LoggingAuthPolicies = map[string]httpserver.RPCPolicy{
-	"GetConfig":    {Group: auth.GroupConfig, ReadOnly: true},
-	"UpdateConfig": {Group: auth.GroupConfig},
-	"GetTail":      {Group: auth.GroupConfig, ReadOnly: true},
-	"StreamTail":   {Group: auth.GroupConfig, ReadOnly: true},
+	"GetLoggingConfig":    {Group: auth.GroupConfig, ReadOnly: true},
+	"UpdateLoggingConfig": {Group: auth.GroupConfig},
+	"GetTail":             {Group: auth.GroupConfig, ReadOnly: true},
+	"StreamTail":          {Group: auth.GroupConfig, ReadOnly: true},
 }
 
-func (s *LoggingServer) GetConfig(
+func (s *LoggingServer) GetLoggingConfig(
 	ctx context.Context,
-	req *connect.Request[metarrv1.LoggingServiceGetConfigRequest],
-) (*connect.Response[metarrv1.LoggingServiceGetConfigResponse], error) {
+	req *connect.Request[metarrv1.GetLoggingConfigRequest],
+) (*connect.Response[metarrv1.GetLoggingConfigResponse], error) {
 	appConfig := appconfig.Get()
-	return connect.NewResponse(&metarrv1.LoggingServiceGetConfigResponse{
+	return connect.NewResponse(&metarrv1.GetLoggingConfigResponse{
 		Config: cloneMsg(appConfig.Logging),
 	}), nil
 }
 
-func (s *LoggingServer) UpdateConfig(
+// UpdateLoggingConfig is an AIP-134 partial update: update_mask names the
+// LoggingConfig fields to change, req.Config carries their new values, and the
+// masked fields are merged onto the stored section under the config store's
+// lock. An empty mask or an unknown path returns InvalidArgument (mapped from
+// the aip sentinels by mutateConfigError); the merged server_level is then
+// validated so a bad level — or one blanked by a mask that names the field
+// with no value — is rejected.
+func (s *LoggingServer) UpdateLoggingConfig(
 	ctx context.Context,
-	req *connect.Request[metarrv1.LoggingServiceUpdateConfigRequest],
+	req *connect.Request[metarrv1.UpdateLoggingConfigRequest],
 ) (*connect.Response[metarrv1.AcceptedResponse], error) {
 	correlationID := correlation.FromContext(ctx)
 
-	entry := req.Msg.GetConfig()
-	if entry == nil {
-		entry = &appconfig.LoggingConfig{}
-	} else {
-		entry = cloneMsg(entry)
-	}
-	if err := handlers.ValidateLogLevel(entry.ServerLevel); err != nil {
-		return nil, connectError(http.StatusBadRequest, err)
+	patch := req.Msg.GetConfig()
+	if patch == nil {
+		return nil, connectError(http.StatusBadRequest, fmt.Errorf("logging config is required"))
 	}
 
 	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
-		cfg.Logging = entry
+		merged := cloneMsg(cfg.Logging)
+		if merged == nil {
+			merged = &metarrv1.LoggingConfig{}
+		}
+		if err := applyUpdateMask(merged, patch, req.Msg.GetUpdateMask()); err != nil {
+			return err
+		}
+		if err := handlers.ValidateLogLevel(merged.ServerLevel); err != nil {
+			return connectError(http.StatusBadRequest, err)
+		}
+		cfg.Logging = merged
 		return nil
 	})
 	if err != nil {

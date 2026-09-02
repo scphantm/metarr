@@ -9,6 +9,7 @@ package metarrv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -112,26 +113,26 @@ func (x *EventBusConfig) GetRetryBackoffMaxMs() int32 {
 	return 0
 }
 
-type EventBusServiceGetConfigRequest struct {
+type GetEventBusConfigRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *EventBusServiceGetConfigRequest) Reset() {
-	*x = EventBusServiceGetConfigRequest{}
+func (x *GetEventBusConfigRequest) Reset() {
+	*x = GetEventBusConfigRequest{}
 	mi := &file_metarr_v1_event_bus_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *EventBusServiceGetConfigRequest) String() string {
+func (x *GetEventBusConfigRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*EventBusServiceGetConfigRequest) ProtoMessage() {}
+func (*GetEventBusConfigRequest) ProtoMessage() {}
 
-func (x *EventBusServiceGetConfigRequest) ProtoReflect() protoreflect.Message {
+func (x *GetEventBusConfigRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_event_bus_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -143,32 +144,32 @@ func (x *EventBusServiceGetConfigRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use EventBusServiceGetConfigRequest.ProtoReflect.Descriptor instead.
-func (*EventBusServiceGetConfigRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetEventBusConfigRequest.ProtoReflect.Descriptor instead.
+func (*GetEventBusConfigRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_event_bus_proto_rawDescGZIP(), []int{1}
 }
 
-type EventBusServiceGetConfigResponse struct {
+type GetEventBusConfigResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Config        *EventBusConfig        `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *EventBusServiceGetConfigResponse) Reset() {
-	*x = EventBusServiceGetConfigResponse{}
+func (x *GetEventBusConfigResponse) Reset() {
+	*x = GetEventBusConfigResponse{}
 	mi := &file_metarr_v1_event_bus_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *EventBusServiceGetConfigResponse) String() string {
+func (x *GetEventBusConfigResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*EventBusServiceGetConfigResponse) ProtoMessage() {}
+func (*GetEventBusConfigResponse) ProtoMessage() {}
 
-func (x *EventBusServiceGetConfigResponse) ProtoReflect() protoreflect.Message {
+func (x *GetEventBusConfigResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_event_bus_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -180,44 +181,46 @@ func (x *EventBusServiceGetConfigResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use EventBusServiceGetConfigResponse.ProtoReflect.Descriptor instead.
-func (*EventBusServiceGetConfigResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetEventBusConfigResponse.ProtoReflect.Descriptor instead.
+func (*GetEventBusConfigResponse) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_event_bus_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *EventBusServiceGetConfigResponse) GetConfig() *EventBusConfig {
+func (x *GetEventBusConfigResponse) GetConfig() *EventBusConfig {
 	if x != nil {
 		return x.Config
 	}
 	return nil
 }
 
-// EventBusServiceUpdateConfigRequest carries the whole section: it is one
-// small fixed-shape block of scalars, not a collection, so a single
-// upserting write is the CRUD shape (see CLAUDE.md). The write still goes
-// through the config store as a scoped mutation — cfg.EventBus = config —
-// never a whole-document write.
-type EventBusServiceUpdateConfigRequest struct {
+// UpdateEventBusConfigRequest is an AIP-134 partial update: update_mask names
+// the fields to change and config carries their new values. A missing config,
+// an empty mask, or a path naming no EventBusConfig field is rejected with
+// InvalidArgument (docs/adr/0010). The write still goes through the config
+// store as a scoped mutation — the masked fields are merged onto cfg.EventBus
+// — never a whole-document write.
+type UpdateEventBusConfigRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Config        *EventBusConfig        `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *EventBusServiceUpdateConfigRequest) Reset() {
-	*x = EventBusServiceUpdateConfigRequest{}
+func (x *UpdateEventBusConfigRequest) Reset() {
+	*x = UpdateEventBusConfigRequest{}
 	mi := &file_metarr_v1_event_bus_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *EventBusServiceUpdateConfigRequest) String() string {
+func (x *UpdateEventBusConfigRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*EventBusServiceUpdateConfigRequest) ProtoMessage() {}
+func (*UpdateEventBusConfigRequest) ProtoMessage() {}
 
-func (x *EventBusServiceUpdateConfigRequest) ProtoReflect() protoreflect.Message {
+func (x *UpdateEventBusConfigRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_event_bus_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -229,14 +232,21 @@ func (x *EventBusServiceUpdateConfigRequest) ProtoReflect() protoreflect.Message
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use EventBusServiceUpdateConfigRequest.ProtoReflect.Descriptor instead.
-func (*EventBusServiceUpdateConfigRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateEventBusConfigRequest.ProtoReflect.Descriptor instead.
+func (*UpdateEventBusConfigRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_event_bus_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *EventBusServiceUpdateConfigRequest) GetConfig() *EventBusConfig {
+func (x *UpdateEventBusConfigRequest) GetConfig() *EventBusConfig {
 	if x != nil {
 		return x.Config
+	}
+	return nil
+}
+
+func (x *UpdateEventBusConfigRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
 	}
 	return nil
 }
@@ -245,21 +255,23 @@ var File_metarr_v1_event_bus_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_event_bus_proto_rawDesc = "" +
 	"\n" +
-	"\x19metarr/v1/event_bus.proto\x12\tmetarr.v1\x1a\x16metarr/v1/common.proto\"\x82\x02\n" +
+	"\x19metarr/v1/event_bus.proto\x12\tmetarr.v1\x1a google/protobuf/field_mask.proto\x1a\x16metarr/v1/common.proto\"\x82\x02\n" +
 	"\x0eEventBusConfig\x12\x17\n" +
 	"\amax_len\x18\x01 \x01(\x05R\x06maxLen\x12'\n" +
 	"\x0fretention_hours\x18\x03 \x01(\x05R\x0eretentionHours\x12%\n" +
 	"\x0eretry_attempts\x18\x04 \x01(\x05R\rretryAttempts\x121\n" +
 	"\x15retry_backoff_base_ms\x18\x05 \x01(\x05R\x12retryBackoffBaseMs\x12/\n" +
-	"\x14retry_backoff_max_ms\x18\x06 \x01(\x05R\x11retryBackoffMaxMsJ\x04\b\x02\x10\x03R\fmax_len_highR\x0fmax_len_default\"!\n" +
-	"\x1fEventBusServiceGetConfigRequest\"U\n" +
-	" EventBusServiceGetConfigResponse\x121\n" +
-	"\x06config\x18\x01 \x01(\v2\x19.metarr.v1.EventBusConfigR\x06config\"W\n" +
-	"\"EventBusServiceUpdateConfigRequest\x121\n" +
-	"\x06config\x18\x01 \x01(\v2\x19.metarr.v1.EventBusConfigR\x06config2\xd3\x01\n" +
-	"\x0fEventBusService\x12d\n" +
-	"\tGetConfig\x12*.metarr.v1.EventBusServiceGetConfigRequest\x1a+.metarr.v1.EventBusServiceGetConfigResponse\x12Z\n" +
-	"\fUpdateConfig\x12-.metarr.v1.EventBusServiceUpdateConfigRequest\x1a\x1b.metarr.v1.AcceptedResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
+	"\x14retry_backoff_max_ms\x18\x06 \x01(\x05R\x11retryBackoffMaxMsJ\x04\b\x02\x10\x03R\fmax_len_highR\x0fmax_len_default\"\x1a\n" +
+	"\x18GetEventBusConfigRequest\"N\n" +
+	"\x19GetEventBusConfigResponse\x121\n" +
+	"\x06config\x18\x01 \x01(\v2\x19.metarr.v1.EventBusConfigR\x06config\"\x8d\x01\n" +
+	"\x1bUpdateEventBusConfigRequest\x121\n" +
+	"\x06config\x18\x01 \x01(\v2\x19.metarr.v1.EventBusConfigR\x06config\x12;\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
+	"updateMask2\xce\x01\n" +
+	"\x0fEventBusService\x12^\n" +
+	"\x11GetEventBusConfig\x12#.metarr.v1.GetEventBusConfigRequest\x1a$.metarr.v1.GetEventBusConfigResponse\x12[\n" +
+	"\x14UpdateEventBusConfig\x12&.metarr.v1.UpdateEventBusConfigRequest\x1a\x1b.metarr.v1.AcceptedResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
 
 var (
 	file_metarr_v1_event_bus_proto_rawDescOnce sync.Once
@@ -275,24 +287,26 @@ func file_metarr_v1_event_bus_proto_rawDescGZIP() []byte {
 
 var file_metarr_v1_event_bus_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_metarr_v1_event_bus_proto_goTypes = []any{
-	(*EventBusConfig)(nil),                     // 0: metarr.v1.EventBusConfig
-	(*EventBusServiceGetConfigRequest)(nil),    // 1: metarr.v1.EventBusServiceGetConfigRequest
-	(*EventBusServiceGetConfigResponse)(nil),   // 2: metarr.v1.EventBusServiceGetConfigResponse
-	(*EventBusServiceUpdateConfigRequest)(nil), // 3: metarr.v1.EventBusServiceUpdateConfigRequest
-	(*AcceptedResponse)(nil),                   // 4: metarr.v1.AcceptedResponse
+	(*EventBusConfig)(nil),              // 0: metarr.v1.EventBusConfig
+	(*GetEventBusConfigRequest)(nil),    // 1: metarr.v1.GetEventBusConfigRequest
+	(*GetEventBusConfigResponse)(nil),   // 2: metarr.v1.GetEventBusConfigResponse
+	(*UpdateEventBusConfigRequest)(nil), // 3: metarr.v1.UpdateEventBusConfigRequest
+	(*fieldmaskpb.FieldMask)(nil),       // 4: google.protobuf.FieldMask
+	(*AcceptedResponse)(nil),            // 5: metarr.v1.AcceptedResponse
 }
 var file_metarr_v1_event_bus_proto_depIdxs = []int32{
-	0, // 0: metarr.v1.EventBusServiceGetConfigResponse.config:type_name -> metarr.v1.EventBusConfig
-	0, // 1: metarr.v1.EventBusServiceUpdateConfigRequest.config:type_name -> metarr.v1.EventBusConfig
-	1, // 2: metarr.v1.EventBusService.GetConfig:input_type -> metarr.v1.EventBusServiceGetConfigRequest
-	3, // 3: metarr.v1.EventBusService.UpdateConfig:input_type -> metarr.v1.EventBusServiceUpdateConfigRequest
-	2, // 4: metarr.v1.EventBusService.GetConfig:output_type -> metarr.v1.EventBusServiceGetConfigResponse
-	4, // 5: metarr.v1.EventBusService.UpdateConfig:output_type -> metarr.v1.AcceptedResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0, // 0: metarr.v1.GetEventBusConfigResponse.config:type_name -> metarr.v1.EventBusConfig
+	0, // 1: metarr.v1.UpdateEventBusConfigRequest.config:type_name -> metarr.v1.EventBusConfig
+	4, // 2: metarr.v1.UpdateEventBusConfigRequest.update_mask:type_name -> google.protobuf.FieldMask
+	1, // 3: metarr.v1.EventBusService.GetEventBusConfig:input_type -> metarr.v1.GetEventBusConfigRequest
+	3, // 4: metarr.v1.EventBusService.UpdateEventBusConfig:input_type -> metarr.v1.UpdateEventBusConfigRequest
+	2, // 5: metarr.v1.EventBusService.GetEventBusConfig:output_type -> metarr.v1.GetEventBusConfigResponse
+	5, // 6: metarr.v1.EventBusService.UpdateEventBusConfig:output_type -> metarr.v1.AcceptedResponse
+	5, // [5:7] is the sub-list for method output_type
+	3, // [3:5] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_event_bus_proto_init() }
