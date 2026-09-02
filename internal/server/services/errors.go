@@ -26,33 +26,41 @@ func connectError(status int, err error) error {
 	return connect.NewError(codeForStatus(status), err)
 }
 
-// mutateConfigError turns an error returned by AppConfigStore.Mutate into
-// the response pair every config-mutating RPC returns. A mutation closure's
-// own rejection is already Connect-shaped (built with connectError, the
-// same way these methods built it before the config store existed) and
-// passes through unchanged; anything else — the store's own read or event
-// failing — is logged and reported as a generic 500, matching what every
-// one of these methods already did for that case.
+// mutateConfigError turns an error returned by AppConfigStore.Mutate into the
+// response pair the AcceptedResponse-returning config RPCs return. It is the
+// two-value adapter over mutateConfigErr for those methods; operation-returning
+// methods call mutateConfigErr directly.
 func mutateConfigError(logger *slog.Logger, correlationID string, err error) (*connect.Response[metarrv1.AcceptedResponse], error) {
+	return nil, mutateConfigErr(logger, correlationID, err)
+}
+
+// mutateConfigErr maps an error returned by AppConfigStore.Mutate to the
+// Connect error a config-mutating RPC surfaces. A mutation closure's own
+// rejection is already Connect-shaped (built with connectError, the same way
+// these methods built it before the config store existed) and passes through
+// unchanged; an aip sentinel (bad mask, stale etag) is mapped; anything else —
+// the store's own read or event failing — is logged and reported as a generic
+// 500, matching what every one of these methods already did for that case.
+func mutateConfigErr(logger *slog.Logger, correlationID string, err error) error {
 	var connectErr *connect.Error
 	if errors.As(err, &connectErr) {
-		return nil, err
+		return err
 	}
 	if mapped := aipConnectError(err); mapped != nil {
-		return nil, mapped
+		return mapped
 	}
 	logger.Error("failed to queue config update", "correlation_id", correlationID, "error", err)
-	return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+	return connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
 }
 
 // aipConnectError maps the transport-agnostic AIP sentinels the services
 // package raises — an empty or bad update_mask (errEmptyMask / errUnknownPath)
-// — to the Connect code the config API answers with (InvalidArgument). It
-// returns nil for anything that is not one of them, so a caller can fall
-// through to its existing handling. Read-path methods (Get / List) that call an
-// AIP helper directly wrap their error with this; write-path methods get the
-// same mapping for free through mutateConfigError. The stale-etag → Aborted
-// mapping lands with the operations/etag slice.
+// to InvalidArgument, a stale etag (errStaleETag) to Aborted (AIP-154) — to
+// the Connect code the config API answers with. It returns nil for anything
+// that is not one of them, so a caller can fall through to its existing
+// handling. Read-path methods (Get / List) that call an AIP helper directly
+// wrap their error with this; write-path methods get the same mapping for free
+// through mutateConfigError.
 //
 // AlreadyExists is produced the same way NotFound always has been — a
 // mutation closure returning connectError(http.StatusConflict, …), which
@@ -62,6 +70,8 @@ func aipConnectError(err error) error {
 	case errors.Is(err, errEmptyMask),
 		errors.Is(err, errUnknownPath):
 		return connect.NewError(connect.CodeInvalidArgument, err)
+	case errors.Is(err, errStaleETag):
+		return connect.NewError(connect.CodeAborted, err)
 	default:
 		return nil
 	}

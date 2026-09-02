@@ -99,12 +99,15 @@ func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 	assertKeys(t, "config.agents[0].mappings[0]",
 		firstOf(t, agent.(map[string]any)["mappings"]), []string{"agent_path", "scanner_slug"})
 
+	// etag is the AIP-154 concurrency token (ADR-0010): derived on read,
+	// cleared before every write, so a stored section only ever carries it
+	// empty — EmitUnpopulated still lists the key, same as sidecar_types.name.
 	assertKeys(t, "config.logging", document["logging"], []string{
-		"endpoint", "server_level", "sink", "stream",
+		"endpoint", "etag", "server_level", "sink", "stream",
 	})
 
 	assertKeys(t, "config.event_bus", document["event_bus"], []string{
-		"max_len", "retention_hours",
+		"etag", "max_len", "retention_hours",
 		"retry_attempts", "retry_backoff_base_ms", "retry_backoff_max_ms",
 	})
 
@@ -133,7 +136,7 @@ func TestMarshalStoredEmitsUnpopulatedFields(t *testing.T) {
 		t.Fatalf("decoding: %v", err)
 	}
 	assertKeys(t, "config.logging", document["logging"], []string{
-		"endpoint", "server_level", "sink", "stream",
+		"endpoint", "etag", "server_level", "sink", "stream",
 	})
 }
 

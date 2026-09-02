@@ -44,8 +44,12 @@ type EventBusConfig struct {
 	RetryBackoffBaseMs int32 `protobuf:"varint,5,opt,name=retry_backoff_base_ms,json=retryBackoffBaseMs,proto3" json:"retry_backoff_base_ms,omitempty"`
 	// retry_backoff_max_ms caps the exponential backoff between retries.
 	RetryBackoffMaxMs int32 `protobuf:"varint,6,opt,name=retry_backoff_max_ms,json=retryBackoffMaxMs,proto3" json:"retry_backoff_max_ms,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// etag is the AIP-154 concurrency token: a hash of the stored section,
+	// OUTPUT_ONLY (populated on read, ignored on write, never stored). Echo it
+	// back on UpdateEventBusConfig; a mismatch is ABORTED. See docs/adr/0010.
+	Etag          string `protobuf:"bytes,7,opt,name=etag,proto3" json:"etag,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *EventBusConfig) Reset() {
@@ -111,6 +115,13 @@ func (x *EventBusConfig) GetRetryBackoffMaxMs() int32 {
 		return x.RetryBackoffMaxMs
 	}
 	return 0
+}
+
+func (x *EventBusConfig) GetEtag() string {
+	if x != nil {
+		return x.Etag
+	}
+	return ""
 }
 
 type GetEventBusConfigRequest struct {
@@ -196,13 +207,16 @@ func (x *GetEventBusConfigResponse) GetConfig() *EventBusConfig {
 // UpdateEventBusConfigRequest is an AIP-134 partial update: update_mask names
 // the fields to change and config carries their new values. A missing config,
 // an empty mask, or a path naming no EventBusConfig field is rejected with
-// InvalidArgument (docs/adr/0010). The write still goes through the config
-// store as a scoped mutation — the masked fields are merged onto cfg.EventBus
-// — never a whole-document write.
+// InvalidArgument (docs/adr/0010). etag, when set, must match the stored
+// section or the write is ABORTED (AIP-154); an empty etag is a deliberate
+// blind write. The write goes through the config store as a scoped mutation —
+// the masked fields are merged onto cfg.EventBus — never a whole-document
+// write — and returns an Operation (docs/adr/0002).
 type UpdateEventBusConfigRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Config        *EventBusConfig        `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
 	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	Etag          string                 `protobuf:"bytes,3,opt,name=etag,proto3" json:"etag,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -251,27 +265,36 @@ func (x *UpdateEventBusConfigRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
 	return nil
 }
 
+func (x *UpdateEventBusConfigRequest) GetEtag() string {
+	if x != nil {
+		return x.Etag
+	}
+	return ""
+}
+
 var File_metarr_v1_event_bus_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_event_bus_proto_rawDesc = "" +
 	"\n" +
-	"\x19metarr/v1/event_bus.proto\x12\tmetarr.v1\x1a google/protobuf/field_mask.proto\x1a\x16metarr/v1/common.proto\"\x82\x02\n" +
+	"\x19metarr/v1/event_bus.proto\x12\tmetarr.v1\x1a google/protobuf/field_mask.proto\x1a\x1ametarr/v1/operations.proto\"\x96\x02\n" +
 	"\x0eEventBusConfig\x12\x17\n" +
 	"\amax_len\x18\x01 \x01(\x05R\x06maxLen\x12'\n" +
 	"\x0fretention_hours\x18\x03 \x01(\x05R\x0eretentionHours\x12%\n" +
 	"\x0eretry_attempts\x18\x04 \x01(\x05R\rretryAttempts\x121\n" +
 	"\x15retry_backoff_base_ms\x18\x05 \x01(\x05R\x12retryBackoffBaseMs\x12/\n" +
-	"\x14retry_backoff_max_ms\x18\x06 \x01(\x05R\x11retryBackoffMaxMsJ\x04\b\x02\x10\x03R\fmax_len_highR\x0fmax_len_default\"\x1a\n" +
+	"\x14retry_backoff_max_ms\x18\x06 \x01(\x05R\x11retryBackoffMaxMs\x12\x12\n" +
+	"\x04etag\x18\a \x01(\tR\x04etagJ\x04\b\x02\x10\x03R\fmax_len_highR\x0fmax_len_default\"\x1a\n" +
 	"\x18GetEventBusConfigRequest\"N\n" +
 	"\x19GetEventBusConfigResponse\x121\n" +
-	"\x06config\x18\x01 \x01(\v2\x19.metarr.v1.EventBusConfigR\x06config\"\x8d\x01\n" +
+	"\x06config\x18\x01 \x01(\v2\x19.metarr.v1.EventBusConfigR\x06config\"\xa1\x01\n" +
 	"\x1bUpdateEventBusConfigRequest\x121\n" +
 	"\x06config\x18\x01 \x01(\v2\x19.metarr.v1.EventBusConfigR\x06config\x12;\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
-	"updateMask2\xce\x01\n" +
+	"updateMask\x12\x12\n" +
+	"\x04etag\x18\x03 \x01(\tR\x04etag2\xc7\x01\n" +
 	"\x0fEventBusService\x12^\n" +
-	"\x11GetEventBusConfig\x12#.metarr.v1.GetEventBusConfigRequest\x1a$.metarr.v1.GetEventBusConfigResponse\x12[\n" +
-	"\x14UpdateEventBusConfig\x12&.metarr.v1.UpdateEventBusConfigRequest\x1a\x1b.metarr.v1.AcceptedResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
+	"\x11GetEventBusConfig\x12#.metarr.v1.GetEventBusConfigRequest\x1a$.metarr.v1.GetEventBusConfigResponse\x12T\n" +
+	"\x14UpdateEventBusConfig\x12&.metarr.v1.UpdateEventBusConfigRequest\x1a\x14.metarr.v1.OperationB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
 
 var (
 	file_metarr_v1_event_bus_proto_rawDescOnce sync.Once
@@ -292,7 +315,7 @@ var file_metarr_v1_event_bus_proto_goTypes = []any{
 	(*GetEventBusConfigResponse)(nil),   // 2: metarr.v1.GetEventBusConfigResponse
 	(*UpdateEventBusConfigRequest)(nil), // 3: metarr.v1.UpdateEventBusConfigRequest
 	(*fieldmaskpb.FieldMask)(nil),       // 4: google.protobuf.FieldMask
-	(*AcceptedResponse)(nil),            // 5: metarr.v1.AcceptedResponse
+	(*Operation)(nil),                   // 5: metarr.v1.Operation
 }
 var file_metarr_v1_event_bus_proto_depIdxs = []int32{
 	0, // 0: metarr.v1.GetEventBusConfigResponse.config:type_name -> metarr.v1.EventBusConfig
@@ -301,7 +324,7 @@ var file_metarr_v1_event_bus_proto_depIdxs = []int32{
 	1, // 3: metarr.v1.EventBusService.GetEventBusConfig:input_type -> metarr.v1.GetEventBusConfigRequest
 	3, // 4: metarr.v1.EventBusService.UpdateEventBusConfig:input_type -> metarr.v1.UpdateEventBusConfigRequest
 	2, // 5: metarr.v1.EventBusService.GetEventBusConfig:output_type -> metarr.v1.GetEventBusConfigResponse
-	5, // 6: metarr.v1.EventBusService.UpdateEventBusConfig:output_type -> metarr.v1.AcceptedResponse
+	5, // 6: metarr.v1.EventBusService.UpdateEventBusConfig:output_type -> metarr.v1.Operation
 	5, // [5:7] is the sub-list for method output_type
 	3, // [3:5] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -314,7 +337,7 @@ func file_metarr_v1_event_bus_proto_init() {
 	if File_metarr_v1_event_bus_proto != nil {
 		return
 	}
-	file_metarr_v1_common_proto_init()
+	file_metarr_v1_operations_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

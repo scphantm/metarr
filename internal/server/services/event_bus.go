@@ -39,23 +39,27 @@ func (s *EventBusServer) GetEventBusConfig(
 	ctx context.Context,
 	req *connect.Request[metarrv1.GetEventBusConfigRequest],
 ) (*connect.Response[metarrv1.GetEventBusConfigResponse], error) {
-	appConfig := appconfig.Get()
+	section := appconfig.Get().EventBus
+	if section == nil {
+		section = &metarrv1.EventBusConfig{}
+	}
 	return connect.NewResponse(&metarrv1.GetEventBusConfigResponse{
-		Config: cloneMsg(appConfig.EventBus),
+		Config: withETag(section),
 	}), nil
 }
 
 // UpdateEventBusConfig is an AIP-134 partial update: update_mask names the
-// EventBusConfig fields to change, req.Config carries their new values, and
-// the masked fields are merged onto the stored section under the config
-// store's lock. An empty mask or an unknown path returns InvalidArgument
-// (mapped from the aip sentinels by mutateConfigError); the merged section is
-// then validated as a whole so a partial edit can't leave a contradictory
-// combination (a max backoff below the base).
+// EventBusConfig fields to change, req.Config carries their new values, and the
+// masked fields are merged onto the stored section under the config store's
+// lock. req.Etag, when set, must match the stored section or the write is
+// ABORTED (AIP-154). An empty mask or an unknown path returns InvalidArgument;
+// the merged section is then validated as a whole so a partial edit can't
+// leave a contradictory combination (a max backoff below the base). The write
+// returns an Operation the caller polls (docs/adr/0002).
 func (s *EventBusServer) UpdateEventBusConfig(
 	ctx context.Context,
 	req *connect.Request[metarrv1.UpdateEventBusConfigRequest],
-) (*connect.Response[metarrv1.AcceptedResponse], error) {
+) (*connect.Response[metarrv1.Operation], error) {
 	correlationID := correlation.FromContext(ctx)
 
 	patch := req.Msg.GetConfig()
@@ -68,9 +72,16 @@ func (s *EventBusServer) UpdateEventBusConfig(
 		if merged == nil {
 			merged = &metarrv1.EventBusConfig{}
 		}
+		clearETagField(merged)
+		if err := checkETag(merged, req.Msg.GetEtag()); err != nil {
+			return err
+		}
 		if err := applyUpdateMask(merged, patch, req.Msg.GetUpdateMask()); err != nil {
 			return err
 		}
+		// Nothing derived reaches the stored document: a client that named
+		// "etag" in the mask, or left one on config, must not persist it.
+		clearETagField(merged)
 		if err := validateEventBusConfig(merged); err != nil {
 			return connectError(http.StatusBadRequest, err)
 		}
@@ -78,10 +89,10 @@ func (s *EventBusServer) UpdateEventBusConfig(
 		return nil
 	})
 	if err != nil {
-		return mutateConfigError(s.Logger, correlationID, err)
+		return nil, mutateConfigErr(s.Logger, correlationID, err)
 	}
 
-	return connect.NewResponse(acceptedResponse(correlationID)), nil
+	return connect.NewResponse(beginConfigOperation(ctx, s.Operations, s.Logger, correlationID)), nil
 }
 
 // validateEventBusConfig rejects a section that would break the bus: a
