@@ -50,6 +50,114 @@ func TestStreamTopicTable(t *testing.T) {
 	}
 }
 
+// Every row StreamTopics() returns is a KindStream row, and a stream row
+// never carries a ReplyName (that field is KindRequestReply only).
+func TestStreamTopicsAreAllKindStream(t *testing.T) {
+	for _, topic := range StreamTopics() {
+		if topic.Kind != KindStream {
+			t.Errorf("%s: Kind = %q, want %q", topic.Name, topic.Kind, KindStream)
+		}
+		if topic.ReplyName != "" {
+			t.Errorf("%s: stream row has ReplyName %q", topic.Name, topic.ReplyName)
+		}
+	}
+}
+
+// AgentScanResultTopic lists all three discriminators an agent sends on the
+// shared results stream, in send order.
+func TestAgentScanResultTopicEventsAreAllThree(t *testing.T) {
+	got := AgentScanResultTopic().Events
+	want := []string{AgentScanResultEventName, AgentScanCompleteEventName, AgentScanFailedEventName}
+	if len(got) != len(want) {
+		t.Fatalf("Events = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("Events = %v, want %v", got, want)
+		}
+	}
+}
+
+// Topics() is the unified table: every StreamTopics() row unchanged, plus
+// the two fixed Pub/Sub channels tagged with their non-stream kind.
+func TestUnifiedTopicsTable(t *testing.T) {
+	byName := map[string]Topic{}
+	for _, topic := range Topics() {
+		byName[topic.Name] = topic
+	}
+
+	for _, streamTopic := range StreamTopics() {
+		got, ok := byName[streamTopic.Name]
+		if !ok {
+			t.Errorf("Topics() is missing stream row %s", streamTopic.Name)
+			continue
+		}
+		if got.Kind != KindStream {
+			t.Errorf("%s: Kind = %q, want %q", got.Name, got.Kind, KindStream)
+		}
+	}
+
+	heartbeat, ok := byName[HeartbeatRequestChannel]
+	if !ok {
+		t.Fatalf("Topics() is missing the heartbeat channel")
+	}
+	if heartbeat.Kind != KindRequestReply || heartbeat.ReplyName != HeartbeatReplyEventName {
+		t.Errorf("heartbeat row = %+v, want KindRequestReply with ReplyName %q", heartbeat, HeartbeatReplyEventName)
+	}
+	if heartbeat.Group != "" {
+		t.Errorf("heartbeat row has Group %q; non-stream kinds carry no group", heartbeat.Group)
+	}
+
+	log, ok := byName[LogChannel]
+	if !ok {
+		t.Fatalf("Topics() is missing the log channel")
+	}
+	if log.Kind != KindNotify || log.Events != nil || log.ReplyName != "" {
+		t.Errorf("log row = %+v, want KindNotify with nil Events and no ReplyName", log)
+	}
+}
+
+// The per-agent Pub/Sub channel constructors carry the right kind, name,
+// reply name, and (for request/reply) request discriminator.
+func TestPerAgentChannelTopics(t *testing.T) {
+	changed := AgentConfigChangedTopic("nas-01")
+	if changed.Name != AgentConfigChangedChannel("nas-01") || changed.Kind != KindNotify {
+		t.Errorf("AgentConfigChangedTopic = %+v", changed)
+	}
+	if changed.Events != nil || changed.ReplyName != "" || changed.Group != "" {
+		t.Errorf("AgentConfigChangedTopic carries stream/reply fields: %+v", changed)
+	}
+
+	request := AgentRequestTopic("nas-01")
+	if request.Name != AgentRequestChannel("nas-01") || request.Kind != KindRequestReply {
+		t.Errorf("AgentRequestTopic = %+v", request)
+	}
+	if request.ReplyName != AgentNFOReadReplyEventName ||
+		len(request.Events) != 1 || request.Events[0] != AgentNFOReadEventName {
+		t.Errorf("AgentRequestTopic = %+v, want Events [%s] ReplyName %s", request, AgentNFOReadEventName, AgentNFOReadReplyEventName)
+	}
+}
+
+// KnownPubSubChannels is now derived from the unified table; pin its result
+// so the derivation cannot silently drop or reorder a channel.
+func TestKnownPubSubChannelsUnchanged(t *testing.T) {
+	got := KnownPubSubChannels()
+	want := []string{HeartbeatRequestChannel, LogChannel}
+	if len(got) != len(want) {
+		t.Fatalf("KnownPubSubChannels() = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("KnownPubSubChannels() = %v, want %v", got, want)
+		}
+	}
+}
+
+// StreamTopic still names the same type as Topic, so existing call sites
+// compile untouched. This function body only type-checks when the two names
+// are identical (an alias), not merely assignable.
+var _ = func(s StreamTopic) Topic { return s }
+
 // streamTopicPublishable is the guard StreamBus.Publish applies: static
 // rows and pattern-covered per-agent command streams pass; a pattern topic
 // and an unknown name are rejected.
