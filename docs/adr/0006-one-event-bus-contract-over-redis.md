@@ -55,3 +55,13 @@ The decision above describes the Pub/Sub side as staying "the thin hand-rolled l
 Those loops are now consolidated into a `PubSubRouter`, the Pub/Sub counterpart of the stream `Router`: `Handle(channel, func(ctx, []byte))` for notifications, `Respond(channel, func(ctx, *Event) ([]byte, error))` for the responder side (which stamps `source`, `correlation_id`, and the reply event name so a handler cannot answer on the wrong correlation). Registration then one `Run(ctx)` per process, matching the stream side. `PubSubBus` keeps only the one-shot `Publish` / `Request` / `Reply`; `Subscribe` is now private.
 
 This does not change the decision — two transports, Pub/Sub for the non-durable half, request/reply for fail-fast calls. It changes how that half is built: from N copies of one loop to one routed seam. There is still no retry or drop-after-retry on Pub/Sub; a handler error is logged and nothing else, and a failed `Respond` sends no reply so the caller hits its existing `ErrNoResponder` timeout.
+
+### 2026-09-01 — a Metarr-owned minimal stream-entry marshaller
+
+The decision above keeps Watermill's default marshaller: a stream entry carries the envelope as JSON in a `payload` field alongside Watermill's own `_watermill_*` fields, and Watermill's reader requires `_watermill_message_uuid` to be present. The "external-subscriber contract" section reasons about an outside *consumer*, which can ignore the `_watermill_*` fields, and rejects a custom marshaller on the grounds that hoisting envelope fields to first-class stream fields buys nothing functional.
+
+ADR-0008 puts external *publishers* in scope: a participant may write to a result stream or a notification channel. Asking every non-Go publisher to reproduce Watermill's entry framing — a library-specific UUID field included — for a message to be accepted is exactly the implicit Go-library knowledge the contract exists to remove.
+
+So the stream-entry format becomes Metarr's: an entry is exactly one field, `payload`, holding the envelope JSON, and nothing else. A thin marshaller on the Go side satisfies Watermill's `message.Message` in and out; every other language writes `XADD stream * payload <envelope-json>` and reads the `payload` field back. This is the custom marshaller the original decision rejected, reopened because the trade-off changed — no longer "nicer field names for no function" but "one obvious entry shape instead of a library's internal one, for every integration that publishes." The cost is a small marshaller Metarr maintains against Watermill's interface.
+
+This does not change delivery semantics, the `Router` middleware, retention, or the envelope. It changes only what one stream entry looks like in Redis.
