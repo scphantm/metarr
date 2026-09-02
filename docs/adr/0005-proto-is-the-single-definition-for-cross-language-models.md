@@ -39,6 +39,11 @@ Concretely, per model family:
 An architecture test enforces the rule, so the next hand-written mirror fails
 the build rather than accumulating.
 
+One narrow exception to "used directly as the stored document" is carved out
+below for AIP-derived identifier and output-only fields (ADR-0010). It is a
+symmetric, lossless transform the model layer owns, not a mirror, so the
+architecture test's intent is unchanged.
+
 ## Costs accepted
 
 **The admin credential fields are on the wire but always empty.** `AdminUser`
@@ -61,6 +66,19 @@ the document is stored under is a storage concern and is not a field on the
 message. One consequence: proto3 draws no distinction between an absent
 repeated field and an empty one, so a bootstrap step that normalised a nil
 slice to `[]` no longer has anything durable to do.
+
+**AIP identifier and output-only fields are not stored.** When ADR-0010 put an
+AIP resource-name `name` on every config resource and `OUTPUT_ONLY` live-presence
+fields on `Agent`, storing those verbatim would be either redundant (`name` is
+derived from the slug or minted id the document is already keyed on) or wrong
+(presence is a running-server fact, not config). So they are the one exception
+to "used directly as the stored document": the config-store mutation closure
+clears them before `MarshalStored`, `Normalize()` backfills `name` on read, and
+the `AgentService` read path joins presence in. The stored document keeps
+exactly the shape it had before ADR-0010. This stays within the rule because the
+transform is symmetric and total — every value is recomputed from data already
+in the document or from live state — so there is nothing a person keeps aligned
+by hand and nothing that can silently drift.
 
 ## Considered and rejected
 
