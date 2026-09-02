@@ -4,98 +4,66 @@ status: accepted
 
 # CRUD API shape follows AIP standard methods
 
-The config API's CRUD rule — "one upserting POST, an empty id creates, an unknown
-id is 404, ids are server-minted" — was written when the server was a REST
-`http.ServeMux`. The API is now Connect/gRPC generated from proto by Buf, and
-gRPC's only widely-followed CRUD standard is Google's AIP (API Improvement
-Proposals). We adopt AIP whole: the standard methods, resource-oriented
-addressing, field-mask partial update, `etag` optimistic concurrency,
-long-running operations for the async write, and paginated/filterable/orderable
-`List`.
+The config API's original CRUD rule — "one upserting POST, an empty id
+creates, an unknown id is 404, ids are server-minted" — was written when the
+server was a REST `http.ServeMux`. The API is now Connect/gRPC generated from
+proto by Buf, and gRPC's only widely-followed CRUD standard is Google's AIP
+(API Improvement Proposals). We adopt the part of AIP that makes an API
+predictable to someone who knows it — the standard methods and their names,
+resource-shaped request/response messages, field-mask partial update, and the
+full `List` contract — and deliberately leave the parts whose machinery this
+system's scale and shape do not earn: resource-name addressing (AIP-122),
+long-running operations (AIP-151), and resource `etag`s (AIP-154).
 
-Two earlier drafts each took a narrower line. The first kept standard method
-names only — bare id/slug request fields, no resource names, no pagination. The
-second added resource names and field masks but still carved out `etag` and
-`google.longrunning.Operation` as "deliberate deviations" the event-sourced
-store forced. Both narrow lines are the same maintenance surprise: a reader who
-knows AIP has to re-derive which half of it applies here, and every "deviation"
-paragraph is a place the doc and a contributor's expectation drift apart.
-Committing to AIP means committing to all of it. The mechanical cost of the
-parts we kept deferring is bounded by `go.einride.tech/aip`, which implements
-the resource-name, field-mask, pagination, filtering, and ordering plumbing so
-none of it is hand-rolled.
+An earlier draft of this ADR adopted AIP whole, including those three. It was
+reversed. The config API has one first-party client (the UI), one writer (the
+single server process, ADR-0002), and operator-bounded collections. Against
+that, resource names are a backfill/strip round-trip on every message with no
+consumer that reads them; operations model an asynchronous write ADR-0002 no
+longer performs; and an `etag` guards a lost update the single-writer lock and
+the single admin account make theoretical. Each is a mechanism a contributor
+has to learn for no behaviour it buys here. What stays is the shape, which is
+where the predictability always was.
 
 ## Decision
 
-**Standard methods, standard names.** Every config collection exposes `Create`,
-`Get`, `List`, `Update`, `Delete` (AIP-131–135), each named for its resource:
-`CreateAgent`, `ListSonarrInstances`, `GetScanDirectory`, `UpdateSidecarType`,
-`DeleteApiKey`. No `Upsert` verb. No bare `Create`/`List` even where the
-service hosts a single collection — one naming rule, applied everywhere.
+**Standard methods, standard names.** Every config collection exposes
+`Create`, `Get`, `List`, `Update`, `Delete` (AIP-131–135), each named for its
+resource: `CreateAgent`, `ListSonarrInstances`, `GetScanDirectory`,
+`UpdateSidecarType`, `DeleteApiKey`. No `Upsert` verb. No bare `Create` /
+`List` even where a service hosts a single collection — one naming rule
+everywhere.
 
 **Full read surface.** Every collection has `Get` and `List`, including
-`ListApiKeys` / `GetApiKey` and `GetAgent`, even though the aggregate
-`ConfigService.GetConfig` read already serves today's UI. Half a read surface
-is the same re-derivation cost as half an addressing model.
+`GetApiKey` / `ListApiKeys` and `GetAgent`, even though the aggregate
+`ConfigService.GetConfig` read (below) still serves the UI's first paint.
 
-**Resource-name addressing** (AIP-122). Every resource carries a `string name`:
+**Identity is the slug or the minted id it already has.** No synthetic
+`name`. The two idioms from CONTEXT.md are unchanged:
 
-| collection | pattern | parent |
-| --- | --- | --- |
-| agents | `agents/{slug}` | — (top-level) |
-| sonarr instances | `sonarrInstances/{slug}` | — |
-| scan directories | `scanDirectories/{slug}` | — |
-| sidecar types | `sidecarTypes/{id}` | — |
-| API key entries | `accessLevels/{level}/apiKeys/{id}` | `accessLevels/{level}` |
+- *Slug-addressed* (`agents`, Sonarr instances, `scan_directories`): the
+  operator-chosen slug is the id. `Get` / `Delete` take `string slug`;
+  `Create{X}Request { string {x}_id; X {x} }` carries it in `{x}_id`
+  (AIP-133), and a slug in the resource body must match it or be empty, or
+  `InvalidArgument`. `Create` against an existing slug is `AlreadyExists`.
+- *Minted-id* (`sidecar_types`, `api_keys`): `Create{X}Request` carries no
+  id; the server mints one and returns the created resource with it set.
 
-`Get` / `Update` / `Delete` address the resource by `name`. `List` / `Create`
-take `parent` — empty for the four top-level collections, `accessLevels/{level}`
-for API keys. `accessLevels/{level}` is an un-serviced parent path: the access
-level is a fixed four-value set (`admin`, `user`, `webhook`, `read_only`), not a
-managed collection, so there is no `AccessLevel` service and no
-`ListAccessLevels`. The service parses `{level}` out of `parent` / `name`; the
-standalone access-level enum that requests carried before is gone. Names are
-parsed and formatted with `go.einride.tech/aip/resourcename`, not a hand-written
-splitter.
+The slug stays the cross-resource link everywhere else it is used (agent
+directory mappings, bus channel names) as a bare value — no `agents/` prefix,
+no resource-reference annotation.
 
 **Partial update is a field mask.** `Update{X}Request` carries a
 `google.protobuf.FieldMask update_mask` (AIP-134), authoritative for which
-fields change, replacing the proto3 `optional`-presence patch idiom. Dotted
-paths are honoured (`storage.ttl`). An empty mask, or a path that names no
-field of the resource, is `InvalidArgument`. The mask is applied with
-`go.einride.tech/aip/fieldmask` over `google.golang.org/protobuf` reflection —
-no bespoke per-field copy code. When a slug `Update` with `allow_missing:true`
-creates instead of updating, the mask is ignored and the full resource message
-is validated as a `Create`.
-
-**Upsert semantics are `allow_missing` on `Update`, slug-addressed only.**
-Slug-addressed `Update{X}Request` carries `bool allow_missing`; `true` means an
-`Update` against an unknown slug creates. Minted-id `Update{X}Request` has **no**
-`allow_missing` field — a knob that must always be false is a footgun, and its
-absence is the "no upsert here" semantics.
-
-**Optimistic concurrency with `etag`** (AIP-154). Every resource and every
-scalar section carries a `string etag` field, documented output-only. The etag
-is a hash of that section's stored bytes — `appconfig.SectionETag`, populated on
-read by `Normalize()`, stripped before every write by `appconfig.ClearDerived`,
-never itself stored (ADR-0005). `Update` and `Delete` carry the etag the client
-last read; the mutation closure recomputes the current section's hash under the
-store lock and returns `ABORTED` if it differs. An empty etag on the request
-skips the check (a deliberate blind write). This closes the lost-update window
-the single-writer lock alone leaves open: the lock orders one request's read
-after the previous request's fire, but a client editing from a copy it read
-minutes ago is not otherwise protected. See ADR-0002.
-
-**Identity still has two idioms** (CONTEXT.md, unchanged):
-
-- *Slug-addressed* (`agents`, `sonarr`, `scan_directories`): the operator-chosen
-  slug is the id. On `Create` it travels in `Create{X}Request.{x}_id` (AIP-133),
-  not inside the resource message; if the resource body also carries its slug
-  field it must match, or `InvalidArgument`. `Create` against an existing slug
-  is `AlreadyExists`.
-- *Minted-id* (`sidecar_types`, `api_keys`): `Create{X}Request` carries no id;
-  the server mints one. The client learns it from the operation's `response`
-  once the write confirms.
+fields change, replacing the proto3 `optional`-presence idiom. Dotted paths
+are honoured (`storage.ttl`). An empty mask, or a path that names no field of
+the resource, is `InvalidArgument`. The mask is applied with
+`go.einride.tech/aip/fieldmask` over protobuf reflection — no per-field copy
+code. `Update{X}Request` also carries `bool allow_missing`, slug-addressed
+collections only: `true` means an `Update` against an unknown slug creates,
+and on that branch the mask is ignored and the whole resource message is
+validated as a `Create`. Minted-id `Update{X}Request` has no `allow_missing`
+field — a knob that must always be false is a footgun.
 
 **Not-found behaviour:**
 
@@ -107,181 +75,147 @@ minutes ago is not otherwise protected. See ADR-0002.
 | minted-id `Update` | `NotFound` |
 | `Delete`, either kind | `NotFound` |
 
-**Writes return a long-running operation** (AIP-151). `Create`, `Update`,
-`Delete` and the config-mutating custom methods return a
-`google.longrunning.Operation`, not the resource. The config store is
-event-sourced and eventually consistent (ADR-0002): the durable write happens in
-the `system_config_update` listener after the RPC returns. The operation's
-`name` is `operations/{correlation_id}`, reusing the correlation id the RPC
-already stamps on its fired event. A new `OperationsService` exposes
-`GetOperation` (and `ListOperations`); the listener marks the operation `done`
-once it has persisted, setting `response` to the resource on success or `error`
-to a `google.rpc.Status` on a persistence or late-validation failure. The UI
-polls `GetOperation` in place of the old re-read-and-confirm loop, and a
-persistence failure now reaches the caller — which the bare "queued" acknowledgement
-could not deliver.
+**Writes are synchronous and return the resource.** `Create` / `Update`
+return the stored resource; `Delete` returns empty. The config store persists
+to MongoDB under its lock before the RPC returns (ADR-0002, amended in the
+same change): there is no `google.longrunning.Operation`, no
+`AcceptedResponse`, no `OperationsService`. Validation — `AlreadyExists`,
+`NotFound`, `InvalidArgument` (bad mask, slug/body mismatch, cross-entry
+failure), `FailedPrecondition` — surfaces as a Connect code on the call. A
+persistence failure is a synchronous `Internal` on the same call; live config
+is left untouched when a write does not land.
 
-**Synchronous vs. deferred errors.** The config-store mutation closure runs
-inside the RPC, under the store lock, before the operation is returned.
-`AlreadyExists`, `NotFound`, `InvalidArgument` (bad mask, slug/body mismatch,
-cross-entry validation failure), and `ABORTED` (stale etag) surface as Connect
-codes on the call itself. Only durable persistence is deferred, and its failure
-surfaces as `operation.error`.
-
-**Cross-entry validation runs inside the mutation closure**, against the whole
-section, so a scoped write is still checked against the whole table (the
-sidecar-registry compile, the Sonarr cross-type slug-uniqueness check,
-`validateMappings`). Its failures map to `InvalidArgument` / `FailedPrecondition`.
+**Cross-entry validation runs on the write path**, against the whole
+in-memory config before the store writes: the sidecar-registry compile, the
+Sonarr cross-type slug-uniqueness check, `validateMappings`. Its failures map
+to `InvalidArgument` / `FailedPrecondition`.
 
 **`List` is paginated, filterable, and orderable.** `List{X}Request` carries
 `int32 page_size` / `string page_token` (AIP-158), `string filter` (AIP-160),
-and `string order_by` (AIP-132); `List{X}Response` carries the repeated resource
-and `string next_page_token`. Implemented with `go.einride.tech/aip`'s
-`pagination`, `filtering`, and `ordering` packages. Today's collections are
-bounded and a default page returns the whole set, but the request/response shape
-is the standard one, so a collection that later grows unbounded needs no API
-change.
+and `string order_by` (AIP-132); `List{X}Response` carries the repeated
+resource and `string next_page_token`. Pagination and ordering are wired now
+with `go.einride.tech/aip`'s `pagination` and `ordering` packages over the
+in-memory collection; `filter` is parsed and validated with
+`go.einride.tech/aip/filtering` but only a documented subset is honoured until
+a large-data service (scan records, metadata) needs the full
+expression-to-storage translation, written then against data that requires
+it. The config collections are bounded and a default page returns the whole
+set — the request/response shape is the standard one, so a collection that
+later grows unbounded needs no API change.
 
 **Non-CRUD operations are custom methods** (AIP-136): `ReorderSidecarTypes`,
 `ResetSidecarTypes`, `SetLogLevel` stay as named RPCs — they do not fit a
-standard method. `SetLogLevel` is kept even though `UpdateAgent` with
-`update_mask=["log_level"]` would do the same: it is a cheap dedicated method
-with a distinct audit signal and its own caller. Each still returns a
-long-running operation.
+standard method. Each is synchronous and returns the affected resource or an
+empty response. `SetLogLevel` is kept even though `UpdateAgent` with
+`update_mask=["log_level"]` would do the same: a cheap dedicated method with a
+distinct audit signal and its own caller.
 
-**Agent presence rides one resource.** `AgentService` returns the same `Agent`
-message that `CreateAgent` / `UpdateAgent` accept — no separate read type. Live
-presence fields on `Agent` are output-only: populated by `Get` / `List` /
-`StreamPresence`, ignored by writes, stripped before storage (`ClearDerived`),
-never persisted. The `AgentView` read type is removed.
+**Agent presence rides one resource.** `AgentConfig` and `AgentView` collapse
+into one `Agent` message. The operator fields (`slug`, `display_name`,
+`mappings`, `log_level`) are writable; `identity`, `telemetry`, `online`,
+`reported_at` are `OUTPUT_ONLY` — populated by `Get` / `List` /
+`StreamPresence`, never copied from a request into the stored document. The
+`AgentView` read type and the `agentregistry` view-alias layer are removed.
 
-**A new `AdminService`.** `admin` becomes its own service — `GetAdminUser`,
-`UpdateAdminUser` — rather than sitting on `ConfigService`. `password_salt` /
-`password_hash` stay off the wire (ADR-0005); a new password travels in a
-separate `string new_password` field, never in the mask, honoured only when
-non-empty. `ConfigService` keeps the aggregate `GetConfig` read and the API-key
-collection.
+**Service decomposition.** `admin` becomes `AdminService` (`GetAdminUser`,
+`UpdateAdminUser`); the API-key collection becomes `ApiKeyService` (`Create` /
+`Get` / `List` / `Update` / `Delete`); each existing section keeps its own
+service. `ConfigService` is left with one method, the read-only aggregate
+`GetConfig` that returns the whole `Config` for the UI's first paint — no
+matching write, so ADR-0001 is untouched. `password_salt` / `password_hash`
+stay off the wire (ADR-0005); a new password travels in a separate
+`string new_password` on `UpdateAdminUserRequest`, never in the mask, honoured
+only when non-empty.
 
-## AIP compliance
+**API-key access level is an enum.** Requests that address the API-key
+collection carry `AccessLevel access_level` (`ADMIN`, `USER`, `WEBHOOK`,
+`READ_ONLY`) — a fixed four-value set, which AIP itself says should not be
+modelled as a resource collection, so there is no `parent` addressing and no
+`AccessLevelService`.
 
-Every AIP area the config API touches is adopted rather than carved out:
+## What is adopted, and what is not
 
-| AIP | area | how |
+| AIP | area | decision |
 | --- | --- | --- |
-| 121–135 | resource-oriented standard methods | standard method set, per-resource names |
-| 122 | resource names | `go.einride.tech/aip/resourcename` |
-| 133 | `Create` id in `{x}_id` | slug-addressed collections only |
-| 134 | field-mask partial update | `go.einride.tech/aip/fieldmask` |
-| 136 | custom methods | reorder / reset / set-log-level |
-| 151 | long-running operations | `OperationsService`, listener completes them |
-| 154 | resource `etag` | hash of stored bytes, checked under the store lock |
-| 158 | pagination | `go.einride.tech/aip/pagination` |
-| 160 | filtering | `go.einride.tech/aip/filtering` |
-| 132 | ordering | `go.einride.tech/aip/ordering` |
+| 131–135 | resource-oriented standard methods | adopted — standard set, per-resource names |
+| 133 | `Create` id in `{x}_id` | adopted — slug-addressed collections |
+| 134 | field-mask partial update | adopted — `go.einride.tech/aip/fieldmask` |
+| 136 | custom methods | adopted — reorder / reset / set-log-level |
+| 158 | pagination | adopted — `go.einride.tech/aip/pagination` |
+| 132 | ordering | adopted — `go.einride.tech/aip/ordering` |
+| 160 | filtering | shape adopted; `go.einride.tech/aip/filtering` parses it, full translation deferred |
+| 122 | resource-name addressing | **not adopted** — one client, nothing reads a `name`; the slug/id it already has is the identifier |
+| 151 | long-running operations | **not adopted** — the write is synchronous (ADR-0002), so there is no operation to poll |
+| 154 | resource `etag` | **not adopted** — the single-writer lock serialises writes and there is one admin account |
 
 ## Relationship to ADR-0001
 
-Unchanged and reinforced: still no whole-document write; every method names
-exactly what it changes. ADR-0001 established "scoped operations"; this ADR is
-the concrete method shapes that principle takes under gRPC. The old rule's "a
+Unchanged and reinforced: no whole-document write; every method names exactly
+what it changes. The aggregate `GetConfig` is read-only. The old rule's "a
 non-empty unknown id is rejected" special case disappears — it existed only to
-disambiguate a single message that meant both create and update, and separate
+disambiguate one message that meant both create and update, and separate
 `Create` / `Update` methods remove the ambiguity.
 
 ## Relationship to ADR-0002
 
-ADR-0002 is amended in the same change. The single-instance lock and the
-fire-and-return write are unchanged; what changes is how the async write is
-surfaced (a `google.longrunning.Operation` the caller polls, instead of a bare
-"queued" acknowledgement) and that `etag` now guards the lost-update case the
-lock does not cover.
+Amended in the same change. The config store's write becomes synchronous: it
+persists to MongoDB under its lock and then propagates in-process, before the
+RPC returns. The `system_config_update` Redis stream, its listener, and the
+"queued" acknowledgement are removed. The lock is unchanged.
 
 ## Relationship to ADR-0005
 
-Resource-name addressing puts a `name` on every resource, presence puts
-output-only fields on `Agent`, and `etag` puts an output-only concurrency token
-on every resource and scalar section. None is authoritative in storage: `name`
-is derived from the slug or minted id, presence is joined in by the read path,
-`etag` is a hash of the section's stored bytes. `Normalize()` backfills `name`
-and `etag` on read; `MarshalStored` strips all three (`appconfig.ClearDerived`)
-on a clone before it serializes, so nothing derived reaches Mongo or the
-`system_config_update` payload regardless of which caller marshalled. ADR-0005's
-"generated messages are used directly as stored documents" clause is amended in
-the same change to permit these symmetric, lossless transforms — they are not a
-hand-maintained mirror.
+No derived `name` or `etag` field is added to any message, so there is no
+`ClearDerived` step and `Normalize()` keeps only its nil-section filling — the
+message stays exactly the stored document. The one read-path addition is
+`Agent`'s `OUTPUT_ONLY` presence, which the `AgentService` read path joins in
+and which the write path never copies into the stored document.
 
 ## Considered options
 
 - **Keep one `Upsert` per section.** Rejected: not a standard method, and it
-  keeps the merged create-or-update message whose sometimes-empty id field is a
-  `oneof` in disguise — the 404-on-unknown-id clause is the wart that proves it.
-- **Standard method names only, no resource names or pagination** (this ADR's
-  first draft). Rejected: half of AIP is its own surprise.
-- **Resource names and field masks, but `AcceptedResponse` and no `etag`**
-  (this ADR's second draft). Rejected on the same ground one draft up: a
-  documented deviation is a re-derivation cost, and the two we kept were the
-  ones a contributor most expects AIP to have. `go.einride.tech/aip` and a
-  `google.longrunning.Operation` whose name is the existing correlation id make
-  the mechanical cost small.
-- **Bare `Create` / `List` / `Get` on single-collection services.** Rejected: a
-  third naming convention alongside "standard" and "custom".
+  keeps the merged create-or-update message whose sometimes-empty id field is
+  a `oneof` in disguise.
+- **Adopt AIP whole — resource names, operations, and `etag`** (this ADR's
+  previous draft). Rejected: at one first-party client, one writer, and
+  operator-bounded collections, each of the three is documented machinery a
+  contributor must learn for no behaviour it enables. Resource names cost a
+  backfill/strip round-trip on every message; operations model an async write
+  ADR-0002 no longer does; `etag` guards a race the lock and the single admin
+  account make theoretical.
 - **Keep proto3 `optional` field presence instead of `FieldMask`.** Rejected:
   presence and a mask do the same job and the mask is the standard.
-- **A stored `generation` counter for `etag` instead of a content hash.**
-  Rejected: a hash needs nothing added to the stored document and keeps ADR-0005's
-  "nothing derived is stored" carve-out intact; a counter would be a new
-  authoritative stored field and a compare-and-swap on it.
+- **A synthetic `name` for cross-resource references.** Rejected: the slug
+  already links things, and prefixing it buys nothing without generic
+  reference-walking tooling, which this system does not have.
 
 ## Consequences
 
-- Roughly thirty standard methods across eight services (the six existing config
-  services, the new `AdminService`, and the new `OperationsService`), replacing
-  five `Upsert{X}` RPCs and the `optional`-presence updates. **One greenfield
-  sweep**, not staged per service: the no-migration, config-document-reinitialised
-  premise removes the reason to stage, and staging would leave the UI and
-  services disagreeing mid-branch.
-- **Generated code only.** Message types, Connect service interfaces, client
-  stubs, and TS types come from `buf generate` / `go generate` (ADR-0005) — no
-  hand-authored generated artifacts. Field masks, resource names, pagination,
-  filtering, and ordering are `go.einride.tech/aip`, not bespoke code. The
-  hand-rolled `internal/shared/aip` helper from the earlier groundwork is
-  removed; the only Metarr-specific piece that stays is `ClearDerived` (the
-  storage carve-out), which moves to `internal/shared/appconfig`.
-- **A server-only operations store.** `OperationsService` is backed by a Mongo
-  collection the server owns (agents never see it); the `system_config_update`
-  listener gains a step that resolves the operation by correlation id and marks
-  it done. `Operation` is a local `metarr.v1` message shaped like
-  `google.longrunning.Operation` — importing the real one pulls
-  `google.golang.org/grpc` and `cloud.google.com/go` into a Connect-only
-  codebase, and its `google.rpc.Status` / `google.protobuf.Any` fields have no
-  generated TypeScript without adding the googleapis module to the codegen
-  target. The config protos import only well-known types
-  (`google/protobuf/field_mask.proto`, `struct.proto`, `timestamp.proto`), so
-  there is **no `buf` dependency**: the output-only fields are plain fields
-  documented as such rather than `google.api.field_behavior` annotations, since
-  the annotation buys nothing at runtime (`ClearDerived` enforces it) and costs
-  a dependency plus a generated import in every proto.
-- **The UI gains `GetOperation` and etag round-tripping.** Every resource read
-  surfaces `etag`; every `Update` / `Delete` sends the last-read etag back
-  (outside the field mask). The queued→confirmed indicator (`useSaveState`)
-  keeps its read-poll — re-reading the resource until it reflects the write —
-  which observes the same eventual consistency; it moves to polling the
-  returned operation to `done` (so a late persist failure surfaces as
-  `operation.error` rather than a poll timeout) once every config write returns
-  an operation and the shared hook can be generalised.
-- `SidecarTypeDefinition` gains a `string name` field in the frozen
-  `metarr.bus.v1` module. A field addition is wire-compatible and passes the
-  FILE-level `buf breaking` gate; the message already does double duty as a
-  stored document and an agent-projection type.
+- Roughly thirty standard methods across the config services — `AdminService`,
+  `ApiKeyService`, and one per existing section — replacing the `Upsert{X}`
+  RPCs and the `optional`-presence updates. **One greenfield sweep**, not
+  staged: the config document is reinitialised, there is no migration, and
+  staging would leave the UI and services disagreeing mid-branch.
+- **Generated code only.** Message types, Connect interfaces, client stubs,
+  and TS types come from `buf generate` / `go generate` (ADR-0005). Field
+  masks, pagination, and ordering are `go.einride.tech/aip`; `resourcename` is
+  not used.
+- **No operations store and no config-update stream** — see ADR-0002. The
+  `Operation` message, `OperationsService`, the `config_operations` Mongo
+  collection, and `AcceptedResponse` (with its `buf.yaml`
+  `RPC_REQUEST_RESPONSE_UNIQUE` / `RPC_RESPONSE_STANDARD_NAME` suppressions)
+  are all removed.
+- **The UI updates its cache from the write's response** instead of polling a
+  queued→confirmed indicator; the `useConfirmationPoll` / `useSaveState`
+  re-read loop is removed.
 - `AGENTS.md`'s CRUD-API rule and the `config-structure-change` skill are
   updated in the same change: a new config collection is `Create` + `Get` +
-  `List` (paginated / filterable) + `Update` + `Delete` with `name`/`parent`
-  addressing, a `FieldMask` on `Update`, and an `etag`; a new scalar section is
-  `Get` + `Update` with a `FieldMask` and an `etag`. Writes return an operation.
+  `List` (paginated) + `Update` + `Delete` addressed by its slug or minted
+  id, with a `FieldMask` on `Update`; a new scalar section is `Get` + `Update`
+  with a `FieldMask`. Writes are synchronous and return the resource.
 - `documentation/modules/ROOT/pages/configuration.adoc` and the "eventually
-  consistent" section of `architecture.adoc` are de-`Upsert`ed and matched to the
-  new shape alongside the code slices. `documentation/modules/design/` needs no
-  change — its config references are shape-agnostic.
-- `builtin_defaults.json` and the `bootstrap` package are unchanged: the stored
-  document keeps its current shape, keyed on slug / minted id, with no `name`,
-  `etag`, or presence field (`Normalize()` backfills `name` and `etag` on load).
+  consistent" section of `architecture.adoc` are de-`Upsert`ed and matched to
+  the synchronous shape. `documentation/modules/design/` needs no change.
+- `builtin_defaults.json` and the `bootstrap` package are unchanged: storage
+  is still one `app_config` document keyed on slug / minted id (ADR-0011),
+  with no `name` or `etag` field.
