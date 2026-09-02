@@ -9,6 +9,7 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	http "net/http"
 	strings "strings"
 )
@@ -33,27 +34,38 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// AgentServiceListProcedure is the fully-qualified name of the AgentService's List RPC.
-	AgentServiceListProcedure = "/metarr.v1.AgentService/List"
-	// AgentServiceStreamPresenceProcedure is the fully-qualified name of the AgentService's
-	// StreamPresence RPC.
-	AgentServiceStreamPresenceProcedure = "/metarr.v1.AgentService/StreamPresence"
-	// AgentServiceUpsertProcedure is the fully-qualified name of the AgentService's Upsert RPC.
-	AgentServiceUpsertProcedure = "/metarr.v1.AgentService/Upsert"
-	// AgentServiceDeleteProcedure is the fully-qualified name of the AgentService's Delete RPC.
-	AgentServiceDeleteProcedure = "/metarr.v1.AgentService/Delete"
+	// AgentServiceCreateAgentProcedure is the fully-qualified name of the AgentService's CreateAgent
+	// RPC.
+	AgentServiceCreateAgentProcedure = "/metarr.v1.AgentService/CreateAgent"
+	// AgentServiceGetAgentProcedure is the fully-qualified name of the AgentService's GetAgent RPC.
+	AgentServiceGetAgentProcedure = "/metarr.v1.AgentService/GetAgent"
+	// AgentServiceListAgentsProcedure is the fully-qualified name of the AgentService's ListAgents RPC.
+	AgentServiceListAgentsProcedure = "/metarr.v1.AgentService/ListAgents"
+	// AgentServiceUpdateAgentProcedure is the fully-qualified name of the AgentService's UpdateAgent
+	// RPC.
+	AgentServiceUpdateAgentProcedure = "/metarr.v1.AgentService/UpdateAgent"
+	// AgentServiceDeleteAgentProcedure is the fully-qualified name of the AgentService's DeleteAgent
+	// RPC.
+	AgentServiceDeleteAgentProcedure = "/metarr.v1.AgentService/DeleteAgent"
 	// AgentServiceSetLogLevelProcedure is the fully-qualified name of the AgentService's SetLogLevel
 	// RPC.
 	AgentServiceSetLogLevelProcedure = "/metarr.v1.AgentService/SetLogLevel"
+	// AgentServiceStreamPresenceProcedure is the fully-qualified name of the AgentService's
+	// StreamPresence RPC.
+	AgentServiceStreamPresenceProcedure = "/metarr.v1.AgentService/StreamPresence"
 )
 
 // AgentServiceClient is a client for the metarr.v1.AgentService service.
 type AgentServiceClient interface {
-	List(context.Context, *connect.Request[v1.AgentServiceListRequest]) (*connect.Response[v1.AgentServiceListResponse], error)
-	StreamPresence(context.Context, *connect.Request[v1.AgentServiceStreamPresenceRequest]) (*connect.ServerStreamForClient[v1.AgentServiceStreamPresenceResponse], error)
-	Upsert(context.Context, *connect.Request[v1.AgentServiceUpsertRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	Delete(context.Context, *connect.Request[v1.AgentServiceDeleteRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	SetLogLevel(context.Context, *connect.Request[v1.AgentServiceSetLogLevelRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	CreateAgent(context.Context, *connect.Request[v1.CreateAgentRequest]) (*connect.Response[v1.Agent], error)
+	GetAgent(context.Context, *connect.Request[v1.GetAgentRequest]) (*connect.Response[v1.Agent], error)
+	ListAgents(context.Context, *connect.Request[v1.ListAgentsRequest]) (*connect.Response[v1.ListAgentsResponse], error)
+	// UpdateAgent returns the stored agent after the synchronous write has
+	// landed (AIP-134).
+	UpdateAgent(context.Context, *connect.Request[v1.UpdateAgentRequest]) (*connect.Response[v1.Agent], error)
+	DeleteAgent(context.Context, *connect.Request[v1.DeleteAgentRequest]) (*connect.Response[emptypb.Empty], error)
+	SetLogLevel(context.Context, *connect.Request[v1.SetLogLevelRequest]) (*connect.Response[v1.Agent], error)
+	StreamPresence(context.Context, *connect.Request[v1.StreamPresenceRequest]) (*connect.ServerStreamForClient[v1.StreamPresenceResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the metarr.v1.AgentService service. By default, it
@@ -67,34 +79,46 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 	baseURL = strings.TrimRight(baseURL, "/")
 	agentServiceMethods := v1.File_metarr_v1_agents_proto.Services().ByName("AgentService").Methods()
 	return &agentServiceClient{
-		list: connect.NewClient[v1.AgentServiceListRequest, v1.AgentServiceListResponse](
+		createAgent: connect.NewClient[v1.CreateAgentRequest, v1.Agent](
 			httpClient,
-			baseURL+AgentServiceListProcedure,
-			connect.WithSchema(agentServiceMethods.ByName("List")),
+			baseURL+AgentServiceCreateAgentProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("CreateAgent")),
 			connect.WithClientOptions(opts...),
 		),
-		streamPresence: connect.NewClient[v1.AgentServiceStreamPresenceRequest, v1.AgentServiceStreamPresenceResponse](
+		getAgent: connect.NewClient[v1.GetAgentRequest, v1.Agent](
 			httpClient,
-			baseURL+AgentServiceStreamPresenceProcedure,
-			connect.WithSchema(agentServiceMethods.ByName("StreamPresence")),
+			baseURL+AgentServiceGetAgentProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetAgent")),
 			connect.WithClientOptions(opts...),
 		),
-		upsert: connect.NewClient[v1.AgentServiceUpsertRequest, v1.AcceptedResponse](
+		listAgents: connect.NewClient[v1.ListAgentsRequest, v1.ListAgentsResponse](
 			httpClient,
-			baseURL+AgentServiceUpsertProcedure,
-			connect.WithSchema(agentServiceMethods.ByName("Upsert")),
+			baseURL+AgentServiceListAgentsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListAgents")),
 			connect.WithClientOptions(opts...),
 		),
-		delete: connect.NewClient[v1.AgentServiceDeleteRequest, v1.AcceptedResponse](
+		updateAgent: connect.NewClient[v1.UpdateAgentRequest, v1.Agent](
 			httpClient,
-			baseURL+AgentServiceDeleteProcedure,
-			connect.WithSchema(agentServiceMethods.ByName("Delete")),
+			baseURL+AgentServiceUpdateAgentProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateAgent")),
 			connect.WithClientOptions(opts...),
 		),
-		setLogLevel: connect.NewClient[v1.AgentServiceSetLogLevelRequest, v1.AcceptedResponse](
+		deleteAgent: connect.NewClient[v1.DeleteAgentRequest, emptypb.Empty](
+			httpClient,
+			baseURL+AgentServiceDeleteAgentProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("DeleteAgent")),
+			connect.WithClientOptions(opts...),
+		),
+		setLogLevel: connect.NewClient[v1.SetLogLevelRequest, v1.Agent](
 			httpClient,
 			baseURL+AgentServiceSetLogLevelProcedure,
 			connect.WithSchema(agentServiceMethods.ByName("SetLogLevel")),
+			connect.WithClientOptions(opts...),
+		),
+		streamPresence: connect.NewClient[v1.StreamPresenceRequest, v1.StreamPresenceResponse](
+			httpClient,
+			baseURL+AgentServiceStreamPresenceProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("StreamPresence")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -102,45 +126,61 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 
 // agentServiceClient implements AgentServiceClient.
 type agentServiceClient struct {
-	list           *connect.Client[v1.AgentServiceListRequest, v1.AgentServiceListResponse]
-	streamPresence *connect.Client[v1.AgentServiceStreamPresenceRequest, v1.AgentServiceStreamPresenceResponse]
-	upsert         *connect.Client[v1.AgentServiceUpsertRequest, v1.AcceptedResponse]
-	delete         *connect.Client[v1.AgentServiceDeleteRequest, v1.AcceptedResponse]
-	setLogLevel    *connect.Client[v1.AgentServiceSetLogLevelRequest, v1.AcceptedResponse]
+	createAgent    *connect.Client[v1.CreateAgentRequest, v1.Agent]
+	getAgent       *connect.Client[v1.GetAgentRequest, v1.Agent]
+	listAgents     *connect.Client[v1.ListAgentsRequest, v1.ListAgentsResponse]
+	updateAgent    *connect.Client[v1.UpdateAgentRequest, v1.Agent]
+	deleteAgent    *connect.Client[v1.DeleteAgentRequest, emptypb.Empty]
+	setLogLevel    *connect.Client[v1.SetLogLevelRequest, v1.Agent]
+	streamPresence *connect.Client[v1.StreamPresenceRequest, v1.StreamPresenceResponse]
 }
 
-// List calls metarr.v1.AgentService.List.
-func (c *agentServiceClient) List(ctx context.Context, req *connect.Request[v1.AgentServiceListRequest]) (*connect.Response[v1.AgentServiceListResponse], error) {
-	return c.list.CallUnary(ctx, req)
+// CreateAgent calls metarr.v1.AgentService.CreateAgent.
+func (c *agentServiceClient) CreateAgent(ctx context.Context, req *connect.Request[v1.CreateAgentRequest]) (*connect.Response[v1.Agent], error) {
+	return c.createAgent.CallUnary(ctx, req)
 }
 
-// StreamPresence calls metarr.v1.AgentService.StreamPresence.
-func (c *agentServiceClient) StreamPresence(ctx context.Context, req *connect.Request[v1.AgentServiceStreamPresenceRequest]) (*connect.ServerStreamForClient[v1.AgentServiceStreamPresenceResponse], error) {
-	return c.streamPresence.CallServerStream(ctx, req)
+// GetAgent calls metarr.v1.AgentService.GetAgent.
+func (c *agentServiceClient) GetAgent(ctx context.Context, req *connect.Request[v1.GetAgentRequest]) (*connect.Response[v1.Agent], error) {
+	return c.getAgent.CallUnary(ctx, req)
 }
 
-// Upsert calls metarr.v1.AgentService.Upsert.
-func (c *agentServiceClient) Upsert(ctx context.Context, req *connect.Request[v1.AgentServiceUpsertRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return c.upsert.CallUnary(ctx, req)
+// ListAgents calls metarr.v1.AgentService.ListAgents.
+func (c *agentServiceClient) ListAgents(ctx context.Context, req *connect.Request[v1.ListAgentsRequest]) (*connect.Response[v1.ListAgentsResponse], error) {
+	return c.listAgents.CallUnary(ctx, req)
 }
 
-// Delete calls metarr.v1.AgentService.Delete.
-func (c *agentServiceClient) Delete(ctx context.Context, req *connect.Request[v1.AgentServiceDeleteRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return c.delete.CallUnary(ctx, req)
+// UpdateAgent calls metarr.v1.AgentService.UpdateAgent.
+func (c *agentServiceClient) UpdateAgent(ctx context.Context, req *connect.Request[v1.UpdateAgentRequest]) (*connect.Response[v1.Agent], error) {
+	return c.updateAgent.CallUnary(ctx, req)
+}
+
+// DeleteAgent calls metarr.v1.AgentService.DeleteAgent.
+func (c *agentServiceClient) DeleteAgent(ctx context.Context, req *connect.Request[v1.DeleteAgentRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.deleteAgent.CallUnary(ctx, req)
 }
 
 // SetLogLevel calls metarr.v1.AgentService.SetLogLevel.
-func (c *agentServiceClient) SetLogLevel(ctx context.Context, req *connect.Request[v1.AgentServiceSetLogLevelRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+func (c *agentServiceClient) SetLogLevel(ctx context.Context, req *connect.Request[v1.SetLogLevelRequest]) (*connect.Response[v1.Agent], error) {
 	return c.setLogLevel.CallUnary(ctx, req)
+}
+
+// StreamPresence calls metarr.v1.AgentService.StreamPresence.
+func (c *agentServiceClient) StreamPresence(ctx context.Context, req *connect.Request[v1.StreamPresenceRequest]) (*connect.ServerStreamForClient[v1.StreamPresenceResponse], error) {
+	return c.streamPresence.CallServerStream(ctx, req)
 }
 
 // AgentServiceHandler is an implementation of the metarr.v1.AgentService service.
 type AgentServiceHandler interface {
-	List(context.Context, *connect.Request[v1.AgentServiceListRequest]) (*connect.Response[v1.AgentServiceListResponse], error)
-	StreamPresence(context.Context, *connect.Request[v1.AgentServiceStreamPresenceRequest], *connect.ServerStream[v1.AgentServiceStreamPresenceResponse]) error
-	Upsert(context.Context, *connect.Request[v1.AgentServiceUpsertRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	Delete(context.Context, *connect.Request[v1.AgentServiceDeleteRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	SetLogLevel(context.Context, *connect.Request[v1.AgentServiceSetLogLevelRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	CreateAgent(context.Context, *connect.Request[v1.CreateAgentRequest]) (*connect.Response[v1.Agent], error)
+	GetAgent(context.Context, *connect.Request[v1.GetAgentRequest]) (*connect.Response[v1.Agent], error)
+	ListAgents(context.Context, *connect.Request[v1.ListAgentsRequest]) (*connect.Response[v1.ListAgentsResponse], error)
+	// UpdateAgent returns the stored agent after the synchronous write has
+	// landed (AIP-134).
+	UpdateAgent(context.Context, *connect.Request[v1.UpdateAgentRequest]) (*connect.Response[v1.Agent], error)
+	DeleteAgent(context.Context, *connect.Request[v1.DeleteAgentRequest]) (*connect.Response[emptypb.Empty], error)
+	SetLogLevel(context.Context, *connect.Request[v1.SetLogLevelRequest]) (*connect.Response[v1.Agent], error)
+	StreamPresence(context.Context, *connect.Request[v1.StreamPresenceRequest], *connect.ServerStream[v1.StreamPresenceResponse]) error
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -150,28 +190,34 @@ type AgentServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	agentServiceMethods := v1.File_metarr_v1_agents_proto.Services().ByName("AgentService").Methods()
-	agentServiceListHandler := connect.NewUnaryHandler(
-		AgentServiceListProcedure,
-		svc.List,
-		connect.WithSchema(agentServiceMethods.ByName("List")),
+	agentServiceCreateAgentHandler := connect.NewUnaryHandler(
+		AgentServiceCreateAgentProcedure,
+		svc.CreateAgent,
+		connect.WithSchema(agentServiceMethods.ByName("CreateAgent")),
 		connect.WithHandlerOptions(opts...),
 	)
-	agentServiceStreamPresenceHandler := connect.NewServerStreamHandler(
-		AgentServiceStreamPresenceProcedure,
-		svc.StreamPresence,
-		connect.WithSchema(agentServiceMethods.ByName("StreamPresence")),
+	agentServiceGetAgentHandler := connect.NewUnaryHandler(
+		AgentServiceGetAgentProcedure,
+		svc.GetAgent,
+		connect.WithSchema(agentServiceMethods.ByName("GetAgent")),
 		connect.WithHandlerOptions(opts...),
 	)
-	agentServiceUpsertHandler := connect.NewUnaryHandler(
-		AgentServiceUpsertProcedure,
-		svc.Upsert,
-		connect.WithSchema(agentServiceMethods.ByName("Upsert")),
+	agentServiceListAgentsHandler := connect.NewUnaryHandler(
+		AgentServiceListAgentsProcedure,
+		svc.ListAgents,
+		connect.WithSchema(agentServiceMethods.ByName("ListAgents")),
 		connect.WithHandlerOptions(opts...),
 	)
-	agentServiceDeleteHandler := connect.NewUnaryHandler(
-		AgentServiceDeleteProcedure,
-		svc.Delete,
-		connect.WithSchema(agentServiceMethods.ByName("Delete")),
+	agentServiceUpdateAgentHandler := connect.NewUnaryHandler(
+		AgentServiceUpdateAgentProcedure,
+		svc.UpdateAgent,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateAgent")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceDeleteAgentHandler := connect.NewUnaryHandler(
+		AgentServiceDeleteAgentProcedure,
+		svc.DeleteAgent,
+		connect.WithSchema(agentServiceMethods.ByName("DeleteAgent")),
 		connect.WithHandlerOptions(opts...),
 	)
 	agentServiceSetLogLevelHandler := connect.NewUnaryHandler(
@@ -180,18 +226,28 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("SetLogLevel")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceStreamPresenceHandler := connect.NewServerStreamHandler(
+		AgentServiceStreamPresenceProcedure,
+		svc.StreamPresence,
+		connect.WithSchema(agentServiceMethods.ByName("StreamPresence")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/metarr.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case AgentServiceListProcedure:
-			agentServiceListHandler.ServeHTTP(w, r)
-		case AgentServiceStreamPresenceProcedure:
-			agentServiceStreamPresenceHandler.ServeHTTP(w, r)
-		case AgentServiceUpsertProcedure:
-			agentServiceUpsertHandler.ServeHTTP(w, r)
-		case AgentServiceDeleteProcedure:
-			agentServiceDeleteHandler.ServeHTTP(w, r)
+		case AgentServiceCreateAgentProcedure:
+			agentServiceCreateAgentHandler.ServeHTTP(w, r)
+		case AgentServiceGetAgentProcedure:
+			agentServiceGetAgentHandler.ServeHTTP(w, r)
+		case AgentServiceListAgentsProcedure:
+			agentServiceListAgentsHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateAgentProcedure:
+			agentServiceUpdateAgentHandler.ServeHTTP(w, r)
+		case AgentServiceDeleteAgentProcedure:
+			agentServiceDeleteAgentHandler.ServeHTTP(w, r)
 		case AgentServiceSetLogLevelProcedure:
 			agentServiceSetLogLevelHandler.ServeHTTP(w, r)
+		case AgentServiceStreamPresenceProcedure:
+			agentServiceStreamPresenceHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -201,22 +257,30 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 // UnimplementedAgentServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAgentServiceHandler struct{}
 
-func (UnimplementedAgentServiceHandler) List(context.Context, *connect.Request[v1.AgentServiceListRequest]) (*connect.Response[v1.AgentServiceListResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.AgentService.List is not implemented"))
+func (UnimplementedAgentServiceHandler) CreateAgent(context.Context, *connect.Request[v1.CreateAgentRequest]) (*connect.Response[v1.Agent], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.AgentService.CreateAgent is not implemented"))
 }
 
-func (UnimplementedAgentServiceHandler) StreamPresence(context.Context, *connect.Request[v1.AgentServiceStreamPresenceRequest], *connect.ServerStream[v1.AgentServiceStreamPresenceResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.AgentService.StreamPresence is not implemented"))
+func (UnimplementedAgentServiceHandler) GetAgent(context.Context, *connect.Request[v1.GetAgentRequest]) (*connect.Response[v1.Agent], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.AgentService.GetAgent is not implemented"))
 }
 
-func (UnimplementedAgentServiceHandler) Upsert(context.Context, *connect.Request[v1.AgentServiceUpsertRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.AgentService.Upsert is not implemented"))
+func (UnimplementedAgentServiceHandler) ListAgents(context.Context, *connect.Request[v1.ListAgentsRequest]) (*connect.Response[v1.ListAgentsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.AgentService.ListAgents is not implemented"))
 }
 
-func (UnimplementedAgentServiceHandler) Delete(context.Context, *connect.Request[v1.AgentServiceDeleteRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.AgentService.Delete is not implemented"))
+func (UnimplementedAgentServiceHandler) UpdateAgent(context.Context, *connect.Request[v1.UpdateAgentRequest]) (*connect.Response[v1.Agent], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.AgentService.UpdateAgent is not implemented"))
 }
 
-func (UnimplementedAgentServiceHandler) SetLogLevel(context.Context, *connect.Request[v1.AgentServiceSetLogLevelRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+func (UnimplementedAgentServiceHandler) DeleteAgent(context.Context, *connect.Request[v1.DeleteAgentRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.AgentService.DeleteAgent is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) SetLogLevel(context.Context, *connect.Request[v1.SetLogLevelRequest]) (*connect.Response[v1.Agent], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.AgentService.SetLogLevel is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) StreamPresence(context.Context, *connect.Request[v1.StreamPresenceRequest], *connect.ServerStream[v1.StreamPresenceResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.AgentService.StreamPresence is not implemented"))
 }

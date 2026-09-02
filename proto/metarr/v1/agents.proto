@@ -2,28 +2,45 @@ syntax = "proto3";
 
 package metarr.v1;
 
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "metarr/bus/v1/agent_contract.proto";
-import "metarr/v1/common.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
-// The operator's side of agent configuration, plus the agent view the server
-// serves to the UI. The server<->agent contract messages (AgentIdentity,
-// AgentTelemetry, GPUTelemetry, AgentPresence, AgentConfigProjection,
-// MappedDirectory) live in metarr.bus.v1 (docs/adr/0008); this file imports
-// them. internal/shared/agentproto aliases the contract types,
-// internal/server/agentregistry aliases the view types, and the TypeScript
-// UI reads the generated code. See docs/adr/0005.
-
-// AgentConfig is the operator's side of one agent's configuration — what an
-// operator says about an agent that has announced itself. It is part of the
-// application config document.
-message AgentConfig {
+// Agent is one agent: the operator's configuration of it merged with what the
+// agent itself reports and whether it is currently present. This message is
+// the single definition across the Go server, the UI and the stored document
+// (docs/adr/0005). The server<->agent contract messages it references
+// (AgentIdentity, AgentTelemetry) live in metarr.bus.v1 (docs/adr/0008).
+//
+// slug is the operator-chosen identifier the collection is addressed by
+// (docs/adr/0010): GetAgent / DeleteAgent take it as slug, CreateAgent
+// carries it in agent_id.
+message Agent {
+  // Operator-set, writable, persisted.
   string slug = 1;
   string display_name = 2;
   repeated AgentDirectoryMapping mappings = 3;
   string log_level = 4;
+
+  // Output-only plain fields. GetAgent / ListAgents / StreamPresence populate
+  // these from the presence records the server keeps in Redis; CreateAgent /
+  // UpdateAgent ignore them in the request and none of them is ever
+  // persisted. Documented as output-only rather than annotated — no
+  // google.api.field_behavior, no googleapis dependency (docs/adr/0010).
+
+  // configured is true for an agent that has a configuration entry, false for
+  // one that has only announced itself over Redis. It is how the UI tells a
+  // machine waiting to be set up from one already set up.
+  bool configured = 5;
+  // online is presence, not health — true while the agent is still refreshing
+  // its presence key.
+  bool online = 6;
+  metarr.bus.v1.AgentIdentity identity = 7;
+  metarr.bus.v1.AgentTelemetry telemetry = 8;
+  google.protobuf.Timestamp reported_at = 9;
 }
 
 // AgentDirectoryMapping ties one configured scan directory to the path the
@@ -33,66 +50,83 @@ message AgentDirectoryMapping {
   string agent_path = 2;
 }
 
-// AgentMappingView is one library mapping shown in both machines' terms.
-message AgentMappingView {
-  string scanner_slug = 1;
-  string scan_type = 2;
-  string server_path = 3;
-  string agent_path = 4;
+// CreateAgentRequest carries the new agent's slug in agent_id (AIP-133). A
+// slug set in agent must match it or be empty, else InvalidArgument. A slug
+// already used by a configured agent is AlreadyExists. Presence fields in
+// agent are ignored.
+message CreateAgentRequest {
+  string agent_id = 1;
+  Agent agent = 2;
 }
 
-// AgentView is one agent as the UI sees it: what the operator configured,
-// what the agent itself reports, and whether it is currently present.
-message AgentView {
-  string slug = 1;
-  string display_name = 2;
-  // online is presence, not health — true while the agent is still refreshing
-  // its key.
-  bool online = 3;
-  // configured separates an agent that has announced itself from one someone
-  // has actually set up.
-  bool configured = 4;
-  metarr.bus.v1.AgentIdentity identity = 5;
-  metarr.bus.v1.AgentTelemetry telemetry = 6;
-  google.protobuf.Timestamp reported_at = 7;
-  repeated AgentMappingView mappings = 8;
-  string log_level = 9;
-}
-
-message AgentServiceListRequest {}
-
-message AgentServiceListResponse {
-  repeated AgentView agents = 1;
-}
-
-message AgentServiceUpsertRequest {
-  AgentConfig agent = 1;
-}
-
-message AgentServiceDeleteRequest {
+message GetAgentRequest {
   string slug = 1;
 }
 
-message AgentServiceSetLogLevelRequest {
+// ListAgentsRequest is the AIP-158 / 132 / 160 List contract: a page_size /
+// page_token window, an order_by sort (slug, display_name), and a filter
+// entry point. filter translation is deferred (docs/adr/0010) — any
+// non-empty filter is Unimplemented. The response merges configured agents
+// with whoever is currently present in Redis.
+message ListAgentsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  string filter = 3;
+  string order_by = 4;
+}
+
+message ListAgentsResponse {
+  repeated Agent agents = 1;
+  string next_page_token = 2;
+}
+
+// UpdateAgentRequest is an AIP-134 partial update: update_mask names the
+// fields to change (display_name, mappings, log_level) and agent carries
+// their new values, matched to a stored agent by its slug. An empty mask, a
+// path naming no field, or a path naming slug or an output-only presence
+// field is InvalidArgument. allow_missing:true makes an Update against an
+// unknown slug create — the mask is ignored on that branch and the whole
+// resource is validated as a Create; allow_missing:false is NotFound.
+message UpdateAgentRequest {
+  Agent agent = 1;
+  google.protobuf.FieldMask update_mask = 2;
+  bool allow_missing = 3;
+}
+
+message DeleteAgentRequest {
+  string slug = 1;
+}
+
+// SetLogLevelRequest sets one agent's log level without touching its
+// mappings, and works for an agent that has only announced itself — the
+// server creates a bare configuration entry for it. Returns the stored
+// agent.
+message SetLogLevelRequest {
   string slug = 1;
   string log_level = 2;
 }
 
-message AgentServiceStreamPresenceRequest {}
+message StreamPresenceRequest {}
 
-message AgentServiceStreamPresenceResponse {
-  repeated AgentView agents = 1;
+message StreamPresenceResponse {
+  repeated Agent agents = 1;
 }
 
-// AgentService is the config half of agent management: List merges configured
-// agents with whoever is currently present in Redis. StreamPresence is the
-// exact same merged view pushed continuously, replacing the agents.presence
-// wsbus topic — reusing AgentView rather than an opaque payload since it's
-// already fully modeled for List.
+// AgentService is the agent collection on AIP standard methods
+// (docs/adr/0010): slug-addressed, FieldMask partial update, paginated List,
+// synchronous writes that return the stored resource (docs/adr/0002). Get /
+// List / StreamPresence populate the output-only presence fields from the
+// Redis presence records; the writes ignore them. SetLogLevel and
+// StreamPresence are custom methods (AIP-136); StreamPresence pushes the
+// merged List view continuously.
 service AgentService {
-  rpc List(AgentServiceListRequest) returns (AgentServiceListResponse);
-  rpc StreamPresence(AgentServiceStreamPresenceRequest) returns (stream AgentServiceStreamPresenceResponse);
-  rpc Upsert(AgentServiceUpsertRequest) returns (metarr.v1.AcceptedResponse);
-  rpc Delete(AgentServiceDeleteRequest) returns (metarr.v1.AcceptedResponse);
-  rpc SetLogLevel(AgentServiceSetLogLevelRequest) returns (metarr.v1.AcceptedResponse);
+  rpc CreateAgent(CreateAgentRequest) returns (Agent);
+  rpc GetAgent(GetAgentRequest) returns (Agent);
+  rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
+  // UpdateAgent returns the stored agent after the synchronous write has
+  // landed (AIP-134).
+  rpc UpdateAgent(UpdateAgentRequest) returns (Agent);
+  rpc DeleteAgent(DeleteAgentRequest) returns (google.protobuf.Empty);
+  rpc SetLogLevel(SetLogLevelRequest) returns (Agent);
+  rpc StreamPresence(StreamPresenceRequest) returns (stream StreamPresenceResponse);
 }

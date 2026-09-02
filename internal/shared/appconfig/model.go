@@ -39,7 +39,7 @@ type (
 	DirectoryScannerConfig = metarrv1.DirectoryScannerConfig
 	ScanDirectory          = metarrv1.ScanDirectory
 	SidecarTypeDefinition  = busv1.SidecarTypeDefinition
-	AgentConfig            = metarrv1.AgentConfig
+	Agent                  = metarrv1.Agent
 	AgentDirectoryMapping  = metarrv1.AgentDirectoryMapping
 	LoggingConfig          = metarrv1.LoggingConfig
 	EventBusConfig         = metarrv1.EventBusConfig
@@ -167,7 +167,7 @@ func FindAgentIndex(config *Config, slug string) int {
 // Only one agent may own a scan directory: two agents mapping the same library
 // would both scan it and each overwrite the other's records with its own view.
 // The API refuses the second mapping, so finding the first is finding the only.
-func AgentForScanner(config *Config, scannerSlug string) (*AgentConfig, bool) {
+func AgentForScanner(config *Config, scannerSlug string) (*Agent, bool) {
 	for _, agent := range config.Agents {
 		for _, mapping := range agent.Mappings {
 			if mapping.ScannerSlug == scannerSlug {
@@ -179,7 +179,7 @@ func AgentForScanner(config *Config, scannerSlug string) (*AgentConfig, bool) {
 }
 
 // FindMapping returns agent's mapping for scannerSlug.
-func FindMapping(agent *AgentConfig, scannerSlug string) (*AgentDirectoryMapping, bool) {
+func FindMapping(agent *Agent, scannerSlug string) (*AgentDirectoryMapping, bool) {
 	for _, mapping := range agent.Mappings {
 		if mapping.ScannerSlug == scannerSlug {
 			return mapping, true
@@ -261,7 +261,7 @@ func Default() *Config {
 			ScanDirectories: []*ScanDirectory{},
 			SidecarTypes:    DefaultSidecarTypes(),
 		},
-		Agents: []*AgentConfig{},
+		Agents: []*Agent{},
 		// Cloned: loadBuiltinDefaults caches its parse, and a caller that
 		// mutates cfg.Logging or cfg.EventBus must not reach through into
 		// that shared copy.

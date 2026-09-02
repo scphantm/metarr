@@ -56,7 +56,7 @@ func configWithMappedAgent() *appconfig.Config {
 				{ScannerSlug: "movies", ScanType: "movie", Directory: "/media/movies"},
 			},
 		},
-		Agents: []*appconfig.AgentConfig{{
+		Agents: []*appconfig.Agent{{
 			Slug:     "nas-01",
 			Mappings: []*appconfig.AgentDirectoryMapping{{ScannerSlug: "movies", AgentPath: "/mnt/movies"}},
 		}},

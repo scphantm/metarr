@@ -9,7 +9,7 @@ import {
   useScanDirectories,
 } from "../../api/queries";
 import type { AgentTelemetry } from "../../gen/metarr/bus/v1/agent_contract_pb";
-import type { AgentView } from "../../gen/metarr/v1/agents_pb";
+import type { Agent } from "../../gen/metarr/v1/agents_pb";
 import { Button, Card, EmptyState } from "../../components/Card";
 import { PageError, PageLoading } from "../../components/PageState";
 import { PageHeader } from "../../layout/AppShell";
@@ -106,7 +106,7 @@ function AgentCard({
   onConfigure,
   onClose,
 }: {
-  agent: AgentView;
+  agent: Agent;
   scanDirectories: { scannerSlug: string; directory: string }[];
   configuring: boolean;
   onConfigure: () => void;
@@ -152,7 +152,7 @@ function AgentCard({
           onDone={onClose}
         />
       ) : (
-        <MappingList agent={agent} />
+        <MappingList agent={agent} scanDirectories={scanDirectories} />
       )}
     </Card>
   );
@@ -161,7 +161,7 @@ function AgentCard({
 // Status is a word first and a colour second: an operator scanning a column of
 // cards reads the word, and colour alone would carry the whole meaning for
 // nobody who cannot separate the hues.
-function AgentStatus({ agent }: { agent: AgentView }) {
+function AgentStatus({ agent }: { agent: Agent }) {
   if (!agent.online) {
     return <Badge status="default" text="Offline" />;
   }
@@ -171,7 +171,7 @@ function AgentStatus({ agent }: { agent: AgentView }) {
   return <Badge status="success" text="Online" />;
 }
 
-function AgentIdentityGrid({ agent }: { agent: AgentView }) {
+function AgentIdentityGrid({ agent }: { agent: Agent }) {
   const identity = agent.identity;
   if (!identity) return null;
 
@@ -267,7 +267,20 @@ function Meter({
   );
 }
 
-function MappingList({ agent }: { agent: AgentView }) {
+function MappingList({
+  agent,
+  scanDirectories,
+}: {
+  agent: Agent;
+  scanDirectories: { scannerSlug: string; directory: string }[];
+}) {
+  // The server sends raw mappings (scanner_slug + agent_path); the library's
+  // path on this server is joined in here from the scan directories the page
+  // already loaded.
+  const serverPathFor = (scannerSlug: string) =>
+    scanDirectories.find((directory) => directory.scannerSlug === scannerSlug)
+      ?.directory ?? "";
+
   if (agent.mappings.length === 0) {
     return (
       <Typography.Text type="secondary" style={{ fontSize: 14 }}>
@@ -285,7 +298,7 @@ function MappingList({ agent }: { agent: AgentView }) {
         <div key={mapping.scannerSlug} className="agent-mapping-row">
           <span className="agent-mapping-slug">{mapping.scannerSlug}</span>
           <span className="agent-mapping-path">
-            {mapping.serverPath || "—"}
+            {serverPathFor(mapping.scannerSlug) || "—"}
           </span>
           <Typography.Text type="secondary" aria-hidden="true">
             →

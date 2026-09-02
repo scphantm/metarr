@@ -17,7 +17,7 @@ export const file_metarr_v1_logging: GenFile = /*@__PURE__*/
 /**
  * LoggingConfig controls the centralized logging pipeline: the servers own
  * log level, plus informational fields describing where Fluent Bit ships
- * logs. Each agents own level lives on its AgentConfig entry instead.
+ * logs. Each agents own level lives on its Agent entry instead.
  *
  * @generated from message metarr.v1.LoggingConfig
  */

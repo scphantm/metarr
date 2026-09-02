@@ -4,29 +4,35 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { EmptySchema, FieldMask, Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_empty, file_google_protobuf_field_mask, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { AgentIdentity, AgentTelemetry } from "../bus/v1/agent_contract_pb";
 import { file_metarr_bus_v1_agent_contract } from "../bus/v1/agent_contract_pb";
-import type { AcceptedResponseSchema } from "./common_pb";
-import { file_metarr_v1_common } from "./common_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metarr/v1/agents.proto.
  */
 export const file_metarr_v1_agents: GenFile = /*@__PURE__*/
-  fileDesc("ChZtZXRhcnIvdjEvYWdlbnRzLnByb3RvEgltZXRhcnIudjEieAoLQWdlbnRDb25maWcSDAoEc2x1ZxgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSMgoIbWFwcGluZ3MYAyADKAsyIC5tZXRhcnIudjEuQWdlbnREaXJlY3RvcnlNYXBwaW5nEhEKCWxvZ19sZXZlbBgEIAEoCSJBChVBZ2VudERpcmVjdG9yeU1hcHBpbmcSFAoMc2Nhbm5lcl9zbHVnGAEgASgJEhIKCmFnZW50X3BhdGgYAiABKAkiZAoQQWdlbnRNYXBwaW5nVmlldxIUCgxzY2FubmVyX3NsdWcYASABKAkSEQoJc2Nhbl90eXBlGAIgASgJEhMKC3NlcnZlcl9wYXRoGAMgASgJEhIKCmFnZW50X3BhdGgYBCABKAkiqAIKCUFnZW50VmlldxIMCgRzbHVnGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIOCgZvbmxpbmUYAyABKAgSEgoKY29uZmlndXJlZBgEIAEoCBIuCghpZGVudGl0eRgFIAEoCzIcLm1ldGFyci5idXMudjEuQWdlbnRJZGVudGl0eRIwCgl0ZWxlbWV0cnkYBiABKAsyHS5tZXRhcnIuYnVzLnYxLkFnZW50VGVsZW1ldHJ5Ei8KC3JlcG9ydGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBItCghtYXBwaW5ncxgIIAMoCzIbLm1ldGFyci52MS5BZ2VudE1hcHBpbmdWaWV3EhEKCWxvZ19sZXZlbBgJIAEoCSIZChdBZ2VudFNlcnZpY2VMaXN0UmVxdWVzdCJAChhBZ2VudFNlcnZpY2VMaXN0UmVzcG9uc2USJAoGYWdlbnRzGAEgAygLMhQubWV0YXJyLnYxLkFnZW50VmlldyJCChlBZ2VudFNlcnZpY2VVcHNlcnRSZXF1ZXN0EiUKBWFnZW50GAEgASgLMhYubWV0YXJyLnYxLkFnZW50Q29uZmlnIikKGUFnZW50U2VydmljZURlbGV0ZVJlcXVlc3QSDAoEc2x1ZxgBIAEoCSJBCh5BZ2VudFNlcnZpY2VTZXRMb2dMZXZlbFJlcXVlc3QSDAoEc2x1ZxgBIAEoCRIRCglsb2dfbGV2ZWwYAiABKAkiIwohQWdlbnRTZXJ2aWNlU3RyZWFtUHJlc2VuY2VSZXF1ZXN0IkoKIkFnZW50U2VydmljZVN0cmVhbVByZXNlbmNlUmVzcG9uc2USJAoGYWdlbnRzGAEgAygLMhQubWV0YXJyLnYxLkFnZW50VmlldzLBAwoMQWdlbnRTZXJ2aWNlEk8KBExpc3QSIi5tZXRhcnIudjEuQWdlbnRTZXJ2aWNlTGlzdFJlcXVlc3QaIy5tZXRhcnIudjEuQWdlbnRTZXJ2aWNlTGlzdFJlc3BvbnNlEm8KDlN0cmVhbVByZXNlbmNlEiwubWV0YXJyLnYxLkFnZW50U2VydmljZVN0cmVhbVByZXNlbmNlUmVxdWVzdBotLm1ldGFyci52MS5BZ2VudFNlcnZpY2VTdHJlYW1QcmVzZW5jZVJlc3BvbnNlMAESSwoGVXBzZXJ0EiQubWV0YXJyLnYxLkFnZW50U2VydmljZVVwc2VydFJlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZRJLCgZEZWxldGUSJC5tZXRhcnIudjEuQWdlbnRTZXJ2aWNlRGVsZXRlUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlElUKC1NldExvZ0xldmVsEikubWV0YXJyLnYxLkFnZW50U2VydmljZVNldExvZ0xldmVsUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_metarr_bus_v1_agent_contract, file_metarr_v1_common]);
+  fileDesc("ChZtZXRhcnIvdjEvYWdlbnRzLnByb3RvEgltZXRhcnIudjEiqQIKBUFnZW50EgwKBHNsdWcYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEjIKCG1hcHBpbmdzGAMgAygLMiAubWV0YXJyLnYxLkFnZW50RGlyZWN0b3J5TWFwcGluZxIRCglsb2dfbGV2ZWwYBCABKAkSEgoKY29uZmlndXJlZBgFIAEoCBIOCgZvbmxpbmUYBiABKAgSLgoIaWRlbnRpdHkYByABKAsyHC5tZXRhcnIuYnVzLnYxLkFnZW50SWRlbnRpdHkSMAoJdGVsZW1ldHJ5GAggASgLMh0ubWV0YXJyLmJ1cy52MS5BZ2VudFRlbGVtZXRyeRIvCgtyZXBvcnRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiQQoVQWdlbnREaXJlY3RvcnlNYXBwaW5nEhQKDHNjYW5uZXJfc2x1ZxgBIAEoCRISCgphZ2VudF9wYXRoGAIgASgJIkcKEkNyZWF0ZUFnZW50UmVxdWVzdBIQCghhZ2VudF9pZBgBIAEoCRIfCgVhZ2VudBgCIAEoCzIQLm1ldGFyci52MS5BZ2VudCIfCg9HZXRBZ2VudFJlcXVlc3QSDAoEc2x1ZxgBIAEoCSJcChFMaXN0QWdlbnRzUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRIOCgZmaWx0ZXIYAyABKAkSEAoIb3JkZXJfYnkYBCABKAkiTwoSTGlzdEFnZW50c1Jlc3BvbnNlEiAKBmFnZW50cxgBIAMoCzIQLm1ldGFyci52MS5BZ2VudBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkifQoSVXBkYXRlQWdlbnRSZXF1ZXN0Eh8KBWFnZW50GAEgASgLMhAubWV0YXJyLnYxLkFnZW50Ei8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzaxIVCg1hbGxvd19taXNzaW5nGAMgASgIIiIKEkRlbGV0ZUFnZW50UmVxdWVzdBIMCgRzbHVnGAEgASgJIjUKElNldExvZ0xldmVsUmVxdWVzdBIMCgRzbHVnGAEgASgJEhEKCWxvZ19sZXZlbBgCIAEoCSIXChVTdHJlYW1QcmVzZW5jZVJlcXVlc3QiOgoWU3RyZWFtUHJlc2VuY2VSZXNwb25zZRIgCgZhZ2VudHMYASADKAsyEC5tZXRhcnIudjEuQWdlbnQy8gMKDEFnZW50U2VydmljZRI+CgtDcmVhdGVBZ2VudBIdLm1ldGFyci52MS5DcmVhdGVBZ2VudFJlcXVlc3QaEC5tZXRhcnIudjEuQWdlbnQSOAoIR2V0QWdlbnQSGi5tZXRhcnIudjEuR2V0QWdlbnRSZXF1ZXN0GhAubWV0YXJyLnYxLkFnZW50EkkKCkxpc3RBZ2VudHMSHC5tZXRhcnIudjEuTGlzdEFnZW50c1JlcXVlc3QaHS5tZXRhcnIudjEuTGlzdEFnZW50c1Jlc3BvbnNlEj4KC1VwZGF0ZUFnZW50Eh0ubWV0YXJyLnYxLlVwZGF0ZUFnZW50UmVxdWVzdBoQLm1ldGFyci52MS5BZ2VudBJECgtEZWxldGVBZ2VudBIdLm1ldGFyci52MS5EZWxldGVBZ2VudFJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSPgoLU2V0TG9nTGV2ZWwSHS5tZXRhcnIudjEuU2V0TG9nTGV2ZWxSZXF1ZXN0GhAubWV0YXJyLnYxLkFnZW50ElcKDlN0cmVhbVByZXNlbmNlEiAubWV0YXJyLnYxLlN0cmVhbVByZXNlbmNlUmVxdWVzdBohLm1ldGFyci52MS5TdHJlYW1QcmVzZW5jZVJlc3BvbnNlMAFCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_google_protobuf_empty, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_metarr_bus_v1_agent_contract]);
 
 /**
- * AgentConfig is the operator's side of one agent's configuration — what an
- * operator says about an agent that has announced itself. It is part of the
- * application config document.
+ * Agent is one agent: the operator's configuration of it merged with what the
+ * agent itself reports and whether it is currently present. This message is
+ * the single definition across the Go server, the UI and the stored document
+ * (docs/adr/0005). The server<->agent contract messages it references
+ * (AgentIdentity, AgentTelemetry) live in metarr.bus.v1 (docs/adr/0008).
  *
- * @generated from message metarr.v1.AgentConfig
+ * slug is the operator-chosen identifier the collection is addressed by
+ * (docs/adr/0010): GetAgent / DeleteAgent take it as slug, CreateAgent
+ * carries it in agent_id.
+ *
+ * @generated from message metarr.v1.Agent
  */
-export type AgentConfig = Message<"metarr.v1.AgentConfig"> & {
+export type Agent = Message<"metarr.v1.Agent"> & {
   /**
+   * Operator-set, writable, persisted.
+   *
    * @generated from field: string slug = 1;
    */
   slug: string;
@@ -45,13 +51,45 @@ export type AgentConfig = Message<"metarr.v1.AgentConfig"> & {
    * @generated from field: string log_level = 4;
    */
   logLevel: string;
+
+  /**
+   * configured is true for an agent that has a configuration entry, false for
+   * one that has only announced itself over Redis. It is how the UI tells a
+   * machine waiting to be set up from one already set up.
+   *
+   * @generated from field: bool configured = 5;
+   */
+  configured: boolean;
+
+  /**
+   * online is presence, not health — true while the agent is still refreshing
+   * its presence key.
+   *
+   * @generated from field: bool online = 6;
+   */
+  online: boolean;
+
+  /**
+   * @generated from field: metarr.bus.v1.AgentIdentity identity = 7;
+   */
+  identity?: AgentIdentity | undefined;
+
+  /**
+   * @generated from field: metarr.bus.v1.AgentTelemetry telemetry = 8;
+   */
+  telemetry?: AgentTelemetry | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp reported_at = 9;
+   */
+  reportedAt?: Timestamp | undefined;
 };
 
 /**
- * Describes the message metarr.v1.AgentConfig.
- * Use `create(AgentConfigSchema)` to create a new message.
+ * Describes the message metarr.v1.Agent.
+ * Use `create(AgentSchema)` to create a new message.
  */
-export const AgentConfigSchema: GenMessage<AgentConfig> = /*@__PURE__*/
+export const AgentSchema: GenMessage<Agent> = /*@__PURE__*/
   messageDesc(file_metarr_v1_agents, 0);
 
 /**
@@ -80,156 +118,148 @@ export const AgentDirectoryMappingSchema: GenMessage<AgentDirectoryMapping> = /*
   messageDesc(file_metarr_v1_agents, 1);
 
 /**
- * AgentMappingView is one library mapping shown in both machines' terms.
+ * CreateAgentRequest carries the new agent's slug in agent_id (AIP-133). A
+ * slug set in agent must match it or be empty, else InvalidArgument. A slug
+ * already used by a configured agent is AlreadyExists. Presence fields in
+ * agent are ignored.
  *
- * @generated from message metarr.v1.AgentMappingView
+ * @generated from message metarr.v1.CreateAgentRequest
  */
-export type AgentMappingView = Message<"metarr.v1.AgentMappingView"> & {
+export type CreateAgentRequest = Message<"metarr.v1.CreateAgentRequest"> & {
   /**
-   * @generated from field: string scanner_slug = 1;
+   * @generated from field: string agent_id = 1;
    */
-  scannerSlug: string;
+  agentId: string;
 
   /**
-   * @generated from field: string scan_type = 2;
+   * @generated from field: metarr.v1.Agent agent = 2;
    */
-  scanType: string;
-
-  /**
-   * @generated from field: string server_path = 3;
-   */
-  serverPath: string;
-
-  /**
-   * @generated from field: string agent_path = 4;
-   */
-  agentPath: string;
+  agent?: Agent | undefined;
 };
 
 /**
- * Describes the message metarr.v1.AgentMappingView.
- * Use `create(AgentMappingViewSchema)` to create a new message.
+ * Describes the message metarr.v1.CreateAgentRequest.
+ * Use `create(CreateAgentRequestSchema)` to create a new message.
  */
-export const AgentMappingViewSchema: GenMessage<AgentMappingView> = /*@__PURE__*/
+export const CreateAgentRequestSchema: GenMessage<CreateAgentRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_agents, 2);
 
 /**
- * AgentView is one agent as the UI sees it: what the operator configured,
- * what the agent itself reports, and whether it is currently present.
- *
- * @generated from message metarr.v1.AgentView
+ * @generated from message metarr.v1.GetAgentRequest
  */
-export type AgentView = Message<"metarr.v1.AgentView"> & {
+export type GetAgentRequest = Message<"metarr.v1.GetAgentRequest"> & {
   /**
    * @generated from field: string slug = 1;
    */
   slug: string;
-
-  /**
-   * @generated from field: string display_name = 2;
-   */
-  displayName: string;
-
-  /**
-   * online is presence, not health — true while the agent is still refreshing
-   * its key.
-   *
-   * @generated from field: bool online = 3;
-   */
-  online: boolean;
-
-  /**
-   * configured separates an agent that has announced itself from one someone
-   * has actually set up.
-   *
-   * @generated from field: bool configured = 4;
-   */
-  configured: boolean;
-
-  /**
-   * @generated from field: metarr.bus.v1.AgentIdentity identity = 5;
-   */
-  identity?: AgentIdentity | undefined;
-
-  /**
-   * @generated from field: metarr.bus.v1.AgentTelemetry telemetry = 6;
-   */
-  telemetry?: AgentTelemetry | undefined;
-
-  /**
-   * @generated from field: google.protobuf.Timestamp reported_at = 7;
-   */
-  reportedAt?: Timestamp | undefined;
-
-  /**
-   * @generated from field: repeated metarr.v1.AgentMappingView mappings = 8;
-   */
-  mappings: AgentMappingView[];
-
-  /**
-   * @generated from field: string log_level = 9;
-   */
-  logLevel: string;
 };
 
 /**
- * Describes the message metarr.v1.AgentView.
- * Use `create(AgentViewSchema)` to create a new message.
+ * Describes the message metarr.v1.GetAgentRequest.
+ * Use `create(GetAgentRequestSchema)` to create a new message.
  */
-export const AgentViewSchema: GenMessage<AgentView> = /*@__PURE__*/
+export const GetAgentRequestSchema: GenMessage<GetAgentRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_agents, 3);
 
 /**
- * @generated from message metarr.v1.AgentServiceListRequest
+ * ListAgentsRequest is the AIP-158 / 132 / 160 List contract: a page_size /
+ * page_token window, an order_by sort (slug, display_name), and a filter
+ * entry point. filter translation is deferred (docs/adr/0010) — any
+ * non-empty filter is Unimplemented. The response merges configured agents
+ * with whoever is currently present in Redis.
+ *
+ * @generated from message metarr.v1.ListAgentsRequest
  */
-export type AgentServiceListRequest = Message<"metarr.v1.AgentServiceListRequest"> & {
+export type ListAgentsRequest = Message<"metarr.v1.ListAgentsRequest"> & {
+  /**
+   * @generated from field: int32 page_size = 1;
+   */
+  pageSize: number;
+
+  /**
+   * @generated from field: string page_token = 2;
+   */
+  pageToken: string;
+
+  /**
+   * @generated from field: string filter = 3;
+   */
+  filter: string;
+
+  /**
+   * @generated from field: string order_by = 4;
+   */
+  orderBy: string;
 };
 
 /**
- * Describes the message metarr.v1.AgentServiceListRequest.
- * Use `create(AgentServiceListRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.ListAgentsRequest.
+ * Use `create(ListAgentsRequestSchema)` to create a new message.
  */
-export const AgentServiceListRequestSchema: GenMessage<AgentServiceListRequest> = /*@__PURE__*/
+export const ListAgentsRequestSchema: GenMessage<ListAgentsRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_agents, 4);
 
 /**
- * @generated from message metarr.v1.AgentServiceListResponse
+ * @generated from message metarr.v1.ListAgentsResponse
  */
-export type AgentServiceListResponse = Message<"metarr.v1.AgentServiceListResponse"> & {
+export type ListAgentsResponse = Message<"metarr.v1.ListAgentsResponse"> & {
   /**
-   * @generated from field: repeated metarr.v1.AgentView agents = 1;
+   * @generated from field: repeated metarr.v1.Agent agents = 1;
    */
-  agents: AgentView[];
+  agents: Agent[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**
- * Describes the message metarr.v1.AgentServiceListResponse.
- * Use `create(AgentServiceListResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.ListAgentsResponse.
+ * Use `create(ListAgentsResponseSchema)` to create a new message.
  */
-export const AgentServiceListResponseSchema: GenMessage<AgentServiceListResponse> = /*@__PURE__*/
+export const ListAgentsResponseSchema: GenMessage<ListAgentsResponse> = /*@__PURE__*/
   messageDesc(file_metarr_v1_agents, 5);
 
 /**
- * @generated from message metarr.v1.AgentServiceUpsertRequest
+ * UpdateAgentRequest is an AIP-134 partial update: update_mask names the
+ * fields to change (display_name, mappings, log_level) and agent carries
+ * their new values, matched to a stored agent by its slug. An empty mask, a
+ * path naming no field, or a path naming slug or an output-only presence
+ * field is InvalidArgument. allow_missing:true makes an Update against an
+ * unknown slug create — the mask is ignored on that branch and the whole
+ * resource is validated as a Create; allow_missing:false is NotFound.
+ *
+ * @generated from message metarr.v1.UpdateAgentRequest
  */
-export type AgentServiceUpsertRequest = Message<"metarr.v1.AgentServiceUpsertRequest"> & {
+export type UpdateAgentRequest = Message<"metarr.v1.UpdateAgentRequest"> & {
   /**
-   * @generated from field: metarr.v1.AgentConfig agent = 1;
+   * @generated from field: metarr.v1.Agent agent = 1;
    */
-  agent?: AgentConfig | undefined;
+  agent?: Agent | undefined;
+
+  /**
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask | undefined;
+
+  /**
+   * @generated from field: bool allow_missing = 3;
+   */
+  allowMissing: boolean;
 };
 
 /**
- * Describes the message metarr.v1.AgentServiceUpsertRequest.
- * Use `create(AgentServiceUpsertRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.UpdateAgentRequest.
+ * Use `create(UpdateAgentRequestSchema)` to create a new message.
  */
-export const AgentServiceUpsertRequestSchema: GenMessage<AgentServiceUpsertRequest> = /*@__PURE__*/
+export const UpdateAgentRequestSchema: GenMessage<UpdateAgentRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_agents, 6);
 
 /**
- * @generated from message metarr.v1.AgentServiceDeleteRequest
+ * @generated from message metarr.v1.DeleteAgentRequest
  */
-export type AgentServiceDeleteRequest = Message<"metarr.v1.AgentServiceDeleteRequest"> & {
+export type DeleteAgentRequest = Message<"metarr.v1.DeleteAgentRequest"> & {
   /**
    * @generated from field: string slug = 1;
    */
@@ -237,16 +267,21 @@ export type AgentServiceDeleteRequest = Message<"metarr.v1.AgentServiceDeleteReq
 };
 
 /**
- * Describes the message metarr.v1.AgentServiceDeleteRequest.
- * Use `create(AgentServiceDeleteRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.DeleteAgentRequest.
+ * Use `create(DeleteAgentRequestSchema)` to create a new message.
  */
-export const AgentServiceDeleteRequestSchema: GenMessage<AgentServiceDeleteRequest> = /*@__PURE__*/
+export const DeleteAgentRequestSchema: GenMessage<DeleteAgentRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_agents, 7);
 
 /**
- * @generated from message metarr.v1.AgentServiceSetLogLevelRequest
+ * SetLogLevelRequest sets one agent's log level without touching its
+ * mappings, and works for an agent that has only announced itself — the
+ * server creates a bare configuration entry for it. Returns the stored
+ * agent.
+ *
+ * @generated from message metarr.v1.SetLogLevelRequest
  */
-export type AgentServiceSetLogLevelRequest = Message<"metarr.v1.AgentServiceSetLogLevelRequest"> & {
+export type SetLogLevelRequest = Message<"metarr.v1.SetLogLevelRequest"> & {
   /**
    * @generated from field: string slug = 1;
    */
@@ -259,91 +294,112 @@ export type AgentServiceSetLogLevelRequest = Message<"metarr.v1.AgentServiceSetL
 };
 
 /**
- * Describes the message metarr.v1.AgentServiceSetLogLevelRequest.
- * Use `create(AgentServiceSetLogLevelRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.SetLogLevelRequest.
+ * Use `create(SetLogLevelRequestSchema)` to create a new message.
  */
-export const AgentServiceSetLogLevelRequestSchema: GenMessage<AgentServiceSetLogLevelRequest> = /*@__PURE__*/
+export const SetLogLevelRequestSchema: GenMessage<SetLogLevelRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_agents, 8);
 
 /**
- * @generated from message metarr.v1.AgentServiceStreamPresenceRequest
+ * @generated from message metarr.v1.StreamPresenceRequest
  */
-export type AgentServiceStreamPresenceRequest = Message<"metarr.v1.AgentServiceStreamPresenceRequest"> & {
+export type StreamPresenceRequest = Message<"metarr.v1.StreamPresenceRequest"> & {
 };
 
 /**
- * Describes the message metarr.v1.AgentServiceStreamPresenceRequest.
- * Use `create(AgentServiceStreamPresenceRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.StreamPresenceRequest.
+ * Use `create(StreamPresenceRequestSchema)` to create a new message.
  */
-export const AgentServiceStreamPresenceRequestSchema: GenMessage<AgentServiceStreamPresenceRequest> = /*@__PURE__*/
+export const StreamPresenceRequestSchema: GenMessage<StreamPresenceRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_agents, 9);
 
 /**
- * @generated from message metarr.v1.AgentServiceStreamPresenceResponse
+ * @generated from message metarr.v1.StreamPresenceResponse
  */
-export type AgentServiceStreamPresenceResponse = Message<"metarr.v1.AgentServiceStreamPresenceResponse"> & {
+export type StreamPresenceResponse = Message<"metarr.v1.StreamPresenceResponse"> & {
   /**
-   * @generated from field: repeated metarr.v1.AgentView agents = 1;
+   * @generated from field: repeated metarr.v1.Agent agents = 1;
    */
-  agents: AgentView[];
+  agents: Agent[];
 };
 
 /**
- * Describes the message metarr.v1.AgentServiceStreamPresenceResponse.
- * Use `create(AgentServiceStreamPresenceResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.StreamPresenceResponse.
+ * Use `create(StreamPresenceResponseSchema)` to create a new message.
  */
-export const AgentServiceStreamPresenceResponseSchema: GenMessage<AgentServiceStreamPresenceResponse> = /*@__PURE__*/
+export const StreamPresenceResponseSchema: GenMessage<StreamPresenceResponse> = /*@__PURE__*/
   messageDesc(file_metarr_v1_agents, 10);
 
 /**
- * AgentService is the config half of agent management: List merges configured
- * agents with whoever is currently present in Redis. StreamPresence is the
- * exact same merged view pushed continuously, replacing the agents.presence
- * wsbus topic — reusing AgentView rather than an opaque payload since it's
- * already fully modeled for List.
+ * AgentService is the agent collection on AIP standard methods
+ * (docs/adr/0010): slug-addressed, FieldMask partial update, paginated List,
+ * synchronous writes that return the stored resource (docs/adr/0002). Get /
+ * List / StreamPresence populate the output-only presence fields from the
+ * Redis presence records; the writes ignore them. SetLogLevel and
+ * StreamPresence are custom methods (AIP-136); StreamPresence pushes the
+ * merged List view continuously.
  *
  * @generated from service metarr.v1.AgentService
  */
 export const AgentService: GenService<{
   /**
-   * @generated from rpc metarr.v1.AgentService.List
+   * @generated from rpc metarr.v1.AgentService.CreateAgent
    */
-  list: {
+  createAgent: {
     methodKind: "unary";
-    input: typeof AgentServiceListRequestSchema;
-    output: typeof AgentServiceListResponseSchema;
+    input: typeof CreateAgentRequestSchema;
+    output: typeof AgentSchema;
   },
   /**
-   * @generated from rpc metarr.v1.AgentService.StreamPresence
+   * @generated from rpc metarr.v1.AgentService.GetAgent
    */
-  streamPresence: {
-    methodKind: "server_streaming";
-    input: typeof AgentServiceStreamPresenceRequestSchema;
-    output: typeof AgentServiceStreamPresenceResponseSchema;
+  getAgent: {
+    methodKind: "unary";
+    input: typeof GetAgentRequestSchema;
+    output: typeof AgentSchema;
   },
   /**
-   * @generated from rpc metarr.v1.AgentService.Upsert
+   * @generated from rpc metarr.v1.AgentService.ListAgents
    */
-  upsert: {
+  listAgents: {
     methodKind: "unary";
-    input: typeof AgentServiceUpsertRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    input: typeof ListAgentsRequestSchema;
+    output: typeof ListAgentsResponseSchema;
   },
   /**
-   * @generated from rpc metarr.v1.AgentService.Delete
+   * UpdateAgent returns the stored agent after the synchronous write has
+   * landed (AIP-134).
+   *
+   * @generated from rpc metarr.v1.AgentService.UpdateAgent
    */
-  delete: {
+  updateAgent: {
     methodKind: "unary";
-    input: typeof AgentServiceDeleteRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    input: typeof UpdateAgentRequestSchema;
+    output: typeof AgentSchema;
+  },
+  /**
+   * @generated from rpc metarr.v1.AgentService.DeleteAgent
+   */
+  deleteAgent: {
+    methodKind: "unary";
+    input: typeof DeleteAgentRequestSchema;
+    output: typeof EmptySchema;
   },
   /**
    * @generated from rpc metarr.v1.AgentService.SetLogLevel
    */
   setLogLevel: {
     methodKind: "unary";
-    input: typeof AgentServiceSetLogLevelRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    input: typeof SetLogLevelRequestSchema;
+    output: typeof AgentSchema;
+  },
+  /**
+   * @generated from rpc metarr.v1.AgentService.StreamPresence
+   */
+  streamPresence: {
+    methodKind: "server_streaming";
+    input: typeof StreamPresenceRequestSchema;
+    output: typeof StreamPresenceResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_metarr_v1_agents, 0);
