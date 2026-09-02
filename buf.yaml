@@ -1,13 +1,14 @@
 version: v2
 modules:
   - path: proto
-# buf.build/googleapis/googleapis supplies google/api/field_behavior.proto —
-# the OUTPUT_ONLY annotation the AIP config resources carry for the live
-# agent-presence fields (ADR-0010). google/protobuf/field_mask.proto is a
-# well-known type bundled with buf itself, so it needs no dep entry; the AIP
-# Update requests import it directly.
-deps:
-  - buf.build/googleapis/googleapis
+# The AIP config protos import only well-known types bundled with buf itself
+# (google/protobuf/field_mask.proto, struct.proto, timestamp.proto), so there
+# is no dep entry. ADR-0010's OUTPUT_ONLY fields (etag, resource name, agent
+# presence) are plain fields documented as output-only rather than
+# google.api.field_behavior annotations: the annotation would add a
+# buf.build/googleapis/googleapis dependency and a generated import to every
+# proto for no runtime effect — the server clears the derived fields before a
+# write regardless (appconfig.ClearDerived).
 # The proto/metarr/bus/v1 package is the language-agnostic event-bus contract
 # (docs/adr/0008): the EventEnvelope and the server<->agent contract messages a
 # participant in any language implements. It carries a strict breaking-change

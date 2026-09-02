@@ -15,10 +15,15 @@ import (
 // test, restoring whatever was there before once the test ends — the
 // arrange/cleanup technique described in issue #14, since appconfig.Get()
 // is a process-wide singleton no existing test in this package touches.
+//
+// cfg is Normalized first, matching production: every path that sets live
+// config (bootstrap warm-up, the system_config_update propagator) Normalizes
+// beforehand, so a read site can use plain field access and every section
+// carries its derived etag.
 func withLiveConfig(t *testing.T, cfg *appconfig.Config) {
 	t.Helper()
 	previous := appconfig.Get()
-	appconfig.Set(cfg)
+	appconfig.Set(appconfig.Normalize(cfg))
 	t.Cleanup(func() { appconfig.Set(previous) })
 }
 

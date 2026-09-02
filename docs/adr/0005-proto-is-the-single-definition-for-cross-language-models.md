@@ -70,17 +70,19 @@ slice to `[]` no longer has anything durable to do.
 
 **AIP identifier, concurrency, and output-only fields are not stored.** When
 ADR-0010 put an AIP resource-name `name` and an AIP-154 `etag` on every config
-resource and `OUTPUT_ONLY` live-presence fields on `Agent`, storing those
+resource and output-only live-presence fields on `Agent`, storing those
 verbatim would be either redundant (`name` is derived from the slug or minted id
 the document is already keyed on; `etag` is a hash of the section's own stored
 bytes) or wrong (presence is a running-server fact, not config). So they are the
-one exception to "used directly as the stored document": the config-store
-mutation closure clears them before `MarshalStored`, `Normalize()` backfills
-`name` and `etag` on read, and the `AgentService` read path joins presence in.
-The stored document keeps exactly the shape it had before ADR-0010. This stays
-within the rule because the transform is symmetric and total — every value is
-recomputed from data already in the document or from live state — so there is
-nothing a person keeps aligned by hand and nothing that can silently drift.
+one exception to "used directly as the stored document": `MarshalStored` calls
+`appconfig.ClearDerived` on a clone before it serializes — the one chokepoint
+every persist and every `system_config_update` payload passes through, so no
+caller can leak a derived field — `Normalize()` backfills `name` and `etag` on
+read, and the `AgentService` read path joins presence in. The stored document
+keeps exactly the shape it had before ADR-0010. This stays within the rule
+because the transform is symmetric and total — every value is recomputed from
+data already in the document or from live state — so there is nothing a person
+keeps aligned by hand and nothing that can silently drift.
 
 ## Considered and rejected
 

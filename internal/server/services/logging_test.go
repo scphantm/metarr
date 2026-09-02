@@ -82,7 +82,7 @@ func TestLoggingUpdateLoggingConfig_RejectsAStaleETag(t *testing.T) {
 	seed := seededLoggingConfig()
 	server, backend, _ := newTestLoggingServer(&appconfig.Config{Logging: seed})
 
-	staleETag := sectionETag(seed)
+	staleETag := appconfig.SectionETag(seed)
 
 	_, err := server.UpdateLoggingConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateLoggingConfigRequest{
 		Config:     &metarrv1.LoggingConfig{Sink: "splunk"},
@@ -231,10 +231,13 @@ func TestLoggingGetLoggingConfig_ReadsLiveConfig(t *testing.T) {
 	if got := resp.Msg.GetConfig().GetSink(); got != "fluent-bit" {
 		t.Errorf("sink = %q, want %q", got, "fluent-bit")
 	}
+	// Normalize populates the derived etag; the read hands it back.
 	if resp.Msg.GetConfig().GetEtag() == "" {
 		t.Error("the read carried no etag")
 	}
-	if appconfig.Get().Logging.GetEtag() != "" {
-		t.Errorf("GetLoggingConfig stamped an etag onto live config: %q", appconfig.Get().Logging.GetEtag())
+	// The response is a clone: mutating it must not reach live config.
+	resp.Msg.GetConfig().Sink = "changed"
+	if appconfig.Get().Logging.GetSink() != "fluent-bit" {
+		t.Error("GetLoggingConfig handed out the live-config pointer")
 	}
 }

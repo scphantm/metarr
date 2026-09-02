@@ -42,12 +42,10 @@ func (s *LoggingServer) GetLoggingConfig(
 	ctx context.Context,
 	req *connect.Request[metarrv1.GetLoggingConfigRequest],
 ) (*connect.Response[metarrv1.GetLoggingConfigResponse], error) {
-	section := appconfig.Get().Logging
-	if section == nil {
-		section = &metarrv1.LoggingConfig{}
-	}
+	// Live config is always Normalized, so the section already carries its
+	// derived etag — the read just clones it out.
 	return connect.NewResponse(&metarrv1.GetLoggingConfigResponse{
-		Config: withETag(section),
+		Config: cloneMsg(appconfig.Get().Logging),
 	}), nil
 }
 
@@ -71,18 +69,19 @@ func (s *LoggingServer) UpdateLoggingConfig(
 	}
 
 	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
+		// cfg is Normalized, so cfg.Logging carries its current etag;
+		// checkETag recomputes with that field cleared. MarshalStored strips
+		// the derived etag before the section is persisted or fired.
 		merged := cloneMsg(cfg.Logging)
 		if merged == nil {
 			merged = &metarrv1.LoggingConfig{}
 		}
-		clearETagField(merged)
 		if err := checkETag(merged, req.Msg.GetEtag()); err != nil {
 			return err
 		}
 		if err := applyUpdateMask(merged, patch, req.Msg.GetUpdateMask()); err != nil {
 			return err
 		}
-		clearETagField(merged)
 		if err := handlers.ValidateLogLevel(merged.ServerLevel); err != nil {
 			return connectError(http.StatusBadRequest, err)
 		}
