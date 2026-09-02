@@ -4,15 +4,13 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { AcceptedResponseSchema } from "./common_pb";
-import { file_metarr_v1_common } from "./common_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metarr/v1/tasks.proto.
  */
 export const file_metarr_v1_tasks: GenFile = /*@__PURE__*/
-  fileDesc("ChVtZXRhcnIvdjEvdGFza3MucHJvdG8SCW1ldGFyci52MSJLCiJUYXNrU2VydmljZVJ1bkRpcmVjdG9yeVNjYW5SZXF1ZXN0EhQKDHNjYW5uZXJfc2x1ZxgBIAEoCRIPCgdjb21tYW5kGAIgASgJMm0KC1Rhc2tTZXJ2aWNlEl4KEFJ1bkRpcmVjdG9yeVNjYW4SLS5tZXRhcnIudjEuVGFza1NlcnZpY2VSdW5EaXJlY3RvcnlTY2FuUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_metarr_v1_common]);
+  fileDesc("ChVtZXRhcnIvdjEvdGFza3MucHJvdG8SCW1ldGFyci52MSJLCiJUYXNrU2VydmljZVJ1bkRpcmVjdG9yeVNjYW5SZXF1ZXN0EhQKDHNjYW5uZXJfc2x1ZxgBIAEoCRIPCgdjb21tYW5kGAIgASgJIlwKI1Rhc2tTZXJ2aWNlUnVuRGlyZWN0b3J5U2NhblJlc3BvbnNlEg4KBnN0YXR1cxgBIAEoCRINCgVldmVudBgCIAEoCRIWCg5jb3JyZWxhdGlvbl9pZBgDIAEoCTKAAQoLVGFza1NlcnZpY2UScQoQUnVuRGlyZWN0b3J5U2NhbhItLm1ldGFyci52MS5UYXNrU2VydmljZVJ1bkRpcmVjdG9yeVNjYW5SZXF1ZXN0Gi4ubWV0YXJyLnYxLlRhc2tTZXJ2aWNlUnVuRGlyZWN0b3J5U2NhblJlc3BvbnNlQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw");
 
 /**
  * @generated from message metarr.v1.TaskServiceRunDirectoryScanRequest
@@ -37,6 +35,39 @@ export const TaskServiceRunDirectoryScanRequestSchema: GenMessage<TaskServiceRun
   messageDesc(file_metarr_v1_tasks, 0);
 
 /**
+ * TaskServiceRunDirectoryScanResponse acknowledges that the scan command was
+ * accepted onto the event bus. The scan itself runs asynchronously in the
+ * agent — see internal/server/handlers/tasks.go for the listener side — so
+ * "accepted" means "queued", not "finished". This is a genuine long-running
+ * task kickoff, unrelated to the synchronous config writes (docs/adr/0002).
+ *
+ * @generated from message metarr.v1.TaskServiceRunDirectoryScanResponse
+ */
+export type TaskServiceRunDirectoryScanResponse = Message<"metarr.v1.TaskServiceRunDirectoryScanResponse"> & {
+  /**
+   * @generated from field: string status = 1;
+   */
+  status: string;
+
+  /**
+   * @generated from field: string event = 2;
+   */
+  event: string;
+
+  /**
+   * @generated from field: string correlation_id = 3;
+   */
+  correlationId: string;
+};
+
+/**
+ * Describes the message metarr.v1.TaskServiceRunDirectoryScanResponse.
+ * Use `create(TaskServiceRunDirectoryScanResponseSchema)` to create a new message.
+ */
+export const TaskServiceRunDirectoryScanResponseSchema: GenMessage<TaskServiceRunDirectoryScanResponse> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_tasks, 1);
+
+/**
  * TaskService fires the same durable event-bus commands the REST /api/tasks
  * routes did — see internal/server/handlers/tasks.go for the async listener
  * side, which is unchanged by this migration.
@@ -50,7 +81,7 @@ export const TaskService: GenService<{
   runDirectoryScan: {
     methodKind: "unary";
     input: typeof TaskServiceRunDirectoryScanRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    output: typeof TaskServiceRunDirectoryScanResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_metarr_v1_tasks, 0);

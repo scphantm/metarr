@@ -62,7 +62,7 @@ func discardLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
-func newTestPropagator() (*configPropagator, *fakePersister, *fakeLiveConfigSetter, *fakeSidecarRegistry, *fakeAgentPublisher, *fakeLogLevelSetter) {
+func newTestPropagator() (*ConfigPropagator, *fakePersister, *fakeLiveConfigSetter, *fakeSidecarRegistry, *fakeAgentPublisher, *fakeLogLevelSetter) {
 	persist := &fakePersister{}
 	live := &fakeLiveConfigSetter{}
 	sidecar := &fakeSidecarRegistry{}
@@ -140,6 +140,37 @@ func TestApply_AgentPublishFailureIsLoggedNotReturned(t *testing.T) {
 	}
 	if sidecar.calls != 1 {
 		t.Error("expected the sidecar registry compile to have already run")
+	}
+}
+
+func TestPropagateInProcess_SkipsPersistButRunsEveryInProcessStep(t *testing.T) {
+	propagator, persist, live, sidecar, agents, logLevel := newTestPropagator()
+	cfg := &appconfig.Config{Logging: &appconfig.LoggingConfig{ServerLevel: appconfig.LogLevelDebug}}
+
+	if err := propagator.PropagateInProcess(context.Background(), cfg); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if persist.upsertCfg != nil {
+		t.Error("the synchronous write path owns persistence; PropagateInProcess must not persist")
+	}
+	if live.cfg != cfg {
+		t.Error("expected the live config singleton to be swapped")
+	}
+	if sidecar.calls != 1 || agents.calls != 1 {
+		t.Errorf("expected sidecar recompile and agent republish once each, got %d / %d", sidecar.calls, agents.calls)
+	}
+	if !logLevel.setCalled || logLevel.level != slog.LevelDebug {
+		t.Errorf("expected log level Debug, got called=%v level=%v", logLevel.setCalled, logLevel.level)
+	}
+}
+
+func TestPropagateInProcess_AgentPublishFailureIsLoggedNotReturned(t *testing.T) {
+	propagator, _, _, _, agents, _ := newTestPropagator()
+	agents.err = errors.New("redis unavailable")
+
+	if err := propagator.PropagateInProcess(context.Background(), &appconfig.Config{}); err != nil {
+		t.Fatalf("expected no error, propagation failures are log-only, got %v", err)
 	}
 }
 

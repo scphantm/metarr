@@ -49,7 +49,9 @@ const (
 // LoggingServiceClient is a client for the metarr.v1.LoggingService service.
 type LoggingServiceClient interface {
 	GetLoggingConfig(context.Context, *connect.Request[v1.GetLoggingConfigRequest]) (*connect.Response[v1.GetLoggingConfigResponse], error)
-	UpdateLoggingConfig(context.Context, *connect.Request[v1.UpdateLoggingConfigRequest]) (*connect.Response[v1.Operation], error)
+	// UpdateLoggingConfig returns the stored section after the synchronous
+	// write has landed (AIP-134).
+	UpdateLoggingConfig(context.Context, *connect.Request[v1.UpdateLoggingConfigRequest]) (*connect.Response[v1.LoggingConfig], error)
 	GetTail(context.Context, *connect.Request[v1.LoggingServiceGetTailRequest]) (*connect.Response[v1.LoggingServiceGetTailResponse], error)
 	StreamTail(context.Context, *connect.Request[v1.LoggingServiceStreamTailRequest]) (*connect.ServerStreamForClient[v1.LoggingServiceStreamTailResponse], error)
 }
@@ -71,7 +73,7 @@ func NewLoggingServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(loggingServiceMethods.ByName("GetLoggingConfig")),
 			connect.WithClientOptions(opts...),
 		),
-		updateLoggingConfig: connect.NewClient[v1.UpdateLoggingConfigRequest, v1.Operation](
+		updateLoggingConfig: connect.NewClient[v1.UpdateLoggingConfigRequest, v1.LoggingConfig](
 			httpClient,
 			baseURL+LoggingServiceUpdateLoggingConfigProcedure,
 			connect.WithSchema(loggingServiceMethods.ByName("UpdateLoggingConfig")),
@@ -95,7 +97,7 @@ func NewLoggingServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 // loggingServiceClient implements LoggingServiceClient.
 type loggingServiceClient struct {
 	getLoggingConfig    *connect.Client[v1.GetLoggingConfigRequest, v1.GetLoggingConfigResponse]
-	updateLoggingConfig *connect.Client[v1.UpdateLoggingConfigRequest, v1.Operation]
+	updateLoggingConfig *connect.Client[v1.UpdateLoggingConfigRequest, v1.LoggingConfig]
 	getTail             *connect.Client[v1.LoggingServiceGetTailRequest, v1.LoggingServiceGetTailResponse]
 	streamTail          *connect.Client[v1.LoggingServiceStreamTailRequest, v1.LoggingServiceStreamTailResponse]
 }
@@ -106,7 +108,7 @@ func (c *loggingServiceClient) GetLoggingConfig(ctx context.Context, req *connec
 }
 
 // UpdateLoggingConfig calls metarr.v1.LoggingService.UpdateLoggingConfig.
-func (c *loggingServiceClient) UpdateLoggingConfig(ctx context.Context, req *connect.Request[v1.UpdateLoggingConfigRequest]) (*connect.Response[v1.Operation], error) {
+func (c *loggingServiceClient) UpdateLoggingConfig(ctx context.Context, req *connect.Request[v1.UpdateLoggingConfigRequest]) (*connect.Response[v1.LoggingConfig], error) {
 	return c.updateLoggingConfig.CallUnary(ctx, req)
 }
 
@@ -123,7 +125,9 @@ func (c *loggingServiceClient) StreamTail(ctx context.Context, req *connect.Requ
 // LoggingServiceHandler is an implementation of the metarr.v1.LoggingService service.
 type LoggingServiceHandler interface {
 	GetLoggingConfig(context.Context, *connect.Request[v1.GetLoggingConfigRequest]) (*connect.Response[v1.GetLoggingConfigResponse], error)
-	UpdateLoggingConfig(context.Context, *connect.Request[v1.UpdateLoggingConfigRequest]) (*connect.Response[v1.Operation], error)
+	// UpdateLoggingConfig returns the stored section after the synchronous
+	// write has landed (AIP-134).
+	UpdateLoggingConfig(context.Context, *connect.Request[v1.UpdateLoggingConfigRequest]) (*connect.Response[v1.LoggingConfig], error)
 	GetTail(context.Context, *connect.Request[v1.LoggingServiceGetTailRequest]) (*connect.Response[v1.LoggingServiceGetTailResponse], error)
 	StreamTail(context.Context, *connect.Request[v1.LoggingServiceStreamTailRequest], *connect.ServerStream[v1.LoggingServiceStreamTailResponse]) error
 }
@@ -182,7 +186,7 @@ func (UnimplementedLoggingServiceHandler) GetLoggingConfig(context.Context, *con
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.LoggingService.GetLoggingConfig is not implemented"))
 }
 
-func (UnimplementedLoggingServiceHandler) UpdateLoggingConfig(context.Context, *connect.Request[v1.UpdateLoggingConfigRequest]) (*connect.Response[v1.Operation], error) {
+func (UnimplementedLoggingServiceHandler) UpdateLoggingConfig(context.Context, *connect.Request[v1.UpdateLoggingConfigRequest]) (*connect.Response[v1.LoggingConfig], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.LoggingService.UpdateLoggingConfig is not implemented"))
 }
 

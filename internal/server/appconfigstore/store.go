@@ -1,15 +1,16 @@
 // Package appconfigstore is the single path through which the application
 // config changes. Every mutation reads the current document, applies one
-// named change, and fires it as a system_config_update event — all under a
-// lock, so two changes to different settings computed around the same time
-// can no longer revert one another. See docs/adr/0001 for why a client may
-// no longer supply a whole document, and docs/adr/0002 for why the write
-// stays asynchronous and the lock is process-local.
+// named change, and writes the result — all under a lock, so two changes to
+// different settings computed around the same time can no longer revert one
+// another. See docs/adr/0001 for why a client may no longer supply a whole
+// document, and docs/adr/0002 for why the lock is process-local.
 //
-// Bootstrap and SeedAdmin are the exception: startup seeding runs before any
-// listener exists to persist a fired event, so it writes synchronously
-// through the same lock instead. See docs/adr/0003 for why that needs a
-// different contract than Mutate's rather than reusing it.
+// Two write paths exist during the AIP config-CRUD conversion. MutateSync
+// persists directly and propagates in-process before it returns — the shape
+// every config write is converging on (docs/adr/0002). Mutate still fires a
+// system_config_update event a background listener persists, for the config
+// services not yet reshaped. Bootstrap writes synchronously and fires
+// nothing: startup seeding runs before any listener exists (docs/adr/0003).
 package appconfigstore
 
 import (
@@ -36,24 +37,45 @@ type updatePublisher interface {
 	Publish(ctx context.Context, topic eventbus.StreamTopic, name, correlationID string, payload []byte) error
 }
 
-// configWriter is Bootstrap's persistence dependency — a direct, synchronous
-// write, unlike Mutate's event-firing one. Satisfied by
+// configWriter is the store's direct persistence dependency — a synchronous
+// Mongo write, used by Bootstrap and by MutateSync. Satisfied by
 // *mongostore.AppConfigRepo without any change to that type.
 type configWriter interface {
 	Upsert(ctx context.Context, cfg *appconfig.Config) error
 }
 
-// Store is the config store.
-type Store struct {
-	mu        sync.Mutex
-	reader    configReader
-	writer    configWriter
-	publisher updatePublisher
+// inProcessPropagator applies an already-persisted config to the rest of the
+// process — swap the live-config singleton, set the server log level,
+// recompile the sidecar registry, republish agent projections. MutateSync
+// calls it after its Mongo write. Satisfied by *listeners.ConfigPropagator;
+// declared here, at the consumer, so appconfigstore does not import
+// listeners. A propagation failure is the propagator's to log, never
+// returned — the write has already landed (docs/adr/0002).
+type inProcessPropagator interface {
+	PropagateInProcess(ctx context.Context, cfg *appconfig.Config) error
 }
 
-// New returns a config store backed by reader, writer, and publisher.
+// Store is the config store.
+type Store struct {
+	mu         sync.Mutex
+	reader     configReader
+	writer     configWriter
+	publisher  updatePublisher
+	propagator inProcessPropagator
+}
+
+// New returns a config store backed by reader, writer, and publisher. Call
+// SetPropagator before the first MutateSync to wire the synchronous write
+// path's in-process propagation.
 func New(reader configReader, writer configWriter, publisher updatePublisher) *Store {
 	return &Store{reader: reader, writer: writer, publisher: publisher}
+}
+
+// SetPropagator wires the in-process propagation MutateSync runs after its
+// Mongo write. It is set once at startup, before the server serves, so it
+// needs no lock of its own.
+func (s *Store) SetPropagator(p inProcessPropagator) {
+	s.propagator = p
 }
 
 // Read returns the currently stored application config, straight from
@@ -100,6 +122,43 @@ func (s *Store) Mutate(ctx context.Context, apply func(*appconfig.Config) error)
 		correlation.FromContext(ctx),
 		payload,
 	)
+}
+
+// MutateSync reads the current application config, applies apply to it,
+// persists the result directly to storage, and then propagates it in-process
+// — all while holding the store's lock, so the whole read-modify-write-
+// propagate sequence is serialized against any concurrent Mutate / MutateSync.
+// Unlike Mutate it does not fire a system_config_update event: the write has
+// already landed and been made live by the time this returns, so a caller's
+// RPC can return the stored resource (docs/adr/0002).
+//
+// An error from apply aborts before anything is written and is returned
+// unchanged. A storage write failure is returned too, with live config left
+// untouched. A propagation failure after a successful write is logged by the
+// propagator, never returned — redoing the write to retry propagation would
+// be worse than the transient miss.
+func (s *Store) MutateSync(ctx context.Context, apply func(*appconfig.Config) error) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	cfg, err := s.reader.Get(ctx)
+	if err != nil {
+		return err
+	}
+	cfg = appconfig.Normalize(cfg)
+
+	if err := apply(cfg); err != nil {
+		return err
+	}
+
+	if err := s.writer.Upsert(ctx, cfg); err != nil {
+		return err
+	}
+
+	if s.propagator != nil {
+		_ = s.propagator.PropagateInProcess(ctx, cfg)
+	}
+	return nil
 }
 
 // Bootstrap reads the current application config, applies apply to it, and

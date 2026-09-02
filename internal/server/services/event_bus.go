@@ -39,8 +39,6 @@ func (s *EventBusServer) GetEventBusConfig(
 	ctx context.Context,
 	req *connect.Request[metarrv1.GetEventBusConfigRequest],
 ) (*connect.Response[metarrv1.GetEventBusConfigResponse], error) {
-	// Live config is always Normalized, so the section already carries its
-	// derived etag — the read just clones it out.
 	return connect.NewResponse(&metarrv1.GetEventBusConfigResponse{
 		Config: cloneMsg(appconfig.Get().EventBus),
 	}), nil
@@ -49,15 +47,15 @@ func (s *EventBusServer) GetEventBusConfig(
 // UpdateEventBusConfig is an AIP-134 partial update: update_mask names the
 // EventBusConfig fields to change, req.Config carries their new values, and the
 // masked fields are merged onto the stored section under the config store's
-// lock. req.Etag, when set, must match the stored section or the write is
-// ABORTED (AIP-154). An empty mask or an unknown path returns InvalidArgument;
-// the merged section is then validated as a whole so a partial edit can't
-// leave a contradictory combination (a max backoff below the base). The write
-// returns an Operation the caller polls (docs/adr/0002).
+// lock. An empty mask or an unknown path returns InvalidArgument; the merged
+// section is then validated as a whole so a partial edit can't leave a
+// contradictory combination (a max backoff below the base). The write is
+// synchronous — it persists and propagates in-process before returning the
+// stored section (docs/adr/0002).
 func (s *EventBusServer) UpdateEventBusConfig(
 	ctx context.Context,
 	req *connect.Request[metarrv1.UpdateEventBusConfigRequest],
-) (*connect.Response[metarrv1.Operation], error) {
+) (*connect.Response[metarrv1.EventBusConfig], error) {
 	correlationID := correlation.FromContext(ctx)
 
 	patch := req.Msg.GetConfig()
@@ -65,17 +63,11 @@ func (s *EventBusServer) UpdateEventBusConfig(
 		return nil, connectError(http.StatusBadRequest, fmt.Errorf("event_bus config is required"))
 	}
 
-	err := s.AppConfigStore.Mutate(ctx, func(cfg *appconfig.Config) error {
-		// cfg is Normalized, so cfg.EventBus carries its current etag;
-		// checkETag recomputes with that field cleared, so it matches a token
-		// a client read. MarshalStored strips the derived etag before the
-		// section is persisted or fired.
+	var stored *metarrv1.EventBusConfig
+	err := s.AppConfigStore.MutateSync(ctx, func(cfg *appconfig.Config) error {
 		merged := cloneMsg(cfg.EventBus)
 		if merged == nil {
 			merged = &metarrv1.EventBusConfig{}
-		}
-		if err := checkETag(merged, req.Msg.GetEtag()); err != nil {
-			return err
 		}
 		if err := applyUpdateMask(merged, patch, req.Msg.GetUpdateMask()); err != nil {
 			return err
@@ -84,13 +76,14 @@ func (s *EventBusServer) UpdateEventBusConfig(
 			return connectError(http.StatusBadRequest, err)
 		}
 		cfg.EventBus = merged
+		stored = cloneMsg(merged)
 		return nil
 	})
 	if err != nil {
 		return nil, mutateConfigErr(s.Logger, correlationID, err)
 	}
 
-	return connect.NewResponse(beginConfigOperation(ctx, s.Operations, s.Logger, correlationID)), nil
+	return connect.NewResponse(stored), nil
 }
 
 // validateEventBusConfig rejects a section that would break the bus: a

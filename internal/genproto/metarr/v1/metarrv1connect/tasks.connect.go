@@ -40,7 +40,7 @@ const (
 
 // TaskServiceClient is a client for the metarr.v1.TaskService service.
 type TaskServiceClient interface {
-	RunDirectoryScan(context.Context, *connect.Request[v1.TaskServiceRunDirectoryScanRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	RunDirectoryScan(context.Context, *connect.Request[v1.TaskServiceRunDirectoryScanRequest]) (*connect.Response[v1.TaskServiceRunDirectoryScanResponse], error)
 }
 
 // NewTaskServiceClient constructs a client for the metarr.v1.TaskService service. By default, it
@@ -54,7 +54,7 @@ func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 	baseURL = strings.TrimRight(baseURL, "/")
 	taskServiceMethods := v1.File_metarr_v1_tasks_proto.Services().ByName("TaskService").Methods()
 	return &taskServiceClient{
-		runDirectoryScan: connect.NewClient[v1.TaskServiceRunDirectoryScanRequest, v1.AcceptedResponse](
+		runDirectoryScan: connect.NewClient[v1.TaskServiceRunDirectoryScanRequest, v1.TaskServiceRunDirectoryScanResponse](
 			httpClient,
 			baseURL+TaskServiceRunDirectoryScanProcedure,
 			connect.WithSchema(taskServiceMethods.ByName("RunDirectoryScan")),
@@ -65,17 +65,17 @@ func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 
 // taskServiceClient implements TaskServiceClient.
 type taskServiceClient struct {
-	runDirectoryScan *connect.Client[v1.TaskServiceRunDirectoryScanRequest, v1.AcceptedResponse]
+	runDirectoryScan *connect.Client[v1.TaskServiceRunDirectoryScanRequest, v1.TaskServiceRunDirectoryScanResponse]
 }
 
 // RunDirectoryScan calls metarr.v1.TaskService.RunDirectoryScan.
-func (c *taskServiceClient) RunDirectoryScan(ctx context.Context, req *connect.Request[v1.TaskServiceRunDirectoryScanRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+func (c *taskServiceClient) RunDirectoryScan(ctx context.Context, req *connect.Request[v1.TaskServiceRunDirectoryScanRequest]) (*connect.Response[v1.TaskServiceRunDirectoryScanResponse], error) {
 	return c.runDirectoryScan.CallUnary(ctx, req)
 }
 
 // TaskServiceHandler is an implementation of the metarr.v1.TaskService service.
 type TaskServiceHandler interface {
-	RunDirectoryScan(context.Context, *connect.Request[v1.TaskServiceRunDirectoryScanRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	RunDirectoryScan(context.Context, *connect.Request[v1.TaskServiceRunDirectoryScanRequest]) (*connect.Response[v1.TaskServiceRunDirectoryScanResponse], error)
 }
 
 // NewTaskServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -104,6 +104,6 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 // UnimplementedTaskServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedTaskServiceHandler struct{}
 
-func (UnimplementedTaskServiceHandler) RunDirectoryScan(context.Context, *connect.Request[v1.TaskServiceRunDirectoryScanRequest]) (*connect.Response[v1.AcceptedResponse], error) {
+func (UnimplementedTaskServiceHandler) RunDirectoryScan(context.Context, *connect.Request[v1.TaskServiceRunDirectoryScanRequest]) (*connect.Response[v1.TaskServiceRunDirectoryScanResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.TaskService.RunDirectoryScan is not implemented"))
 }

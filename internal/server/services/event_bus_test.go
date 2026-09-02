@@ -15,15 +15,13 @@ import (
 	"Metarr/internal/shared/correlation"
 )
 
-func newTestEventBusServer(seed *appconfig.Config) (*EventBusServer, *fakeConfigBackend, *fakeOperationStore) {
+func newTestEventBusServer(seed *appconfig.Config) (*EventBusServer, *fakeConfigBackend) {
 	backend := &fakeConfigBackend{cfg: seed}
-	ops := newFakeOperationStore()
 	store := appconfigstore.New(backend, backend, backend)
 	return &EventBusServer{Handlers: &handlers.Handlers{
 		AppConfigStore: store,
-		Operations:     ops,
 		Logger:         slog.Default(),
-	}}, backend, ops
+	}}, backend
 }
 
 func validEventBusConfig() *metarrv1.EventBusConfig {
@@ -49,7 +47,7 @@ func TestEventBusUpdateEventBusConfig_WritesThroughAScopedMutation(t *testing.T)
 		Admin:    &appconfig.AdminUser{Username: "admin", PasswordHash: "keep-me"},
 		EventBus: &appconfig.EventBusConfig{RetentionHours: 48, MaxLen: 1, RetryBackoffBaseMs: 1, RetryBackoffMaxMs: 1},
 	}
-	server, backend, ops := newTestEventBusServer(seed)
+	server, backend := newTestEventBusServer(seed)
 
 	ctx := correlation.WithID(context.Background(), "corr-eb-1")
 	next := validEventBusConfig()
@@ -68,23 +66,13 @@ func TestEventBusUpdateEventBusConfig_WritesThroughAScopedMutation(t *testing.T)
 	if backend.cfg.GetAdmin().GetPasswordHash() != "keep-me" {
 		t.Errorf("a scoped event_bus write disturbed the admin credential: %+v", backend.cfg.GetAdmin())
 	}
-	if backend.cfg.GetEventBus().GetEtag() != "" {
-		t.Errorf("a derived etag reached the stored document: %q", backend.cfg.GetEventBus().GetEtag())
-	}
-	if len(backend.fired) != 1 {
-		t.Fatalf("expected exactly one system_config_update event, got %d", len(backend.fired))
-	}
-	if backend.fired[0].CorrelationId != "corr-eb-1" {
-		t.Errorf("fired event correlation id = %q, want %q", backend.fired[0].CorrelationId, "corr-eb-1")
+	if len(backend.fired) != 0 {
+		t.Fatalf("a synchronous write fired %d system_config_update events, want 0", len(backend.fired))
 	}
 
-	// The write returns an unfinished operation named for the correlation id,
-	// and it is recorded in the operation store for the listener to finish.
-	if resp.Msg.GetName() != "operations/corr-eb-1" || resp.Msg.GetDone() {
-		t.Errorf("Operation = %+v, want name=operations/corr-eb-1 done=false", resp.Msg)
-	}
-	if _, ok := ops.ops["operations/corr-eb-1"]; !ok {
-		t.Errorf("the operation was not recorded: %+v", ops.ops)
+	// The synchronous write returns the stored section.
+	if resp.Msg.GetRetentionHours() != 72 {
+		t.Errorf("UpdateEventBusConfig returned retention_hours %d, want 72", resp.Msg.GetRetentionHours())
 	}
 }
 
@@ -94,7 +82,7 @@ func TestEventBusUpdateEventBusConfig_WritesThroughAScopedMutation(t *testing.T)
 // a scalar is exercised by the unknown-path test below.
 func TestEventBusUpdateEventBusConfig_AppliesMaskPartially(t *testing.T) {
 	seed := &appconfig.Config{EventBus: validEventBusConfig()}
-	server, backend, _ := newTestEventBusServer(seed)
+	server, backend := newTestEventBusServer(seed)
 
 	// Carry deliberately wrong values for the unmasked fields: only
 	// retention_hours is named, so only it may move.
@@ -122,7 +110,7 @@ func TestEventBusUpdateEventBusConfig_AppliesMaskPartially(t *testing.T) {
 }
 
 func TestEventBusUpdateEventBusConfig_RejectsEmptyMask(t *testing.T) {
-	server, backend, _ := newTestEventBusServer(&appconfig.Config{EventBus: validEventBusConfig()})
+	server, backend := newTestEventBusServer(&appconfig.Config{EventBus: validEventBusConfig()})
 
 	_, err := server.UpdateEventBusConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateEventBusConfigRequest{
 		Config: validEventBusConfig(),
@@ -139,7 +127,7 @@ func TestEventBusUpdateEventBusConfig_RejectsEmptyMask(t *testing.T) {
 }
 
 func TestEventBusUpdateEventBusConfig_RejectsUnknownPath(t *testing.T) {
-	server, backend, _ := newTestEventBusServer(&appconfig.Config{EventBus: validEventBusConfig()})
+	server, backend := newTestEventBusServer(&appconfig.Config{EventBus: validEventBusConfig()})
 
 	cases := map[string]string{
 		"no such field":          "max_length",
@@ -164,42 +152,8 @@ func TestEventBusUpdateEventBusConfig_RejectsUnknownPath(t *testing.T) {
 	}
 }
 
-func TestEventBusUpdateEventBusConfig_RejectsAStaleETag(t *testing.T) {
-	seed := validEventBusConfig()
-	server, backend, _ := newTestEventBusServer(&appconfig.Config{EventBus: seed})
-
-	// The token a client read before anyone else wrote.
-	staleETag := appconfig.SectionETag(seed)
-
-	// First write carries the still-current token and lands.
-	_, err := server.UpdateEventBusConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateEventBusConfigRequest{
-		Config:     &metarrv1.EventBusConfig{RetentionHours: 72},
-		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"retention_hours"}},
-		Etag:       staleETag,
-	}))
-	if err != nil {
-		t.Fatalf("first update: %v", err)
-	}
-
-	// The section has moved; the same token is now stale.
-	_, err = server.UpdateEventBusConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateEventBusConfigRequest{
-		Config:     &metarrv1.EventBusConfig{RetentionHours: 96},
-		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"retention_hours"}},
-		Etag:       staleETag,
-	}))
-	if connect.CodeOf(err) != connect.CodeAborted {
-		t.Fatalf("code = %v, want Aborted", connect.CodeOf(err))
-	}
-	if got := backend.cfg.GetEventBus().GetRetentionHours(); got != 72 {
-		t.Errorf("the aborted write still moved retention_hours to %d", got)
-	}
-	if len(backend.fired) != 1 {
-		t.Errorf("the aborted write fired an event: %d total", len(backend.fired))
-	}
-}
-
 func TestEventBusUpdateEventBusConfig_RejectsAnInvalidSection(t *testing.T) {
-	server, backend, _ := newTestEventBusServer(&appconfig.Config{EventBus: validEventBusConfig()})
+	server, backend := newTestEventBusServer(&appconfig.Config{EventBus: validEventBusConfig()})
 
 	cases := map[string]func(*metarrv1.EventBusConfig){
 		"zero max_len":           func(c *metarrv1.EventBusConfig) { c.MaxLen = 0 },
@@ -230,7 +184,7 @@ func TestEventBusUpdateEventBusConfig_RejectsAnInvalidSection(t *testing.T) {
 	}
 }
 
-func TestEventBusGetEventBusConfig_ReadsLiveConfigWithAnETag(t *testing.T) {
+func TestEventBusGetEventBusConfig_ReadsLiveConfig(t *testing.T) {
 	withLiveConfig(t, &appconfig.Config{
 		EventBus: &appconfig.EventBusConfig{MaxLen: 12345, RetentionHours: 96},
 	})
@@ -245,10 +199,6 @@ func TestEventBusGetEventBusConfig_ReadsLiveConfigWithAnETag(t *testing.T) {
 	}
 	if got := resp.Msg.GetConfig().GetRetentionHours(); got != 96 {
 		t.Errorf("retention_hours = %d, want 96", got)
-	}
-	// Normalize populates the derived etag; the read hands it back.
-	if resp.Msg.GetConfig().GetEtag() == "" {
-		t.Error("the read carried no etag")
 	}
 	// The response is a clone: mutating it must not reach live config.
 	resp.Msg.GetConfig().MaxLen = 1

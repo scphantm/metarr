@@ -292,6 +292,82 @@ func TestBootstrap_ErrorFromApplyAbortsWithoutWriting(t *testing.T) {
 	}
 }
 
+// spyPropagator records the config MutateSync handed it after its write.
+type spyPropagator struct {
+	got   *appconfig.Config
+	calls int
+	err   error
+}
+
+func (s *spyPropagator) PropagateInProcess(_ context.Context, cfg *appconfig.Config) error {
+	s.calls++
+	s.got = cfg
+	return s.err
+}
+
+// errWriter fails every Upsert, standing in for Mongo being unreachable.
+type errWriter struct{ err error }
+
+func (e errWriter) Upsert(_ context.Context, _ *appconfig.Config) error { return e.err }
+
+func TestMutateSync_PersistsThenPropagatesAndFiresNoEvent(t *testing.T) {
+	backend := &fakeBackend{}
+	store := New(backend, backend, backend)
+	prop := &spyPropagator{}
+	store.SetPropagator(prop)
+
+	err := store.MutateSync(context.Background(), func(cfg *appconfig.Config) error {
+		cfg.Logging = &appconfig.LoggingConfig{ServerLevel: "debug"}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if backend.upsertCalls != 1 {
+		t.Fatalf("expected exactly one Mongo write, got %d", backend.upsertCalls)
+	}
+	if len(backend.fired) != 0 {
+		t.Fatalf("MutateSync fired %d events, want 0", len(backend.fired))
+	}
+	if prop.calls != 1 || prop.got.GetLogging().GetServerLevel() != "debug" {
+		t.Fatalf("propagator saw calls=%d cfg=%+v", prop.calls, prop.got)
+	}
+}
+
+func TestMutateSync_WriteFailureIsReturnedAndSkipsPropagation(t *testing.T) {
+	backend := &fakeBackend{}
+	sentinel := errors.New("mongo unreachable")
+	prop := &spyPropagator{}
+	store := New(backend, errWriter{err: sentinel}, backend)
+	store.SetPropagator(prop)
+
+	err := store.MutateSync(context.Background(), func(cfg *appconfig.Config) error {
+		cfg.Logging = &appconfig.LoggingConfig{ServerLevel: "debug"}
+		return nil
+	})
+	if !errors.Is(err, sentinel) {
+		t.Fatalf("expected the write error back unchanged, got %v", err)
+	}
+	if prop.calls != 0 {
+		t.Fatalf("propagation ran after a failed write: %d calls", prop.calls)
+	}
+}
+
+func TestMutateSync_ErrorFromApplyAbortsBeforeWriting(t *testing.T) {
+	backend := &fakeBackend{}
+	store := New(backend, backend, backend)
+	store.SetPropagator(&spyPropagator{})
+
+	sentinel := errors.New("rejected")
+	err := store.MutateSync(context.Background(), func(*appconfig.Config) error { return sentinel })
+	if !errors.Is(err, sentinel) {
+		t.Fatalf("expected the apply error back unchanged, got %v", err)
+	}
+	if backend.upsertCalls != 0 {
+		t.Fatalf("expected no write after a failed apply, got %d", backend.upsertCalls)
+	}
+}
+
 func TestRead_DelegatesToReader(t *testing.T) {
 	backend := &fakeBackend{cfg: &appconfig.Config{Admin: &appconfig.AdminUser{Username: "admin"}}}
 	store := New(backend, backend, backend)

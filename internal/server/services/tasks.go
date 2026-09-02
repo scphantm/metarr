@@ -37,7 +37,7 @@ var TaskAuthPolicies = map[string]httpserver.RPCPolicy{
 func (s *TaskServer) RunDirectoryScan(
 	ctx context.Context,
 	req *connect.Request[metarrv1.TaskServiceRunDirectoryScanRequest],
-) (*connect.Response[metarrv1.AcceptedResponse], error) {
+) (*connect.Response[metarrv1.TaskServiceRunDirectoryScanResponse], error) {
 	correlationID := correlation.FromContext(ctx)
 	slug := req.Msg.GetScannerSlug()
 
@@ -87,7 +87,7 @@ func (s *TaskServer) RunDirectoryScan(
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue task"))
 	}
 
-	return connect.NewResponse(&metarrv1.AcceptedResponse{
+	return connect.NewResponse(&metarrv1.TaskServiceRunDirectoryScanResponse{
 		Status:        "accepted",
 		Event:         eventbus.AgentScanCommandEventName,
 		CorrelationId: correlationID,
