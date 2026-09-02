@@ -4,10 +4,13 @@ modules:
 # The proto/metarr/bus/v1 package is the language-agnostic event-bus contract
 # (docs/adr/0008): the EventEnvelope and the server<->agent contract messages a
 # participant in any language implements. It carries a strict breaking-change
-# guarantee — the FILE-level `buf breaking` check below covers it, and a change
-# to anything under proto/metarr/bus/ is a published-contract break, not an
-# internal one. The metarr.v1 CRUD/config/auth/stats protos deliberately stay
-# out of that package so an external author never depends on them.
+# guarantee: the `.github/workflows/proto.yml` CI job runs the FILE-level
+# `buf breaking` check below against origin/main, scoped with `--path
+# proto/metarr/bus`, on every proto change. A change to anything under
+# proto/metarr/bus/ is a published-contract break, not an internal one. The
+# metarr.v1 CRUD/config/auth/stats protos deliberately stay out of that
+# package — they are never in the `--path` scope — so they churn per release
+# and an external author never depends on them.
 lint:
   use:
     - STANDARD
