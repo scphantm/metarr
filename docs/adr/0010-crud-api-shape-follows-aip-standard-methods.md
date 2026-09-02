@@ -75,14 +75,15 @@ Slug-addressed `Update{X}Request` carries `bool allow_missing`; `true` means an
 absence is the "no upsert here" semantics.
 
 **Optimistic concurrency with `etag`** (AIP-154). Every resource and every
-scalar section carries `string etag`, `google.api.field_behavior = OUTPUT_ONLY`.
-The etag is a hash of that section's stored bytes — derived on read, never
-itself stored (ADR-0005). `Update` and `Delete` carry the etag the client last
-read; the config-store mutation closure recomputes the current section's hash
-under the store lock and returns `ABORTED` if it differs. An empty etag on the
-request skips the check (a deliberate blind write). This closes the lost-update
-window the single-writer lock alone leaves open: the lock orders one request's
-read after the previous request's fire, but a client editing from a copy it read
+scalar section carries a `string etag` field, documented output-only. The etag
+is a hash of that section's stored bytes — `appconfig.SectionETag`, populated on
+read by `Normalize()`, stripped before every write by `appconfig.ClearDerived`,
+never itself stored (ADR-0005). `Update` and `Delete` carry the etag the client
+last read; the mutation closure recomputes the current section's hash under the
+store lock and returns `ABORTED` if it differs. An empty etag on the request
+skips the check (a deliberate blind write). This closes the lost-update window
+the single-writer lock alone leaves open: the lock orders one request's read
+after the previous request's fire, but a client editing from a copy it read
 minutes ago is not otherwise protected. See ADR-0002.
 
 **Identity still has two idioms** (CONTEXT.md, unchanged):
@@ -150,9 +151,9 @@ long-running operation.
 
 **Agent presence rides one resource.** `AgentService` returns the same `Agent`
 message that `CreateAgent` / `UpdateAgent` accept — no separate read type. Live
-presence fields on `Agent` are `google.api.field_behavior = OUTPUT_ONLY`:
-populated by `Get` / `List` / `StreamPresence`, ignored by writes, never stored.
-The `AgentView` read type is removed.
+presence fields on `Agent` are output-only: populated by `Get` / `List` /
+`StreamPresence`, ignored by writes, stripped before storage (`ClearDerived`),
+never persisted. The `AgentView` read type is removed.
 
 **A new `AdminService`.** `admin` becomes its own service — `GetAdminUser`,
 `UpdateAdminUser` — rather than sitting on `ConfigService`. `password_salt` /
@@ -198,14 +199,16 @@ lock does not cover.
 ## Relationship to ADR-0005
 
 Resource-name addressing puts a `name` on every resource, presence puts
-`OUTPUT_ONLY` fields on `Agent`, and `etag` puts an `OUTPUT_ONLY` concurrency
-token on every resource and scalar section. None is authoritative in storage:
-`name` is derived from the slug or minted id, presence is joined in by the read
-path, `etag` is a hash of the section's stored bytes. The mutation closure
-clears all three before `MarshalStored`; `Normalize()` backfills `name` and
-`etag` on read. ADR-0005's "generated messages are used directly as stored
-documents" clause is amended in the same change to permit these symmetric,
-lossless transforms — they are not a hand-maintained mirror.
+output-only fields on `Agent`, and `etag` puts an output-only concurrency token
+on every resource and scalar section. None is authoritative in storage: `name`
+is derived from the slug or minted id, presence is joined in by the read path,
+`etag` is a hash of the section's stored bytes. `Normalize()` backfills `name`
+and `etag` on read; `MarshalStored` strips all three (`appconfig.ClearDerived`)
+on a clone before it serializes, so nothing derived reaches Mongo or the
+`system_config_update` payload regardless of which caller marshalled. ADR-0005's
+"generated messages are used directly as stored documents" clause is amended in
+the same change to permit these symmetric, lossless transforms — they are not a
+hand-maintained mirror.
 
 ## Considered options
 
@@ -247,10 +250,17 @@ lossless transforms — they are not a hand-maintained mirror.
 - **A server-only operations store.** `OperationsService` is backed by a Mongo
   collection the server owns (agents never see it); the `system_config_update`
   listener gains a step that resolves the operation by correlation id and marks
-  it done. `google/longrunning/operations.proto` and `google/rpc/status.proto`
-  come from the `buf.build/googleapis/googleapis` dependency already added for
-  `google/api/field_behavior.proto`. `google/protobuf/field_mask.proto` is a
-  well-known type — imported, no dep.
+  it done. `Operation` is a local `metarr.v1` message shaped like
+  `google.longrunning.Operation` — importing the real one pulls
+  `google.golang.org/grpc` and `cloud.google.com/go` into a Connect-only
+  codebase, and its `google.rpc.Status` / `google.protobuf.Any` fields have no
+  generated TypeScript without adding the googleapis module to the codegen
+  target. The config protos import only well-known types
+  (`google/protobuf/field_mask.proto`, `struct.proto`, `timestamp.proto`), so
+  there is **no `buf` dependency**: the output-only fields are plain fields
+  documented as such rather than `google.api.field_behavior` annotations, since
+  the annotation buys nothing at runtime (`ClearDerived` enforces it) and costs
+  a dependency plus a generated import in every proto.
 - **The UI gains `GetOperation` and etag round-tripping.** Every resource read
   surfaces `etag`; every `Update` / `Delete` sends the last-read etag back
   (outside the field mask). The queued→confirmed indicator (`useSaveState`)

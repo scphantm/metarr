@@ -67,8 +67,16 @@ var storedUnmarshal = protojson.UnmarshalOptions{DiscardUnknown: true}
 // MarshalStored encodes cfg as the canonical stored/wire JSON form. It is
 // the one place the config document's serialization is defined, shared by
 // the Mongo repo and the config-update event payload.
+//
+// Every AIP-derived field (the scalar sections' etag today; resource name and
+// presence as the collection slices land) is stripped first, on a clone, so
+// nothing recomputed on read ever reaches Mongo or the system_config_update
+// payload (ADR-0005). EmitUnpopulated still lists the key, so a stored section
+// carries `"etag": ""`.
 func MarshalStored(cfg *Config) ([]byte, error) {
-	return storedMarshal.Marshal(cfg)
+	clean := proto.Clone(cfg).(*Config)
+	ClearDerived(clean)
+	return storedMarshal.Marshal(clean)
 }
 
 // UnmarshalStored decodes bytes produced by MarshalStored (or any protojson
@@ -107,11 +115,13 @@ func Normalize(config *Config) *Config {
 
 	normalizeSections(config)
 	normalizeSonarrStorage(config)
+	normalizeDerivedETags(config)
 
-	// AIP `name` backfill blocks land here, one independent call per
-	// resource kind (agents, Sonarr instances, scan directories, sidecar
-	// types, API keys). Each reads only the slice / id it owns and writes
-	// only that kind's `name`, so the slices can be added one at a time.
+	// AIP `name` backfill blocks land alongside normalizeDerivedETags, one
+	// independent call per resource kind (agents, Sonarr instances, scan
+	// directories, sidecar types, API keys). Each reads only the slice / id
+	// it owns and writes only that kind's `name`, so the slices can be added
+	// one at a time.
 
 	return config
 }

@@ -169,7 +169,7 @@ func TestEventBusUpdateEventBusConfig_RejectsAStaleETag(t *testing.T) {
 	server, backend, _ := newTestEventBusServer(&appconfig.Config{EventBus: seed})
 
 	// The token a client read before anyone else wrote.
-	staleETag := sectionETag(seed)
+	staleETag := appconfig.SectionETag(seed)
 
 	// First write carries the still-current token and lands.
 	_, err := server.UpdateEventBusConfig(context.Background(), connect.NewRequest(&metarrv1.UpdateEventBusConfigRequest{
@@ -246,11 +246,13 @@ func TestEventBusGetEventBusConfig_ReadsLiveConfigWithAnETag(t *testing.T) {
 	if got := resp.Msg.GetConfig().GetRetentionHours(); got != 96 {
 		t.Errorf("retention_hours = %d, want 96", got)
 	}
+	// Normalize populates the derived etag; the read hands it back.
 	if resp.Msg.GetConfig().GetEtag() == "" {
 		t.Error("the read carried no etag")
 	}
-	// The live config singleton must never hold a derived etag.
-	if appconfig.Get().EventBus.GetEtag() != "" {
-		t.Errorf("GetEventBusConfig stamped an etag onto live config: %q", appconfig.Get().EventBus.GetEtag())
+	// The response is a clone: mutating it must not reach live config.
+	resp.Msg.GetConfig().MaxLen = 1
+	if appconfig.Get().EventBus.GetMaxLen() != 12345 {
+		t.Error("GetEventBusConfig handed out the live-config pointer")
 	}
 }
