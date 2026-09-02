@@ -19,8 +19,8 @@ import {
   useUpsertSidecarType,
 } from "../../api/queries";
 import { sidecarCategories } from "../../api/vocab";
-import type { SidecarTypeDefinition } from "../../gen/metarr/v1/directory_scanner_pb";
-import { SidecarTypeDefinitionSchema } from "../../gen/metarr/v1/directory_scanner_pb";
+import type { SidecarTypeDefinition } from "../../gen/metarr/bus/v1/agent_contract_pb";
+import { SidecarTypeDefinitionSchema } from "../../gen/metarr/bus/v1/agent_contract_pb";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Button, Card, Row } from "../../components/Card";
 import { EditableSelect, EditableText } from "../../components/Editable";

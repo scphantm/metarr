@@ -7,6 +7,7 @@
 package metarrv1
 
 import (
+	v1 "Metarr/internal/genproto/metarr/bus/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,10 +27,10 @@ const (
 // classifies the sidecar files it finds. This message is the single
 // definition of that config across the Go server, the UI and storage.
 type DirectoryScannerConfig struct {
-	state           protoimpl.MessageState   `protogen:"open.v1"`
-	ParallelCount   int32                    `protobuf:"varint,1,opt,name=parallel_count,json=parallelCount,proto3" json:"parallel_count,omitempty"`
-	ScanDirectories []*ScanDirectory         `protobuf:"bytes,2,rep,name=scan_directories,json=scanDirectories,proto3" json:"scan_directories,omitempty"`
-	SidecarTypes    []*SidecarTypeDefinition `protobuf:"bytes,3,rep,name=sidecar_types,json=sidecarTypes,proto3" json:"sidecar_types,omitempty"`
+	state           protoimpl.MessageState      `protogen:"open.v1"`
+	ParallelCount   int32                       `protobuf:"varint,1,opt,name=parallel_count,json=parallelCount,proto3" json:"parallel_count,omitempty"`
+	ScanDirectories []*ScanDirectory            `protobuf:"bytes,2,rep,name=scan_directories,json=scanDirectories,proto3" json:"scan_directories,omitempty"`
+	SidecarTypes    []*v1.SidecarTypeDefinition `protobuf:"bytes,3,rep,name=sidecar_types,json=sidecarTypes,proto3" json:"sidecar_types,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -78,7 +79,7 @@ func (x *DirectoryScannerConfig) GetScanDirectories() []*ScanDirectory {
 	return nil
 }
 
-func (x *DirectoryScannerConfig) GetSidecarTypes() []*SidecarTypeDefinition {
+func (x *DirectoryScannerConfig) GetSidecarTypes() []*v1.SidecarTypeDefinition {
 	if x != nil {
 		return x.SidecarTypes
 	}
@@ -147,94 +148,6 @@ func (x *ScanDirectory) GetDirectory() string {
 	return ""
 }
 
-// SidecarTypeDefinition is one entry in the sidecar classification table.
-// patterns are case-insensitive Go regexps matched against a file base name;
-// extensions gates the match; order is the evaluation sequence, zero meaning
-// disabled.
-type SidecarTypeDefinition struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	Category      string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
-	Order         int32                  `protobuf:"varint,4,opt,name=order,proto3" json:"order,omitempty"`
-	Patterns      []string               `protobuf:"bytes,5,rep,name=patterns,proto3" json:"patterns,omitempty"`
-	Extensions    []string               `protobuf:"bytes,6,rep,name=extensions,proto3" json:"extensions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SidecarTypeDefinition) Reset() {
-	*x = SidecarTypeDefinition{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SidecarTypeDefinition) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SidecarTypeDefinition) ProtoMessage() {}
-
-func (x *SidecarTypeDefinition) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SidecarTypeDefinition.ProtoReflect.Descriptor instead.
-func (*SidecarTypeDefinition) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *SidecarTypeDefinition) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *SidecarTypeDefinition) GetType() string {
-	if x != nil {
-		return x.Type
-	}
-	return ""
-}
-
-func (x *SidecarTypeDefinition) GetCategory() string {
-	if x != nil {
-		return x.Category
-	}
-	return ""
-}
-
-func (x *SidecarTypeDefinition) GetOrder() int32 {
-	if x != nil {
-		return x.Order
-	}
-	return 0
-}
-
-func (x *SidecarTypeDefinition) GetPatterns() []string {
-	if x != nil {
-		return x.Patterns
-	}
-	return nil
-}
-
-func (x *SidecarTypeDefinition) GetExtensions() []string {
-	if x != nil {
-		return x.Extensions
-	}
-	return nil
-}
-
 type DirectoryScannerServiceGetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -243,7 +156,7 @@ type DirectoryScannerServiceGetRequest struct {
 
 func (x *DirectoryScannerServiceGetRequest) Reset() {
 	*x = DirectoryScannerServiceGetRequest{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[3]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -255,7 +168,7 @@ func (x *DirectoryScannerServiceGetRequest) String() string {
 func (*DirectoryScannerServiceGetRequest) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceGetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[3]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -268,7 +181,7 @@ func (x *DirectoryScannerServiceGetRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use DirectoryScannerServiceGetRequest.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceGetRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{3}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{2}
 }
 
 type DirectoryScannerServiceGetResponse struct {
@@ -280,7 +193,7 @@ type DirectoryScannerServiceGetResponse struct {
 
 func (x *DirectoryScannerServiceGetResponse) Reset() {
 	*x = DirectoryScannerServiceGetResponse{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[4]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -292,7 +205,7 @@ func (x *DirectoryScannerServiceGetResponse) String() string {
 func (*DirectoryScannerServiceGetResponse) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceGetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[4]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -305,7 +218,7 @@ func (x *DirectoryScannerServiceGetResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use DirectoryScannerServiceGetResponse.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceGetResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{4}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DirectoryScannerServiceGetResponse) GetConfig() *DirectoryScannerConfig {
@@ -327,7 +240,7 @@ type DirectoryScannerServiceUpdateRequest struct {
 
 func (x *DirectoryScannerServiceUpdateRequest) Reset() {
 	*x = DirectoryScannerServiceUpdateRequest{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[5]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -339,7 +252,7 @@ func (x *DirectoryScannerServiceUpdateRequest) String() string {
 func (*DirectoryScannerServiceUpdateRequest) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceUpdateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[5]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -352,7 +265,7 @@ func (x *DirectoryScannerServiceUpdateRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use DirectoryScannerServiceUpdateRequest.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceUpdateRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{5}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *DirectoryScannerServiceUpdateRequest) GetParallelCount() int32 {
@@ -370,7 +283,7 @@ type DirectoryScannerServiceListDirectoriesRequest struct {
 
 func (x *DirectoryScannerServiceListDirectoriesRequest) Reset() {
 	*x = DirectoryScannerServiceListDirectoriesRequest{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[6]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -382,7 +295,7 @@ func (x *DirectoryScannerServiceListDirectoriesRequest) String() string {
 func (*DirectoryScannerServiceListDirectoriesRequest) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceListDirectoriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[6]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -395,7 +308,7 @@ func (x *DirectoryScannerServiceListDirectoriesRequest) ProtoReflect() protorefl
 
 // Deprecated: Use DirectoryScannerServiceListDirectoriesRequest.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceListDirectoriesRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{6}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{5}
 }
 
 type DirectoryScannerServiceListDirectoriesResponse struct {
@@ -407,7 +320,7 @@ type DirectoryScannerServiceListDirectoriesResponse struct {
 
 func (x *DirectoryScannerServiceListDirectoriesResponse) Reset() {
 	*x = DirectoryScannerServiceListDirectoriesResponse{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[7]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -419,7 +332,7 @@ func (x *DirectoryScannerServiceListDirectoriesResponse) String() string {
 func (*DirectoryScannerServiceListDirectoriesResponse) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceListDirectoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[7]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -432,7 +345,7 @@ func (x *DirectoryScannerServiceListDirectoriesResponse) ProtoReflect() protoref
 
 // Deprecated: Use DirectoryScannerServiceListDirectoriesResponse.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceListDirectoriesResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{7}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DirectoryScannerServiceListDirectoriesResponse) GetDirectories() []*ScanDirectory {
@@ -451,7 +364,7 @@ type DirectoryScannerServiceGetDirectoryRequest struct {
 
 func (x *DirectoryScannerServiceGetDirectoryRequest) Reset() {
 	*x = DirectoryScannerServiceGetDirectoryRequest{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[8]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -463,7 +376,7 @@ func (x *DirectoryScannerServiceGetDirectoryRequest) String() string {
 func (*DirectoryScannerServiceGetDirectoryRequest) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceGetDirectoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[8]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -476,7 +389,7 @@ func (x *DirectoryScannerServiceGetDirectoryRequest) ProtoReflect() protoreflect
 
 // Deprecated: Use DirectoryScannerServiceGetDirectoryRequest.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceGetDirectoryRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{8}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DirectoryScannerServiceGetDirectoryRequest) GetSlug() string {
@@ -495,7 +408,7 @@ type DirectoryScannerServiceGetDirectoryResponse struct {
 
 func (x *DirectoryScannerServiceGetDirectoryResponse) Reset() {
 	*x = DirectoryScannerServiceGetDirectoryResponse{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[9]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -507,7 +420,7 @@ func (x *DirectoryScannerServiceGetDirectoryResponse) String() string {
 func (*DirectoryScannerServiceGetDirectoryResponse) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceGetDirectoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[9]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -520,7 +433,7 @@ func (x *DirectoryScannerServiceGetDirectoryResponse) ProtoReflect() protoreflec
 
 // Deprecated: Use DirectoryScannerServiceGetDirectoryResponse.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceGetDirectoryResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{9}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *DirectoryScannerServiceGetDirectoryResponse) GetDirectory() *ScanDirectory {
@@ -539,7 +452,7 @@ type DirectoryScannerServiceUpsertDirectoryRequest struct {
 
 func (x *DirectoryScannerServiceUpsertDirectoryRequest) Reset() {
 	*x = DirectoryScannerServiceUpsertDirectoryRequest{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[10]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -551,7 +464,7 @@ func (x *DirectoryScannerServiceUpsertDirectoryRequest) String() string {
 func (*DirectoryScannerServiceUpsertDirectoryRequest) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceUpsertDirectoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[10]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -564,7 +477,7 @@ func (x *DirectoryScannerServiceUpsertDirectoryRequest) ProtoReflect() protorefl
 
 // Deprecated: Use DirectoryScannerServiceUpsertDirectoryRequest.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceUpsertDirectoryRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{10}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *DirectoryScannerServiceUpsertDirectoryRequest) GetDirectory() *ScanDirectory {
@@ -583,7 +496,7 @@ type DirectoryScannerServiceDeleteDirectoryRequest struct {
 
 func (x *DirectoryScannerServiceDeleteDirectoryRequest) Reset() {
 	*x = DirectoryScannerServiceDeleteDirectoryRequest{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[11]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -595,7 +508,7 @@ func (x *DirectoryScannerServiceDeleteDirectoryRequest) String() string {
 func (*DirectoryScannerServiceDeleteDirectoryRequest) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceDeleteDirectoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[11]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -608,7 +521,7 @@ func (x *DirectoryScannerServiceDeleteDirectoryRequest) ProtoReflect() protorefl
 
 // Deprecated: Use DirectoryScannerServiceDeleteDirectoryRequest.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceDeleteDirectoryRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{11}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DirectoryScannerServiceDeleteDirectoryRequest) GetSlug() string {
@@ -626,7 +539,7 @@ type DirectoryScannerServiceListSidecarTypesRequest struct {
 
 func (x *DirectoryScannerServiceListSidecarTypesRequest) Reset() {
 	*x = DirectoryScannerServiceListSidecarTypesRequest{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[12]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -638,7 +551,7 @@ func (x *DirectoryScannerServiceListSidecarTypesRequest) String() string {
 func (*DirectoryScannerServiceListSidecarTypesRequest) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceListSidecarTypesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[12]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -651,19 +564,19 @@ func (x *DirectoryScannerServiceListSidecarTypesRequest) ProtoReflect() protoref
 
 // Deprecated: Use DirectoryScannerServiceListSidecarTypesRequest.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceListSidecarTypesRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{12}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{11}
 }
 
 type DirectoryScannerServiceListSidecarTypesResponse struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Types         []*SidecarTypeDefinition `protobuf:"bytes,1,rep,name=types,proto3" json:"types,omitempty"`
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Types         []*v1.SidecarTypeDefinition `protobuf:"bytes,1,rep,name=types,proto3" json:"types,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DirectoryScannerServiceListSidecarTypesResponse) Reset() {
 	*x = DirectoryScannerServiceListSidecarTypesResponse{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[13]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -675,7 +588,7 @@ func (x *DirectoryScannerServiceListSidecarTypesResponse) String() string {
 func (*DirectoryScannerServiceListSidecarTypesResponse) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceListSidecarTypesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[13]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -688,10 +601,10 @@ func (x *DirectoryScannerServiceListSidecarTypesResponse) ProtoReflect() protore
 
 // Deprecated: Use DirectoryScannerServiceListSidecarTypesResponse.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceListSidecarTypesResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{13}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *DirectoryScannerServiceListSidecarTypesResponse) GetTypes() []*SidecarTypeDefinition {
+func (x *DirectoryScannerServiceListSidecarTypesResponse) GetTypes() []*v1.SidecarTypeDefinition {
 	if x != nil {
 		return x.Types
 	}
@@ -707,7 +620,7 @@ type DirectoryScannerServiceGetSidecarTypeRequest struct {
 
 func (x *DirectoryScannerServiceGetSidecarTypeRequest) Reset() {
 	*x = DirectoryScannerServiceGetSidecarTypeRequest{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[14]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -719,7 +632,7 @@ func (x *DirectoryScannerServiceGetSidecarTypeRequest) String() string {
 func (*DirectoryScannerServiceGetSidecarTypeRequest) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceGetSidecarTypeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[14]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -732,7 +645,7 @@ func (x *DirectoryScannerServiceGetSidecarTypeRequest) ProtoReflect() protorefle
 
 // Deprecated: Use DirectoryScannerServiceGetSidecarTypeRequest.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceGetSidecarTypeRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{14}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *DirectoryScannerServiceGetSidecarTypeRequest) GetId() string {
@@ -743,15 +656,15 @@ func (x *DirectoryScannerServiceGetSidecarTypeRequest) GetId() string {
 }
 
 type DirectoryScannerServiceGetSidecarTypeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          *SidecarTypeDefinition `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Type          *v1.SidecarTypeDefinition `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DirectoryScannerServiceGetSidecarTypeResponse) Reset() {
 	*x = DirectoryScannerServiceGetSidecarTypeResponse{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[15]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -763,7 +676,7 @@ func (x *DirectoryScannerServiceGetSidecarTypeResponse) String() string {
 func (*DirectoryScannerServiceGetSidecarTypeResponse) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceGetSidecarTypeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[15]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -776,10 +689,10 @@ func (x *DirectoryScannerServiceGetSidecarTypeResponse) ProtoReflect() protorefl
 
 // Deprecated: Use DirectoryScannerServiceGetSidecarTypeResponse.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceGetSidecarTypeResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{15}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{14}
 }
 
-func (x *DirectoryScannerServiceGetSidecarTypeResponse) GetType() *SidecarTypeDefinition {
+func (x *DirectoryScannerServiceGetSidecarTypeResponse) GetType() *v1.SidecarTypeDefinition {
 	if x != nil {
 		return x.Type
 	}
@@ -787,15 +700,15 @@ func (x *DirectoryScannerServiceGetSidecarTypeResponse) GetType() *SidecarTypeDe
 }
 
 type DirectoryScannerServiceUpsertSidecarTypeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          *SidecarTypeDefinition `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Type          *v1.SidecarTypeDefinition `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DirectoryScannerServiceUpsertSidecarTypeRequest) Reset() {
 	*x = DirectoryScannerServiceUpsertSidecarTypeRequest{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[16]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -807,7 +720,7 @@ func (x *DirectoryScannerServiceUpsertSidecarTypeRequest) String() string {
 func (*DirectoryScannerServiceUpsertSidecarTypeRequest) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceUpsertSidecarTypeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[16]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -820,10 +733,10 @@ func (x *DirectoryScannerServiceUpsertSidecarTypeRequest) ProtoReflect() protore
 
 // Deprecated: Use DirectoryScannerServiceUpsertSidecarTypeRequest.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceUpsertSidecarTypeRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{16}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *DirectoryScannerServiceUpsertSidecarTypeRequest) GetType() *SidecarTypeDefinition {
+func (x *DirectoryScannerServiceUpsertSidecarTypeRequest) GetType() *v1.SidecarTypeDefinition {
 	if x != nil {
 		return x.Type
 	}
@@ -839,7 +752,7 @@ type DirectoryScannerServiceDeleteSidecarTypeRequest struct {
 
 func (x *DirectoryScannerServiceDeleteSidecarTypeRequest) Reset() {
 	*x = DirectoryScannerServiceDeleteSidecarTypeRequest{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[17]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -851,7 +764,7 @@ func (x *DirectoryScannerServiceDeleteSidecarTypeRequest) String() string {
 func (*DirectoryScannerServiceDeleteSidecarTypeRequest) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceDeleteSidecarTypeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[17]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -864,7 +777,7 @@ func (x *DirectoryScannerServiceDeleteSidecarTypeRequest) ProtoReflect() protore
 
 // Deprecated: Use DirectoryScannerServiceDeleteSidecarTypeRequest.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceDeleteSidecarTypeRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{17}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *DirectoryScannerServiceDeleteSidecarTypeRequest) GetId() string {
@@ -887,7 +800,7 @@ type DirectoryScannerServiceReorderSidecarTypesRequest struct {
 
 func (x *DirectoryScannerServiceReorderSidecarTypesRequest) Reset() {
 	*x = DirectoryScannerServiceReorderSidecarTypesRequest{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[18]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -899,7 +812,7 @@ func (x *DirectoryScannerServiceReorderSidecarTypesRequest) String() string {
 func (*DirectoryScannerServiceReorderSidecarTypesRequest) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceReorderSidecarTypesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[18]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -912,7 +825,7 @@ func (x *DirectoryScannerServiceReorderSidecarTypesRequest) ProtoReflect() proto
 
 // Deprecated: Use DirectoryScannerServiceReorderSidecarTypesRequest.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceReorderSidecarTypesRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{18}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DirectoryScannerServiceReorderSidecarTypesRequest) GetOrders() map[string]int32 {
@@ -930,7 +843,7 @@ type DirectoryScannerServiceResetSidecarTypesRequest struct {
 
 func (x *DirectoryScannerServiceResetSidecarTypesRequest) Reset() {
 	*x = DirectoryScannerServiceResetSidecarTypesRequest{}
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[19]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -942,7 +855,7 @@ func (x *DirectoryScannerServiceResetSidecarTypesRequest) String() string {
 func (*DirectoryScannerServiceResetSidecarTypesRequest) ProtoMessage() {}
 
 func (x *DirectoryScannerServiceResetSidecarTypesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[19]
+	mi := &file_metarr_v1_directory_scanner_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -955,31 +868,22 @@ func (x *DirectoryScannerServiceResetSidecarTypesRequest) ProtoReflect() protore
 
 // Deprecated: Use DirectoryScannerServiceResetSidecarTypesRequest.ProtoReflect.Descriptor instead.
 func (*DirectoryScannerServiceResetSidecarTypesRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{19}
+	return file_metarr_v1_directory_scanner_proto_rawDescGZIP(), []int{18}
 }
 
 var File_metarr_v1_directory_scanner_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_directory_scanner_proto_rawDesc = "" +
 	"\n" +
-	"!metarr/v1/directory_scanner.proto\x12\tmetarr.v1\x1a\x16metarr/v1/common.proto\"\xcb\x01\n" +
+	"!metarr/v1/directory_scanner.proto\x12\tmetarr.v1\x1a\"metarr/bus/v1/agent_contract.proto\x1a\x16metarr/v1/common.proto\"\xcf\x01\n" +
 	"\x16DirectoryScannerConfig\x12%\n" +
 	"\x0eparallel_count\x18\x01 \x01(\x05R\rparallelCount\x12C\n" +
-	"\x10scan_directories\x18\x02 \x03(\v2\x18.metarr.v1.ScanDirectoryR\x0fscanDirectories\x12E\n" +
-	"\rsidecar_types\x18\x03 \x03(\v2 .metarr.v1.SidecarTypeDefinitionR\fsidecarTypes\"m\n" +
+	"\x10scan_directories\x18\x02 \x03(\v2\x18.metarr.v1.ScanDirectoryR\x0fscanDirectories\x12I\n" +
+	"\rsidecar_types\x18\x03 \x03(\v2$.metarr.bus.v1.SidecarTypeDefinitionR\fsidecarTypes\"m\n" +
 	"\rScanDirectory\x12!\n" +
 	"\fscanner_slug\x18\x01 \x01(\tR\vscannerSlug\x12\x1b\n" +
 	"\tscan_type\x18\x02 \x01(\tR\bscanType\x12\x1c\n" +
-	"\tdirectory\x18\x03 \x01(\tR\tdirectory\"\xa9\x01\n" +
-	"\x15SidecarTypeDefinition\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04type\x18\x02 \x01(\tR\x04type\x12\x1a\n" +
-	"\bcategory\x18\x03 \x01(\tR\bcategory\x12\x14\n" +
-	"\x05order\x18\x04 \x01(\x05R\x05order\x12\x1a\n" +
-	"\bpatterns\x18\x05 \x03(\tR\bpatterns\x12\x1e\n" +
-	"\n" +
-	"extensions\x18\x06 \x03(\tR\n" +
-	"extensions\"#\n" +
+	"\tdirectory\x18\x03 \x01(\tR\tdirectory\"#\n" +
 	"!DirectoryScannerServiceGetRequest\"_\n" +
 	"\"DirectoryScannerServiceGetResponse\x129\n" +
 	"\x06config\x18\x01 \x01(\v2!.metarr.v1.DirectoryScannerConfigR\x06config\"e\n" +
@@ -997,15 +901,15 @@ const file_metarr_v1_directory_scanner_proto_rawDesc = "" +
 	"\tdirectory\x18\x01 \x01(\v2\x18.metarr.v1.ScanDirectoryR\tdirectory\"C\n" +
 	"-DirectoryScannerServiceDeleteDirectoryRequest\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\"0\n" +
-	".DirectoryScannerServiceListSidecarTypesRequest\"i\n" +
-	"/DirectoryScannerServiceListSidecarTypesResponse\x126\n" +
-	"\x05types\x18\x01 \x03(\v2 .metarr.v1.SidecarTypeDefinitionR\x05types\">\n" +
+	".DirectoryScannerServiceListSidecarTypesRequest\"m\n" +
+	"/DirectoryScannerServiceListSidecarTypesResponse\x12:\n" +
+	"\x05types\x18\x01 \x03(\v2$.metarr.bus.v1.SidecarTypeDefinitionR\x05types\">\n" +
 	",DirectoryScannerServiceGetSidecarTypeRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"e\n" +
-	"-DirectoryScannerServiceGetSidecarTypeResponse\x124\n" +
-	"\x04type\x18\x01 \x01(\v2 .metarr.v1.SidecarTypeDefinitionR\x04type\"g\n" +
-	"/DirectoryScannerServiceUpsertSidecarTypeRequest\x124\n" +
-	"\x04type\x18\x01 \x01(\v2 .metarr.v1.SidecarTypeDefinitionR\x04type\"A\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"i\n" +
+	"-DirectoryScannerServiceGetSidecarTypeResponse\x128\n" +
+	"\x04type\x18\x01 \x01(\v2$.metarr.bus.v1.SidecarTypeDefinitionR\x04type\"k\n" +
+	"/DirectoryScannerServiceUpsertSidecarTypeRequest\x128\n" +
+	"\x04type\x18\x01 \x01(\v2$.metarr.bus.v1.SidecarTypeDefinitionR\x04type\"A\n" +
 	"/DirectoryScannerServiceDeleteSidecarTypeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\xd0\x01\n" +
 	"1DirectoryScannerServiceReorderSidecarTypesRequest\x12`\n" +
@@ -1041,62 +945,62 @@ func file_metarr_v1_directory_scanner_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_directory_scanner_proto_rawDescData
 }
 
-var file_metarr_v1_directory_scanner_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_metarr_v1_directory_scanner_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_metarr_v1_directory_scanner_proto_goTypes = []any{
 	(*DirectoryScannerConfig)(nil),                            // 0: metarr.v1.DirectoryScannerConfig
 	(*ScanDirectory)(nil),                                     // 1: metarr.v1.ScanDirectory
-	(*SidecarTypeDefinition)(nil),                             // 2: metarr.v1.SidecarTypeDefinition
-	(*DirectoryScannerServiceGetRequest)(nil),                 // 3: metarr.v1.DirectoryScannerServiceGetRequest
-	(*DirectoryScannerServiceGetResponse)(nil),                // 4: metarr.v1.DirectoryScannerServiceGetResponse
-	(*DirectoryScannerServiceUpdateRequest)(nil),              // 5: metarr.v1.DirectoryScannerServiceUpdateRequest
-	(*DirectoryScannerServiceListDirectoriesRequest)(nil),     // 6: metarr.v1.DirectoryScannerServiceListDirectoriesRequest
-	(*DirectoryScannerServiceListDirectoriesResponse)(nil),    // 7: metarr.v1.DirectoryScannerServiceListDirectoriesResponse
-	(*DirectoryScannerServiceGetDirectoryRequest)(nil),        // 8: metarr.v1.DirectoryScannerServiceGetDirectoryRequest
-	(*DirectoryScannerServiceGetDirectoryResponse)(nil),       // 9: metarr.v1.DirectoryScannerServiceGetDirectoryResponse
-	(*DirectoryScannerServiceUpsertDirectoryRequest)(nil),     // 10: metarr.v1.DirectoryScannerServiceUpsertDirectoryRequest
-	(*DirectoryScannerServiceDeleteDirectoryRequest)(nil),     // 11: metarr.v1.DirectoryScannerServiceDeleteDirectoryRequest
-	(*DirectoryScannerServiceListSidecarTypesRequest)(nil),    // 12: metarr.v1.DirectoryScannerServiceListSidecarTypesRequest
-	(*DirectoryScannerServiceListSidecarTypesResponse)(nil),   // 13: metarr.v1.DirectoryScannerServiceListSidecarTypesResponse
-	(*DirectoryScannerServiceGetSidecarTypeRequest)(nil),      // 14: metarr.v1.DirectoryScannerServiceGetSidecarTypeRequest
-	(*DirectoryScannerServiceGetSidecarTypeResponse)(nil),     // 15: metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse
-	(*DirectoryScannerServiceUpsertSidecarTypeRequest)(nil),   // 16: metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest
-	(*DirectoryScannerServiceDeleteSidecarTypeRequest)(nil),   // 17: metarr.v1.DirectoryScannerServiceDeleteSidecarTypeRequest
-	(*DirectoryScannerServiceReorderSidecarTypesRequest)(nil), // 18: metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest
-	(*DirectoryScannerServiceResetSidecarTypesRequest)(nil),   // 19: metarr.v1.DirectoryScannerServiceResetSidecarTypesRequest
-	nil,                      // 20: metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest.OrdersEntry
-	(*AcceptedResponse)(nil), // 21: metarr.v1.AcceptedResponse
+	(*DirectoryScannerServiceGetRequest)(nil),                 // 2: metarr.v1.DirectoryScannerServiceGetRequest
+	(*DirectoryScannerServiceGetResponse)(nil),                // 3: metarr.v1.DirectoryScannerServiceGetResponse
+	(*DirectoryScannerServiceUpdateRequest)(nil),              // 4: metarr.v1.DirectoryScannerServiceUpdateRequest
+	(*DirectoryScannerServiceListDirectoriesRequest)(nil),     // 5: metarr.v1.DirectoryScannerServiceListDirectoriesRequest
+	(*DirectoryScannerServiceListDirectoriesResponse)(nil),    // 6: metarr.v1.DirectoryScannerServiceListDirectoriesResponse
+	(*DirectoryScannerServiceGetDirectoryRequest)(nil),        // 7: metarr.v1.DirectoryScannerServiceGetDirectoryRequest
+	(*DirectoryScannerServiceGetDirectoryResponse)(nil),       // 8: metarr.v1.DirectoryScannerServiceGetDirectoryResponse
+	(*DirectoryScannerServiceUpsertDirectoryRequest)(nil),     // 9: metarr.v1.DirectoryScannerServiceUpsertDirectoryRequest
+	(*DirectoryScannerServiceDeleteDirectoryRequest)(nil),     // 10: metarr.v1.DirectoryScannerServiceDeleteDirectoryRequest
+	(*DirectoryScannerServiceListSidecarTypesRequest)(nil),    // 11: metarr.v1.DirectoryScannerServiceListSidecarTypesRequest
+	(*DirectoryScannerServiceListSidecarTypesResponse)(nil),   // 12: metarr.v1.DirectoryScannerServiceListSidecarTypesResponse
+	(*DirectoryScannerServiceGetSidecarTypeRequest)(nil),      // 13: metarr.v1.DirectoryScannerServiceGetSidecarTypeRequest
+	(*DirectoryScannerServiceGetSidecarTypeResponse)(nil),     // 14: metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse
+	(*DirectoryScannerServiceUpsertSidecarTypeRequest)(nil),   // 15: metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest
+	(*DirectoryScannerServiceDeleteSidecarTypeRequest)(nil),   // 16: metarr.v1.DirectoryScannerServiceDeleteSidecarTypeRequest
+	(*DirectoryScannerServiceReorderSidecarTypesRequest)(nil), // 17: metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest
+	(*DirectoryScannerServiceResetSidecarTypesRequest)(nil),   // 18: metarr.v1.DirectoryScannerServiceResetSidecarTypesRequest
+	nil,                              // 19: metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest.OrdersEntry
+	(*v1.SidecarTypeDefinition)(nil), // 20: metarr.bus.v1.SidecarTypeDefinition
+	(*AcceptedResponse)(nil),         // 21: metarr.v1.AcceptedResponse
 }
 var file_metarr_v1_directory_scanner_proto_depIdxs = []int32{
 	1,  // 0: metarr.v1.DirectoryScannerConfig.scan_directories:type_name -> metarr.v1.ScanDirectory
-	2,  // 1: metarr.v1.DirectoryScannerConfig.sidecar_types:type_name -> metarr.v1.SidecarTypeDefinition
+	20, // 1: metarr.v1.DirectoryScannerConfig.sidecar_types:type_name -> metarr.bus.v1.SidecarTypeDefinition
 	0,  // 2: metarr.v1.DirectoryScannerServiceGetResponse.config:type_name -> metarr.v1.DirectoryScannerConfig
 	1,  // 3: metarr.v1.DirectoryScannerServiceListDirectoriesResponse.directories:type_name -> metarr.v1.ScanDirectory
 	1,  // 4: metarr.v1.DirectoryScannerServiceGetDirectoryResponse.directory:type_name -> metarr.v1.ScanDirectory
 	1,  // 5: metarr.v1.DirectoryScannerServiceUpsertDirectoryRequest.directory:type_name -> metarr.v1.ScanDirectory
-	2,  // 6: metarr.v1.DirectoryScannerServiceListSidecarTypesResponse.types:type_name -> metarr.v1.SidecarTypeDefinition
-	2,  // 7: metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse.type:type_name -> metarr.v1.SidecarTypeDefinition
-	2,  // 8: metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest.type:type_name -> metarr.v1.SidecarTypeDefinition
-	20, // 9: metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest.orders:type_name -> metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest.OrdersEntry
-	3,  // 10: metarr.v1.DirectoryScannerService.Get:input_type -> metarr.v1.DirectoryScannerServiceGetRequest
-	5,  // 11: metarr.v1.DirectoryScannerService.Update:input_type -> metarr.v1.DirectoryScannerServiceUpdateRequest
-	6,  // 12: metarr.v1.DirectoryScannerService.ListDirectories:input_type -> metarr.v1.DirectoryScannerServiceListDirectoriesRequest
-	8,  // 13: metarr.v1.DirectoryScannerService.GetDirectory:input_type -> metarr.v1.DirectoryScannerServiceGetDirectoryRequest
-	10, // 14: metarr.v1.DirectoryScannerService.UpsertDirectory:input_type -> metarr.v1.DirectoryScannerServiceUpsertDirectoryRequest
-	11, // 15: metarr.v1.DirectoryScannerService.DeleteDirectory:input_type -> metarr.v1.DirectoryScannerServiceDeleteDirectoryRequest
-	12, // 16: metarr.v1.DirectoryScannerService.ListSidecarTypes:input_type -> metarr.v1.DirectoryScannerServiceListSidecarTypesRequest
-	14, // 17: metarr.v1.DirectoryScannerService.GetSidecarType:input_type -> metarr.v1.DirectoryScannerServiceGetSidecarTypeRequest
-	16, // 18: metarr.v1.DirectoryScannerService.UpsertSidecarType:input_type -> metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest
-	17, // 19: metarr.v1.DirectoryScannerService.DeleteSidecarType:input_type -> metarr.v1.DirectoryScannerServiceDeleteSidecarTypeRequest
-	18, // 20: metarr.v1.DirectoryScannerService.ReorderSidecarTypes:input_type -> metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest
-	19, // 21: metarr.v1.DirectoryScannerService.ResetSidecarTypes:input_type -> metarr.v1.DirectoryScannerServiceResetSidecarTypesRequest
-	4,  // 22: metarr.v1.DirectoryScannerService.Get:output_type -> metarr.v1.DirectoryScannerServiceGetResponse
+	20, // 6: metarr.v1.DirectoryScannerServiceListSidecarTypesResponse.types:type_name -> metarr.bus.v1.SidecarTypeDefinition
+	20, // 7: metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse.type:type_name -> metarr.bus.v1.SidecarTypeDefinition
+	20, // 8: metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest.type:type_name -> metarr.bus.v1.SidecarTypeDefinition
+	19, // 9: metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest.orders:type_name -> metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest.OrdersEntry
+	2,  // 10: metarr.v1.DirectoryScannerService.Get:input_type -> metarr.v1.DirectoryScannerServiceGetRequest
+	4,  // 11: metarr.v1.DirectoryScannerService.Update:input_type -> metarr.v1.DirectoryScannerServiceUpdateRequest
+	5,  // 12: metarr.v1.DirectoryScannerService.ListDirectories:input_type -> metarr.v1.DirectoryScannerServiceListDirectoriesRequest
+	7,  // 13: metarr.v1.DirectoryScannerService.GetDirectory:input_type -> metarr.v1.DirectoryScannerServiceGetDirectoryRequest
+	9,  // 14: metarr.v1.DirectoryScannerService.UpsertDirectory:input_type -> metarr.v1.DirectoryScannerServiceUpsertDirectoryRequest
+	10, // 15: metarr.v1.DirectoryScannerService.DeleteDirectory:input_type -> metarr.v1.DirectoryScannerServiceDeleteDirectoryRequest
+	11, // 16: metarr.v1.DirectoryScannerService.ListSidecarTypes:input_type -> metarr.v1.DirectoryScannerServiceListSidecarTypesRequest
+	13, // 17: metarr.v1.DirectoryScannerService.GetSidecarType:input_type -> metarr.v1.DirectoryScannerServiceGetSidecarTypeRequest
+	15, // 18: metarr.v1.DirectoryScannerService.UpsertSidecarType:input_type -> metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest
+	16, // 19: metarr.v1.DirectoryScannerService.DeleteSidecarType:input_type -> metarr.v1.DirectoryScannerServiceDeleteSidecarTypeRequest
+	17, // 20: metarr.v1.DirectoryScannerService.ReorderSidecarTypes:input_type -> metarr.v1.DirectoryScannerServiceReorderSidecarTypesRequest
+	18, // 21: metarr.v1.DirectoryScannerService.ResetSidecarTypes:input_type -> metarr.v1.DirectoryScannerServiceResetSidecarTypesRequest
+	3,  // 22: metarr.v1.DirectoryScannerService.Get:output_type -> metarr.v1.DirectoryScannerServiceGetResponse
 	21, // 23: metarr.v1.DirectoryScannerService.Update:output_type -> metarr.v1.AcceptedResponse
-	7,  // 24: metarr.v1.DirectoryScannerService.ListDirectories:output_type -> metarr.v1.DirectoryScannerServiceListDirectoriesResponse
-	9,  // 25: metarr.v1.DirectoryScannerService.GetDirectory:output_type -> metarr.v1.DirectoryScannerServiceGetDirectoryResponse
+	6,  // 24: metarr.v1.DirectoryScannerService.ListDirectories:output_type -> metarr.v1.DirectoryScannerServiceListDirectoriesResponse
+	8,  // 25: metarr.v1.DirectoryScannerService.GetDirectory:output_type -> metarr.v1.DirectoryScannerServiceGetDirectoryResponse
 	21, // 26: metarr.v1.DirectoryScannerService.UpsertDirectory:output_type -> metarr.v1.AcceptedResponse
 	21, // 27: metarr.v1.DirectoryScannerService.DeleteDirectory:output_type -> metarr.v1.AcceptedResponse
-	13, // 28: metarr.v1.DirectoryScannerService.ListSidecarTypes:output_type -> metarr.v1.DirectoryScannerServiceListSidecarTypesResponse
-	15, // 29: metarr.v1.DirectoryScannerService.GetSidecarType:output_type -> metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse
+	12, // 28: metarr.v1.DirectoryScannerService.ListSidecarTypes:output_type -> metarr.v1.DirectoryScannerServiceListSidecarTypesResponse
+	14, // 29: metarr.v1.DirectoryScannerService.GetSidecarType:output_type -> metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse
 	21, // 30: metarr.v1.DirectoryScannerService.UpsertSidecarType:output_type -> metarr.v1.AcceptedResponse
 	21, // 31: metarr.v1.DirectoryScannerService.DeleteSidecarType:output_type -> metarr.v1.AcceptedResponse
 	21, // 32: metarr.v1.DirectoryScannerService.ReorderSidecarTypes:output_type -> metarr.v1.AcceptedResponse
@@ -1114,14 +1018,14 @@ func file_metarr_v1_directory_scanner_proto_init() {
 		return
 	}
 	file_metarr_v1_common_proto_init()
-	file_metarr_v1_directory_scanner_proto_msgTypes[5].OneofWrappers = []any{}
+	file_metarr_v1_directory_scanner_proto_msgTypes[4].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_directory_scanner_proto_rawDesc), len(file_metarr_v1_directory_scanner_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   21,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

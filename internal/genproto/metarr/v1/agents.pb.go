@@ -7,6 +7,7 @@
 package metarrv1
 
 import (
+	v1 "Metarr/internal/genproto/metarr/bus/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -147,501 +148,6 @@ func (x *AgentDirectoryMapping) GetAgentPath() string {
 	return ""
 }
 
-// GPUTelemetry is one GPU's live state.
-type GPUTelemetry struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Name               string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	UtilizationPercent float64                `protobuf:"fixed64,2,opt,name=utilization_percent,json=utilizationPercent,proto3" json:"utilization_percent,omitempty"`
-	MemoryUsedBytes    uint64                 `protobuf:"varint,3,opt,name=memory_used_bytes,json=memoryUsedBytes,proto3" json:"memory_used_bytes,omitempty"`
-	MemoryTotalBytes   uint64                 `protobuf:"varint,4,opt,name=memory_total_bytes,json=memoryTotalBytes,proto3" json:"memory_total_bytes,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *GPUTelemetry) Reset() {
-	*x = GPUTelemetry{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GPUTelemetry) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GPUTelemetry) ProtoMessage() {}
-
-func (x *GPUTelemetry) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GPUTelemetry.ProtoReflect.Descriptor instead.
-func (*GPUTelemetry) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *GPUTelemetry) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *GPUTelemetry) GetUtilizationPercent() float64 {
-	if x != nil {
-		return x.UtilizationPercent
-	}
-	return 0
-}
-
-func (x *GPUTelemetry) GetMemoryUsedBytes() uint64 {
-	if x != nil {
-		return x.MemoryUsedBytes
-	}
-	return 0
-}
-
-func (x *GPUTelemetry) GetMemoryTotalBytes() uint64 {
-	if x != nil {
-		return x.MemoryTotalBytes
-	}
-	return 0
-}
-
-// AgentTelemetry is the live host state, refreshed on every heartbeat.
-type AgentTelemetry struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	CpuPercent       float64                `protobuf:"fixed64,1,opt,name=cpu_percent,json=cpuPercent,proto3" json:"cpu_percent,omitempty"`
-	MemoryUsedBytes  uint64                 `protobuf:"varint,2,opt,name=memory_used_bytes,json=memoryUsedBytes,proto3" json:"memory_used_bytes,omitempty"`
-	MemoryTotalBytes uint64                 `protobuf:"varint,3,opt,name=memory_total_bytes,json=memoryTotalBytes,proto3" json:"memory_total_bytes,omitempty"`
-	Gpus             []*GPUTelemetry        `protobuf:"bytes,4,rep,name=gpus,proto3" json:"gpus,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *AgentTelemetry) Reset() {
-	*x = AgentTelemetry{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AgentTelemetry) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AgentTelemetry) ProtoMessage() {}
-
-func (x *AgentTelemetry) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AgentTelemetry.ProtoReflect.Descriptor instead.
-func (*AgentTelemetry) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *AgentTelemetry) GetCpuPercent() float64 {
-	if x != nil {
-		return x.CpuPercent
-	}
-	return 0
-}
-
-func (x *AgentTelemetry) GetMemoryUsedBytes() uint64 {
-	if x != nil {
-		return x.MemoryUsedBytes
-	}
-	return 0
-}
-
-func (x *AgentTelemetry) GetMemoryTotalBytes() uint64 {
-	if x != nil {
-		return x.MemoryTotalBytes
-	}
-	return 0
-}
-
-func (x *AgentTelemetry) GetGpus() []*GPUTelemetry {
-	if x != nil {
-		return x.Gpus
-	}
-	return nil
-}
-
-// AgentIdentity is who and where an agent is. Collected once at startup, since
-// none of it changes while the process lives.
-type AgentIdentity struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Slug  string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
-	// instance_id distinguishes one run of an agent from the next, so a restart
-	// is visible as a restart rather than continuous uptime.
-	InstanceId string `protobuf:"bytes,2,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
-	Hostname   string `protobuf:"bytes,3,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	Ip         string `protobuf:"bytes,4,opt,name=ip,proto3" json:"ip,omitempty"`
-	// uid and username are the account the service runs as. uid is -1 on
-	// Windows, which has no uid at all.
-	Uid           int32                  `protobuf:"varint,5,opt,name=uid,proto3" json:"uid,omitempty"`
-	Username      string                 `protobuf:"bytes,6,opt,name=username,proto3" json:"username,omitempty"`
-	Os            string                 `protobuf:"bytes,7,opt,name=os,proto3" json:"os,omitempty"`
-	Arch          string                 `protobuf:"bytes,8,opt,name=arch,proto3" json:"arch,omitempty"`
-	Version       string                 `protobuf:"bytes,9,opt,name=version,proto3" json:"version,omitempty"`
-	Started       *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=started,proto3" json:"started,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AgentIdentity) Reset() {
-	*x = AgentIdentity{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AgentIdentity) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AgentIdentity) ProtoMessage() {}
-
-func (x *AgentIdentity) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AgentIdentity.ProtoReflect.Descriptor instead.
-func (*AgentIdentity) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *AgentIdentity) GetSlug() string {
-	if x != nil {
-		return x.Slug
-	}
-	return ""
-}
-
-func (x *AgentIdentity) GetInstanceId() string {
-	if x != nil {
-		return x.InstanceId
-	}
-	return ""
-}
-
-func (x *AgentIdentity) GetHostname() string {
-	if x != nil {
-		return x.Hostname
-	}
-	return ""
-}
-
-func (x *AgentIdentity) GetIp() string {
-	if x != nil {
-		return x.Ip
-	}
-	return ""
-}
-
-func (x *AgentIdentity) GetUid() int32 {
-	if x != nil {
-		return x.Uid
-	}
-	return 0
-}
-
-func (x *AgentIdentity) GetUsername() string {
-	if x != nil {
-		return x.Username
-	}
-	return ""
-}
-
-func (x *AgentIdentity) GetOs() string {
-	if x != nil {
-		return x.Os
-	}
-	return ""
-}
-
-func (x *AgentIdentity) GetArch() string {
-	if x != nil {
-		return x.Arch
-	}
-	return ""
-}
-
-func (x *AgentIdentity) GetVersion() string {
-	if x != nil {
-		return x.Version
-	}
-	return ""
-}
-
-func (x *AgentIdentity) GetStarted() *timestamppb.Timestamp {
-	if x != nil {
-		return x.Started
-	}
-	return nil
-}
-
-// AgentPresence is the whole value stored at the agent's Redis presence key:
-// identity plus a fresh telemetry sample, written by the agent every
-// heartbeat with a TTL.
-type AgentPresence struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Identity      *AgentIdentity         `protobuf:"bytes,1,opt,name=identity,proto3" json:"identity,omitempty"`
-	Telemetry     *AgentTelemetry        `protobuf:"bytes,2,opt,name=telemetry,proto3" json:"telemetry,omitempty"`
-	ReportedAt    *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=reported_at,json=reportedAt,proto3" json:"reported_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AgentPresence) Reset() {
-	*x = AgentPresence{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AgentPresence) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AgentPresence) ProtoMessage() {}
-
-func (x *AgentPresence) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AgentPresence.ProtoReflect.Descriptor instead.
-func (*AgentPresence) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *AgentPresence) GetIdentity() *AgentIdentity {
-	if x != nil {
-		return x.Identity
-	}
-	return nil
-}
-
-func (x *AgentPresence) GetTelemetry() *AgentTelemetry {
-	if x != nil {
-		return x.Telemetry
-	}
-	return nil
-}
-
-func (x *AgentPresence) GetReportedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ReportedAt
-	}
-	return nil
-}
-
-// MappedDirectory is one scan directory as one agent sees it. The server's own
-// path for the same library is deliberately absent — the agent has no use for
-// it, and translating back is the server's job on the way in.
-type MappedDirectory struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ScannerSlug   string                 `protobuf:"bytes,1,opt,name=scanner_slug,json=scannerSlug,proto3" json:"scanner_slug,omitempty"`
-	ScanType      string                 `protobuf:"bytes,2,opt,name=scan_type,json=scanType,proto3" json:"scan_type,omitempty"`
-	AgentPath     string                 `protobuf:"bytes,3,opt,name=agent_path,json=agentPath,proto3" json:"agent_path,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *MappedDirectory) Reset() {
-	*x = MappedDirectory{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *MappedDirectory) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MappedDirectory) ProtoMessage() {}
-
-func (x *MappedDirectory) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MappedDirectory.ProtoReflect.Descriptor instead.
-func (*MappedDirectory) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *MappedDirectory) GetScannerSlug() string {
-	if x != nil {
-		return x.ScannerSlug
-	}
-	return ""
-}
-
-func (x *MappedDirectory) GetScanType() string {
-	if x != nil {
-		return x.ScanType
-	}
-	return ""
-}
-
-func (x *MappedDirectory) GetAgentPath() string {
-	if x != nil {
-		return x.AgentPath
-	}
-	return ""
-}
-
-// AgentConfigProjection is everything an agent is allowed to know — the
-// redacted configuration the server publishes to the agent's Redis config
-// key. It is the security boundary of the agent design: the application config
-// it is derived from holds the admin password hash, every API key and every
-// Sonarr credential, so this is built as an explicit allow-list rather than a
-// copy-with-secrets-deleted. Adding a field here is a decision that every
-// agent host may read it. See internal/server/agentregistry.BuildProjection.
-type AgentConfigProjection struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	Slug        string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
-	DisplayName string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	// parallel_count is how many item directories the agent walks at once.
-	ParallelCount int32 `protobuf:"varint,3,opt,name=parallel_count,json=parallelCount,proto3" json:"parallel_count,omitempty"`
-	// sidecar_types is the classification table; the agent holds it because
-	// classification happens where the files are.
-	SidecarTypes []*SidecarTypeDefinition `protobuf:"bytes,4,rep,name=sidecar_types,json=sidecarTypes,proto3" json:"sidecar_types,omitempty"`
-	// directories are only those mapped to this agent — it is told nothing
-	// about libraries it cannot see.
-	Directories []*MappedDirectory `protobuf:"bytes,5,rep,name=directories,proto3" json:"directories,omitempty"`
-	// log_level is this agent's own verbosity ("info" or "debug"). Not a
-	// secret-boundary concern; it lives here because it is per-agent state
-	// delivered the same way as everything else the agent needs.
-	LogLevel string `protobuf:"bytes,6,opt,name=log_level,json=logLevel,proto3" json:"log_level,omitempty"`
-	// updated_at lets the agent log which revision it is running, telling "the
-	// mapping is wrong" apart from "the agent never got the new mapping".
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AgentConfigProjection) Reset() {
-	*x = AgentConfigProjection{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AgentConfigProjection) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AgentConfigProjection) ProtoMessage() {}
-
-func (x *AgentConfigProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AgentConfigProjection.ProtoReflect.Descriptor instead.
-func (*AgentConfigProjection) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *AgentConfigProjection) GetSlug() string {
-	if x != nil {
-		return x.Slug
-	}
-	return ""
-}
-
-func (x *AgentConfigProjection) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
-	}
-	return ""
-}
-
-func (x *AgentConfigProjection) GetParallelCount() int32 {
-	if x != nil {
-		return x.ParallelCount
-	}
-	return 0
-}
-
-func (x *AgentConfigProjection) GetSidecarTypes() []*SidecarTypeDefinition {
-	if x != nil {
-		return x.SidecarTypes
-	}
-	return nil
-}
-
-func (x *AgentConfigProjection) GetDirectories() []*MappedDirectory {
-	if x != nil {
-		return x.Directories
-	}
-	return nil
-}
-
-func (x *AgentConfigProjection) GetLogLevel() string {
-	if x != nil {
-		return x.LogLevel
-	}
-	return ""
-}
-
-func (x *AgentConfigProjection) GetUpdatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.UpdatedAt
-	}
-	return nil
-}
-
 // AgentMappingView is one library mapping shown in both machines' terms.
 type AgentMappingView struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -655,7 +161,7 @@ type AgentMappingView struct {
 
 func (x *AgentMappingView) Reset() {
 	*x = AgentMappingView{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[8]
+	mi := &file_metarr_v1_agents_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -667,7 +173,7 @@ func (x *AgentMappingView) String() string {
 func (*AgentMappingView) ProtoMessage() {}
 
 func (x *AgentMappingView) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[8]
+	mi := &file_metarr_v1_agents_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -680,7 +186,7 @@ func (x *AgentMappingView) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentMappingView.ProtoReflect.Descriptor instead.
 func (*AgentMappingView) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{8}
+	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *AgentMappingView) GetScannerSlug() string {
@@ -723,8 +229,8 @@ type AgentView struct {
 	// configured separates an agent that has announced itself from one someone
 	// has actually set up.
 	Configured    bool                   `protobuf:"varint,4,opt,name=configured,proto3" json:"configured,omitempty"`
-	Identity      *AgentIdentity         `protobuf:"bytes,5,opt,name=identity,proto3" json:"identity,omitempty"`
-	Telemetry     *AgentTelemetry        `protobuf:"bytes,6,opt,name=telemetry,proto3" json:"telemetry,omitempty"`
+	Identity      *v1.AgentIdentity      `protobuf:"bytes,5,opt,name=identity,proto3" json:"identity,omitempty"`
+	Telemetry     *v1.AgentTelemetry     `protobuf:"bytes,6,opt,name=telemetry,proto3" json:"telemetry,omitempty"`
 	ReportedAt    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=reported_at,json=reportedAt,proto3" json:"reported_at,omitempty"`
 	Mappings      []*AgentMappingView    `protobuf:"bytes,8,rep,name=mappings,proto3" json:"mappings,omitempty"`
 	LogLevel      string                 `protobuf:"bytes,9,opt,name=log_level,json=logLevel,proto3" json:"log_level,omitempty"`
@@ -734,7 +240,7 @@ type AgentView struct {
 
 func (x *AgentView) Reset() {
 	*x = AgentView{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[9]
+	mi := &file_metarr_v1_agents_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -746,7 +252,7 @@ func (x *AgentView) String() string {
 func (*AgentView) ProtoMessage() {}
 
 func (x *AgentView) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[9]
+	mi := &file_metarr_v1_agents_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -759,7 +265,7 @@ func (x *AgentView) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentView.ProtoReflect.Descriptor instead.
 func (*AgentView) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{9}
+	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AgentView) GetSlug() string {
@@ -790,14 +296,14 @@ func (x *AgentView) GetConfigured() bool {
 	return false
 }
 
-func (x *AgentView) GetIdentity() *AgentIdentity {
+func (x *AgentView) GetIdentity() *v1.AgentIdentity {
 	if x != nil {
 		return x.Identity
 	}
 	return nil
 }
 
-func (x *AgentView) GetTelemetry() *AgentTelemetry {
+func (x *AgentView) GetTelemetry() *v1.AgentTelemetry {
 	if x != nil {
 		return x.Telemetry
 	}
@@ -833,7 +339,7 @@ type AgentServiceListRequest struct {
 
 func (x *AgentServiceListRequest) Reset() {
 	*x = AgentServiceListRequest{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[10]
+	mi := &file_metarr_v1_agents_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -845,7 +351,7 @@ func (x *AgentServiceListRequest) String() string {
 func (*AgentServiceListRequest) ProtoMessage() {}
 
 func (x *AgentServiceListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[10]
+	mi := &file_metarr_v1_agents_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -858,7 +364,7 @@ func (x *AgentServiceListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentServiceListRequest.ProtoReflect.Descriptor instead.
 func (*AgentServiceListRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{10}
+	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{4}
 }
 
 type AgentServiceListResponse struct {
@@ -870,7 +376,7 @@ type AgentServiceListResponse struct {
 
 func (x *AgentServiceListResponse) Reset() {
 	*x = AgentServiceListResponse{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[11]
+	mi := &file_metarr_v1_agents_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -882,7 +388,7 @@ func (x *AgentServiceListResponse) String() string {
 func (*AgentServiceListResponse) ProtoMessage() {}
 
 func (x *AgentServiceListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[11]
+	mi := &file_metarr_v1_agents_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -895,7 +401,7 @@ func (x *AgentServiceListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentServiceListResponse.ProtoReflect.Descriptor instead.
 func (*AgentServiceListResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{11}
+	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AgentServiceListResponse) GetAgents() []*AgentView {
@@ -914,7 +420,7 @@ type AgentServiceUpsertRequest struct {
 
 func (x *AgentServiceUpsertRequest) Reset() {
 	*x = AgentServiceUpsertRequest{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[12]
+	mi := &file_metarr_v1_agents_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -926,7 +432,7 @@ func (x *AgentServiceUpsertRequest) String() string {
 func (*AgentServiceUpsertRequest) ProtoMessage() {}
 
 func (x *AgentServiceUpsertRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[12]
+	mi := &file_metarr_v1_agents_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -939,7 +445,7 @@ func (x *AgentServiceUpsertRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentServiceUpsertRequest.ProtoReflect.Descriptor instead.
 func (*AgentServiceUpsertRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{12}
+	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *AgentServiceUpsertRequest) GetAgent() *AgentConfig {
@@ -958,7 +464,7 @@ type AgentServiceDeleteRequest struct {
 
 func (x *AgentServiceDeleteRequest) Reset() {
 	*x = AgentServiceDeleteRequest{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[13]
+	mi := &file_metarr_v1_agents_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -970,7 +476,7 @@ func (x *AgentServiceDeleteRequest) String() string {
 func (*AgentServiceDeleteRequest) ProtoMessage() {}
 
 func (x *AgentServiceDeleteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[13]
+	mi := &file_metarr_v1_agents_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -983,7 +489,7 @@ func (x *AgentServiceDeleteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentServiceDeleteRequest.ProtoReflect.Descriptor instead.
 func (*AgentServiceDeleteRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{13}
+	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *AgentServiceDeleteRequest) GetSlug() string {
@@ -1003,7 +509,7 @@ type AgentServiceSetLogLevelRequest struct {
 
 func (x *AgentServiceSetLogLevelRequest) Reset() {
 	*x = AgentServiceSetLogLevelRequest{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[14]
+	mi := &file_metarr_v1_agents_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1015,7 +521,7 @@ func (x *AgentServiceSetLogLevelRequest) String() string {
 func (*AgentServiceSetLogLevelRequest) ProtoMessage() {}
 
 func (x *AgentServiceSetLogLevelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[14]
+	mi := &file_metarr_v1_agents_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1028,7 +534,7 @@ func (x *AgentServiceSetLogLevelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentServiceSetLogLevelRequest.ProtoReflect.Descriptor instead.
 func (*AgentServiceSetLogLevelRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{14}
+	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *AgentServiceSetLogLevelRequest) GetSlug() string {
@@ -1053,7 +559,7 @@ type AgentServiceStreamPresenceRequest struct {
 
 func (x *AgentServiceStreamPresenceRequest) Reset() {
 	*x = AgentServiceStreamPresenceRequest{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[15]
+	mi := &file_metarr_v1_agents_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1065,7 +571,7 @@ func (x *AgentServiceStreamPresenceRequest) String() string {
 func (*AgentServiceStreamPresenceRequest) ProtoMessage() {}
 
 func (x *AgentServiceStreamPresenceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[15]
+	mi := &file_metarr_v1_agents_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1078,7 +584,7 @@ func (x *AgentServiceStreamPresenceRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use AgentServiceStreamPresenceRequest.ProtoReflect.Descriptor instead.
 func (*AgentServiceStreamPresenceRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{15}
+	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{9}
 }
 
 type AgentServiceStreamPresenceResponse struct {
@@ -1090,7 +596,7 @@ type AgentServiceStreamPresenceResponse struct {
 
 func (x *AgentServiceStreamPresenceResponse) Reset() {
 	*x = AgentServiceStreamPresenceResponse{}
-	mi := &file_metarr_v1_agents_proto_msgTypes[16]
+	mi := &file_metarr_v1_agents_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1102,7 +608,7 @@ func (x *AgentServiceStreamPresenceResponse) String() string {
 func (*AgentServiceStreamPresenceResponse) ProtoMessage() {}
 
 func (x *AgentServiceStreamPresenceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_agents_proto_msgTypes[16]
+	mi := &file_metarr_v1_agents_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1115,7 +621,7 @@ func (x *AgentServiceStreamPresenceResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use AgentServiceStreamPresenceResponse.ProtoReflect.Descriptor instead.
 func (*AgentServiceStreamPresenceResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{16}
+	return file_metarr_v1_agents_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AgentServiceStreamPresenceResponse) GetAgents() []*AgentView {
@@ -1129,7 +635,7 @@ var File_metarr_v1_agents_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_agents_proto_rawDesc = "" +
 	"\n" +
-	"\x16metarr/v1/agents.proto\x12\tmetarr.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x16metarr/v1/common.proto\x1a!metarr/v1/directory_scanner.proto\"\x9f\x01\n" +
+	"\x16metarr/v1/agents.proto\x12\tmetarr.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\"metarr/bus/v1/agent_contract.proto\x1a\x16metarr/v1/common.proto\"\x9f\x01\n" +
 	"\vAgentConfig\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12<\n" +
@@ -1138,66 +644,23 @@ const file_metarr_v1_agents_proto_rawDesc = "" +
 	"\x15AgentDirectoryMapping\x12!\n" +
 	"\fscanner_slug\x18\x01 \x01(\tR\vscannerSlug\x12\x1d\n" +
 	"\n" +
-	"agent_path\x18\x02 \x01(\tR\tagentPath\"\xad\x01\n" +
-	"\fGPUTelemetry\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12/\n" +
-	"\x13utilization_percent\x18\x02 \x01(\x01R\x12utilizationPercent\x12*\n" +
-	"\x11memory_used_bytes\x18\x03 \x01(\x04R\x0fmemoryUsedBytes\x12,\n" +
-	"\x12memory_total_bytes\x18\x04 \x01(\x04R\x10memoryTotalBytes\"\xb8\x01\n" +
-	"\x0eAgentTelemetry\x12\x1f\n" +
-	"\vcpu_percent\x18\x01 \x01(\x01R\n" +
-	"cpuPercent\x12*\n" +
-	"\x11memory_used_bytes\x18\x02 \x01(\x04R\x0fmemoryUsedBytes\x12,\n" +
-	"\x12memory_total_bytes\x18\x03 \x01(\x04R\x10memoryTotalBytes\x12+\n" +
-	"\x04gpus\x18\x04 \x03(\v2\x17.metarr.v1.GPUTelemetryR\x04gpus\"\x92\x02\n" +
-	"\rAgentIdentity\x12\x12\n" +
-	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x1f\n" +
-	"\vinstance_id\x18\x02 \x01(\tR\n" +
-	"instanceId\x12\x1a\n" +
-	"\bhostname\x18\x03 \x01(\tR\bhostname\x12\x0e\n" +
-	"\x02ip\x18\x04 \x01(\tR\x02ip\x12\x10\n" +
-	"\x03uid\x18\x05 \x01(\x05R\x03uid\x12\x1a\n" +
-	"\busername\x18\x06 \x01(\tR\busername\x12\x0e\n" +
-	"\x02os\x18\a \x01(\tR\x02os\x12\x12\n" +
-	"\x04arch\x18\b \x01(\tR\x04arch\x12\x18\n" +
-	"\aversion\x18\t \x01(\tR\aversion\x124\n" +
-	"\astarted\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\astarted\"\xbb\x01\n" +
-	"\rAgentPresence\x124\n" +
-	"\bidentity\x18\x01 \x01(\v2\x18.metarr.v1.AgentIdentityR\bidentity\x127\n" +
-	"\ttelemetry\x18\x02 \x01(\v2\x19.metarr.v1.AgentTelemetryR\ttelemetry\x12;\n" +
-	"\vreported_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"reportedAt\"p\n" +
-	"\x0fMappedDirectory\x12!\n" +
-	"\fscanner_slug\x18\x01 \x01(\tR\vscannerSlug\x12\x1b\n" +
-	"\tscan_type\x18\x02 \x01(\tR\bscanType\x12\x1d\n" +
-	"\n" +
-	"agent_path\x18\x03 \x01(\tR\tagentPath\"\xd2\x02\n" +
-	"\x15AgentConfigProjection\x12\x12\n" +
-	"\x04slug\x18\x01 \x01(\tR\x04slug\x12!\n" +
-	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12%\n" +
-	"\x0eparallel_count\x18\x03 \x01(\x05R\rparallelCount\x12E\n" +
-	"\rsidecar_types\x18\x04 \x03(\v2 .metarr.v1.SidecarTypeDefinitionR\fsidecarTypes\x12<\n" +
-	"\vdirectories\x18\x05 \x03(\v2\x1a.metarr.v1.MappedDirectoryR\vdirectories\x12\x1b\n" +
-	"\tlog_level\x18\x06 \x01(\tR\blogLevel\x129\n" +
-	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x92\x01\n" +
+	"agent_path\x18\x02 \x01(\tR\tagentPath\"\x92\x01\n" +
 	"\x10AgentMappingView\x12!\n" +
 	"\fscanner_slug\x18\x01 \x01(\tR\vscannerSlug\x12\x1b\n" +
 	"\tscan_type\x18\x02 \x01(\tR\bscanType\x12\x1f\n" +
 	"\vserver_path\x18\x03 \x01(\tR\n" +
 	"serverPath\x12\x1d\n" +
 	"\n" +
-	"agent_path\x18\x04 \x01(\tR\tagentPath\"\xfc\x02\n" +
+	"agent_path\x18\x04 \x01(\tR\tagentPath\"\x84\x03\n" +
 	"\tAgentView\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x16\n" +
 	"\x06online\x18\x03 \x01(\bR\x06online\x12\x1e\n" +
 	"\n" +
 	"configured\x18\x04 \x01(\bR\n" +
-	"configured\x124\n" +
-	"\bidentity\x18\x05 \x01(\v2\x18.metarr.v1.AgentIdentityR\bidentity\x127\n" +
-	"\ttelemetry\x18\x06 \x01(\v2\x19.metarr.v1.AgentTelemetryR\ttelemetry\x12;\n" +
+	"configured\x128\n" +
+	"\bidentity\x18\x05 \x01(\v2\x1c.metarr.bus.v1.AgentIdentityR\bidentity\x12;\n" +
+	"\ttelemetry\x18\x06 \x01(\v2\x1d.metarr.bus.v1.AgentTelemetryR\ttelemetry\x12;\n" +
 	"\vreported_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"reportedAt\x127\n" +
 	"\bmappings\x18\b \x03(\v2\x1b.metarr.v1.AgentMappingViewR\bmappings\x12\x1b\n" +
@@ -1234,61 +697,48 @@ func file_metarr_v1_agents_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_agents_proto_rawDescData
 }
 
-var file_metarr_v1_agents_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_metarr_v1_agents_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_metarr_v1_agents_proto_goTypes = []any{
 	(*AgentConfig)(nil),                        // 0: metarr.v1.AgentConfig
 	(*AgentDirectoryMapping)(nil),              // 1: metarr.v1.AgentDirectoryMapping
-	(*GPUTelemetry)(nil),                       // 2: metarr.v1.GPUTelemetry
-	(*AgentTelemetry)(nil),                     // 3: metarr.v1.AgentTelemetry
-	(*AgentIdentity)(nil),                      // 4: metarr.v1.AgentIdentity
-	(*AgentPresence)(nil),                      // 5: metarr.v1.AgentPresence
-	(*MappedDirectory)(nil),                    // 6: metarr.v1.MappedDirectory
-	(*AgentConfigProjection)(nil),              // 7: metarr.v1.AgentConfigProjection
-	(*AgentMappingView)(nil),                   // 8: metarr.v1.AgentMappingView
-	(*AgentView)(nil),                          // 9: metarr.v1.AgentView
-	(*AgentServiceListRequest)(nil),            // 10: metarr.v1.AgentServiceListRequest
-	(*AgentServiceListResponse)(nil),           // 11: metarr.v1.AgentServiceListResponse
-	(*AgentServiceUpsertRequest)(nil),          // 12: metarr.v1.AgentServiceUpsertRequest
-	(*AgentServiceDeleteRequest)(nil),          // 13: metarr.v1.AgentServiceDeleteRequest
-	(*AgentServiceSetLogLevelRequest)(nil),     // 14: metarr.v1.AgentServiceSetLogLevelRequest
-	(*AgentServiceStreamPresenceRequest)(nil),  // 15: metarr.v1.AgentServiceStreamPresenceRequest
-	(*AgentServiceStreamPresenceResponse)(nil), // 16: metarr.v1.AgentServiceStreamPresenceResponse
-	(*timestamppb.Timestamp)(nil),              // 17: google.protobuf.Timestamp
-	(*SidecarTypeDefinition)(nil),              // 18: metarr.v1.SidecarTypeDefinition
-	(*AcceptedResponse)(nil),                   // 19: metarr.v1.AcceptedResponse
+	(*AgentMappingView)(nil),                   // 2: metarr.v1.AgentMappingView
+	(*AgentView)(nil),                          // 3: metarr.v1.AgentView
+	(*AgentServiceListRequest)(nil),            // 4: metarr.v1.AgentServiceListRequest
+	(*AgentServiceListResponse)(nil),           // 5: metarr.v1.AgentServiceListResponse
+	(*AgentServiceUpsertRequest)(nil),          // 6: metarr.v1.AgentServiceUpsertRequest
+	(*AgentServiceDeleteRequest)(nil),          // 7: metarr.v1.AgentServiceDeleteRequest
+	(*AgentServiceSetLogLevelRequest)(nil),     // 8: metarr.v1.AgentServiceSetLogLevelRequest
+	(*AgentServiceStreamPresenceRequest)(nil),  // 9: metarr.v1.AgentServiceStreamPresenceRequest
+	(*AgentServiceStreamPresenceResponse)(nil), // 10: metarr.v1.AgentServiceStreamPresenceResponse
+	(*v1.AgentIdentity)(nil),                   // 11: metarr.bus.v1.AgentIdentity
+	(*v1.AgentTelemetry)(nil),                  // 12: metarr.bus.v1.AgentTelemetry
+	(*timestamppb.Timestamp)(nil),              // 13: google.protobuf.Timestamp
+	(*AcceptedResponse)(nil),                   // 14: metarr.v1.AcceptedResponse
 }
 var file_metarr_v1_agents_proto_depIdxs = []int32{
 	1,  // 0: metarr.v1.AgentConfig.mappings:type_name -> metarr.v1.AgentDirectoryMapping
-	2,  // 1: metarr.v1.AgentTelemetry.gpus:type_name -> metarr.v1.GPUTelemetry
-	17, // 2: metarr.v1.AgentIdentity.started:type_name -> google.protobuf.Timestamp
-	4,  // 3: metarr.v1.AgentPresence.identity:type_name -> metarr.v1.AgentIdentity
-	3,  // 4: metarr.v1.AgentPresence.telemetry:type_name -> metarr.v1.AgentTelemetry
-	17, // 5: metarr.v1.AgentPresence.reported_at:type_name -> google.protobuf.Timestamp
-	18, // 6: metarr.v1.AgentConfigProjection.sidecar_types:type_name -> metarr.v1.SidecarTypeDefinition
-	6,  // 7: metarr.v1.AgentConfigProjection.directories:type_name -> metarr.v1.MappedDirectory
-	17, // 8: metarr.v1.AgentConfigProjection.updated_at:type_name -> google.protobuf.Timestamp
-	4,  // 9: metarr.v1.AgentView.identity:type_name -> metarr.v1.AgentIdentity
-	3,  // 10: metarr.v1.AgentView.telemetry:type_name -> metarr.v1.AgentTelemetry
-	17, // 11: metarr.v1.AgentView.reported_at:type_name -> google.protobuf.Timestamp
-	8,  // 12: metarr.v1.AgentView.mappings:type_name -> metarr.v1.AgentMappingView
-	9,  // 13: metarr.v1.AgentServiceListResponse.agents:type_name -> metarr.v1.AgentView
-	0,  // 14: metarr.v1.AgentServiceUpsertRequest.agent:type_name -> metarr.v1.AgentConfig
-	9,  // 15: metarr.v1.AgentServiceStreamPresenceResponse.agents:type_name -> metarr.v1.AgentView
-	10, // 16: metarr.v1.AgentService.List:input_type -> metarr.v1.AgentServiceListRequest
-	15, // 17: metarr.v1.AgentService.StreamPresence:input_type -> metarr.v1.AgentServiceStreamPresenceRequest
-	12, // 18: metarr.v1.AgentService.Upsert:input_type -> metarr.v1.AgentServiceUpsertRequest
-	13, // 19: metarr.v1.AgentService.Delete:input_type -> metarr.v1.AgentServiceDeleteRequest
-	14, // 20: metarr.v1.AgentService.SetLogLevel:input_type -> metarr.v1.AgentServiceSetLogLevelRequest
-	11, // 21: metarr.v1.AgentService.List:output_type -> metarr.v1.AgentServiceListResponse
-	16, // 22: metarr.v1.AgentService.StreamPresence:output_type -> metarr.v1.AgentServiceStreamPresenceResponse
-	19, // 23: metarr.v1.AgentService.Upsert:output_type -> metarr.v1.AcceptedResponse
-	19, // 24: metarr.v1.AgentService.Delete:output_type -> metarr.v1.AcceptedResponse
-	19, // 25: metarr.v1.AgentService.SetLogLevel:output_type -> metarr.v1.AcceptedResponse
-	21, // [21:26] is the sub-list for method output_type
-	16, // [16:21] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	11, // 1: metarr.v1.AgentView.identity:type_name -> metarr.bus.v1.AgentIdentity
+	12, // 2: metarr.v1.AgentView.telemetry:type_name -> metarr.bus.v1.AgentTelemetry
+	13, // 3: metarr.v1.AgentView.reported_at:type_name -> google.protobuf.Timestamp
+	2,  // 4: metarr.v1.AgentView.mappings:type_name -> metarr.v1.AgentMappingView
+	3,  // 5: metarr.v1.AgentServiceListResponse.agents:type_name -> metarr.v1.AgentView
+	0,  // 6: metarr.v1.AgentServiceUpsertRequest.agent:type_name -> metarr.v1.AgentConfig
+	3,  // 7: metarr.v1.AgentServiceStreamPresenceResponse.agents:type_name -> metarr.v1.AgentView
+	4,  // 8: metarr.v1.AgentService.List:input_type -> metarr.v1.AgentServiceListRequest
+	9,  // 9: metarr.v1.AgentService.StreamPresence:input_type -> metarr.v1.AgentServiceStreamPresenceRequest
+	6,  // 10: metarr.v1.AgentService.Upsert:input_type -> metarr.v1.AgentServiceUpsertRequest
+	7,  // 11: metarr.v1.AgentService.Delete:input_type -> metarr.v1.AgentServiceDeleteRequest
+	8,  // 12: metarr.v1.AgentService.SetLogLevel:input_type -> metarr.v1.AgentServiceSetLogLevelRequest
+	5,  // 13: metarr.v1.AgentService.List:output_type -> metarr.v1.AgentServiceListResponse
+	10, // 14: metarr.v1.AgentService.StreamPresence:output_type -> metarr.v1.AgentServiceStreamPresenceResponse
+	14, // 15: metarr.v1.AgentService.Upsert:output_type -> metarr.v1.AcceptedResponse
+	14, // 16: metarr.v1.AgentService.Delete:output_type -> metarr.v1.AcceptedResponse
+	14, // 17: metarr.v1.AgentService.SetLogLevel:output_type -> metarr.v1.AcceptedResponse
+	13, // [13:18] is the sub-list for method output_type
+	8,  // [8:13] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_agents_proto_init() }
@@ -1297,14 +747,13 @@ func file_metarr_v1_agents_proto_init() {
 		return
 	}
 	file_metarr_v1_common_proto_init()
-	file_metarr_v1_directory_scanner_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_agents_proto_rawDesc), len(file_metarr_v1_agents_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

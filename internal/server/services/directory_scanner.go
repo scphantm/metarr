@@ -169,7 +169,7 @@ func (s *DirectoryScannerServer) ListSidecarTypes(
 ) (*connect.Response[metarrv1.DirectoryScannerServiceListSidecarTypesResponse], error) {
 	appConfig := appconfig.Get()
 
-	types := make([]*metarrv1.SidecarTypeDefinition, 0, len(appConfig.DirectoryScanner.SidecarTypes))
+	types := make([]*appconfig.SidecarTypeDefinition, 0, len(appConfig.DirectoryScanner.SidecarTypes))
 	for _, def := range appConfig.DirectoryScanner.SidecarTypes {
 		types = append(types, cloneMsg(def))
 	}
