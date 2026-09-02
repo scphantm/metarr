@@ -95,10 +95,32 @@ func UnmarshalStored(data []byte) (*Config, error) {
 // as it is, including one that is deliberately empty, so this can never be
 // mistaken for applying defaults — that is bootstrap's job and a separate
 // decision (see docs/adr/0004).
+//
+// The body is a sequence of independent, single-purpose blocks so that a
+// later change can add one — the per-resource-kind `name` backfill the
+// AIP config reshape needs (ADR-0010) is the next one — without touching or
+// reordering the rest.
 func Normalize(config *Config) *Config {
 	if config == nil {
 		return Default()
 	}
+
+	normalizeSections(config)
+	normalizeSonarrStorage(config)
+
+	// AIP `name` backfill blocks land here, one independent call per
+	// resource kind (agents, Sonarr instances, scan directories, sidecar
+	// types, API keys). Each reads only the slice / id it owns and writes
+	// only that kind's `name`, so the slices can be added one at a time.
+
+	return config
+}
+
+// normalizeSections fills every top-level config section that decoded nil,
+// so every read site can use plain field access. A document that has never
+// carried a section — the case startup bootstrap exists to handle — decodes
+// with it nil rather than zeroed.
+func normalizeSections(config *Config) {
 	if config.ApiKeys == nil {
 		config.ApiKeys = &APIKeysConfig{}
 	}
@@ -117,12 +139,14 @@ func Normalize(config *Config) *Config {
 	if config.EventBus == nil {
 		config.EventBus = &EventBusConfig{}
 	}
-	// A Sonarr instance with no storage section would fail the first time
-	// the cache consulted its mode, and instances decode from the same
-	// documents the sections above do. A null entry in the array decodes to
-	// a nil instance, which is a malformed document rather than a shape to
-	// repair — it is skipped here so that reading the config reports the
-	// problem elsewhere instead of panicking during startup.
+}
+
+// normalizeSonarrStorage gives every Sonarr instance a storage section: one
+// with none would fail the first time the cache consulted its mode. A null
+// entry in the array decodes to a nil instance, which is a malformed
+// document rather than a shape to repair — it is skipped so that reading the
+// config reports the problem elsewhere instead of panicking during startup.
+func normalizeSonarrStorage(config *Config) {
 	for _, instance := range config.Interfaces.Sonarr {
 		if instance == nil {
 			continue
@@ -131,7 +155,6 @@ func Normalize(config *Config) *Config {
 			instance.Storage = &StorageConfig{}
 		}
 	}
-	return config
 }
 
 // FindAgentIndex returns the index of the agent entry with the given slug, or

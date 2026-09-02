@@ -351,13 +351,20 @@ func (x *AgentPresence) GetReportedAt() *timestamppb.Timestamp {
 // disabled. It is in the bus contract because the agent receives it in its
 // configuration projection and classifies files where they live.
 type SidecarTypeDefinition struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	Category      string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
-	Order         int32                  `protobuf:"varint,4,opt,name=order,proto3" json:"order,omitempty"`
-	Patterns      []string               `protobuf:"bytes,5,rep,name=patterns,proto3" json:"patterns,omitempty"`
-	Extensions    []string               `protobuf:"bytes,6,rep,name=extensions,proto3" json:"extensions,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Id         string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Type       string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	Category   string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
+	Order      int32                  `protobuf:"varint,4,opt,name=order,proto3" json:"order,omitempty"`
+	Patterns   []string               `protobuf:"bytes,5,rep,name=patterns,proto3" json:"patterns,omitempty"`
+	Extensions []string               `protobuf:"bytes,6,rep,name=extensions,proto3" json:"extensions,omitempty"`
+	// name is the AIP resource name of this sidecar type
+	// (`sidecarTypes/{id}`): a derived, read-only addressing field that is
+	// not part of the stored document and is not delivered to agents.
+	// Nothing populates or reads it yet — the config CRUD reshape (#77) adds
+	// the server-side backfill on read and the mutation-closure clearing on
+	// write.
+	Name          string `protobuf:"bytes,7,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -432,6 +439,13 @@ func (x *SidecarTypeDefinition) GetExtensions() []string {
 		return x.Extensions
 	}
 	return nil
+}
+
+func (x *SidecarTypeDefinition) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
 }
 
 // MappedDirectory is one scan directory as one agent sees it. The server's own
@@ -639,7 +653,7 @@ const file_metarr_bus_v1_agent_contract_proto_rawDesc = "" +
 	"\bidentity\x18\x01 \x01(\v2\x1c.metarr.bus.v1.AgentIdentityR\bidentity\x12;\n" +
 	"\ttelemetry\x18\x02 \x01(\v2\x1d.metarr.bus.v1.AgentTelemetryR\ttelemetry\x12;\n" +
 	"\vreported_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"reportedAt\"\xa9\x01\n" +
+	"reportedAt\"\xbd\x01\n" +
 	"\x15SidecarTypeDefinition\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x1a\n" +
@@ -648,7 +662,8 @@ const file_metarr_bus_v1_agent_contract_proto_rawDesc = "" +
 	"\bpatterns\x18\x05 \x03(\tR\bpatterns\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\x06 \x03(\tR\n" +
-	"extensions\"p\n" +
+	"extensions\x12\x12\n" +
+	"\x04name\x18\a \x01(\tR\x04name\"p\n" +
 	"\x0fMappedDirectory\x12!\n" +
 	"\fscanner_slug\x18\x01 \x01(\tR\vscannerSlug\x12\x1b\n" +
 	"\tscan_type\x18\x02 \x01(\tR\bscanType\x12\x1d\n" +
