@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/redis/go-redis/v9"
@@ -16,11 +17,12 @@ import (
 )
 
 // Bus is the one durable-stream event bus (docs/adr/0008,
-// docs/design/eventbus-bus-interface.md). It replaces the caller-assembled
-// StreamBus + Router pair: one New, N HandleStream registrations, one
-// Run(ctx) / Ready() / Close(). The envelope Source is stamped from process
-// identity and the event Name is validated against the topic row, so a
-// publish naming the wrong process or an off-table event is unrepresentable.
+// docs/design/eventbus-bus-interface.md). It replaces the earlier
+// caller-assembled publisher + router pair: one New, N HandleStream
+// registrations, one Run(ctx) / Ready() / Close(). The envelope Source is
+// stamped from process identity and the event Name is validated against the
+// topic row, so a publish naming the wrong process or an off-table event is
+// unrepresentable.
 // Per-(topic, name) dispatch and the unknown-name default live here, once,
 // instead of in every listener.
 //
@@ -84,8 +86,8 @@ type Config struct {
 	Now func() time.Time
 }
 
-// Errors, all errors.Is-matchable. ErrNoResponder lives in pubsub.go and is
-// unchanged.
+// Errors, all errors.Is-matchable. ErrNoResponder — the request/reply "no
+// answer" error — lives in bus_pubsub.go.
 var (
 	// ErrBusRunning is returned by a registration call made after Run, and
 	// by a second Run.
@@ -101,6 +103,19 @@ var (
 	// the stream topic table does not resolve.
 	ErrNotPublishable = errors.New("eventbus: topic is not publishable")
 )
+
+// StreamHandler is what a durable-stream listener registers with the Bus. It
+// receives the already-decoded envelope.
+//
+// Failure convention (documented, not enforced): return an error only when
+// the message could not be processed at all — an undecodable payload, a
+// datastore that is unreachable. The Bus retries such a message with
+// exponential backoff; once the retries are spent it logs the message at
+// error level with its identifier and acks it (dropped), so one poison
+// message stops cycling instead of stalling its consumer group. Work that
+// ran and produced a failure publishes a failure result event and returns
+// nil; that never reaches the retry path.
+type StreamHandler func(ctx context.Context, event *Event) error
 
 type streamRegistration struct {
 	topic    Topic
@@ -355,6 +370,25 @@ func (b *Bus) dispatch(reg streamRegistration) message.NoPublishHandlerFunc {
 			return nil
 		}
 		return handler(msg.Context(), &event)
+	}
+}
+
+// dropAfterRetry stands in for a dead-letter stream. Ordered outside Retry,
+// so it runs once every retry is spent: it logs the still-failing message at
+// error level with its identifier and returns success, so the message is
+// acked (dropped) rather than parked or redelivered forever.
+func dropAfterRetry(logger watermill.LoggerAdapter) message.HandlerMiddleware {
+	return func(next message.HandlerFunc) message.HandlerFunc {
+		return func(msg *message.Message) ([]*message.Message, error) {
+			produced, err := next(msg)
+			if err != nil {
+				logger.Error("eventbus: dropping message after retries exhausted", err, watermill.LogFields{
+					"message_uuid": msg.UUID,
+				})
+				return nil, nil
+			}
+			return produced, nil
+		}
 	}
 }
 

@@ -48,7 +48,7 @@ type Topology struct {
 //
 // Pattern rows in topics are skipped: the per-agent command streams come from
 // slugs here, not from expanding a glob against Redis.
-func DeriveTopology(topics []eventbus.StreamTopic, slugs []string) Topology {
+func DeriveTopology(topics []eventbus.Topic, slugs []string) Topology {
 	top := Topology{
 		Streams:  make(map[string]ExpectedStream),
 		Channels: make(map[string]ExpectedChannel),

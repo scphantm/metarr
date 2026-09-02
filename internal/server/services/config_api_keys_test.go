@@ -33,14 +33,20 @@ func (f *fakeConfigBackend) Get(_ context.Context) (*appconfig.Config, error) {
 }
 
 // Publish mirrors *eventbus.Bus: it is handed name, correlation ID and
-// payload, and stamps the envelope Source itself.
+// payload, and the Bus stamps Source and Timestamp itself (Timestamp is left
+// zero here — it is the Bus's to stamp, not the caller's).
 func (f *fakeConfigBackend) Publish(_ context.Context, _ eventbus.Topic, name, correlationID string, payload []byte) error {
 	cfg, err := appconfig.UnmarshalStored(payload)
 	if err != nil {
 		return err
 	}
 	f.cfg = cfg
-	f.fired = append(f.fired, eventbus.NewEvent(eventbus.SourceServer, name, correlationID, payload))
+	f.fired = append(f.fired, &eventbus.Event{
+		Name:          name,
+		Source:        eventbus.SourceServer,
+		CorrelationId: correlationID,
+		Payload:       payload,
+	})
 	return nil
 }
 

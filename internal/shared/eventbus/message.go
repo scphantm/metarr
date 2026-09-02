@@ -1,21 +1,21 @@
-// Package eventbus implements the two Redis-backed messaging mechanisms
-// used by this service:
+// Package eventbus is the one Redis-backed event bus for this service
+// (docs/adr/0008). A single Bus type carries both delivery shapes:
 //
-//   - PubSubBus: an ephemeral, low-latency channel used for the heartbeat's
-//     blocking request/reply exchange.
-//   - StreamBus: a durable, consumer-group-based event bus (Redis Streams)
-//     used for fire-and-forget background job events, so an event isn't
-//     lost even if no listener is running at the moment it's published.
+//   - durable, consumer-group-based streams (Redis Streams) for
+//     fire-and-forget background events, so an event isn't lost even if no
+//     listener is running at the moment it's published; and
+//   - ephemeral Pub/Sub channels for fire-and-forget notifications and the
+//     one synchronous request/reply exchange (the heartbeat health check,
+//     the agent NFO read).
 //
 // Every message carries a correlation ID so it can be traced end to end
-// across both mechanisms.
+// across both shapes.
 package eventbus
 
 import (
 	"strings"
 
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	busv1 "Metarr/internal/genproto/metarr/bus/v1"
 )
@@ -45,19 +45,6 @@ func SlugFromAgentSource(source string) (string, bool) {
 		return "", false
 	}
 	return source[len(agentSourcePrefix):], true
-}
-
-// NewEvent builds an envelope stamped with the current time. source is
-// SourceServer or AgentSource(slug); payload is the already-encoded inner
-// message, or nil for an event that carries none.
-func NewEvent(source, name, correlationID string, payload []byte) *Event {
-	return &Event{
-		Name:          name,
-		Source:        source,
-		CorrelationId: correlationID,
-		Timestamp:     timestamppb.Now(),
-		Payload:       payload,
-	}
 }
 
 // eventMarshal / eventUnmarshal encode the envelope exactly as the stored

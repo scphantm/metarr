@@ -11,7 +11,7 @@ import (
 // this file used to carry. It exercises the table through its public surface:
 // the static rows, the reserved row, and discovery against miniredis.
 func TestStreamTopicTable(t *testing.T) {
-	byName := map[string]StreamTopic{}
+	byName := map[string]Topic{}
 	for _, topic := range StreamTopics() {
 		byName[topic.Name] = topic
 	}
@@ -153,16 +153,11 @@ func TestKnownPubSubChannelsUnchanged(t *testing.T) {
 	}
 }
 
-// StreamTopic still names the same type as Topic, so existing call sites
-// compile untouched. This function body only type-checks when the two names
-// are identical (an alias), not merely assignable.
-var _ = func(s StreamTopic) Topic { return s }
-
-// streamTopicPublishable is the guard StreamBus.Publish applies: static
-// rows and pattern-covered per-agent command streams pass; a pattern topic
-// and an unknown name are rejected.
+// streamTopicPublishable is the guard Bus.Publish applies: static rows and
+// pattern-covered per-agent command streams pass; a pattern topic and an
+// unknown name are rejected.
 func TestStreamTopicPublishableGuard(t *testing.T) {
-	ok := []StreamTopic{
+	ok := []Topic{
 		SystemConfigUpdateTopic(),
 		AgentScanResultTopic(),
 		agentNodeResultTopic(),
@@ -175,7 +170,7 @@ func TestStreamTopicPublishableGuard(t *testing.T) {
 		}
 	}
 
-	bad := []StreamTopic{
+	bad := []Topic{
 		{Name: "events.not_a_real_stream"},
 		{Name: AgentCommandStream("nas-01") + ".extra"},
 		agentCommandStreamPatternTopic(),
@@ -205,7 +200,7 @@ func TestDiscoverStreamTopicsExpandsPerAgentStreams(t *testing.T) {
 		t.Fatalf("DiscoverStreamTopics: %v", err)
 	}
 
-	var found *StreamTopic
+	var found *Topic
 	for i := range topics {
 		if topics[i].Pattern {
 			t.Errorf("discovery returned a pattern row: %+v", topics[i])
@@ -306,7 +301,7 @@ func TestSlugFromAgentSource(t *testing.T) {
 	}
 }
 
-func containsTopic(topics []StreamTopic, name string) bool {
+func containsTopic(topics []Topic, name string) bool {
 	for _, topic := range topics {
 		if topic.Name == name {
 			return true

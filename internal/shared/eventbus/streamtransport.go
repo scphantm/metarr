@@ -133,8 +133,7 @@ func (p *redisStreamPublisher) Publish(ctx context.Context, stream string, envel
 }
 
 // Close is deliberately a no-op: this publisher owns nothing. The Redis
-// client is shared and closed by whoever built it (see StreamBus.Close for
-// the same reasoning).
+// client is shared and closed by whoever built it, never by the bus.
 func (p *redisStreamPublisher) Close() error { return nil }
 
 // --- Channel adapter -----------------------------------------------------
