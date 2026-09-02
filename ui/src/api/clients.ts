@@ -1,6 +1,8 @@
 import { createClient } from "@connectrpc/connect";
 
+import { AdminService } from "../gen/metarr/v1/admin_pb";
 import { AgentService } from "../gen/metarr/v1/agents_pb";
+import { ApiKeyService } from "../gen/metarr/v1/api_keys_pb";
 import { AuthService } from "../gen/metarr/v1/auth_pb";
 import { ConfigService } from "../gen/metarr/v1/config_pb";
 import { DirectoryScannerService } from "../gen/metarr/v1/directory_scanner_pb";
@@ -21,6 +23,8 @@ export const sonarrInterfaceClient = createClient(
 );
 export const authClient = createClient(AuthService, transport);
 export const configClient = createClient(ConfigService, transport);
+export const adminClient = createClient(AdminService, transport);
+export const apiKeyClient = createClient(ApiKeyService, transport);
 export const agentClient = createClient(AgentService, transport);
 export const directoryScannerClient = createClient(
   DirectoryScannerService,

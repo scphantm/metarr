@@ -16,6 +16,10 @@ const createAgent = vi.fn();
 const updateAgent = vi.fn();
 const deleteAgent = vi.fn();
 const setLogLevel = vi.fn();
+const updateAdminUser = vi.fn();
+const createApiKey = vi.fn();
+const updateApiKey = vi.fn();
+const deleteApiKey = vi.fn();
 const getDirectoryScannerConfig = vi.fn();
 const updateDirectoryScannerConfig = vi.fn();
 const listScanDirectories = vi.fn();
@@ -41,6 +45,14 @@ vi.mock("../clients", () => ({
     setLogLevel: (...args: unknown[]) => setLogLevel(...args),
   },
   configClient: {},
+  adminClient: {
+    updateAdminUser: (...args: unknown[]) => updateAdminUser(...args),
+  },
+  apiKeyClient: {
+    createApiKey: (...args: unknown[]) => createApiKey(...args),
+    updateApiKey: (...args: unknown[]) => updateApiKey(...args),
+    deleteApiKey: (...args: unknown[]) => deleteApiKey(...args),
+  },
   eventBusClient: {
     getEventBusConfig: (...args: unknown[]) => getEventBusConfig(...args),
     updateEventBusConfig: (...args: unknown[]) => updateEventBusConfig(...args),
@@ -101,7 +113,12 @@ import {
   useUpdateAgent,
   useDeleteAgent,
   useSetAgentLogLevel,
+  useUpdateAdmin,
+  useCreateApiKey,
+  useUpdateApiKey,
+  useDeleteApiKey,
 } from "../queries";
+import { AccessLevel } from "../../gen/metarr/v1/api_keys_pb";
 
 describe("queryKeys", () => {
   describe("static keys", () => {
@@ -726,5 +743,86 @@ describe("Agent hooks", () => {
       logLevel: "debug",
     });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.agents });
+  });
+});
+
+// AdminService.UpdateAdminUser is an AIP-134 partial update: the hook derives
+// the update_mask from which identity fields the caller passed, and a new
+// password rides new_password (never the mask). Each variant invalidates the
+// aggregate GetConfig read the Security screen paints from.
+describe("useUpdateAdmin", () => {
+  it("sends a username-only mask and an empty new_password", async () => {
+    updateAdminUser.mockReset().mockResolvedValue({ username: "renamed" });
+    const { invalidate, wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useUpdateAdmin(), { wrapper });
+    result.current.mutate({ username: "renamed" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(updateAdminUser).toHaveBeenCalledWith({
+      admin: { username: "renamed" },
+      updateMask: { paths: ["username"] },
+      newPassword: "",
+    });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.config });
+  });
+
+  it("sends an empty mask and the new password when only a password changes", async () => {
+    updateAdminUser.mockReset().mockResolvedValue({ username: "admin" });
+    const { wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useUpdateAdmin(), { wrapper });
+    result.current.mutate({ password: "a-new-secret" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(updateAdminUser).toHaveBeenCalledWith({
+      admin: {},
+      updateMask: { paths: [] },
+      newPassword: "a-new-secret",
+    });
+  });
+});
+
+// ApiKeyService is a minted-id collection scoped by the AccessLevel enum.
+describe("API key hooks", () => {
+  it("useCreateApiKey sends the access level and a name, no id", async () => {
+    createApiKey.mockReset().mockResolvedValue({ id: "minted", name: "ci" });
+    const { invalidate, wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useCreateApiKey(), { wrapper });
+    result.current.mutate({ accessLevel: AccessLevel.WEBHOOK, name: "ci" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(createApiKey).toHaveBeenCalledWith({
+      accessLevel: AccessLevel.WEBHOOK,
+      apiKey: { name: "ci" },
+    });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.config });
+  });
+
+  it("useUpdateApiKey derives the mask from the changed field", async () => {
+    updateApiKey.mockReset().mockResolvedValue({ id: "k1", apiKey: "v" });
+    const { wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useUpdateApiKey(), { wrapper });
+    result.current.mutate({ id: "k1", apiKey: "v" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(updateApiKey).toHaveBeenCalledWith({
+      apiKey: { id: "k1", apiKey: "v" },
+      updateMask: { paths: ["api_key"] },
+    });
+  });
+
+  it("useDeleteApiKey sends the id alone", async () => {
+    deleteApiKey.mockReset().mockResolvedValue({});
+    const { invalidate, wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useDeleteApiKey(), { wrapper });
+    result.current.mutate("k1");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(deleteApiKey).toHaveBeenCalledWith({ id: "k1" });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.config });
   });
 });

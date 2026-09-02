@@ -2,9 +2,6 @@ package services
 
 import (
 	"google.golang.org/protobuf/proto"
-
-	metarrv1 "Metarr/internal/genproto/metarr/v1"
-	"Metarr/internal/shared/eventbus"
 )
 
 // cloneMsg deep-copies m. The config model types are generated messages
@@ -16,16 +13,4 @@ import (
 // can receive one guard for it.
 func cloneMsg[T proto.Message](m T) T {
 	return proto.Clone(m).(T)
-}
-
-// acceptedResponse builds the shared "queued, not yet persisted" response the
-// config-mutation RPCs not yet reshaped to AIP synchronous writes return
-// after a successful Mutate — the gRPC-Web equivalent of the REST handlers'
-// 202 AcceptedResponse body.
-func acceptedResponse(correlationID string) *metarrv1.AcceptedResponse {
-	return &metarrv1.AcceptedResponse{
-		Status:        "accepted",
-		Event:         eventbus.SystemConfigUpdateEventName,
-		CorrelationId: correlationID,
-	}
 }

@@ -1,8 +1,17 @@
 import { useState } from "react";
 import { Input, Space, Typography } from "antd";
 
-import { queryKeys, useDeleteApiKey, useUpsertApiKey } from "../../api/queries";
-import type { APIKeysConfig, Config } from "../../gen/metarr/v1/config_pb";
+import {
+  queryKeys,
+  useCreateApiKey,
+  useDeleteApiKey,
+  useUpdateApiKey,
+} from "../../api/queries";
+import {
+  AccessLevel,
+  type APIKeysConfig,
+} from "../../gen/metarr/v1/api_keys_pb";
+import type { Config } from "../../gen/metarr/v1/config_pb";
 import { Button, Card, EmptyState } from "../../components/Card";
 import { EditableText } from "../../components/Editable";
 import "./ApiKeysSection.css";
@@ -11,14 +20,14 @@ import "./ApiKeysSection.css";
 // branded message type, neither of which is a real key group.
 type APIKeyGroup = "admin" | "user" | "webhook" | "readOnly";
 
-// The wire vocabulary ConfigService's scoped API key operations accept —
-// see internal/shared/appconfig.APIKeyGroup. Kept separate from the UI's own
-// camelCase group names so the two can evolve independently.
-const wireGroup: Record<APIKeyGroup, string> = {
-  admin: "admin",
-  user: "user",
-  webhook: "webhook",
-  readOnly: "read_only",
+// ApiKeyService scopes Create / List by the AccessLevel enum, not by a
+// string group name (docs/adr/0010). This maps the UI's own camelCase group
+// names — which also index the aggregate Config.apiKeys read — to that enum.
+const accessLevelOf: Record<APIKeyGroup, AccessLevel> = {
+  admin: AccessLevel.ADMIN,
+  user: AccessLevel.USER,
+  webhook: AccessLevel.WEBHOOK,
+  readOnly: AccessLevel.READ_ONLY,
 };
 
 const apiKeyGroups: { key: APIKeyGroup; label: string; hint: string }[] = [
@@ -37,7 +46,8 @@ const apiKeyGroups: { key: APIKeyGroup; label: string; hint: string }[] = [
  * pasted in after being generated elsewhere.
  */
 export function ApiKeysSection({ config }: { config: Config }) {
-  const upsertApiKey = useUpsertApiKey();
+  const createApiKey = useCreateApiKey();
+  const updateApiKey = useUpdateApiKey();
   const deleteApiKey = useDeleteApiKey();
   const [addingTo, setAddingTo] = useState<APIKeyGroup | null>(null);
   const [draftName, setDraftName] = useState("");
@@ -58,7 +68,7 @@ export function ApiKeysSection({ config }: { config: Config }) {
       <Space direction="vertical" size={24} style={{ width: "100%" }}>
         {apiKeyGroups.map(({ key: group, label, hint }) => {
           const entries = apiKeys[group] ?? [];
-          const groupOnWire = wireGroup[group];
+          const accessLevel = accessLevelOf[group];
 
           return (
             <div key={group}>
@@ -97,14 +107,7 @@ export function ApiKeysSection({ config }: { config: Config }) {
                           value={entry.name}
                           placeholder="Unnamed"
                           onSave={(name) =>
-                            upsertApiKey.mutateAsync({
-                              group: groupOnWire,
-                              entry: {
-                                id: entry.id,
-                                name,
-                                apiKey: entry.apiKey,
-                              },
-                            })
+                            updateApiKey.mutateAsync({ id: entry.id, name })
                           }
                         />
                       </div>
@@ -117,22 +120,14 @@ export function ApiKeysSection({ config }: { config: Config }) {
                           monospace
                           secret
                           onSave={(apiKey) =>
-                            upsertApiKey.mutateAsync({
-                              group: groupOnWire,
-                              entry: { id: entry.id, name: entry.name, apiKey },
-                            })
+                            updateApiKey.mutateAsync({ id: entry.id, apiKey })
                           }
                         />
                       </div>
                       <Button
                         variant="danger"
                         title={`Remove ${entry.name || "this key"}`}
-                        onClick={() =>
-                          void deleteApiKey.mutateAsync({
-                            group: groupOnWire,
-                            id: entry.id,
-                          })
-                        }
+                        onClick={() => void deleteApiKey.mutateAsync(entry.id)}
                       >
                         Remove
                       </Button>
@@ -151,9 +146,9 @@ export function ApiKeysSection({ config }: { config: Config }) {
                     onKeyDown={(event) => {
                       if (event.key === "Escape") setAddingTo(null);
                       if (event.key === "Enter" && draftName.trim()) {
-                        void upsertApiKey.mutateAsync({
-                          group: groupOnWire,
-                          entry: { id: "", name: draftName.trim(), apiKey: "" },
+                        void createApiKey.mutateAsync({
+                          accessLevel,
+                          name: draftName.trim(),
                         });
                         setAddingTo(null);
                       }
@@ -163,9 +158,9 @@ export function ApiKeysSection({ config }: { config: Config }) {
                     variant="primary"
                     disabled={!draftName.trim()}
                     onClick={() => {
-                      void upsertApiKey.mutateAsync({
-                        group: groupOnWire,
-                        entry: { id: "", name: draftName.trim(), apiKey: "" },
+                      void createApiKey.mutateAsync({
+                        accessLevel,
+                        name: draftName.trim(),
                       });
                       setAddingTo(null);
                     }}

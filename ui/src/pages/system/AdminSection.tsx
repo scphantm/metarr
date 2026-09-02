@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Input, Space, Typography } from "antd";
 
 import { queryKeys, useUpdateAdmin } from "../../api/queries";
-import type { AdminUser } from "../../gen/metarr/v1/config_pb";
+import type { AdminUser } from "../../gen/metarr/v1/admin_pb";
 import { Button, Card, Row } from "../../components/Card";
 import { EditableText } from "../../components/Editable";
 import { SaveIndicator } from "../../components/SaveState";

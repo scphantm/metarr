@@ -4,10 +4,12 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { AdminUser } from "./admin_pb";
+import { file_metarr_v1_admin } from "./admin_pb";
 import type { Agent } from "./agents_pb";
 import { file_metarr_v1_agents } from "./agents_pb";
-import type { AcceptedResponseSchema } from "./common_pb";
-import { file_metarr_v1_common } from "./common_pb";
+import type { APIKeysConfig } from "./api_keys_pb";
+import { file_metarr_v1_api_keys } from "./api_keys_pb";
 import type { DirectoryScannerConfig } from "./directory_scanner_pb";
 import { file_metarr_v1_directory_scanner } from "./directory_scanner_pb";
 import type { EventBusConfig } from "./event_bus_pb";
@@ -22,116 +24,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/config.proto.
  */
 export const file_metarr_v1_config: GenFile = /*@__PURE__*/
-  fileDesc("ChZtZXRhcnIvdjEvY29uZmlnLnByb3RvEgltZXRhcnIudjEiWgoJQWRtaW5Vc2VyEhAKCHVzZXJuYW1lGAEgASgJEg0KBWVtYWlsGAIgASgJEhUKDXBhc3N3b3JkX3NhbHQYAyABKAkSFQoNcGFzc3dvcmRfaGFzaBgEIAEoCSI4CgtBUElLZXlFbnRyeRIMCgRuYW1lGAEgASgJEg8KB2FwaV9rZXkYAiABKAkSCgoCaWQYAyABKAkisAEKDUFQSUtleXNDb25maWcSJQoFYWRtaW4YASADKAsyFi5tZXRhcnIudjEuQVBJS2V5RW50cnkSJAoEdXNlchgCIAMoCzIWLm1ldGFyci52MS5BUElLZXlFbnRyeRInCgd3ZWJob29rGAMgAygLMhYubWV0YXJyLnYxLkFQSUtleUVudHJ5EikKCXJlYWRfb25seRgEIAMoCzIWLm1ldGFyci52MS5BUElLZXlFbnRyeSI9ChBJbnRlcmZhY2VzQ29uZmlnEikKBnNvbmFychgBIAMoCzIZLm1ldGFyci52MS5Tb25hcnJJbnN0YW5jZSLDAgoGQ29uZmlnEioKCGFwaV9rZXlzGAEgASgLMhgubWV0YXJyLnYxLkFQSUtleXNDb25maWcSIwoFYWRtaW4YAiABKAsyFC5tZXRhcnIudjEuQWRtaW5Vc2VyEi8KCmludGVyZmFjZXMYAyABKAsyGy5tZXRhcnIudjEuSW50ZXJmYWNlc0NvbmZpZxI8ChFkaXJlY3Rvcnlfc2Nhbm5lchgEIAEoCzIhLm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyQ29uZmlnEiAKBmFnZW50cxgFIAMoCzIQLm1ldGFyci52MS5BZ2VudBIpCgdsb2dnaW5nGAYgASgLMhgubWV0YXJyLnYxLkxvZ2dpbmdDb25maWcSLAoJZXZlbnRfYnVzGAcgASgLMhkubWV0YXJyLnYxLkV2ZW50QnVzQ29uZmlnIhkKF0NvbmZpZ1NlcnZpY2VHZXRSZXF1ZXN0Ij0KGENvbmZpZ1NlcnZpY2VHZXRSZXNwb25zZRIhCgZjb25maWcYASABKAsyES5tZXRhcnIudjEuQ29uZmlnIocBCh9Db25maWdTZXJ2aWNlVXBkYXRlQWRtaW5SZXF1ZXN0EhUKCHVzZXJuYW1lGAEgASgJSACIAQESEgoFZW1haWwYAiABKAlIAYgBARIVCghwYXNzd29yZBgDIAEoCUgCiAEBQgsKCV91c2VybmFtZUIICgZfZW1haWxCCwoJX3Bhc3N3b3JkIlgKIENvbmZpZ1NlcnZpY2VVcHNlcnRBcGlLZXlSZXF1ZXN0Eg0KBWdyb3VwGAEgASgJEiUKBWVudHJ5GAIgASgLMhYubWV0YXJyLnYxLkFQSUtleUVudHJ5Ij0KIENvbmZpZ1NlcnZpY2VEZWxldGVBcGlLZXlSZXF1ZXN0Eg0KBWdyb3VwGAEgASgJEgoKAmlkGAIgASgJMusCCg1Db25maWdTZXJ2aWNlEk4KA0dldBIiLm1ldGFyci52MS5Db25maWdTZXJ2aWNlR2V0UmVxdWVzdBojLm1ldGFyci52MS5Db25maWdTZXJ2aWNlR2V0UmVzcG9uc2USVgoLVXBkYXRlQWRtaW4SKi5tZXRhcnIudjEuQ29uZmlnU2VydmljZVVwZGF0ZUFkbWluUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlElgKDFVwc2VydEFwaUtleRIrLm1ldGFyci52MS5Db25maWdTZXJ2aWNlVXBzZXJ0QXBpS2V5UmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlElgKDERlbGV0ZUFwaUtleRIrLm1ldGFyci52MS5Db25maWdTZXJ2aWNlRGVsZXRlQXBpS2V5UmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_metarr_v1_agents, file_metarr_v1_common, file_metarr_v1_directory_scanner, file_metarr_v1_event_bus, file_metarr_v1_logging, file_metarr_v1_sonarr_interfaces]);
-
-/**
- * AdminUser is the system's single administrative user account.
- *
- * password_salt and password_hash are here because this message is on its
- * way to being both the wire shape and the stored shape — the document
- * Mongo holds — and a stored admin account has to carry its credentials.
- *
- * They are never populated in a client-facing response: Get blanks both
- * before responding, and UpdateAdmin is the only write path for a new
- * password. A generated client therefore sees two fields that are always
- * empty, which is the deliberate cost of having one definition of this
- * message rather than a wire copy and a stored copy.
- *
- * @generated from message metarr.v1.AdminUser
- */
-export type AdminUser = Message<"metarr.v1.AdminUser"> & {
-  /**
-   * @generated from field: string username = 1;
-   */
-  username: string;
-
-  /**
-   * @generated from field: string email = 2;
-   */
-  email: string;
-
-  /**
-   * @generated from field: string password_salt = 3;
-   */
-  passwordSalt: string;
-
-  /**
-   * @generated from field: string password_hash = 4;
-   */
-  passwordHash: string;
-};
-
-/**
- * Describes the message metarr.v1.AdminUser.
- * Use `create(AdminUserSchema)` to create a new message.
- */
-export const AdminUserSchema: GenMessage<AdminUser> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_config, 0);
-
-/**
- * APIKeyEntry is a single named API key. id is the stable handle a scoped
- * edit addresses this entry by; it is empty only when a client is proposing
- * a brand new entry that has not been minted one yet.
- *
- * @generated from message metarr.v1.APIKeyEntry
- */
-export type APIKeyEntry = Message<"metarr.v1.APIKeyEntry"> & {
-  /**
-   * @generated from field: string name = 1;
-   */
-  name: string;
-
-  /**
-   * @generated from field: string api_key = 2;
-   */
-  apiKey: string;
-
-  /**
-   * @generated from field: string id = 3;
-   */
-  id: string;
-};
-
-/**
- * Describes the message metarr.v1.APIKeyEntry.
- * Use `create(APIKeyEntrySchema)` to create a new message.
- */
-export const APIKeyEntrySchema: GenMessage<APIKeyEntry> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_config, 1);
-
-/**
- * APIKeysConfig groups the API keys issued for each access-level category.
- *
- * @generated from message metarr.v1.APIKeysConfig
- */
-export type APIKeysConfig = Message<"metarr.v1.APIKeysConfig"> & {
-  /**
-   * @generated from field: repeated metarr.v1.APIKeyEntry admin = 1;
-   */
-  admin: APIKeyEntry[];
-
-  /**
-   * @generated from field: repeated metarr.v1.APIKeyEntry user = 2;
-   */
-  user: APIKeyEntry[];
-
-  /**
-   * @generated from field: repeated metarr.v1.APIKeyEntry webhook = 3;
-   */
-  webhook: APIKeyEntry[];
-
-  /**
-   * @generated from field: repeated metarr.v1.APIKeyEntry read_only = 4;
-   */
-  readOnly: APIKeyEntry[];
-};
-
-/**
- * Describes the message metarr.v1.APIKeysConfig.
- * Use `create(APIKeysConfigSchema)` to create a new message.
- */
-export const APIKeysConfigSchema: GenMessage<APIKeysConfig> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_config, 2);
+  fileDesc("ChZtZXRhcnIvdjEvY29uZmlnLnByb3RvEgltZXRhcnIudjEiPQoQSW50ZXJmYWNlc0NvbmZpZxIpCgZzb25hcnIYASADKAsyGS5tZXRhcnIudjEuU29uYXJySW5zdGFuY2UiwwIKBkNvbmZpZxIqCghhcGlfa2V5cxgBIAEoCzIYLm1ldGFyci52MS5BUElLZXlzQ29uZmlnEiMKBWFkbWluGAIgASgLMhQubWV0YXJyLnYxLkFkbWluVXNlchIvCgppbnRlcmZhY2VzGAMgASgLMhsubWV0YXJyLnYxLkludGVyZmFjZXNDb25maWcSPAoRZGlyZWN0b3J5X3NjYW5uZXIYBCABKAsyIS5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lckNvbmZpZxIgCgZhZ2VudHMYBSADKAsyEC5tZXRhcnIudjEuQWdlbnQSKQoHbG9nZ2luZxgGIAEoCzIYLm1ldGFyci52MS5Mb2dnaW5nQ29uZmlnEiwKCWV2ZW50X2J1cxgHIAEoCzIZLm1ldGFyci52MS5FdmVudEJ1c0NvbmZpZyISChBHZXRDb25maWdSZXF1ZXN0IjYKEUdldENvbmZpZ1Jlc3BvbnNlEiEKBmNvbmZpZxgBIAEoCzIRLm1ldGFyci52MS5Db25maWcyVwoNQ29uZmlnU2VydmljZRJGCglHZXRDb25maWcSGy5tZXRhcnIudjEuR2V0Q29uZmlnUmVxdWVzdBocLm1ldGFyci52MS5HZXRDb25maWdSZXNwb25zZUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_metarr_v1_admin, file_metarr_v1_agents, file_metarr_v1_api_keys, file_metarr_v1_directory_scanner, file_metarr_v1_event_bus, file_metarr_v1_logging, file_metarr_v1_sonarr_interfaces]);
 
 /**
  * InterfacesConfig groups the configuration for every external service
@@ -151,7 +44,7 @@ export type InterfacesConfig = Message<"metarr.v1.InterfacesConfig"> & {
  * Use `create(InterfacesConfigSchema)` to create a new message.
  */
 export const InterfacesConfigSchema: GenMessage<InterfacesConfig> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_config, 3);
+  messageDesc(file_metarr_v1_config, 0);
 
 /**
  * Config is the whole application configuration document. It is the single
@@ -159,6 +52,10 @@ export const InterfacesConfigSchema: GenMessage<InterfacesConfig> = /*@__PURE__*
  * aliases these messages), the TypeScript UI, and the stored Mongo document
  * all read this one shape. The singleton _id the document is stored under
  * is a storage concern and deliberately not a field here.
+ *
+ * admin and api_keys are managed through AdminService and ApiKeyService
+ * respectively; ConfigService owns only the read-only aggregate below, for
+ * the UI's first paint (docs/adr/0010).
  *
  * @generated from message metarr.v1.Config
  */
@@ -204,25 +101,25 @@ export type Config = Message<"metarr.v1.Config"> & {
  * Use `create(ConfigSchema)` to create a new message.
  */
 export const ConfigSchema: GenMessage<Config> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_config, 4);
+  messageDesc(file_metarr_v1_config, 1);
 
 /**
- * @generated from message metarr.v1.ConfigServiceGetRequest
+ * @generated from message metarr.v1.GetConfigRequest
  */
-export type ConfigServiceGetRequest = Message<"metarr.v1.ConfigServiceGetRequest"> & {
+export type GetConfigRequest = Message<"metarr.v1.GetConfigRequest"> & {
 };
 
 /**
- * Describes the message metarr.v1.ConfigServiceGetRequest.
- * Use `create(ConfigServiceGetRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.GetConfigRequest.
+ * Use `create(GetConfigRequestSchema)` to create a new message.
  */
-export const ConfigServiceGetRequestSchema: GenMessage<ConfigServiceGetRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_config, 5);
+export const GetConfigRequestSchema: GenMessage<GetConfigRequest> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_config, 2);
 
 /**
- * @generated from message metarr.v1.ConfigServiceGetResponse
+ * @generated from message metarr.v1.GetConfigResponse
  */
-export type ConfigServiceGetResponse = Message<"metarr.v1.ConfigServiceGetResponse"> & {
+export type GetConfigResponse = Message<"metarr.v1.GetConfigResponse"> & {
   /**
    * @generated from field: metarr.v1.Config config = 1;
    */
@@ -230,135 +127,29 @@ export type ConfigServiceGetResponse = Message<"metarr.v1.ConfigServiceGetRespon
 };
 
 /**
- * Describes the message metarr.v1.ConfigServiceGetResponse.
- * Use `create(ConfigServiceGetResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.GetConfigResponse.
+ * Use `create(GetConfigResponseSchema)` to create a new message.
  */
-export const ConfigServiceGetResponseSchema: GenMessage<ConfigServiceGetResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_config, 6);
+export const GetConfigResponseSchema: GenMessage<GetConfigResponse> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_config, 3);
 
 /**
- * ConfigServiceUpdateAdminRequest is a partial update: only the fields set
- * are changed. An explicitly-empty string for a set field is rejected
- * rather than silently clearing it — see UpdateAdmin's implementation.
- *
- * @generated from message metarr.v1.ConfigServiceUpdateAdminRequest
- */
-export type ConfigServiceUpdateAdminRequest = Message<"metarr.v1.ConfigServiceUpdateAdminRequest"> & {
-  /**
-   * @generated from field: optional string username = 1;
-   */
-  username?: string | undefined;
-
-  /**
-   * @generated from field: optional string email = 2;
-   */
-  email?: string | undefined;
-
-  /**
-   * @generated from field: optional string password = 3;
-   */
-  password?: string | undefined;
-};
-
-/**
- * Describes the message metarr.v1.ConfigServiceUpdateAdminRequest.
- * Use `create(ConfigServiceUpdateAdminRequestSchema)` to create a new message.
- */
-export const ConfigServiceUpdateAdminRequestSchema: GenMessage<ConfigServiceUpdateAdminRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_config, 7);
-
-/**
- * ConfigServiceUpsertApiKeyRequest replaces the entry in group matching
- * entry.id. If entry.id is empty, the server mints one and creates a new
- * entry — ids are always server-minted, never client-chosen, so a
- * non-empty entry.id that doesn't match an existing entry is rejected as
- * not found rather than treated as a creation request. group is one of
- * "admin", "user", "webhook", "read_only" — the same names
- * internal/shared/appconfig.APIKeyGroup uses.
- *
- * @generated from message metarr.v1.ConfigServiceUpsertApiKeyRequest
- */
-export type ConfigServiceUpsertApiKeyRequest = Message<"metarr.v1.ConfigServiceUpsertApiKeyRequest"> & {
-  /**
-   * @generated from field: string group = 1;
-   */
-  group: string;
-
-  /**
-   * @generated from field: metarr.v1.APIKeyEntry entry = 2;
-   */
-  entry?: APIKeyEntry | undefined;
-};
-
-/**
- * Describes the message metarr.v1.ConfigServiceUpsertApiKeyRequest.
- * Use `create(ConfigServiceUpsertApiKeyRequestSchema)` to create a new message.
- */
-export const ConfigServiceUpsertApiKeyRequestSchema: GenMessage<ConfigServiceUpsertApiKeyRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_config, 8);
-
-/**
- * @generated from message metarr.v1.ConfigServiceDeleteApiKeyRequest
- */
-export type ConfigServiceDeleteApiKeyRequest = Message<"metarr.v1.ConfigServiceDeleteApiKeyRequest"> & {
-  /**
-   * @generated from field: string group = 1;
-   */
-  group: string;
-
-  /**
-   * @generated from field: string id = 2;
-   */
-  id: string;
-};
-
-/**
- * Describes the message metarr.v1.ConfigServiceDeleteApiKeyRequest.
- * Use `create(ConfigServiceDeleteApiKeyRequestSchema)` to create a new message.
- */
-export const ConfigServiceDeleteApiKeyRequestSchema: GenMessage<ConfigServiceDeleteApiKeyRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_config, 9);
-
-/**
- * Every mutating method here goes through the config store, which reads a
- * fresh document and applies exactly what the method names — never a whole
- * document supplied by the caller, which is how a scoped API key edit used
- * to zero the admin password hash. See ADR 0001.
+ * ConfigService is the read-only aggregate: GetConfig returns the whole
+ * Config document — admin credentials blanked (docs/adr/0005) — so the UI
+ * can paint every settings screen from one call. It has no write; every
+ * mutation goes through the per-resource service that owns that section
+ * (docs/adr/0010, ADR-0001).
  *
  * @generated from service metarr.v1.ConfigService
  */
 export const ConfigService: GenService<{
   /**
-   * @generated from rpc metarr.v1.ConfigService.Get
+   * @generated from rpc metarr.v1.ConfigService.GetConfig
    */
-  get: {
+  getConfig: {
     methodKind: "unary";
-    input: typeof ConfigServiceGetRequestSchema;
-    output: typeof ConfigServiceGetResponseSchema;
-  },
-  /**
-   * @generated from rpc metarr.v1.ConfigService.UpdateAdmin
-   */
-  updateAdmin: {
-    methodKind: "unary";
-    input: typeof ConfigServiceUpdateAdminRequestSchema;
-    output: typeof AcceptedResponseSchema;
-  },
-  /**
-   * @generated from rpc metarr.v1.ConfigService.UpsertApiKey
-   */
-  upsertApiKey: {
-    methodKind: "unary";
-    input: typeof ConfigServiceUpsertApiKeyRequestSchema;
-    output: typeof AcceptedResponseSchema;
-  },
-  /**
-   * @generated from rpc metarr.v1.ConfigService.DeleteApiKey
-   */
-  deleteApiKey: {
-    methodKind: "unary";
-    input: typeof ConfigServiceDeleteApiKeyRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    input: typeof GetConfigRequestSchema;
+    output: typeof GetConfigResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_metarr_v1_config, 0);

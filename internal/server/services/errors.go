@@ -12,8 +12,6 @@ import (
 	"net/http"
 
 	"connectrpc.com/connect"
-
-	metarrv1 "Metarr/internal/genproto/metarr/v1"
 )
 
 // connectError converts an HTTP status code (the vocabulary every existing
@@ -24,14 +22,6 @@ import (
 // returned status through this helper.
 func connectError(status int, err error) error {
 	return connect.NewError(codeForStatus(status), err)
-}
-
-// mutateConfigError turns an error returned by AppConfigStore.Mutate into the
-// response pair the AcceptedResponse-returning config RPCs return. It is the
-// two-value adapter over mutateConfigErr for the config services not yet
-// reshaped to AIP synchronous writes.
-func mutateConfigError(logger *slog.Logger, correlationID string, err error) (*connect.Response[metarrv1.AcceptedResponse], error) {
-	return nil, mutateConfigErr(logger, correlationID, err)
 }
 
 // mutateConfigErr maps an error returned by AppConfigStore.Mutate /
