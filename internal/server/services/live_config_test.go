@@ -29,7 +29,7 @@ func withLiveConfig(t *testing.T, cfg *appconfig.Config) {
 // These three exercise a representative sample of the twelve handlers
 // converted in issue #14 — a plain read-and-convert (ConfigServer.Get), a
 // lookup-by-slug with branching (DirectoryScannerServer.GetDirectory), and a
-// list conversion in a different file (SonarrInterfaceServer.List) — to
+// list conversion in a different file (SonarrInterfaceServer.ListSonarrInstances) — to
 // prove the live-config seam works, not to re-test every one of the twelve
 // individually.
 
@@ -119,11 +119,11 @@ func TestSonarrInterfaceServerList_ReadsLiveConfig(t *testing.T) {
 
 	server := &SonarrInterfaceServer{Handlers: &handlers.Handlers{}}
 
-	resp, err := server.List(context.Background(), connect.NewRequest(&metarrv1.SonarrInterfaceServiceListRequest{}))
+	resp, err := server.ListSonarrInstances(context.Background(), connect.NewRequest(&metarrv1.ListSonarrInstancesRequest{}))
 	if err != nil {
-		t.Fatalf("List returned error: %v", err)
+		t.Fatalf("ListSonarrInstances returned error: %v", err)
 	}
-	instances := resp.Msg.GetInstances()
+	instances := resp.Msg.GetSonarrInstances()
 	if len(instances) != 1 || instances[0].GetInstanceSlug() != "arranged-sonarr" {
 		t.Errorf("instances = %v, want one instance slugged %q", instances, "arranged-sonarr")
 	}
