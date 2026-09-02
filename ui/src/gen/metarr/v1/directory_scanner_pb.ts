@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { SidecarTypeDefinition } from "../bus/v1/agent_contract_pb";
+import { file_metarr_bus_v1_agent_contract } from "../bus/v1/agent_contract_pb";
 import type { AcceptedResponseSchema } from "./common_pb";
 import { file_metarr_v1_common } from "./common_pb";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/directory_scanner.proto.
  */
 export const file_metarr_v1_directory_scanner: GenFile = /*@__PURE__*/
-  fileDesc("CiFtZXRhcnIvdjEvZGlyZWN0b3J5X3NjYW5uZXIucHJvdG8SCW1ldGFyci52MSKdAQoWRGlyZWN0b3J5U2Nhbm5lckNvbmZpZxIWCg5wYXJhbGxlbF9jb3VudBgBIAEoBRIyChBzY2FuX2RpcmVjdG9yaWVzGAIgAygLMhgubWV0YXJyLnYxLlNjYW5EaXJlY3RvcnkSNwoNc2lkZWNhcl90eXBlcxgDIAMoCzIgLm1ldGFyci52MS5TaWRlY2FyVHlwZURlZmluaXRpb24iSwoNU2NhbkRpcmVjdG9yeRIUCgxzY2FubmVyX3NsdWcYASABKAkSEQoJc2Nhbl90eXBlGAIgASgJEhEKCWRpcmVjdG9yeRgDIAEoCSJ4ChVTaWRlY2FyVHlwZURlZmluaXRpb24SCgoCaWQYASABKAkSDAoEdHlwZRgCIAEoCRIQCghjYXRlZ29yeRgDIAEoCRINCgVvcmRlchgEIAEoBRIQCghwYXR0ZXJucxgFIAMoCRISCgpleHRlbnNpb25zGAYgAygJIiMKIURpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0UmVxdWVzdCJXCiJEaXJlY3RvcnlTY2FubmVyU2VydmljZUdldFJlc3BvbnNlEjEKBmNvbmZpZxgBIAEoCzIhLm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyQ29uZmlnIlYKJERpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlVXBkYXRlUmVxdWVzdBIbCg5wYXJhbGxlbF9jb3VudBgBIAEoBUgAiAEBQhEKD19wYXJhbGxlbF9jb3VudCIvCi1EaXJlY3RvcnlTY2FubmVyU2VydmljZUxpc3REaXJlY3Rvcmllc1JlcXVlc3QiXwouRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VMaXN0RGlyZWN0b3JpZXNSZXNwb25zZRItCgtkaXJlY3RvcmllcxgBIAMoCzIYLm1ldGFyci52MS5TY2FuRGlyZWN0b3J5IjoKKkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0RGlyZWN0b3J5UmVxdWVzdBIMCgRzbHVnGAEgASgJIloKK0RpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0RGlyZWN0b3J5UmVzcG9uc2USKwoJZGlyZWN0b3J5GAEgASgLMhgubWV0YXJyLnYxLlNjYW5EaXJlY3RvcnkiXAotRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VVcHNlcnREaXJlY3RvcnlSZXF1ZXN0EisKCWRpcmVjdG9yeRgBIAEoCzIYLm1ldGFyci52MS5TY2FuRGlyZWN0b3J5Ij0KLURpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlRGVsZXRlRGlyZWN0b3J5UmVxdWVzdBIMCgRzbHVnGAEgASgJIjAKLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlTGlzdFNpZGVjYXJUeXBlc1JlcXVlc3QiYgovRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VMaXN0U2lkZWNhclR5cGVzUmVzcG9uc2USLwoFdHlwZXMYASADKAsyIC5tZXRhcnIudjEuU2lkZWNhclR5cGVEZWZpbml0aW9uIjoKLERpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0U2lkZWNhclR5cGVSZXF1ZXN0EgoKAmlkGAEgASgJIl8KLURpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0U2lkZWNhclR5cGVSZXNwb25zZRIuCgR0eXBlGAEgASgLMiAubWV0YXJyLnYxLlNpZGVjYXJUeXBlRGVmaW5pdGlvbiJhCi9EaXJlY3RvcnlTY2FubmVyU2VydmljZVVwc2VydFNpZGVjYXJUeXBlUmVxdWVzdBIuCgR0eXBlGAEgASgLMiAubWV0YXJyLnYxLlNpZGVjYXJUeXBlRGVmaW5pdGlvbiI9Ci9EaXJlY3RvcnlTY2FubmVyU2VydmljZURlbGV0ZVNpZGVjYXJUeXBlUmVxdWVzdBIKCgJpZBgBIAEoCSK8AQoxRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VSZW9yZGVyU2lkZWNhclR5cGVzUmVxdWVzdBJYCgZvcmRlcnMYASADKAsySC5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VSZW9yZGVyU2lkZWNhclR5cGVzUmVxdWVzdC5PcmRlcnNFbnRyeRotCgtPcmRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAU6AjgBIjEKL0RpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlUmVzZXRTaWRlY2FyVHlwZXNSZXF1ZXN0Mv8KChdEaXJlY3RvcnlTY2FubmVyU2VydmljZRJiCgNHZXQSLC5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VHZXRSZXF1ZXN0Gi0ubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0UmVzcG9uc2USVgoGVXBkYXRlEi8ubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlVXBkYXRlUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlEoYBCg9MaXN0RGlyZWN0b3JpZXMSOC5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VMaXN0RGlyZWN0b3JpZXNSZXF1ZXN0GjkubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlTGlzdERpcmVjdG9yaWVzUmVzcG9uc2USfQoMR2V0RGlyZWN0b3J5EjUubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0RGlyZWN0b3J5UmVxdWVzdBo2Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZUdldERpcmVjdG9yeVJlc3BvbnNlEmgKD1Vwc2VydERpcmVjdG9yeRI4Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZVVwc2VydERpcmVjdG9yeVJlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZRJoCg9EZWxldGVEaXJlY3RvcnkSOC5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VEZWxldGVEaXJlY3RvcnlSZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2USiQEKEExpc3RTaWRlY2FyVHlwZXMSOS5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VMaXN0U2lkZWNhclR5cGVzUmVxdWVzdBo6Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZUxpc3RTaWRlY2FyVHlwZXNSZXNwb25zZRKDAQoOR2V0U2lkZWNhclR5cGUSNy5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VHZXRTaWRlY2FyVHlwZVJlcXVlc3QaOC5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VHZXRTaWRlY2FyVHlwZVJlc3BvbnNlEmwKEVVwc2VydFNpZGVjYXJUeXBlEjoubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlVXBzZXJ0U2lkZWNhclR5cGVSZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2USbAoRRGVsZXRlU2lkZWNhclR5cGUSOi5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VEZWxldGVTaWRlY2FyVHlwZVJlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZRJwChNSZW9yZGVyU2lkZWNhclR5cGVzEjwubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlUmVvcmRlclNpZGVjYXJUeXBlc1JlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZRJsChFSZXNldFNpZGVjYXJUeXBlcxI6Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZVJlc2V0U2lkZWNhclR5cGVzUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_metarr_v1_common]);
+  fileDesc("CiFtZXRhcnIvdjEvZGlyZWN0b3J5X3NjYW5uZXIucHJvdG8SCW1ldGFyci52MSKhAQoWRGlyZWN0b3J5U2Nhbm5lckNvbmZpZxIWCg5wYXJhbGxlbF9jb3VudBgBIAEoBRIyChBzY2FuX2RpcmVjdG9yaWVzGAIgAygLMhgubWV0YXJyLnYxLlNjYW5EaXJlY3RvcnkSOwoNc2lkZWNhcl90eXBlcxgDIAMoCzIkLm1ldGFyci5idXMudjEuU2lkZWNhclR5cGVEZWZpbml0aW9uIksKDVNjYW5EaXJlY3RvcnkSFAoMc2Nhbm5lcl9zbHVnGAEgASgJEhEKCXNjYW5fdHlwZRgCIAEoCRIRCglkaXJlY3RvcnkYAyABKAkiIwohRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VHZXRSZXF1ZXN0IlcKIkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0UmVzcG9uc2USMQoGY29uZmlnGAEgASgLMiEubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJDb25maWciVgokRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VVcGRhdGVSZXF1ZXN0EhsKDnBhcmFsbGVsX2NvdW50GAEgASgFSACIAQFCEQoPX3BhcmFsbGVsX2NvdW50Ii8KLURpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlTGlzdERpcmVjdG9yaWVzUmVxdWVzdCJfCi5EaXJlY3RvcnlTY2FubmVyU2VydmljZUxpc3REaXJlY3Rvcmllc1Jlc3BvbnNlEi0KC2RpcmVjdG9yaWVzGAEgAygLMhgubWV0YXJyLnYxLlNjYW5EaXJlY3RvcnkiOgoqRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VHZXREaXJlY3RvcnlSZXF1ZXN0EgwKBHNsdWcYASABKAkiWgorRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VHZXREaXJlY3RvcnlSZXNwb25zZRIrCglkaXJlY3RvcnkYASABKAsyGC5tZXRhcnIudjEuU2NhbkRpcmVjdG9yeSJcCi1EaXJlY3RvcnlTY2FubmVyU2VydmljZVVwc2VydERpcmVjdG9yeVJlcXVlc3QSKwoJZGlyZWN0b3J5GAEgASgLMhgubWV0YXJyLnYxLlNjYW5EaXJlY3RvcnkiPQotRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VEZWxldGVEaXJlY3RvcnlSZXF1ZXN0EgwKBHNsdWcYASABKAkiMAouRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VMaXN0U2lkZWNhclR5cGVzUmVxdWVzdCJmCi9EaXJlY3RvcnlTY2FubmVyU2VydmljZUxpc3RTaWRlY2FyVHlwZXNSZXNwb25zZRIzCgV0eXBlcxgBIAMoCzIkLm1ldGFyci5idXMudjEuU2lkZWNhclR5cGVEZWZpbml0aW9uIjoKLERpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0U2lkZWNhclR5cGVSZXF1ZXN0EgoKAmlkGAEgASgJImMKLURpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0U2lkZWNhclR5cGVSZXNwb25zZRIyCgR0eXBlGAEgASgLMiQubWV0YXJyLmJ1cy52MS5TaWRlY2FyVHlwZURlZmluaXRpb24iZQovRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VVcHNlcnRTaWRlY2FyVHlwZVJlcXVlc3QSMgoEdHlwZRgBIAEoCzIkLm1ldGFyci5idXMudjEuU2lkZWNhclR5cGVEZWZpbml0aW9uIj0KL0RpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlRGVsZXRlU2lkZWNhclR5cGVSZXF1ZXN0EgoKAmlkGAEgASgJIrwBCjFEaXJlY3RvcnlTY2FubmVyU2VydmljZVJlb3JkZXJTaWRlY2FyVHlwZXNSZXF1ZXN0ElgKBm9yZGVycxgBIAMoCzJILm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZVJlb3JkZXJTaWRlY2FyVHlwZXNSZXF1ZXN0Lk9yZGVyc0VudHJ5Gi0KC09yZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoBToCOAEiMQovRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VSZXNldFNpZGVjYXJUeXBlc1JlcXVlc3Qy/woKF0RpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlEmIKA0dldBIsLm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZUdldFJlcXVlc3QaLS5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VHZXRSZXNwb25zZRJWCgZVcGRhdGUSLy5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VVcGRhdGVSZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2UShgEKD0xpc3REaXJlY3RvcmllcxI4Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZUxpc3REaXJlY3Rvcmllc1JlcXVlc3QaOS5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VMaXN0RGlyZWN0b3JpZXNSZXNwb25zZRJ9CgxHZXREaXJlY3RvcnkSNS5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VHZXREaXJlY3RvcnlSZXF1ZXN0GjYubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlR2V0RGlyZWN0b3J5UmVzcG9uc2USaAoPVXBzZXJ0RGlyZWN0b3J5EjgubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlVXBzZXJ0RGlyZWN0b3J5UmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlEmgKD0RlbGV0ZURpcmVjdG9yeRI4Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZURlbGV0ZURpcmVjdG9yeVJlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZRKJAQoQTGlzdFNpZGVjYXJUeXBlcxI5Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZUxpc3RTaWRlY2FyVHlwZXNSZXF1ZXN0GjoubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlTGlzdFNpZGVjYXJUeXBlc1Jlc3BvbnNlEoMBCg5HZXRTaWRlY2FyVHlwZRI3Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZUdldFNpZGVjYXJUeXBlUmVxdWVzdBo4Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZUdldFNpZGVjYXJUeXBlUmVzcG9uc2USbAoRVXBzZXJ0U2lkZWNhclR5cGUSOi5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VVcHNlcnRTaWRlY2FyVHlwZVJlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZRJsChFEZWxldGVTaWRlY2FyVHlwZRI6Lm1ldGFyci52MS5EaXJlY3RvcnlTY2FubmVyU2VydmljZURlbGV0ZVNpZGVjYXJUeXBlUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlEnAKE1Jlb3JkZXJTaWRlY2FyVHlwZXMSPC5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lclNlcnZpY2VSZW9yZGVyU2lkZWNhclR5cGVzUmVxdWVzdBobLm1ldGFyci52MS5BY2NlcHRlZFJlc3BvbnNlEmwKEVJlc2V0U2lkZWNhclR5cGVzEjoubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJTZXJ2aWNlUmVzZXRTaWRlY2FyVHlwZXNSZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_metarr_bus_v1_agent_contract, file_metarr_v1_common]);
 
 /**
  * DirectoryScannerConfig controls the background filesystem scanner: how
@@ -34,7 +36,7 @@ export type DirectoryScannerConfig = Message<"metarr.v1.DirectoryScannerConfig">
   scanDirectories: ScanDirectory[];
 
   /**
-   * @generated from field: repeated metarr.v1.SidecarTypeDefinition sidecar_types = 3;
+   * @generated from field: repeated metarr.bus.v1.SidecarTypeDefinition sidecar_types = 3;
    */
   sidecarTypes: SidecarTypeDefinition[];
 };
@@ -77,53 +79,6 @@ export const ScanDirectorySchema: GenMessage<ScanDirectory> = /*@__PURE__*/
   messageDesc(file_metarr_v1_directory_scanner, 1);
 
 /**
- * SidecarTypeDefinition is one entry in the sidecar classification table.
- * patterns are case-insensitive Go regexps matched against a file base name;
- * extensions gates the match; order is the evaluation sequence, zero meaning
- * disabled.
- *
- * @generated from message metarr.v1.SidecarTypeDefinition
- */
-export type SidecarTypeDefinition = Message<"metarr.v1.SidecarTypeDefinition"> & {
-  /**
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * @generated from field: string type = 2;
-   */
-  type: string;
-
-  /**
-   * @generated from field: string category = 3;
-   */
-  category: string;
-
-  /**
-   * @generated from field: int32 order = 4;
-   */
-  order: number;
-
-  /**
-   * @generated from field: repeated string patterns = 5;
-   */
-  patterns: string[];
-
-  /**
-   * @generated from field: repeated string extensions = 6;
-   */
-  extensions: string[];
-};
-
-/**
- * Describes the message metarr.v1.SidecarTypeDefinition.
- * Use `create(SidecarTypeDefinitionSchema)` to create a new message.
- */
-export const SidecarTypeDefinitionSchema: GenMessage<SidecarTypeDefinition> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 2);
-
-/**
  * @generated from message metarr.v1.DirectoryScannerServiceGetRequest
  */
 export type DirectoryScannerServiceGetRequest = Message<"metarr.v1.DirectoryScannerServiceGetRequest"> & {
@@ -134,7 +89,7 @@ export type DirectoryScannerServiceGetRequest = Message<"metarr.v1.DirectoryScan
  * Use `create(DirectoryScannerServiceGetRequestSchema)` to create a new message.
  */
 export const DirectoryScannerServiceGetRequestSchema: GenMessage<DirectoryScannerServiceGetRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 3);
+  messageDesc(file_metarr_v1_directory_scanner, 2);
 
 /**
  * @generated from message metarr.v1.DirectoryScannerServiceGetResponse
@@ -151,7 +106,7 @@ export type DirectoryScannerServiceGetResponse = Message<"metarr.v1.DirectorySca
  * Use `create(DirectoryScannerServiceGetResponseSchema)` to create a new message.
  */
 export const DirectoryScannerServiceGetResponseSchema: GenMessage<DirectoryScannerServiceGetResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 4);
+  messageDesc(file_metarr_v1_directory_scanner, 3);
 
 /**
  * DirectoryScannerServiceUpdateRequest is a partial update: only
@@ -172,7 +127,7 @@ export type DirectoryScannerServiceUpdateRequest = Message<"metarr.v1.DirectoryS
  * Use `create(DirectoryScannerServiceUpdateRequestSchema)` to create a new message.
  */
 export const DirectoryScannerServiceUpdateRequestSchema: GenMessage<DirectoryScannerServiceUpdateRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 5);
+  messageDesc(file_metarr_v1_directory_scanner, 4);
 
 /**
  * @generated from message metarr.v1.DirectoryScannerServiceListDirectoriesRequest
@@ -185,7 +140,7 @@ export type DirectoryScannerServiceListDirectoriesRequest = Message<"metarr.v1.D
  * Use `create(DirectoryScannerServiceListDirectoriesRequestSchema)` to create a new message.
  */
 export const DirectoryScannerServiceListDirectoriesRequestSchema: GenMessage<DirectoryScannerServiceListDirectoriesRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 6);
+  messageDesc(file_metarr_v1_directory_scanner, 5);
 
 /**
  * @generated from message metarr.v1.DirectoryScannerServiceListDirectoriesResponse
@@ -202,7 +157,7 @@ export type DirectoryScannerServiceListDirectoriesResponse = Message<"metarr.v1.
  * Use `create(DirectoryScannerServiceListDirectoriesResponseSchema)` to create a new message.
  */
 export const DirectoryScannerServiceListDirectoriesResponseSchema: GenMessage<DirectoryScannerServiceListDirectoriesResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 7);
+  messageDesc(file_metarr_v1_directory_scanner, 6);
 
 /**
  * @generated from message metarr.v1.DirectoryScannerServiceGetDirectoryRequest
@@ -219,7 +174,7 @@ export type DirectoryScannerServiceGetDirectoryRequest = Message<"metarr.v1.Dire
  * Use `create(DirectoryScannerServiceGetDirectoryRequestSchema)` to create a new message.
  */
 export const DirectoryScannerServiceGetDirectoryRequestSchema: GenMessage<DirectoryScannerServiceGetDirectoryRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 8);
+  messageDesc(file_metarr_v1_directory_scanner, 7);
 
 /**
  * @generated from message metarr.v1.DirectoryScannerServiceGetDirectoryResponse
@@ -236,7 +191,7 @@ export type DirectoryScannerServiceGetDirectoryResponse = Message<"metarr.v1.Dir
  * Use `create(DirectoryScannerServiceGetDirectoryResponseSchema)` to create a new message.
  */
 export const DirectoryScannerServiceGetDirectoryResponseSchema: GenMessage<DirectoryScannerServiceGetDirectoryResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 9);
+  messageDesc(file_metarr_v1_directory_scanner, 8);
 
 /**
  * @generated from message metarr.v1.DirectoryScannerServiceUpsertDirectoryRequest
@@ -253,7 +208,7 @@ export type DirectoryScannerServiceUpsertDirectoryRequest = Message<"metarr.v1.D
  * Use `create(DirectoryScannerServiceUpsertDirectoryRequestSchema)` to create a new message.
  */
 export const DirectoryScannerServiceUpsertDirectoryRequestSchema: GenMessage<DirectoryScannerServiceUpsertDirectoryRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 10);
+  messageDesc(file_metarr_v1_directory_scanner, 9);
 
 /**
  * @generated from message metarr.v1.DirectoryScannerServiceDeleteDirectoryRequest
@@ -270,7 +225,7 @@ export type DirectoryScannerServiceDeleteDirectoryRequest = Message<"metarr.v1.D
  * Use `create(DirectoryScannerServiceDeleteDirectoryRequestSchema)` to create a new message.
  */
 export const DirectoryScannerServiceDeleteDirectoryRequestSchema: GenMessage<DirectoryScannerServiceDeleteDirectoryRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 11);
+  messageDesc(file_metarr_v1_directory_scanner, 10);
 
 /**
  * @generated from message metarr.v1.DirectoryScannerServiceListSidecarTypesRequest
@@ -283,14 +238,14 @@ export type DirectoryScannerServiceListSidecarTypesRequest = Message<"metarr.v1.
  * Use `create(DirectoryScannerServiceListSidecarTypesRequestSchema)` to create a new message.
  */
 export const DirectoryScannerServiceListSidecarTypesRequestSchema: GenMessage<DirectoryScannerServiceListSidecarTypesRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 12);
+  messageDesc(file_metarr_v1_directory_scanner, 11);
 
 /**
  * @generated from message metarr.v1.DirectoryScannerServiceListSidecarTypesResponse
  */
 export type DirectoryScannerServiceListSidecarTypesResponse = Message<"metarr.v1.DirectoryScannerServiceListSidecarTypesResponse"> & {
   /**
-   * @generated from field: repeated metarr.v1.SidecarTypeDefinition types = 1;
+   * @generated from field: repeated metarr.bus.v1.SidecarTypeDefinition types = 1;
    */
   types: SidecarTypeDefinition[];
 };
@@ -300,7 +255,7 @@ export type DirectoryScannerServiceListSidecarTypesResponse = Message<"metarr.v1
  * Use `create(DirectoryScannerServiceListSidecarTypesResponseSchema)` to create a new message.
  */
 export const DirectoryScannerServiceListSidecarTypesResponseSchema: GenMessage<DirectoryScannerServiceListSidecarTypesResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 13);
+  messageDesc(file_metarr_v1_directory_scanner, 12);
 
 /**
  * @generated from message metarr.v1.DirectoryScannerServiceGetSidecarTypeRequest
@@ -317,14 +272,14 @@ export type DirectoryScannerServiceGetSidecarTypeRequest = Message<"metarr.v1.Di
  * Use `create(DirectoryScannerServiceGetSidecarTypeRequestSchema)` to create a new message.
  */
 export const DirectoryScannerServiceGetSidecarTypeRequestSchema: GenMessage<DirectoryScannerServiceGetSidecarTypeRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 14);
+  messageDesc(file_metarr_v1_directory_scanner, 13);
 
 /**
  * @generated from message metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse
  */
 export type DirectoryScannerServiceGetSidecarTypeResponse = Message<"metarr.v1.DirectoryScannerServiceGetSidecarTypeResponse"> & {
   /**
-   * @generated from field: metarr.v1.SidecarTypeDefinition type = 1;
+   * @generated from field: metarr.bus.v1.SidecarTypeDefinition type = 1;
    */
   type?: SidecarTypeDefinition | undefined;
 };
@@ -334,14 +289,14 @@ export type DirectoryScannerServiceGetSidecarTypeResponse = Message<"metarr.v1.D
  * Use `create(DirectoryScannerServiceGetSidecarTypeResponseSchema)` to create a new message.
  */
 export const DirectoryScannerServiceGetSidecarTypeResponseSchema: GenMessage<DirectoryScannerServiceGetSidecarTypeResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 15);
+  messageDesc(file_metarr_v1_directory_scanner, 14);
 
 /**
  * @generated from message metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest
  */
 export type DirectoryScannerServiceUpsertSidecarTypeRequest = Message<"metarr.v1.DirectoryScannerServiceUpsertSidecarTypeRequest"> & {
   /**
-   * @generated from field: metarr.v1.SidecarTypeDefinition type = 1;
+   * @generated from field: metarr.bus.v1.SidecarTypeDefinition type = 1;
    */
   type?: SidecarTypeDefinition | undefined;
 };
@@ -351,7 +306,7 @@ export type DirectoryScannerServiceUpsertSidecarTypeRequest = Message<"metarr.v1
  * Use `create(DirectoryScannerServiceUpsertSidecarTypeRequestSchema)` to create a new message.
  */
 export const DirectoryScannerServiceUpsertSidecarTypeRequestSchema: GenMessage<DirectoryScannerServiceUpsertSidecarTypeRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 16);
+  messageDesc(file_metarr_v1_directory_scanner, 15);
 
 /**
  * @generated from message metarr.v1.DirectoryScannerServiceDeleteSidecarTypeRequest
@@ -368,7 +323,7 @@ export type DirectoryScannerServiceDeleteSidecarTypeRequest = Message<"metarr.v1
  * Use `create(DirectoryScannerServiceDeleteSidecarTypeRequestSchema)` to create a new message.
  */
 export const DirectoryScannerServiceDeleteSidecarTypeRequestSchema: GenMessage<DirectoryScannerServiceDeleteSidecarTypeRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 17);
+  messageDesc(file_metarr_v1_directory_scanner, 16);
 
 /**
  * DirectoryScannerServiceReorderSidecarTypesRequest maps every sidecar type
@@ -390,7 +345,7 @@ export type DirectoryScannerServiceReorderSidecarTypesRequest = Message<"metarr.
  * Use `create(DirectoryScannerServiceReorderSidecarTypesRequestSchema)` to create a new message.
  */
 export const DirectoryScannerServiceReorderSidecarTypesRequestSchema: GenMessage<DirectoryScannerServiceReorderSidecarTypesRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 18);
+  messageDesc(file_metarr_v1_directory_scanner, 17);
 
 /**
  * @generated from message metarr.v1.DirectoryScannerServiceResetSidecarTypesRequest
@@ -403,7 +358,7 @@ export type DirectoryScannerServiceResetSidecarTypesRequest = Message<"metarr.v1
  * Use `create(DirectoryScannerServiceResetSidecarTypesRequestSchema)` to create a new message.
  */
 export const DirectoryScannerServiceResetSidecarTypesRequestSchema: GenMessage<DirectoryScannerServiceResetSidecarTypesRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_directory_scanner, 19);
+  messageDesc(file_metarr_v1_directory_scanner, 18);
 
 /**
  * @generated from service metarr.v1.DirectoryScannerService

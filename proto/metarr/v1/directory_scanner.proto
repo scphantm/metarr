@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package metarr.v1;
 
+import "metarr/bus/v1/agent_contract.proto";
 import "metarr/v1/common.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
@@ -13,7 +14,7 @@ option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 message DirectoryScannerConfig {
   int32 parallel_count = 1;
   repeated ScanDirectory scan_directories = 2;
-  repeated SidecarTypeDefinition sidecar_types = 3;
+  repeated metarr.bus.v1.SidecarTypeDefinition sidecar_types = 3;
 }
 
 // ScanDirectory is one filesystem path the directory scanner watches,
@@ -22,19 +23,6 @@ message ScanDirectory {
   string scanner_slug = 1;
   string scan_type = 2;
   string directory = 3;
-}
-
-// SidecarTypeDefinition is one entry in the sidecar classification table.
-// patterns are case-insensitive Go regexps matched against a file base name;
-// extensions gates the match; order is the evaluation sequence, zero meaning
-// disabled.
-message SidecarTypeDefinition {
-  string id = 1;
-  string type = 2;
-  string category = 3;
-  int32 order = 4;
-  repeated string patterns = 5;
-  repeated string extensions = 6;
 }
 
 message DirectoryScannerServiceGetRequest {}
@@ -75,7 +63,7 @@ message DirectoryScannerServiceDeleteDirectoryRequest {
 message DirectoryScannerServiceListSidecarTypesRequest {}
 
 message DirectoryScannerServiceListSidecarTypesResponse {
-  repeated SidecarTypeDefinition types = 1;
+  repeated metarr.bus.v1.SidecarTypeDefinition types = 1;
 }
 
 message DirectoryScannerServiceGetSidecarTypeRequest {
@@ -83,11 +71,11 @@ message DirectoryScannerServiceGetSidecarTypeRequest {
 }
 
 message DirectoryScannerServiceGetSidecarTypeResponse {
-  SidecarTypeDefinition type = 1;
+  metarr.bus.v1.SidecarTypeDefinition type = 1;
 }
 
 message DirectoryScannerServiceUpsertSidecarTypeRequest {
-  SidecarTypeDefinition type = 1;
+  metarr.bus.v1.SidecarTypeDefinition type = 1;
 }
 
 message DirectoryScannerServiceDeleteSidecarTypeRequest {

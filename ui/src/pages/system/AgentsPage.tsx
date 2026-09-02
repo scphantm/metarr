@@ -8,7 +8,8 @@ import {
   useAgentsPresenceStreamStatus,
   useScanDirectories,
 } from "../../api/queries";
-import type { AgentTelemetry, AgentView } from "../../gen/metarr/v1/agents_pb";
+import type { AgentTelemetry } from "../../gen/metarr/bus/v1/agent_contract_pb";
+import type { AgentView } from "../../gen/metarr/v1/agents_pb";
 import { Button, Card, EmptyState } from "../../components/Card";
 import { PageError, PageLoading } from "../../components/PageState";
 import { PageHeader } from "../../layout/AppShell";

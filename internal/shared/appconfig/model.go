@@ -15,6 +15,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
+	busv1 "Metarr/internal/genproto/metarr/bus/v1"
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
 )
 
@@ -37,7 +38,7 @@ type (
 	StorageConfig          = metarrv1.StorageConfig
 	DirectoryScannerConfig = metarrv1.DirectoryScannerConfig
 	ScanDirectory          = metarrv1.ScanDirectory
-	SidecarTypeDefinition  = metarrv1.SidecarTypeDefinition
+	SidecarTypeDefinition  = busv1.SidecarTypeDefinition
 	AgentConfig            = metarrv1.AgentConfig
 	AgentDirectoryMapping  = metarrv1.AgentDirectoryMapping
 	LoggingConfig          = metarrv1.LoggingConfig
