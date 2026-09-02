@@ -2,7 +2,8 @@
 
 ## Overview
 
-The Metarr UI uses **Vitest** for fast, token-efficient unit testing. Tests are designed to catch regressions early while keeping test output concise.
+The Metarr UI uses **Vitest** for fast, token-efficient unit testing. Tests are designed to catch regressions early
+while keeping test output concise.
 
 ## Running Tests
 
@@ -41,7 +42,8 @@ The initial test suite prioritizes token efficiency by testing:
 2. **Core business logic** (`isSubtypeOf`, `elementType`, etc.) — validates workflow type system
 3. **Critical hooks** (`useDebouncedValue`) — debounce behavior under timer changes
 
-These tests catch regressions in the most frequently-used code paths with minimal test output, making CI runs faster and reports more scannable.
+These tests catch regressions in the most frequently-used code paths with minimal test output, making CI runs faster and
+reports more scannable.
 
 ## Coverage
 
@@ -57,35 +59,35 @@ Current test coverage includes:
 ### Pattern: Pure Functions
 
 ```typescript
-describe('isSubtypeOf', () => {
-  it('detects dotted prefix hierarchy', () => {
-    expect(isSubtypeOf('path.file', 'path')).toBe(true)
-  })
-})
+describe("isSubtypeOf", () => {
+  it("detects dotted prefix hierarchy", () => {
+    expect(isSubtypeOf("path.file", "path")).toBe(true);
+  });
+});
 ```
 
 ### Pattern: Hooks with Fake Timers
 
 ```typescript
-describe('useDebouncedValue', () => {
+describe("useDebouncedValue", () => {
   beforeEach(() => {
-    vi.useFakeTimers()
-  })
+    vi.useFakeTimers();
+  });
 
-  it('debounces value changes', async () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebouncedValue(value, 100),
-      { initialProps: { value: 'first' } }
-    )
-    
-    rerender({ value: 'second' })
-    act(() => vi.advanceTimersByTime(100))
-    expect(result.current).toBe('second')
-  })
-})
+  it("debounces value changes", async () => {
+    const { result, rerender } = renderHook(({ value }) => useDebouncedValue(value, 100), {
+      initialProps: { value: "first" },
+    });
+
+    rerender({ value: "second" });
+    act(() => vi.advanceTimersByTime(100));
+    expect(result.current).toBe("second");
+  });
+});
 ```
 
 **Key points:**
+
 - Wrap timer advances in `act()` to avoid React warnings
 - Use `renderHook` for hook-only tests
 - Keep assertions focused on behavior, not implementation

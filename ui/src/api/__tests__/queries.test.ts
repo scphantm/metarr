@@ -205,7 +205,10 @@ describe("useUpdateLoggingConfig", () => {
     const { wrapper } = mutationHarness();
 
     const { result } = renderHook(() => useUpdateLoggingConfig(), { wrapper });
-    result.current.mutate({ patch: { serverLevel: "debug" }, etag: "log-etag" });
+    result.current.mutate({
+      patch: { serverLevel: "debug" },
+      etag: "log-etag",
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(updateLoggingConfig).toHaveBeenCalledWith({
