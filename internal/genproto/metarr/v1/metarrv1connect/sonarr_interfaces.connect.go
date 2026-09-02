@@ -9,6 +9,7 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	http "net/http"
 	strings "strings"
 )
@@ -33,26 +34,33 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// SonarrInterfaceServiceListProcedure is the fully-qualified name of the SonarrInterfaceService's
-	// List RPC.
-	SonarrInterfaceServiceListProcedure = "/metarr.v1.SonarrInterfaceService/List"
-	// SonarrInterfaceServiceGetProcedure is the fully-qualified name of the SonarrInterfaceService's
-	// Get RPC.
-	SonarrInterfaceServiceGetProcedure = "/metarr.v1.SonarrInterfaceService/Get"
-	// SonarrInterfaceServiceUpsertProcedure is the fully-qualified name of the SonarrInterfaceService's
-	// Upsert RPC.
-	SonarrInterfaceServiceUpsertProcedure = "/metarr.v1.SonarrInterfaceService/Upsert"
-	// SonarrInterfaceServiceDeleteProcedure is the fully-qualified name of the SonarrInterfaceService's
-	// Delete RPC.
-	SonarrInterfaceServiceDeleteProcedure = "/metarr.v1.SonarrInterfaceService/Delete"
+	// SonarrInterfaceServiceCreateSonarrInstanceProcedure is the fully-qualified name of the
+	// SonarrInterfaceService's CreateSonarrInstance RPC.
+	SonarrInterfaceServiceCreateSonarrInstanceProcedure = "/metarr.v1.SonarrInterfaceService/CreateSonarrInstance"
+	// SonarrInterfaceServiceGetSonarrInstanceProcedure is the fully-qualified name of the
+	// SonarrInterfaceService's GetSonarrInstance RPC.
+	SonarrInterfaceServiceGetSonarrInstanceProcedure = "/metarr.v1.SonarrInterfaceService/GetSonarrInstance"
+	// SonarrInterfaceServiceListSonarrInstancesProcedure is the fully-qualified name of the
+	// SonarrInterfaceService's ListSonarrInstances RPC.
+	SonarrInterfaceServiceListSonarrInstancesProcedure = "/metarr.v1.SonarrInterfaceService/ListSonarrInstances"
+	// SonarrInterfaceServiceUpdateSonarrInstanceProcedure is the fully-qualified name of the
+	// SonarrInterfaceService's UpdateSonarrInstance RPC.
+	SonarrInterfaceServiceUpdateSonarrInstanceProcedure = "/metarr.v1.SonarrInterfaceService/UpdateSonarrInstance"
+	// SonarrInterfaceServiceDeleteSonarrInstanceProcedure is the fully-qualified name of the
+	// SonarrInterfaceService's DeleteSonarrInstance RPC.
+	SonarrInterfaceServiceDeleteSonarrInstanceProcedure = "/metarr.v1.SonarrInterfaceService/DeleteSonarrInstance"
 )
 
 // SonarrInterfaceServiceClient is a client for the metarr.v1.SonarrInterfaceService service.
 type SonarrInterfaceServiceClient interface {
-	List(context.Context, *connect.Request[v1.SonarrInterfaceServiceListRequest]) (*connect.Response[v1.SonarrInterfaceServiceListResponse], error)
-	Get(context.Context, *connect.Request[v1.SonarrInterfaceServiceGetRequest]) (*connect.Response[v1.SonarrInterfaceServiceGetResponse], error)
-	Upsert(context.Context, *connect.Request[v1.SonarrInterfaceServiceUpsertRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	Delete(context.Context, *connect.Request[v1.SonarrInterfaceServiceDeleteRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	// CreateSonarrInstance appends a new instance and returns it as stored.
+	CreateSonarrInstance(context.Context, *connect.Request[v1.CreateSonarrInstanceRequest]) (*connect.Response[v1.SonarrInstance], error)
+	GetSonarrInstance(context.Context, *connect.Request[v1.GetSonarrInstanceRequest]) (*connect.Response[v1.SonarrInstance], error)
+	ListSonarrInstances(context.Context, *connect.Request[v1.ListSonarrInstancesRequest]) (*connect.Response[v1.ListSonarrInstancesResponse], error)
+	// UpdateSonarrInstance returns the stored instance after the synchronous
+	// write has landed (AIP-134).
+	UpdateSonarrInstance(context.Context, *connect.Request[v1.UpdateSonarrInstanceRequest]) (*connect.Response[v1.SonarrInstance], error)
+	DeleteSonarrInstance(context.Context, *connect.Request[v1.DeleteSonarrInstanceRequest]) (*connect.Response[emptypb.Empty], error)
 }
 
 // NewSonarrInterfaceServiceClient constructs a client for the metarr.v1.SonarrInterfaceService
@@ -66,28 +74,34 @@ func NewSonarrInterfaceServiceClient(httpClient connect.HTTPClient, baseURL stri
 	baseURL = strings.TrimRight(baseURL, "/")
 	sonarrInterfaceServiceMethods := v1.File_metarr_v1_sonarr_interfaces_proto.Services().ByName("SonarrInterfaceService").Methods()
 	return &sonarrInterfaceServiceClient{
-		list: connect.NewClient[v1.SonarrInterfaceServiceListRequest, v1.SonarrInterfaceServiceListResponse](
+		createSonarrInstance: connect.NewClient[v1.CreateSonarrInstanceRequest, v1.SonarrInstance](
 			httpClient,
-			baseURL+SonarrInterfaceServiceListProcedure,
-			connect.WithSchema(sonarrInterfaceServiceMethods.ByName("List")),
+			baseURL+SonarrInterfaceServiceCreateSonarrInstanceProcedure,
+			connect.WithSchema(sonarrInterfaceServiceMethods.ByName("CreateSonarrInstance")),
 			connect.WithClientOptions(opts...),
 		),
-		get: connect.NewClient[v1.SonarrInterfaceServiceGetRequest, v1.SonarrInterfaceServiceGetResponse](
+		getSonarrInstance: connect.NewClient[v1.GetSonarrInstanceRequest, v1.SonarrInstance](
 			httpClient,
-			baseURL+SonarrInterfaceServiceGetProcedure,
-			connect.WithSchema(sonarrInterfaceServiceMethods.ByName("Get")),
+			baseURL+SonarrInterfaceServiceGetSonarrInstanceProcedure,
+			connect.WithSchema(sonarrInterfaceServiceMethods.ByName("GetSonarrInstance")),
 			connect.WithClientOptions(opts...),
 		),
-		upsert: connect.NewClient[v1.SonarrInterfaceServiceUpsertRequest, v1.AcceptedResponse](
+		listSonarrInstances: connect.NewClient[v1.ListSonarrInstancesRequest, v1.ListSonarrInstancesResponse](
 			httpClient,
-			baseURL+SonarrInterfaceServiceUpsertProcedure,
-			connect.WithSchema(sonarrInterfaceServiceMethods.ByName("Upsert")),
+			baseURL+SonarrInterfaceServiceListSonarrInstancesProcedure,
+			connect.WithSchema(sonarrInterfaceServiceMethods.ByName("ListSonarrInstances")),
 			connect.WithClientOptions(opts...),
 		),
-		delete: connect.NewClient[v1.SonarrInterfaceServiceDeleteRequest, v1.AcceptedResponse](
+		updateSonarrInstance: connect.NewClient[v1.UpdateSonarrInstanceRequest, v1.SonarrInstance](
 			httpClient,
-			baseURL+SonarrInterfaceServiceDeleteProcedure,
-			connect.WithSchema(sonarrInterfaceServiceMethods.ByName("Delete")),
+			baseURL+SonarrInterfaceServiceUpdateSonarrInstanceProcedure,
+			connect.WithSchema(sonarrInterfaceServiceMethods.ByName("UpdateSonarrInstance")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteSonarrInstance: connect.NewClient[v1.DeleteSonarrInstanceRequest, emptypb.Empty](
+			httpClient,
+			baseURL+SonarrInterfaceServiceDeleteSonarrInstanceProcedure,
+			connect.WithSchema(sonarrInterfaceServiceMethods.ByName("DeleteSonarrInstance")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -95,39 +109,49 @@ func NewSonarrInterfaceServiceClient(httpClient connect.HTTPClient, baseURL stri
 
 // sonarrInterfaceServiceClient implements SonarrInterfaceServiceClient.
 type sonarrInterfaceServiceClient struct {
-	list   *connect.Client[v1.SonarrInterfaceServiceListRequest, v1.SonarrInterfaceServiceListResponse]
-	get    *connect.Client[v1.SonarrInterfaceServiceGetRequest, v1.SonarrInterfaceServiceGetResponse]
-	upsert *connect.Client[v1.SonarrInterfaceServiceUpsertRequest, v1.AcceptedResponse]
-	delete *connect.Client[v1.SonarrInterfaceServiceDeleteRequest, v1.AcceptedResponse]
+	createSonarrInstance *connect.Client[v1.CreateSonarrInstanceRequest, v1.SonarrInstance]
+	getSonarrInstance    *connect.Client[v1.GetSonarrInstanceRequest, v1.SonarrInstance]
+	listSonarrInstances  *connect.Client[v1.ListSonarrInstancesRequest, v1.ListSonarrInstancesResponse]
+	updateSonarrInstance *connect.Client[v1.UpdateSonarrInstanceRequest, v1.SonarrInstance]
+	deleteSonarrInstance *connect.Client[v1.DeleteSonarrInstanceRequest, emptypb.Empty]
 }
 
-// List calls metarr.v1.SonarrInterfaceService.List.
-func (c *sonarrInterfaceServiceClient) List(ctx context.Context, req *connect.Request[v1.SonarrInterfaceServiceListRequest]) (*connect.Response[v1.SonarrInterfaceServiceListResponse], error) {
-	return c.list.CallUnary(ctx, req)
+// CreateSonarrInstance calls metarr.v1.SonarrInterfaceService.CreateSonarrInstance.
+func (c *sonarrInterfaceServiceClient) CreateSonarrInstance(ctx context.Context, req *connect.Request[v1.CreateSonarrInstanceRequest]) (*connect.Response[v1.SonarrInstance], error) {
+	return c.createSonarrInstance.CallUnary(ctx, req)
 }
 
-// Get calls metarr.v1.SonarrInterfaceService.Get.
-func (c *sonarrInterfaceServiceClient) Get(ctx context.Context, req *connect.Request[v1.SonarrInterfaceServiceGetRequest]) (*connect.Response[v1.SonarrInterfaceServiceGetResponse], error) {
-	return c.get.CallUnary(ctx, req)
+// GetSonarrInstance calls metarr.v1.SonarrInterfaceService.GetSonarrInstance.
+func (c *sonarrInterfaceServiceClient) GetSonarrInstance(ctx context.Context, req *connect.Request[v1.GetSonarrInstanceRequest]) (*connect.Response[v1.SonarrInstance], error) {
+	return c.getSonarrInstance.CallUnary(ctx, req)
 }
 
-// Upsert calls metarr.v1.SonarrInterfaceService.Upsert.
-func (c *sonarrInterfaceServiceClient) Upsert(ctx context.Context, req *connect.Request[v1.SonarrInterfaceServiceUpsertRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return c.upsert.CallUnary(ctx, req)
+// ListSonarrInstances calls metarr.v1.SonarrInterfaceService.ListSonarrInstances.
+func (c *sonarrInterfaceServiceClient) ListSonarrInstances(ctx context.Context, req *connect.Request[v1.ListSonarrInstancesRequest]) (*connect.Response[v1.ListSonarrInstancesResponse], error) {
+	return c.listSonarrInstances.CallUnary(ctx, req)
 }
 
-// Delete calls metarr.v1.SonarrInterfaceService.Delete.
-func (c *sonarrInterfaceServiceClient) Delete(ctx context.Context, req *connect.Request[v1.SonarrInterfaceServiceDeleteRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return c.delete.CallUnary(ctx, req)
+// UpdateSonarrInstance calls metarr.v1.SonarrInterfaceService.UpdateSonarrInstance.
+func (c *sonarrInterfaceServiceClient) UpdateSonarrInstance(ctx context.Context, req *connect.Request[v1.UpdateSonarrInstanceRequest]) (*connect.Response[v1.SonarrInstance], error) {
+	return c.updateSonarrInstance.CallUnary(ctx, req)
+}
+
+// DeleteSonarrInstance calls metarr.v1.SonarrInterfaceService.DeleteSonarrInstance.
+func (c *sonarrInterfaceServiceClient) DeleteSonarrInstance(ctx context.Context, req *connect.Request[v1.DeleteSonarrInstanceRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.deleteSonarrInstance.CallUnary(ctx, req)
 }
 
 // SonarrInterfaceServiceHandler is an implementation of the metarr.v1.SonarrInterfaceService
 // service.
 type SonarrInterfaceServiceHandler interface {
-	List(context.Context, *connect.Request[v1.SonarrInterfaceServiceListRequest]) (*connect.Response[v1.SonarrInterfaceServiceListResponse], error)
-	Get(context.Context, *connect.Request[v1.SonarrInterfaceServiceGetRequest]) (*connect.Response[v1.SonarrInterfaceServiceGetResponse], error)
-	Upsert(context.Context, *connect.Request[v1.SonarrInterfaceServiceUpsertRequest]) (*connect.Response[v1.AcceptedResponse], error)
-	Delete(context.Context, *connect.Request[v1.SonarrInterfaceServiceDeleteRequest]) (*connect.Response[v1.AcceptedResponse], error)
+	// CreateSonarrInstance appends a new instance and returns it as stored.
+	CreateSonarrInstance(context.Context, *connect.Request[v1.CreateSonarrInstanceRequest]) (*connect.Response[v1.SonarrInstance], error)
+	GetSonarrInstance(context.Context, *connect.Request[v1.GetSonarrInstanceRequest]) (*connect.Response[v1.SonarrInstance], error)
+	ListSonarrInstances(context.Context, *connect.Request[v1.ListSonarrInstancesRequest]) (*connect.Response[v1.ListSonarrInstancesResponse], error)
+	// UpdateSonarrInstance returns the stored instance after the synchronous
+	// write has landed (AIP-134).
+	UpdateSonarrInstance(context.Context, *connect.Request[v1.UpdateSonarrInstanceRequest]) (*connect.Response[v1.SonarrInstance], error)
+	DeleteSonarrInstance(context.Context, *connect.Request[v1.DeleteSonarrInstanceRequest]) (*connect.Response[emptypb.Empty], error)
 }
 
 // NewSonarrInterfaceServiceHandler builds an HTTP handler from the service implementation. It
@@ -137,40 +161,48 @@ type SonarrInterfaceServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewSonarrInterfaceServiceHandler(svc SonarrInterfaceServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	sonarrInterfaceServiceMethods := v1.File_metarr_v1_sonarr_interfaces_proto.Services().ByName("SonarrInterfaceService").Methods()
-	sonarrInterfaceServiceListHandler := connect.NewUnaryHandler(
-		SonarrInterfaceServiceListProcedure,
-		svc.List,
-		connect.WithSchema(sonarrInterfaceServiceMethods.ByName("List")),
+	sonarrInterfaceServiceCreateSonarrInstanceHandler := connect.NewUnaryHandler(
+		SonarrInterfaceServiceCreateSonarrInstanceProcedure,
+		svc.CreateSonarrInstance,
+		connect.WithSchema(sonarrInterfaceServiceMethods.ByName("CreateSonarrInstance")),
 		connect.WithHandlerOptions(opts...),
 	)
-	sonarrInterfaceServiceGetHandler := connect.NewUnaryHandler(
-		SonarrInterfaceServiceGetProcedure,
-		svc.Get,
-		connect.WithSchema(sonarrInterfaceServiceMethods.ByName("Get")),
+	sonarrInterfaceServiceGetSonarrInstanceHandler := connect.NewUnaryHandler(
+		SonarrInterfaceServiceGetSonarrInstanceProcedure,
+		svc.GetSonarrInstance,
+		connect.WithSchema(sonarrInterfaceServiceMethods.ByName("GetSonarrInstance")),
 		connect.WithHandlerOptions(opts...),
 	)
-	sonarrInterfaceServiceUpsertHandler := connect.NewUnaryHandler(
-		SonarrInterfaceServiceUpsertProcedure,
-		svc.Upsert,
-		connect.WithSchema(sonarrInterfaceServiceMethods.ByName("Upsert")),
+	sonarrInterfaceServiceListSonarrInstancesHandler := connect.NewUnaryHandler(
+		SonarrInterfaceServiceListSonarrInstancesProcedure,
+		svc.ListSonarrInstances,
+		connect.WithSchema(sonarrInterfaceServiceMethods.ByName("ListSonarrInstances")),
 		connect.WithHandlerOptions(opts...),
 	)
-	sonarrInterfaceServiceDeleteHandler := connect.NewUnaryHandler(
-		SonarrInterfaceServiceDeleteProcedure,
-		svc.Delete,
-		connect.WithSchema(sonarrInterfaceServiceMethods.ByName("Delete")),
+	sonarrInterfaceServiceUpdateSonarrInstanceHandler := connect.NewUnaryHandler(
+		SonarrInterfaceServiceUpdateSonarrInstanceProcedure,
+		svc.UpdateSonarrInstance,
+		connect.WithSchema(sonarrInterfaceServiceMethods.ByName("UpdateSonarrInstance")),
+		connect.WithHandlerOptions(opts...),
+	)
+	sonarrInterfaceServiceDeleteSonarrInstanceHandler := connect.NewUnaryHandler(
+		SonarrInterfaceServiceDeleteSonarrInstanceProcedure,
+		svc.DeleteSonarrInstance,
+		connect.WithSchema(sonarrInterfaceServiceMethods.ByName("DeleteSonarrInstance")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/metarr.v1.SonarrInterfaceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case SonarrInterfaceServiceListProcedure:
-			sonarrInterfaceServiceListHandler.ServeHTTP(w, r)
-		case SonarrInterfaceServiceGetProcedure:
-			sonarrInterfaceServiceGetHandler.ServeHTTP(w, r)
-		case SonarrInterfaceServiceUpsertProcedure:
-			sonarrInterfaceServiceUpsertHandler.ServeHTTP(w, r)
-		case SonarrInterfaceServiceDeleteProcedure:
-			sonarrInterfaceServiceDeleteHandler.ServeHTTP(w, r)
+		case SonarrInterfaceServiceCreateSonarrInstanceProcedure:
+			sonarrInterfaceServiceCreateSonarrInstanceHandler.ServeHTTP(w, r)
+		case SonarrInterfaceServiceGetSonarrInstanceProcedure:
+			sonarrInterfaceServiceGetSonarrInstanceHandler.ServeHTTP(w, r)
+		case SonarrInterfaceServiceListSonarrInstancesProcedure:
+			sonarrInterfaceServiceListSonarrInstancesHandler.ServeHTTP(w, r)
+		case SonarrInterfaceServiceUpdateSonarrInstanceProcedure:
+			sonarrInterfaceServiceUpdateSonarrInstanceHandler.ServeHTTP(w, r)
+		case SonarrInterfaceServiceDeleteSonarrInstanceProcedure:
+			sonarrInterfaceServiceDeleteSonarrInstanceHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -180,18 +212,22 @@ func NewSonarrInterfaceServiceHandler(svc SonarrInterfaceServiceHandler, opts ..
 // UnimplementedSonarrInterfaceServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedSonarrInterfaceServiceHandler struct{}
 
-func (UnimplementedSonarrInterfaceServiceHandler) List(context.Context, *connect.Request[v1.SonarrInterfaceServiceListRequest]) (*connect.Response[v1.SonarrInterfaceServiceListResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.SonarrInterfaceService.List is not implemented"))
+func (UnimplementedSonarrInterfaceServiceHandler) CreateSonarrInstance(context.Context, *connect.Request[v1.CreateSonarrInstanceRequest]) (*connect.Response[v1.SonarrInstance], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.SonarrInterfaceService.CreateSonarrInstance is not implemented"))
 }
 
-func (UnimplementedSonarrInterfaceServiceHandler) Get(context.Context, *connect.Request[v1.SonarrInterfaceServiceGetRequest]) (*connect.Response[v1.SonarrInterfaceServiceGetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.SonarrInterfaceService.Get is not implemented"))
+func (UnimplementedSonarrInterfaceServiceHandler) GetSonarrInstance(context.Context, *connect.Request[v1.GetSonarrInstanceRequest]) (*connect.Response[v1.SonarrInstance], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.SonarrInterfaceService.GetSonarrInstance is not implemented"))
 }
 
-func (UnimplementedSonarrInterfaceServiceHandler) Upsert(context.Context, *connect.Request[v1.SonarrInterfaceServiceUpsertRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.SonarrInterfaceService.Upsert is not implemented"))
+func (UnimplementedSonarrInterfaceServiceHandler) ListSonarrInstances(context.Context, *connect.Request[v1.ListSonarrInstancesRequest]) (*connect.Response[v1.ListSonarrInstancesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.SonarrInterfaceService.ListSonarrInstances is not implemented"))
 }
 
-func (UnimplementedSonarrInterfaceServiceHandler) Delete(context.Context, *connect.Request[v1.SonarrInterfaceServiceDeleteRequest]) (*connect.Response[v1.AcceptedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.SonarrInterfaceService.Delete is not implemented"))
+func (UnimplementedSonarrInterfaceServiceHandler) UpdateSonarrInstance(context.Context, *connect.Request[v1.UpdateSonarrInstanceRequest]) (*connect.Response[v1.SonarrInstance], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.SonarrInterfaceService.UpdateSonarrInstance is not implemented"))
+}
+
+func (UnimplementedSonarrInterfaceServiceHandler) DeleteSonarrInstance(context.Context, *connect.Request[v1.DeleteSonarrInstanceRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.SonarrInterfaceService.DeleteSonarrInstance is not implemented"))
 }

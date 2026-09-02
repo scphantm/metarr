@@ -4,8 +4,9 @@ import { Input, Space, Typography } from "antd";
 
 import {
   queryKeys,
+  useCreateSonarrInstance,
   useDeleteSonarrInstance,
-  useUpsertSonarrInstance,
+  useUpdateSonarrInstance,
 } from "../../api/queries";
 import { storageModes } from "../../api/vocab";
 import {
@@ -20,25 +21,28 @@ import {
 } from "../../components/Editable";
 import "./SonarrSection.css";
 
-// onSave/onCreate below hand off to useUpsertSonarrInstance, whose
-// parameter is MessageInitShape<typeof SonarrInstanceSchema> (a plain
-// object, not a branded Message) — but every *read* here always comes back
-// as a real SonarrInstance from the List RPC, and typing props/state as the
-// branded message keeps each nested field a single concrete type rather
-// than the (Message | plain-init-shape) union MessageInitShape produces,
-// which otherwise stops TS from simplifying `{...instance, field}` spreads.
+// onSave hands off to useUpdateSonarrInstance and onCreate to
+// useCreateSonarrInstance, whose parameter is MessageInitShape<typeof
+// SonarrInstanceSchema> (a plain object, not a branded Message) — but every
+// *read* here always comes back as a real SonarrInstance from the list query,
+// and typing props/state as the branded message keeps each nested field a
+// single concrete type rather than the (Message | plain-init-shape) union
+// MessageInitShape produces, which otherwise stops TS from simplifying
+// `{...instance, field}` spreads.
 type SonarrInstanceInit = MessageInitShape<typeof SonarrInstanceSchema>;
 
 /*
- * Sonarr instances. Like scan directories these are keyed by a slug the upsert
- * matches on, so the slug is fixed once created.
+ * Sonarr instances. Like scan directories these are addressed by a slug, so
+ * the slug is fixed once created — edits go through Update, new entries
+ * through Create.
  *
  * Root directory mappings translate a path as Sonarr reports it into one on
  * this machine — the pair only means something together, so they are edited as
  * rows rather than as two independent lists.
  */
 export function SonarrSection({ instances }: { instances: SonarrInstance[] }) {
-  const upsert = useUpsertSonarrInstance();
+  const create = useCreateSonarrInstance();
+  const update = useUpdateSonarrInstance();
   const remove = useDeleteSonarrInstance();
   const [adding, setAdding] = useState(false);
 
@@ -61,7 +65,7 @@ export function SonarrSection({ instances }: { instances: SonarrInstance[] }) {
           <InstanceCard
             key={instance.instanceSlug}
             instance={instance}
-            onSave={(next) => upsert.mutateAsync(next)}
+            onSave={(next) => update.mutateAsync(next)}
             onRemove={() => {
               if (
                 window.confirm(
@@ -80,7 +84,7 @@ export function SonarrSection({ instances }: { instances: SonarrInstance[] }) {
           existingSlugs={instances.map((entry) => entry.instanceSlug)}
           onCancel={() => setAdding(false)}
           onCreate={async (entry) => {
-            await upsert.mutateAsync(entry);
+            await create.mutateAsync(entry);
             setAdding(false);
           }}
         />

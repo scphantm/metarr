@@ -8,6 +8,10 @@ const getEventBusConfig = vi.fn();
 const updateEventBusConfig = vi.fn();
 const getLoggingConfig = vi.fn();
 const updateLoggingConfig = vi.fn();
+const listSonarrInstances = vi.fn();
+const createSonarrInstance = vi.fn();
+const updateSonarrInstance = vi.fn();
+const deleteSonarrInstance = vi.fn();
 
 vi.mock("../clients", () => ({
   statsClient: { purge: (...args: unknown[]) => purge(...args) },
@@ -25,7 +29,12 @@ vi.mock("../clients", () => ({
     getLoggingConfig: (...args: unknown[]) => getLoggingConfig(...args),
     updateLoggingConfig: (...args: unknown[]) => updateLoggingConfig(...args),
   },
-  sonarrInterfaceClient: {},
+  sonarrInterfaceClient: {
+    listSonarrInstances: (...args: unknown[]) => listSonarrInstances(...args),
+    createSonarrInstance: (...args: unknown[]) => createSonarrInstance(...args),
+    updateSonarrInstance: (...args: unknown[]) => updateSonarrInstance(...args),
+    deleteSonarrInstance: (...args: unknown[]) => deleteSonarrInstance(...args),
+  },
   workflowCatalogClient: {},
   workflowClient: {},
 }));
@@ -37,6 +46,10 @@ import {
   useLoggingConfig,
   useUpdateEventBusConfig,
   useUpdateLoggingConfig,
+  useSonarrInstances,
+  useCreateSonarrInstance,
+  useUpdateSonarrInstance,
+  useDeleteSonarrInstance,
 } from "../queries";
 
 describe("queryKeys", () => {
@@ -271,6 +284,118 @@ describe("useUpdateLoggingConfig", () => {
 
     expect(queryClient.getQueryData(queryKeys.logging)).toEqual(stored);
     expect(getLoggingConfig).toHaveBeenCalledTimes(1);
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.config,
+      exact: true,
+    });
+  });
+});
+
+// SonarrInterfaceService is a collection on AIP standard methods: Create /
+// Update return the stored instance, Delete returns empty, and each hook
+// splices its result into the ["config","interfaces","sonarr"] cache rather
+// than refetching the list.
+describe("Sonarr instance hooks", () => {
+  const instanceA = {
+    instanceSlug: "sonarr-a",
+    instanceName: "A",
+    sonarrUrl: "http://a:8989",
+    sonarrApiKey: "key-a",
+    rootDirMap: [],
+    storage: { mode: "cache", ttl: "24h", maxCount: 0 },
+  };
+
+  it("useSonarrInstances drains the paginated list", async () => {
+    const instanceB = {
+      ...instanceA,
+      instanceSlug: "sonarr-b",
+      instanceName: "B",
+    };
+    listSonarrInstances
+      .mockReset()
+      .mockResolvedValueOnce({
+        sonarrInstances: [instanceA],
+        nextPageToken: "page-2",
+      })
+      .mockResolvedValueOnce({
+        sonarrInstances: [instanceB],
+        nextPageToken: "",
+      });
+    const { wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useSonarrInstances(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(listSonarrInstances).toHaveBeenNthCalledWith(1, { pageToken: "" });
+    expect(listSonarrInstances).toHaveBeenNthCalledWith(2, {
+      pageToken: "page-2",
+    });
+    expect(result.current.data).toEqual([instanceA, instanceB]);
+  });
+
+  it("useCreateSonarrInstance sends the slug in sonarr_instance_id and appends the stored instance", async () => {
+    createSonarrInstance.mockReset().mockResolvedValue(instanceA);
+    const { queryClient, invalidate, wrapper } = mutationHarness();
+    queryClient.setQueryData(queryKeys.sonarr, []);
+
+    const { result } = renderHook(() => useCreateSonarrInstance(), { wrapper });
+    result.current.mutate({
+      instanceSlug: "sonarr-a",
+      instanceName: "A",
+      sonarrUrl: "http://a:8989",
+      sonarrApiKey: "key-a",
+      rootDirMap: [],
+      storage: { mode: "cache", ttl: "24h", maxCount: 0 },
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(createSonarrInstance).toHaveBeenCalledWith({
+      sonarrInstanceId: "sonarr-a",
+      sonarrInstance: expect.objectContaining({ instanceSlug: "sonarr-a" }),
+    });
+    expect(queryClient.getQueryData(queryKeys.sonarr)).toEqual([instanceA]);
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.config,
+      exact: true,
+    });
+  });
+
+  it("useUpdateSonarrInstance sends a full field mask and replaces the cached entry", async () => {
+    const updated = { ...instanceA, instanceName: "A renamed" };
+    updateSonarrInstance.mockReset().mockResolvedValue(updated);
+    const { queryClient, wrapper } = mutationHarness();
+    queryClient.setQueryData(queryKeys.sonarr, [instanceA]);
+
+    const { result } = renderHook(() => useUpdateSonarrInstance(), { wrapper });
+    result.current.mutate({ ...instanceA, instanceName: "A renamed" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(updateSonarrInstance).toHaveBeenCalledWith({
+      sonarrInstance: expect.objectContaining({ instanceSlug: "sonarr-a" }),
+      updateMask: {
+        paths: [
+          "instance_name",
+          "sonarr_url",
+          "sonarr_api_key",
+          "root_dir_map",
+          "storage",
+        ],
+      },
+    });
+    expect(queryClient.getQueryData(queryKeys.sonarr)).toEqual([updated]);
+  });
+
+  it("useDeleteSonarrInstance sends the slug and drops the cached entry", async () => {
+    deleteSonarrInstance.mockReset().mockResolvedValue({});
+    const { queryClient, invalidate, wrapper } = mutationHarness();
+    queryClient.setQueryData(queryKeys.sonarr, [instanceA]);
+
+    const { result } = renderHook(() => useDeleteSonarrInstance(), { wrapper });
+    result.current.mutate("sonarr-a");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(deleteSonarrInstance).toHaveBeenCalledWith({ slug: "sonarr-a" });
+    expect(queryClient.getQueryData(queryKeys.sonarr)).toEqual([]);
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: queryKeys.config,
       exact: true,

@@ -3,6 +3,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  type QueryClient,
   type UseMutationResult,
 } from "@tanstack/react-query";
 
@@ -28,7 +29,10 @@ import type { DescMessage, MessageInitShape } from "@bufbuild/protobuf";
 import type { AcceptedResponse as ConnectAcceptedResponse } from "../gen/metarr/v1/common_pb";
 import type { EventBusConfig as ConnectEventBusConfig } from "../gen/metarr/v1/event_bus_pb";
 import type { LoggingConfig as ConnectLoggingConfig } from "../gen/metarr/v1/logging_pb";
-import { SonarrInstanceSchema } from "../gen/metarr/v1/sonarr_interfaces_pb";
+import {
+  SonarrInstanceSchema,
+  type SonarrInstance as ConnectSonarrInstance,
+} from "../gen/metarr/v1/sonarr_interfaces_pb";
 import {
   ConfigServiceDeleteApiKeyRequestSchema,
   ConfigServiceUpdateAdminRequestSchema,
@@ -104,10 +108,25 @@ export function useSidecarTypes() {
   });
 }
 
+// ListSonarrInstances is paginated (AIP-158) with a server-side page cap, so
+// the settings screen — which shows every instance at once — drains the
+// pages rather than assuming one call returns them all. The collection is
+// operator-bounded, so this is a handful of entries in one page in practice.
 export function useSonarrInstances() {
   return useQuery({
     queryKey: queryKeys.sonarr,
-    queryFn: async () => (await sonarrInterfaceClient.list({})).instances,
+    queryFn: async () => {
+      const instances = [];
+      let pageToken = "";
+      do {
+        const page = await sonarrInterfaceClient.listSonarrInstances({
+          pageToken,
+        });
+        instances.push(...page.sonarrInstances);
+        pageToken = page.nextPageToken;
+      } while (pageToken !== "");
+      return instances;
+    },
   });
 }
 
@@ -450,21 +469,100 @@ export function useResetSidecarTypes() {
   );
 }
 
-export function useUpsertSonarrInstance() {
-  return useConfigMutation<
-    MessageInitShape<typeof SonarrInstanceSchema>,
-    ConnectAcceptedResponse
-  >(
-    (instance) => sonarrInterfaceClient.upsert({ instance }),
-    [queryKeys.sonarr, queryKeys.config],
+// SonarrInterfaceService is a collection on AIP standard methods
+// (docs/adr/0010): Create / Update return the *stored* instance, Delete
+// returns empty, and every write is synchronous. Rather than refetch the
+// whole list, each write keeps the ["config","interfaces","sonarr"] cache
+// current from its own response through patchSonarrListCache below.
+
+// patchSonarrListCache applies update to the cached instance list and
+// invalidates the sibling aggregate GetConfig read (["config"], exact, so
+// the fuzzy match cannot sweep the list read back in). The one place every
+// Sonarr write spells its cache contract.
+function patchSonarrListCache(
+  queryClient: QueryClient,
+  update: (current: ConnectSonarrInstance[]) => ConnectSonarrInstance[],
+) {
+  queryClient.setQueryData<ConnectSonarrInstance[]>(
+    queryKeys.sonarr,
+    (current = []) => update(current),
+  );
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.config,
+    exact: true,
+  });
+}
+
+function useSonarrCollectionWrite<TVariables>(
+  write: (variables: TVariables) => Promise<ConnectSonarrInstance>,
+): UseMutationResult<ConnectSonarrInstance, Error, TVariables> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: write,
+    onSuccess: (stored) => {
+      patchSonarrListCache(queryClient, (current) => {
+        const index = current.findIndex(
+          (entry) => entry.instanceSlug === stored.instanceSlug,
+        );
+        if (index === -1) return [...current, stored];
+        const next = current.slice();
+        next[index] = stored;
+        return next;
+      });
+    },
+  });
+}
+
+export function useCreateSonarrInstance() {
+  return useSonarrCollectionWrite<
+    MessageInitShape<typeof SonarrInstanceSchema>
+  >((instance) =>
+    sonarrInterfaceClient.createSonarrInstance({
+      sonarrInstanceId: instance.instanceSlug,
+      sonarrInstance: instance,
+    }),
+  );
+}
+
+// The Sonarr screen edits an instance by sending the whole resource back, so
+// the update_mask names every writable field — the slug is the addressing
+// key, set from the request and never the mask. A future partial editor
+// would pass its own narrower mask instead. Keep this list in step with the
+// writable fields of SonarrInstance in
+// proto/metarr/v1/sonarr_interfaces.proto; queries.test.ts pins the exact
+// paths.
+const sonarrInstanceUpdateMask = {
+  paths: [
+    "instance_name",
+    "sonarr_url",
+    "sonarr_api_key",
+    "root_dir_map",
+    "storage",
+  ],
+};
+
+export function useUpdateSonarrInstance() {
+  return useSonarrCollectionWrite<
+    MessageInitShape<typeof SonarrInstanceSchema>
+  >((instance) =>
+    sonarrInterfaceClient.updateSonarrInstance({
+      sonarrInstance: instance,
+      updateMask: sonarrInstanceUpdateMask,
+    }),
   );
 }
 
 export function useDeleteSonarrInstance() {
-  return useConfigMutation<string, ConnectAcceptedResponse>(
-    (slug) => sonarrInterfaceClient.delete({ slug }),
-    [queryKeys.sonarr, queryKeys.config],
-  );
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (slug: string) =>
+      sonarrInterfaceClient.deleteSonarrInstance({ slug }),
+    onSuccess: (_result, slug) => {
+      patchSonarrListCache(queryClient, (current) =>
+        current.filter((entry) => entry.instanceSlug !== slug),
+      );
+    },
+  });
 }
 
 /*

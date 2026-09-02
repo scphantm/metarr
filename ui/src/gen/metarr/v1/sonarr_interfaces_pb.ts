@@ -4,20 +4,25 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { AcceptedResponseSchema } from "./common_pb";
-import { file_metarr_v1_common } from "./common_pb";
+import type { EmptySchema, FieldMask } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_empty, file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metarr/v1/sonarr_interfaces.proto.
  */
 export const file_metarr_v1_sonarr_interfaces: GenFile = /*@__PURE__*/
-  fileDesc("CiFtZXRhcnIvdjEvc29uYXJyX2ludGVyZmFjZXMucHJvdG8SCW1ldGFyci52MSLGAQoOU29uYXJySW5zdGFuY2USFQoNaW5zdGFuY2VfbmFtZRgBIAEoCRIVCg1pbnN0YW5jZV9zbHVnGAIgASgJEhIKCnNvbmFycl91cmwYAyABKAkSFgoOc29uYXJyX2FwaV9rZXkYBCABKAkSLwoMcm9vdF9kaXJfbWFwGAUgAygLMhkubWV0YXJyLnYxLlJvb3REaXJNYXBwaW5nEikKB3N0b3JhZ2UYBiABKAsyGC5tZXRhcnIudjEuU3RvcmFnZUNvbmZpZyI5Cg5Sb290RGlyTWFwcGluZxITCgtzb25hcnJfcGF0aBgBIAEoCRISCgpsb2NhbF9wYXRoGAIgASgJIj0KDVN0b3JhZ2VDb25maWcSDAoEbW9kZRgBIAEoCRILCgN0dGwYAiABKAkSEQoJbWF4X2NvdW50GAMgASgFIiMKIVNvbmFyckludGVyZmFjZVNlcnZpY2VMaXN0UmVxdWVzdCJSCiJTb25hcnJJbnRlcmZhY2VTZXJ2aWNlTGlzdFJlc3BvbnNlEiwKCWluc3RhbmNlcxgBIAMoCzIZLm1ldGFyci52MS5Tb25hcnJJbnN0YW5jZSIwCiBTb25hcnJJbnRlcmZhY2VTZXJ2aWNlR2V0UmVxdWVzdBIMCgRzbHVnGAEgASgJIlAKIVNvbmFyckludGVyZmFjZVNlcnZpY2VHZXRSZXNwb25zZRIrCghpbnN0YW5jZRgBIAEoCzIZLm1ldGFyci52MS5Tb25hcnJJbnN0YW5jZSJSCiNTb25hcnJJbnRlcmZhY2VTZXJ2aWNlVXBzZXJ0UmVxdWVzdBIrCghpbnN0YW5jZRgBIAEoCzIZLm1ldGFyci52MS5Tb25hcnJJbnN0YW5jZSIzCiNTb25hcnJJbnRlcmZhY2VTZXJ2aWNlRGVsZXRlUmVxdWVzdBIMCgRzbHVnGAEgASgJMo0DChZTb25hcnJJbnRlcmZhY2VTZXJ2aWNlEmMKBExpc3QSLC5tZXRhcnIudjEuU29uYXJySW50ZXJmYWNlU2VydmljZUxpc3RSZXF1ZXN0Gi0ubWV0YXJyLnYxLlNvbmFyckludGVyZmFjZVNlcnZpY2VMaXN0UmVzcG9uc2USYAoDR2V0EisubWV0YXJyLnYxLlNvbmFyckludGVyZmFjZVNlcnZpY2VHZXRSZXF1ZXN0GiwubWV0YXJyLnYxLlNvbmFyckludGVyZmFjZVNlcnZpY2VHZXRSZXNwb25zZRJVCgZVcHNlcnQSLi5tZXRhcnIudjEuU29uYXJySW50ZXJmYWNlU2VydmljZVVwc2VydFJlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZRJVCgZEZWxldGUSLi5tZXRhcnIudjEuU29uYXJySW50ZXJmYWNlU2VydmljZURlbGV0ZVJlcXVlc3QaGy5tZXRhcnIudjEuQWNjZXB0ZWRSZXNwb25zZUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_metarr_v1_common]);
+  fileDesc("CiFtZXRhcnIvdjEvc29uYXJyX2ludGVyZmFjZXMucHJvdG8SCW1ldGFyci52MSLGAQoOU29uYXJySW5zdGFuY2USFQoNaW5zdGFuY2VfbmFtZRgBIAEoCRIVCg1pbnN0YW5jZV9zbHVnGAIgASgJEhIKCnNvbmFycl91cmwYAyABKAkSFgoOc29uYXJyX2FwaV9rZXkYBCABKAkSLwoMcm9vdF9kaXJfbWFwGAUgAygLMhkubWV0YXJyLnYxLlJvb3REaXJNYXBwaW5nEikKB3N0b3JhZ2UYBiABKAsyGC5tZXRhcnIudjEuU3RvcmFnZUNvbmZpZyI5Cg5Sb290RGlyTWFwcGluZxITCgtzb25hcnJfcGF0aBgBIAEoCRISCgpsb2NhbF9wYXRoGAIgASgJIj0KDVN0b3JhZ2VDb25maWcSDAoEbW9kZRgBIAEoCRILCgN0dGwYAiABKAkSEQoJbWF4X2NvdW50GAMgASgFIm0KG0NyZWF0ZVNvbmFyckluc3RhbmNlUmVxdWVzdBIaChJzb25hcnJfaW5zdGFuY2VfaWQYASABKAkSMgoPc29uYXJyX2luc3RhbmNlGAIgASgLMhkubWV0YXJyLnYxLlNvbmFyckluc3RhbmNlIigKGEdldFNvbmFyckluc3RhbmNlUmVxdWVzdBIMCgRzbHVnGAEgASgJImUKGkxpc3RTb25hcnJJbnN0YW5jZXNSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJEg4KBmZpbHRlchgDIAEoCRIQCghvcmRlcl9ieRgEIAEoCSJrChtMaXN0U29uYXJySW5zdGFuY2VzUmVzcG9uc2USMwoQc29uYXJyX2luc3RhbmNlcxgBIAMoCzIZLm1ldGFyci52MS5Tb25hcnJJbnN0YW5jZRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkimQEKG1VwZGF0ZVNvbmFyckluc3RhbmNlUmVxdWVzdBIyCg9zb25hcnJfaW5zdGFuY2UYASABKAsyGS5tZXRhcnIudjEuU29uYXJySW5zdGFuY2USLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrEhUKDWFsbG93X21pc3NpbmcYAyABKAgiKwobRGVsZXRlU29uYXJySW5zdGFuY2VSZXF1ZXN0EgwKBHNsdWcYASABKAky4QMKFlNvbmFyckludGVyZmFjZVNlcnZpY2USWQoUQ3JlYXRlU29uYXJySW5zdGFuY2USJi5tZXRhcnIudjEuQ3JlYXRlU29uYXJySW5zdGFuY2VSZXF1ZXN0GhkubWV0YXJyLnYxLlNvbmFyckluc3RhbmNlElMKEUdldFNvbmFyckluc3RhbmNlEiMubWV0YXJyLnYxLkdldFNvbmFyckluc3RhbmNlUmVxdWVzdBoZLm1ldGFyci52MS5Tb25hcnJJbnN0YW5jZRJkChNMaXN0U29uYXJySW5zdGFuY2VzEiUubWV0YXJyLnYxLkxpc3RTb25hcnJJbnN0YW5jZXNSZXF1ZXN0GiYubWV0YXJyLnYxLkxpc3RTb25hcnJJbnN0YW5jZXNSZXNwb25zZRJZChRVcGRhdGVTb25hcnJJbnN0YW5jZRImLm1ldGFyci52MS5VcGRhdGVTb25hcnJJbnN0YW5jZVJlcXVlc3QaGS5tZXRhcnIudjEuU29uYXJySW5zdGFuY2USVgoURGVsZXRlU29uYXJySW5zdGFuY2USJi5tZXRhcnIudjEuRGVsZXRlU29uYXJySW5zdGFuY2VSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Qi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_google_protobuf_empty, file_google_protobuf_field_mask]);
 
 /**
  * SonarrInstance configures a single Sonarr instance to cache data from.
  * This message is the single definition of that config across the Go
  * server, the UI and the stored document.
+ *
+ * instance_slug is the operator-chosen identifier the collection is
+ * addressed by (docs/adr/0010): Get / Delete take it as slug, Create
+ * carries it in sonarr_instance_id, and it is unique across every
+ * interface type, not just Sonarr.
  *
  * @generated from message metarr.v1.SonarrInstance
  */
@@ -110,90 +115,148 @@ export const StorageConfigSchema: GenMessage<StorageConfig> = /*@__PURE__*/
   messageDesc(file_metarr_v1_sonarr_interfaces, 2);
 
 /**
- * @generated from message metarr.v1.SonarrInterfaceServiceListRequest
+ * CreateSonarrInstanceRequest carries the new instance's slug in
+ * sonarr_instance_id (AIP-133). A slug set in sonarr_instance must match it
+ * or be empty, else InvalidArgument. A slug already used by a Sonarr
+ * instance is AlreadyExists; one already used by a different interface type
+ * is FailedPrecondition (the cross-entry check, docs/adr/0010).
+ *
+ * @generated from message metarr.v1.CreateSonarrInstanceRequest
  */
-export type SonarrInterfaceServiceListRequest = Message<"metarr.v1.SonarrInterfaceServiceListRequest"> & {
+export type CreateSonarrInstanceRequest = Message<"metarr.v1.CreateSonarrInstanceRequest"> & {
+  /**
+   * @generated from field: string sonarr_instance_id = 1;
+   */
+  sonarrInstanceId: string;
+
+  /**
+   * @generated from field: metarr.v1.SonarrInstance sonarr_instance = 2;
+   */
+  sonarrInstance?: SonarrInstance | undefined;
 };
 
 /**
- * Describes the message metarr.v1.SonarrInterfaceServiceListRequest.
- * Use `create(SonarrInterfaceServiceListRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.CreateSonarrInstanceRequest.
+ * Use `create(CreateSonarrInstanceRequestSchema)` to create a new message.
  */
-export const SonarrInterfaceServiceListRequestSchema: GenMessage<SonarrInterfaceServiceListRequest> = /*@__PURE__*/
+export const CreateSonarrInstanceRequestSchema: GenMessage<CreateSonarrInstanceRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_sonarr_interfaces, 3);
 
 /**
- * @generated from message metarr.v1.SonarrInterfaceServiceListResponse
+ * @generated from message metarr.v1.GetSonarrInstanceRequest
  */
-export type SonarrInterfaceServiceListResponse = Message<"metarr.v1.SonarrInterfaceServiceListResponse"> & {
+export type GetSonarrInstanceRequest = Message<"metarr.v1.GetSonarrInstanceRequest"> & {
   /**
-   * @generated from field: repeated metarr.v1.SonarrInstance instances = 1;
+   * @generated from field: string slug = 1;
    */
-  instances: SonarrInstance[];
+  slug: string;
 };
 
 /**
- * Describes the message metarr.v1.SonarrInterfaceServiceListResponse.
- * Use `create(SonarrInterfaceServiceListResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.GetSonarrInstanceRequest.
+ * Use `create(GetSonarrInstanceRequestSchema)` to create a new message.
  */
-export const SonarrInterfaceServiceListResponseSchema: GenMessage<SonarrInterfaceServiceListResponse> = /*@__PURE__*/
+export const GetSonarrInstanceRequestSchema: GenMessage<GetSonarrInstanceRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_sonarr_interfaces, 4);
 
 /**
- * @generated from message metarr.v1.SonarrInterfaceServiceGetRequest
+ * ListSonarrInstancesRequest is the AIP-158 / 132 / 160 List contract: a
+ * page_size / page_token window, an order_by sort (instance_slug,
+ * instance_name), and a filter entry point. filter translation is deferred
+ * (docs/adr/0010) — any non-empty filter is Unimplemented.
+ *
+ * @generated from message metarr.v1.ListSonarrInstancesRequest
  */
-export type SonarrInterfaceServiceGetRequest = Message<"metarr.v1.SonarrInterfaceServiceGetRequest"> & {
+export type ListSonarrInstancesRequest = Message<"metarr.v1.ListSonarrInstancesRequest"> & {
   /**
-   * @generated from field: string slug = 1;
+   * @generated from field: int32 page_size = 1;
    */
-  slug: string;
+  pageSize: number;
+
+  /**
+   * @generated from field: string page_token = 2;
+   */
+  pageToken: string;
+
+  /**
+   * @generated from field: string filter = 3;
+   */
+  filter: string;
+
+  /**
+   * @generated from field: string order_by = 4;
+   */
+  orderBy: string;
 };
 
 /**
- * Describes the message metarr.v1.SonarrInterfaceServiceGetRequest.
- * Use `create(SonarrInterfaceServiceGetRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.ListSonarrInstancesRequest.
+ * Use `create(ListSonarrInstancesRequestSchema)` to create a new message.
  */
-export const SonarrInterfaceServiceGetRequestSchema: GenMessage<SonarrInterfaceServiceGetRequest> = /*@__PURE__*/
+export const ListSonarrInstancesRequestSchema: GenMessage<ListSonarrInstancesRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_sonarr_interfaces, 5);
 
 /**
- * @generated from message metarr.v1.SonarrInterfaceServiceGetResponse
+ * @generated from message metarr.v1.ListSonarrInstancesResponse
  */
-export type SonarrInterfaceServiceGetResponse = Message<"metarr.v1.SonarrInterfaceServiceGetResponse"> & {
+export type ListSonarrInstancesResponse = Message<"metarr.v1.ListSonarrInstancesResponse"> & {
   /**
-   * @generated from field: metarr.v1.SonarrInstance instance = 1;
+   * @generated from field: repeated metarr.v1.SonarrInstance sonarr_instances = 1;
    */
-  instance?: SonarrInstance | undefined;
+  sonarrInstances: SonarrInstance[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**
- * Describes the message metarr.v1.SonarrInterfaceServiceGetResponse.
- * Use `create(SonarrInterfaceServiceGetResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.ListSonarrInstancesResponse.
+ * Use `create(ListSonarrInstancesResponseSchema)` to create a new message.
  */
-export const SonarrInterfaceServiceGetResponseSchema: GenMessage<SonarrInterfaceServiceGetResponse> = /*@__PURE__*/
+export const ListSonarrInstancesResponseSchema: GenMessage<ListSonarrInstancesResponse> = /*@__PURE__*/
   messageDesc(file_metarr_v1_sonarr_interfaces, 6);
 
 /**
- * @generated from message metarr.v1.SonarrInterfaceServiceUpsertRequest
+ * UpdateSonarrInstanceRequest is an AIP-134 partial update: update_mask names
+ * the fields to change (dotted paths honoured, e.g. storage.ttl) and
+ * sonarr_instance carries their new values, matched to a stored instance by
+ * its instance_slug. An empty mask or a path naming no field is
+ * InvalidArgument. allow_missing:true makes an Update against an unknown slug
+ * create — the mask is ignored on that branch and the whole resource is
+ * validated as a Create; allow_missing:false is NotFound.
+ *
+ * @generated from message metarr.v1.UpdateSonarrInstanceRequest
  */
-export type SonarrInterfaceServiceUpsertRequest = Message<"metarr.v1.SonarrInterfaceServiceUpsertRequest"> & {
+export type UpdateSonarrInstanceRequest = Message<"metarr.v1.UpdateSonarrInstanceRequest"> & {
   /**
-   * @generated from field: metarr.v1.SonarrInstance instance = 1;
+   * @generated from field: metarr.v1.SonarrInstance sonarr_instance = 1;
    */
-  instance?: SonarrInstance | undefined;
+  sonarrInstance?: SonarrInstance | undefined;
+
+  /**
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask | undefined;
+
+  /**
+   * @generated from field: bool allow_missing = 3;
+   */
+  allowMissing: boolean;
 };
 
 /**
- * Describes the message metarr.v1.SonarrInterfaceServiceUpsertRequest.
- * Use `create(SonarrInterfaceServiceUpsertRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.UpdateSonarrInstanceRequest.
+ * Use `create(UpdateSonarrInstanceRequestSchema)` to create a new message.
  */
-export const SonarrInterfaceServiceUpsertRequestSchema: GenMessage<SonarrInterfaceServiceUpsertRequest> = /*@__PURE__*/
+export const UpdateSonarrInstanceRequestSchema: GenMessage<UpdateSonarrInstanceRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_sonarr_interfaces, 7);
 
 /**
- * @generated from message metarr.v1.SonarrInterfaceServiceDeleteRequest
+ * @generated from message metarr.v1.DeleteSonarrInstanceRequest
  */
-export type SonarrInterfaceServiceDeleteRequest = Message<"metarr.v1.SonarrInterfaceServiceDeleteRequest"> & {
+export type DeleteSonarrInstanceRequest = Message<"metarr.v1.DeleteSonarrInstanceRequest"> & {
   /**
    * @generated from field: string slug = 1;
    */
@@ -201,47 +264,66 @@ export type SonarrInterfaceServiceDeleteRequest = Message<"metarr.v1.SonarrInter
 };
 
 /**
- * Describes the message metarr.v1.SonarrInterfaceServiceDeleteRequest.
- * Use `create(SonarrInterfaceServiceDeleteRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.DeleteSonarrInstanceRequest.
+ * Use `create(DeleteSonarrInstanceRequestSchema)` to create a new message.
  */
-export const SonarrInterfaceServiceDeleteRequestSchema: GenMessage<SonarrInterfaceServiceDeleteRequest> = /*@__PURE__*/
+export const DeleteSonarrInstanceRequestSchema: GenMessage<DeleteSonarrInstanceRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_sonarr_interfaces, 8);
 
 /**
+ * SonarrInterfaceService is the first config collection on AIP standard
+ * methods (docs/adr/0010): slug-addressed, FieldMask partial update,
+ * paginated List, synchronous writes that return the stored resource
+ * (docs/adr/0002). Every write goes through AppConfigStore.MutateSync — see
+ * internal/server/appconfigstore.
+ *
  * @generated from service metarr.v1.SonarrInterfaceService
  */
 export const SonarrInterfaceService: GenService<{
   /**
-   * @generated from rpc metarr.v1.SonarrInterfaceService.List
+   * CreateSonarrInstance appends a new instance and returns it as stored.
+   *
+   * @generated from rpc metarr.v1.SonarrInterfaceService.CreateSonarrInstance
    */
-  list: {
+  createSonarrInstance: {
     methodKind: "unary";
-    input: typeof SonarrInterfaceServiceListRequestSchema;
-    output: typeof SonarrInterfaceServiceListResponseSchema;
+    input: typeof CreateSonarrInstanceRequestSchema;
+    output: typeof SonarrInstanceSchema;
   },
   /**
-   * @generated from rpc metarr.v1.SonarrInterfaceService.Get
+   * @generated from rpc metarr.v1.SonarrInterfaceService.GetSonarrInstance
    */
-  get: {
+  getSonarrInstance: {
     methodKind: "unary";
-    input: typeof SonarrInterfaceServiceGetRequestSchema;
-    output: typeof SonarrInterfaceServiceGetResponseSchema;
+    input: typeof GetSonarrInstanceRequestSchema;
+    output: typeof SonarrInstanceSchema;
   },
   /**
-   * @generated from rpc metarr.v1.SonarrInterfaceService.Upsert
+   * @generated from rpc metarr.v1.SonarrInterfaceService.ListSonarrInstances
    */
-  upsert: {
+  listSonarrInstances: {
     methodKind: "unary";
-    input: typeof SonarrInterfaceServiceUpsertRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    input: typeof ListSonarrInstancesRequestSchema;
+    output: typeof ListSonarrInstancesResponseSchema;
   },
   /**
-   * @generated from rpc metarr.v1.SonarrInterfaceService.Delete
+   * UpdateSonarrInstance returns the stored instance after the synchronous
+   * write has landed (AIP-134).
+   *
+   * @generated from rpc metarr.v1.SonarrInterfaceService.UpdateSonarrInstance
    */
-  delete: {
+  updateSonarrInstance: {
     methodKind: "unary";
-    input: typeof SonarrInterfaceServiceDeleteRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    input: typeof UpdateSonarrInstanceRequestSchema;
+    output: typeof SonarrInstanceSchema;
+  },
+  /**
+   * @generated from rpc metarr.v1.SonarrInterfaceService.DeleteSonarrInstance
+   */
+  deleteSonarrInstance: {
+    methodKind: "unary";
+    input: typeof DeleteSonarrInstanceRequestSchema;
+    output: typeof EmptySchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_metarr_v1_sonarr_interfaces, 0);
