@@ -24,9 +24,9 @@ import (
 // Per-(topic, name) dispatch and the unknown-name default live here, once,
 // instead of in every listener.
 //
-// This is the durable-stream half only. The Pub/Sub half (HandleRequest /
-// HandleNotify / Notify / Request) still runs through PubSubRouter until a
-// later slice folds it in.
+// The Pub/Sub half (HandleNotify / HandleRequest / Notify / Request) lives in
+// bus_pubsub.go and holds cfg.Redis directly — no transport port. Run drives
+// both halves under one call; Ready waits for both.
 type Bus struct {
 	cfg Config
 	now func() time.Time
@@ -38,7 +38,9 @@ type Bus struct {
 	publisher StreamPublisher
 
 	mu            sync.Mutex
-	registrations map[string]streamRegistration // keyed by topic.Name
+	registrations map[string]streamRegistration  // keyed by topic.Name
+	notifyRegs    []notifyRegistration           // KindNotify; many per topic
+	requestRegs   map[string]requestRegistration // KindRequestReply; keyed by topic.Name, one per topic
 	started       bool
 	router        *message.Router
 
@@ -62,12 +64,13 @@ type Config struct {
 	// RedisStreamTransport. Tests: ChannelStreamTransport.
 	Streams StreamTransport
 
-	// Policy is the late-bound tuning provider — never nil. Read once in Run
-	// for the retry stack, once per publish for the MAXLEN cap, and once per
-	// iteration by the retention sweep. Before the event_bus config section
-	// is bootstrapped it returns DefaultBusPolicy(); after, the server's
-	// closure returns live values. This is what collapses the server's
-	// build-twice startup.
+	// Policy is the late-bound tuning provider — never nil. Read once per
+	// publish for the MAXLEN cap, and once in Run for the retry stack and for
+	// the retention sweep's window + interval (the sweeper is built from that
+	// one snapshot, so a live retention change is only picked up on the next
+	// Run). Before the event_bus config section is bootstrapped it returns
+	// DefaultBusPolicy(); after, the server's closure returns live values.
+	// This is what collapses the server's build-twice startup.
 	Policy func() BusPolicy
 
 	Logger *slog.Logger
@@ -133,6 +136,7 @@ func New(cfg Config) (*Bus, error) {
 		now:           now,
 		publisher:     publisher,
 		registrations: map[string]streamRegistration{},
+		requestRegs:   map[string]requestRegistration{},
 		ready:         make(chan struct{}),
 	}, nil
 }
@@ -277,6 +281,18 @@ func (b *Bus) Run(ctx context.Context) (err error) {
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	// The Pub/Sub half: one subscription per notify handler and per
+	// request/reply responder, every SUBSCRIBE acknowledged before we return.
+	// It runs before the stream router starts, so Ready — gated below on the
+	// router reporting itself running — cannot close until these are live too.
+	// A subscribe failure here is a setup failure, returned like a stream
+	// subscriber failure so the Bus stays re-runnable.
+	var pubsub sync.WaitGroup
+	subs, err := b.startPubSub(runCtx, &pubsub)
+	if err != nil {
+		return err
+	}
+
 	var sweep sync.WaitGroup
 	if b.cfg.RetentionSweep {
 		sweeper := NewRetentionSweeper(b.cfg.Redis, policy.Retention, policy.SweepInterval, b.cfg.Logger)
@@ -306,6 +322,14 @@ func (b *Bus) Run(ctx context.Context) (err error) {
 
 	runErr := router.Run(runCtx)
 	cancel()
+
+	// runCtx is cancelled now (router.Run only returns after it is, or on a
+	// setup error we then cancel). Close every Pub/Sub subscription and wait
+	// for its receive loop to drain, mirroring sweep.Wait().
+	for _, sub := range subs {
+		_ = sub.Close()
+	}
+	pubsub.Wait()
 	sweep.Wait()
 	return runErr
 }
@@ -346,14 +370,17 @@ func (b *Bus) consumerName() string {
 	return b.cfg.Source
 }
 
-// Ready is closed once every stream handler is live — or once Run returns, so
-// a waiter is never left blocked by an early shutdown. A warm-up publisher
-// waits on it. (Publish itself needs no warm-up: the publisher is live from
-// New.)
+// Ready is closed once every stream handler is live AND every Pub/Sub
+// SUBSCRIBE is acknowledged — or once Run returns, so a waiter is never left
+// blocked by an early shutdown. The Pub/Sub subscriptions are acknowledged
+// synchronously in Run before the router starts, so gating this on the router
+// reporting itself running covers both halves. A warm-up publisher waits on
+// it. (Publish itself needs no warm-up: the publisher is live from New.)
 func (b *Bus) Ready() <-chan struct{} { return b.ready }
 
-// Close tears down the router and the stream publisher. It NEVER closes
-// cfg.Redis.
+// Close tears down the router and the stream publisher. The Pub/Sub receive
+// loops and their subscriptions are bound to Run's context and stop when it is
+// cancelled. It NEVER closes cfg.Redis.
 func (b *Bus) Close() error {
 	b.mu.Lock()
 	router, publisher := b.router, b.publisher
