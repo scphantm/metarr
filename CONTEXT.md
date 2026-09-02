@@ -16,16 +16,16 @@ _Avoid_: settings, app settings, system config
 
 **Config store**:
 The one module through which every change to the application config passes. It
-reads the current document, applies the change, and announces it. Its own read
-capability exists only to serve startup bootstrap, before live config exists —
-general server code never calls it.
+reads the current document, applies one scoped change, persists it to MongoDB,
+and propagates the result to the rest of the process — all under one lock,
+before the call returns. Its own read capability exists only to serve startup
+bootstrap, before live config exists — general server code never calls it.
 _Avoid_: config service, config writer, config repo
 
 **Live config**:
 The in-process copy of the application config every server-side read (outside
-bootstrap) uses. Kept current by the config store's mutation listener, which
-writes it only after a mutation is durably persisted — never read directly
-from storage.
+bootstrap) uses. The config store swaps it immediately after each write
+persists — it is never read directly from storage at runtime.
 _Avoid_: cached config, current config, config snapshot
 
 **Config mutation**:
@@ -36,9 +36,10 @@ _Avoid_: config update, config write
 
 **Bootstrap**:
 The one-time seeding of the application config at server startup, before the
-config store's mutation path is live to fire or consume events. Applied
-synchronously, straight to storage — it is not a mutation and never fires
-`system_config_update`, because nothing is running yet to consume it.
+rest of the process is up to receive a propagated change. Like every config
+write it goes straight to storage under the store lock, but it is not a
+mutation: it writes only where a value is missing, and it does not propagate,
+because nothing is running yet to notify.
 _Avoid_: config mutation, seed data, startup config
 
 **Projection**:
@@ -184,34 +185,12 @@ _Avoid_: token, credential
 One addressable entry in the application config — an agent, a Sonarr instance, a
 scan directory, a sidecar type, an API key entry. Each is created, read, and
 changed only through its own AIP standard methods (`Create` / `Get` / `List` /
-`Update` / `Delete`), never by writing the whole document. A write returns an
-Operation, not the resource. Which naming idiom addresses it — slug or minted
-id — is fixed by the Identity decision and shapes its API
+`Update` / `Delete`), never by writing the whole document. A write persists
+synchronously and returns the resource. It is addressed by the slug or minted
+id it already carries — no synthetic resource-name string. Which of those two
+idioms applies is fixed by the Identity decision and shapes its API
 (`docs/adr/0010-crud-api-shape-follows-aip-standard-methods.md`).
 _Avoid_: config entry, config item, section row
-
-**Resource name**:
-The string that addresses one config resource in the API: `agents/{slug}`,
-`sonarrInstances/{slug}`, `scanDirectories/{slug}`, `sidecarTypes/{id}`,
-`accessLevels/{level}/apiKeys/{id}`. Derived from the resource's slug or minted
-id — populated on read, cleared before the document is stored, so it is never a
-second source of truth for identity.
-_Avoid_: path, id, key, url
-
-**Operation**:
-The `google.longrunning.Operation` a config write returns. Its name is
-`operations/{correlation_id}`, reusing the correlation id the write already
-carries. It starts `done:false`; the `system_config_update` listener marks it
-done once persisted, with the resource in `response` or a failure in `error`.
-The UI polls `OperationsService.GetOperation` instead of re-reading the resource.
-_Avoid_: job, task, future, promise
-
-**etag**:
-The AIP-154 concurrency token on a config resource or scalar section — a hash of
-that section's stored bytes, populated on read, never itself stored. `Update`
-and `Delete` echo back the etag last read; a mismatch under the store lock is
-`ABORTED`. An empty etag skips the check (a deliberate blind write).
-_Avoid_: version, revision, generation, checksum
 
 ### Models
 
