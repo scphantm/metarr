@@ -53,6 +53,7 @@ var allowed = map[string]string{
 	"internal/shared/config/agent.go::AgentConfig":                "the agent's tiny local file (Redis connection + slug) — unrelated to metarr.v1.AgentConfig, the server-side agent record",
 	"internal/shared/scanmodel/sidecar.go::SidecarTypeDefinition": "the compiled, typed form (closed category vocabulary + compiled regexps) derived from the stored metarr.v1.SidecarTypeDefinition, not a wire or storage shape",
 	"internal/server/mongostore/workflow_repo.go::Workflow":       "the versioned storage envelope; the graph it holds rides as the generated metarr.v1.WorkflowGraph, converted in the workflow service",
+	"internal/shared/eventbus/bus.go::Config":                     "the Bus's in-process dependency bundle (Redis client, Source, StreamTransport, Policy, Logger) built once at startup — unrelated to metarr.v1.Config, the stored application config",
 }
 
 func repoRoot(t *testing.T) string {
