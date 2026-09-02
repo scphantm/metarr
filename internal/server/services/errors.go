@@ -14,6 +14,7 @@ import (
 	"connectrpc.com/connect"
 
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
+	"Metarr/internal/shared/aip"
 )
 
 // connectError converts an HTTP status code (the vocabulary every existing
@@ -38,8 +39,34 @@ func mutateConfigError(logger *slog.Logger, correlationID string, err error) (*c
 	if errors.As(err, &connectErr) {
 		return nil, err
 	}
+	if mapped := aipConnectError(err); mapped != nil {
+		return nil, mapped
+	}
 	logger.Error("failed to queue config update", "correlation_id", correlationID, "error", err)
 	return nil, connectError(http.StatusInternalServerError, errors.New("failed to queue config update"))
+}
+
+// aipConnectError maps the transport-agnostic sentinels the aip package
+// returns — an empty or malformed update_mask, a resource name that does not
+// match its collection's pattern — to the Connect code the config API
+// answers with (always InvalidArgument today). It returns nil for anything
+// that is not an aip sentinel, so a caller can fall through to its existing
+// handling. Read-path methods (Get / List) that call an aip helper directly
+// wrap their error with this; write-path methods get the same mapping for
+// free through mutateConfigError.
+//
+// AlreadyExists is produced the same way NotFound always has been — a
+// mutation closure returning connectError(http.StatusConflict, …), which
+// mutateConfigError passes straight through — so it needs no entry here.
+func aipConnectError(err error) error {
+	switch {
+	case errors.Is(err, aip.ErrEmptyMask),
+		errors.Is(err, aip.ErrUnknownPath),
+		errors.Is(err, aip.ErrMalformedName):
+		return connect.NewError(connect.CodeInvalidArgument, err)
+	default:
+		return nil
+	}
 }
 
 func codeForStatus(status int) connect.Code {

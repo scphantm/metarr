@@ -71,6 +71,13 @@ message SidecarTypeDefinition {
   int32 order = 4;
   repeated string patterns = 5;
   repeated string extensions = 6;
+  // name is the AIP resource name of this sidecar type
+  // (`sidecarTypes/{id}`): a derived, read-only addressing field that is
+  // not part of the stored document and is not delivered to agents.
+  // Nothing populates or reads it yet — the config CRUD reshape (#77) adds
+  // the server-side backfill on read and the mutation-closure clearing on
+  // write.
+  string name = 7;
 }
 
 // MappedDirectory is one scan directory as one agent sees it. The server's own
