@@ -146,42 +146,50 @@ function mutationHarness() {
 }
 
 describe("useUpdateEventBusConfig", () => {
-  it("calls updateEventBusConfig with a well-formed update_mask for the changed field", async () => {
+  it("calls updateEventBusConfig with a well-formed update_mask and the read etag", async () => {
     updateEventBusConfig
       .mockReset()
-      .mockResolvedValue({ status: "accepted", correlationId: "c1" });
+      .mockResolvedValue({ name: "operations/c1", done: false });
     const { wrapper } = mutationHarness();
 
     const { result } = renderHook(() => useUpdateEventBusConfig(), { wrapper });
-    result.current.mutate({ retentionHours: 96 });
+    result.current.mutate({ patch: { retentionHours: 96 }, etag: "abc123" });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(updateEventBusConfig).toHaveBeenCalledWith({
       config: { retentionHours: 96 },
       updateMask: { paths: ["retention_hours"] },
+      etag: "abc123",
     });
   });
 
   it("maps every changed camelCase key to its snake_case mask path", async () => {
-    updateEventBusConfig.mockReset().mockResolvedValue({ status: "accepted" });
+    updateEventBusConfig
+      .mockReset()
+      .mockResolvedValue({ name: "operations/c2", done: false });
     const { wrapper } = mutationHarness();
 
     const { result } = renderHook(() => useUpdateEventBusConfig(), { wrapper });
-    result.current.mutate({ retryBackoffBaseMs: 250, retryBackoffMaxMs: 5000 });
+    result.current.mutate({
+      patch: { retryBackoffBaseMs: 250, retryBackoffMaxMs: 5000 },
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(updateEventBusConfig).toHaveBeenCalledWith({
       config: { retryBackoffBaseMs: 250, retryBackoffMaxMs: 5000 },
       updateMask: { paths: ["retry_backoff_base_ms", "retry_backoff_max_ms"] },
+      etag: undefined,
     });
   });
 
   it("invalidates the event-bus and whole-config reads on success", async () => {
-    updateEventBusConfig.mockReset().mockResolvedValue({ status: "accepted" });
+    updateEventBusConfig
+      .mockReset()
+      .mockResolvedValue({ name: "operations/c3", done: false });
     const { invalidate, wrapper } = mutationHarness();
 
     const { result } = renderHook(() => useUpdateEventBusConfig(), { wrapper });
-    result.current.mutate({ maxLen: 20000 });
+    result.current.mutate({ patch: { maxLen: 20000 } });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.eventBus });
@@ -190,19 +198,20 @@ describe("useUpdateEventBusConfig", () => {
 });
 
 describe("useUpdateLoggingConfig", () => {
-  it("calls updateLoggingConfig with a server_level-only update_mask", async () => {
+  it("calls updateLoggingConfig with a server_level-only update_mask and the etag", async () => {
     updateLoggingConfig
       .mockReset()
-      .mockResolvedValue({ status: "accepted", correlationId: "c1" });
+      .mockResolvedValue({ name: "operations/c1", done: false });
     const { wrapper } = mutationHarness();
 
     const { result } = renderHook(() => useUpdateLoggingConfig(), { wrapper });
-    result.current.mutate({ serverLevel: "debug" });
+    result.current.mutate({ patch: { serverLevel: "debug" }, etag: "log-etag" });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(updateLoggingConfig).toHaveBeenCalledWith({
       config: { serverLevel: "debug" },
       updateMask: { paths: ["server_level"] },
+      etag: "log-etag",
     });
   });
 });

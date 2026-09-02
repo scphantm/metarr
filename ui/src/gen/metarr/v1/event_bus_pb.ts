@@ -6,15 +6,15 @@ import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegen
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { FieldMask } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
-import type { AcceptedResponseSchema } from "./common_pb";
-import { file_metarr_v1_common } from "./common_pb";
+import type { OperationSchema } from "./operations_pb";
+import { file_metarr_v1_operations } from "./operations_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metarr/v1/event_bus.proto.
  */
 export const file_metarr_v1_event_bus: GenFile = /*@__PURE__*/
-  fileDesc("ChltZXRhcnIvdjEvZXZlbnRfYnVzLnByb3RvEgltZXRhcnIudjEitAEKDkV2ZW50QnVzQ29uZmlnEg8KB21heF9sZW4YASABKAUSFwoPcmV0ZW50aW9uX2hvdXJzGAMgASgFEhYKDnJldHJ5X2F0dGVtcHRzGAQgASgFEh0KFXJldHJ5X2JhY2tvZmZfYmFzZV9tcxgFIAEoBRIcChRyZXRyeV9iYWNrb2ZmX21heF9tcxgGIAEoBUoECAIQA1IMbWF4X2xlbl9oaWdoUg9tYXhfbGVuX2RlZmF1bHQiGgoYR2V0RXZlbnRCdXNDb25maWdSZXF1ZXN0IkYKGUdldEV2ZW50QnVzQ29uZmlnUmVzcG9uc2USKQoGY29uZmlnGAEgASgLMhkubWV0YXJyLnYxLkV2ZW50QnVzQ29uZmlnInkKG1VwZGF0ZUV2ZW50QnVzQ29uZmlnUmVxdWVzdBIpCgZjb25maWcYASABKAsyGS5tZXRhcnIudjEuRXZlbnRCdXNDb25maWcSLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrMs4BCg9FdmVudEJ1c1NlcnZpY2USXgoRR2V0RXZlbnRCdXNDb25maWcSIy5tZXRhcnIudjEuR2V0RXZlbnRCdXNDb25maWdSZXF1ZXN0GiQubWV0YXJyLnYxLkdldEV2ZW50QnVzQ29uZmlnUmVzcG9uc2USWwoUVXBkYXRlRXZlbnRCdXNDb25maWcSJi5tZXRhcnIudjEuVXBkYXRlRXZlbnRCdXNDb25maWdSZXF1ZXN0GhsubWV0YXJyLnYxLkFjY2VwdGVkUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_google_protobuf_field_mask, file_metarr_v1_common]);
+  fileDesc("ChltZXRhcnIvdjEvZXZlbnRfYnVzLnByb3RvEgltZXRhcnIudjEiwgEKDkV2ZW50QnVzQ29uZmlnEg8KB21heF9sZW4YASABKAUSFwoPcmV0ZW50aW9uX2hvdXJzGAMgASgFEhYKDnJldHJ5X2F0dGVtcHRzGAQgASgFEh0KFXJldHJ5X2JhY2tvZmZfYmFzZV9tcxgFIAEoBRIcChRyZXRyeV9iYWNrb2ZmX21heF9tcxgGIAEoBRIMCgRldGFnGAcgASgJSgQIAhADUgxtYXhfbGVuX2hpZ2hSD21heF9sZW5fZGVmYXVsdCIaChhHZXRFdmVudEJ1c0NvbmZpZ1JlcXVlc3QiRgoZR2V0RXZlbnRCdXNDb25maWdSZXNwb25zZRIpCgZjb25maWcYASABKAsyGS5tZXRhcnIudjEuRXZlbnRCdXNDb25maWcihwEKG1VwZGF0ZUV2ZW50QnVzQ29uZmlnUmVxdWVzdBIpCgZjb25maWcYASABKAsyGS5tZXRhcnIudjEuRXZlbnRCdXNDb25maWcSLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrEgwKBGV0YWcYAyABKAkyxwEKD0V2ZW50QnVzU2VydmljZRJeChFHZXRFdmVudEJ1c0NvbmZpZxIjLm1ldGFyci52MS5HZXRFdmVudEJ1c0NvbmZpZ1JlcXVlc3QaJC5tZXRhcnIudjEuR2V0RXZlbnRCdXNDb25maWdSZXNwb25zZRJUChRVcGRhdGVFdmVudEJ1c0NvbmZpZxImLm1ldGFyci52MS5VcGRhdGVFdmVudEJ1c0NvbmZpZ1JlcXVlc3QaFC5tZXRhcnIudjEuT3BlcmF0aW9uQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_google_protobuf_field_mask, file_metarr_v1_operations]);
 
 /**
  * EventBusConfig tunes the Redis event bus without a rebuild (docs/adr/0006):
@@ -65,6 +65,15 @@ export type EventBusConfig = Message<"metarr.v1.EventBusConfig"> & {
    * @generated from field: int32 retry_backoff_max_ms = 6;
    */
   retryBackoffMaxMs: number;
+
+  /**
+   * etag is the AIP-154 concurrency token: a hash of the stored section,
+   * OUTPUT_ONLY (populated on read, ignored on write, never stored). Echo it
+   * back on UpdateEventBusConfig; a mismatch is ABORTED. See docs/adr/0010.
+   *
+   * @generated from field: string etag = 7;
+   */
+  etag: string;
 };
 
 /**
@@ -108,9 +117,11 @@ export const GetEventBusConfigResponseSchema: GenMessage<GetEventBusConfigRespon
  * UpdateEventBusConfigRequest is an AIP-134 partial update: update_mask names
  * the fields to change and config carries their new values. A missing config,
  * an empty mask, or a path naming no EventBusConfig field is rejected with
- * InvalidArgument (docs/adr/0010). The write still goes through the config
- * store as a scoped mutation — the masked fields are merged onto cfg.EventBus
- * — never a whole-document write.
+ * InvalidArgument (docs/adr/0010). etag, when set, must match the stored
+ * section or the write is ABORTED (AIP-154); an empty etag is a deliberate
+ * blind write. The write goes through the config store as a scoped mutation —
+ * the masked fields are merged onto cfg.EventBus — never a whole-document
+ * write — and returns an Operation (docs/adr/0002).
  *
  * @generated from message metarr.v1.UpdateEventBusConfigRequest
  */
@@ -124,6 +135,11 @@ export type UpdateEventBusConfigRequest = Message<"metarr.v1.UpdateEventBusConfi
    * @generated from field: google.protobuf.FieldMask update_mask = 2;
    */
   updateMask?: FieldMask | undefined;
+
+  /**
+   * @generated from field: string etag = 3;
+   */
+  etag: string;
 };
 
 /**
@@ -154,7 +170,7 @@ export const EventBusService: GenService<{
   updateEventBusConfig: {
     methodKind: "unary";
     input: typeof UpdateEventBusConfigRequestSchema;
-    output: typeof AcceptedResponseSchema;
+    output: typeof OperationSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_metarr_v1_event_bus, 0);

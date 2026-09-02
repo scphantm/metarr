@@ -251,11 +251,14 @@ lossless transforms — they are not a hand-maintained mirror.
   come from the `buf.build/googleapis/googleapis` dependency already added for
   `google/api/field_behavior.proto`. `google/protobuf/field_mask.proto` is a
   well-known type — imported, no dep.
-- **The UI polls `GetOperation`.** Every config mutation hook changes from
-  "fire, then re-read the resource until it matches" to "fire, then poll the
-  returned operation until `done`, then surface `error` or invalidate the
-  reads". Every resource read surfaces `etag`; every `Update` / `Delete` sends
-  the last-read etag back.
+- **The UI gains `GetOperation` and etag round-tripping.** Every resource read
+  surfaces `etag`; every `Update` / `Delete` sends the last-read etag back
+  (outside the field mask). The queued→confirmed indicator (`useSaveState`)
+  keeps its read-poll — re-reading the resource until it reflects the write —
+  which observes the same eventual consistency; it moves to polling the
+  returned operation to `done` (so a late persist failure surfaces as
+  `operation.error` rather than a poll timeout) once every config write returns
+  an operation and the shared hook can be generalised.
 - `SidecarTypeDefinition` gains a `string name` field in the frozen
   `metarr.bus.v1` module. A field addition is wire-compatible and passes the
   FILE-level `buf breaking` gate; the message already does double duty as a

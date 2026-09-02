@@ -42,23 +42,27 @@ func (s *LoggingServer) GetLoggingConfig(
 	ctx context.Context,
 	req *connect.Request[metarrv1.GetLoggingConfigRequest],
 ) (*connect.Response[metarrv1.GetLoggingConfigResponse], error) {
-	appConfig := appconfig.Get()
+	section := appconfig.Get().Logging
+	if section == nil {
+		section = &metarrv1.LoggingConfig{}
+	}
 	return connect.NewResponse(&metarrv1.GetLoggingConfigResponse{
-		Config: cloneMsg(appConfig.Logging),
+		Config: withETag(section),
 	}), nil
 }
 
 // UpdateLoggingConfig is an AIP-134 partial update: update_mask names the
 // LoggingConfig fields to change, req.Config carries their new values, and the
 // masked fields are merged onto the stored section under the config store's
-// lock. An empty mask or an unknown path returns InvalidArgument (mapped from
-// the aip sentinels by mutateConfigError); the merged server_level is then
-// validated so a bad level — or one blanked by a mask that names the field
-// with no value — is rejected.
+// lock. req.Etag, when set, must match the stored section or the write is
+// ABORTED (AIP-154). An empty mask or an unknown path returns InvalidArgument;
+// the merged server_level is then validated so a bad level — or one blanked by
+// a mask that names the field with no value — is rejected. The write returns
+// an Operation the caller polls (docs/adr/0002).
 func (s *LoggingServer) UpdateLoggingConfig(
 	ctx context.Context,
 	req *connect.Request[metarrv1.UpdateLoggingConfigRequest],
-) (*connect.Response[metarrv1.AcceptedResponse], error) {
+) (*connect.Response[metarrv1.Operation], error) {
 	correlationID := correlation.FromContext(ctx)
 
 	patch := req.Msg.GetConfig()
@@ -71,9 +75,14 @@ func (s *LoggingServer) UpdateLoggingConfig(
 		if merged == nil {
 			merged = &metarrv1.LoggingConfig{}
 		}
+		clearETagField(merged)
+		if err := checkETag(merged, req.Msg.GetEtag()); err != nil {
+			return err
+		}
 		if err := applyUpdateMask(merged, patch, req.Msg.GetUpdateMask()); err != nil {
 			return err
 		}
+		clearETagField(merged)
 		if err := handlers.ValidateLogLevel(merged.ServerLevel); err != nil {
 			return connectError(http.StatusBadRequest, err)
 		}
@@ -81,10 +90,10 @@ func (s *LoggingServer) UpdateLoggingConfig(
 		return nil
 	})
 	if err != nil {
-		return mutateConfigError(s.Logger, correlationID, err)
+		return nil, mutateConfigErr(s.Logger, correlationID, err)
 	}
 
-	return connect.NewResponse(acceptedResponse(correlationID)), nil
+	return connect.NewResponse(beginConfigOperation(ctx, s.Operations, s.Logger, correlationID)), nil
 }
 
 func (s *LoggingServer) GetTail(

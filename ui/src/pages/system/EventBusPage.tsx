@@ -103,8 +103,10 @@ function NumberField({
 function EventBusFields({ config }: { config: EventBusConfig }) {
   const update = useUpdateEventBusConfig();
   // Send only the one field the operator edited — the hook derives the
-  // update_mask from the patch's keys.
-  const save: SaveField = (patch) => update.mutateAsync(patch);
+  // update_mask from the patch's keys — plus the etag this render read, so a
+  // write computed from a stale copy is rejected (AIP-154).
+  const save: SaveField = (patch) =>
+    update.mutateAsync({ patch, etag: config.etag });
 
   return (
     <>
