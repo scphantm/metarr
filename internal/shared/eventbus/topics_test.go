@@ -272,8 +272,7 @@ func TestAgentNameBuildersAreStable(t *testing.T) {
 	}
 }
 
-// AgentPubSubChannels enumerates the per-agent Pub/Sub family the
-// expected-topology derivation reads for each registered agent: exactly the
+// AgentPubSubChannels is the non-stream slice of AgentTopics: exactly the
 // config-changed notification and the request channel, in that order.
 func TestAgentPubSubChannels(t *testing.T) {
 	got := AgentPubSubChannels("nas-01")
@@ -284,6 +283,51 @@ func TestAgentPubSubChannels(t *testing.T) {
 	for i := range want {
 		if got[i] != want[i] {
 			t.Fatalf("AgentPubSubChannels = %v, want %v", got, want)
+		}
+	}
+}
+
+// AgentTopics is the per-agent counterpart to Topics() the expected-topology
+// derivation expands for each registered agent: the command stream, the
+// config-changed notify channel, and the request/reply channel, each tagged
+// by Kind so a caller can split them the same way it splits Topics().
+func TestAgentTopics(t *testing.T) {
+	got := AgentTopics("nas-01")
+	want := []Topic{
+		AgentCommandTopic("nas-01"),
+		AgentConfigChangedTopic("nas-01"),
+		AgentRequestTopic("nas-01"),
+	}
+	if len(got) != len(want) {
+		t.Fatalf("AgentTopics returned %d topics, want %d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i].Name != want[i].Name || got[i].Kind != want[i].Kind {
+			t.Errorf("AgentTopics[%d] = {%s, %s}, want {%s, %s}",
+				i, got[i].Name, got[i].Kind, want[i].Name, want[i].Kind)
+		}
+	}
+
+	// Exactly one KindStream row (the command stream); the rest are channels,
+	// and the non-stream names match AgentPubSubChannels.
+	var streams, channels []string
+	for _, topic := range got {
+		if topic.Kind == KindStream {
+			streams = append(streams, topic.Name)
+			continue
+		}
+		channels = append(channels, topic.Name)
+	}
+	if len(streams) != 1 || streams[0] != AgentCommandStream("nas-01") {
+		t.Errorf("AgentTopics streams = %v, want [%s]", streams, AgentCommandStream("nas-01"))
+	}
+	psc := AgentPubSubChannels("nas-01")
+	if len(channels) != len(psc) {
+		t.Fatalf("AgentTopics channels = %v, want %v", channels, psc)
+	}
+	for i := range psc {
+		if channels[i] != psc[i] {
+			t.Errorf("AgentTopics channels = %v, want %v", channels, psc)
 		}
 	}
 }

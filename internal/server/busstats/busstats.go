@@ -256,7 +256,7 @@ func (s *Sampler) pass(ctx context.Context) {
 	channels := s.collectChannels(ctx)
 
 	// The expected-vs-actual layer: derive what should be attached from the
-	// stream-topic list and the registered agents, union in the rows Redis
+	// unified topic table and the registered agents, union in the rows Redis
 	// did not surface (an offline agent's command stream and channels), and
 	// flag every row whose live count falls short — naming which identity is
 	// missing from the agent presence keys.
@@ -264,7 +264,7 @@ func (s *Sampler) pass(ctx context.Context) {
 	if s.slugSource != nil {
 		registered = s.slugSource(ctx)
 	}
-	topology := DeriveTopology(eventbus.StreamTopics(), registered)
+	topology := DeriveTopology(eventbus.Topics(), registered)
 	present := s.collectPresence(ctx)
 	streams = applyStreamTopology(streams, topology, present)
 	channels = applyChannelTopology(channels, topology, present)
