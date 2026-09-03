@@ -11,18 +11,21 @@ docs-initialize: docs-install
 
 # Install documentation workspace dependencies.
 docs-install: docs-theme-install
-	yarn workspace @metarr/documentation install
+	cd documentation
+	npm install
 
 # Install documentation-theme workspace dependencies.
 docs-theme-install:
-	yarn workspace @metarr/metarr_docs_theme install
+	cd documentation-theme
+	npm install
 
 # Build the documentation site: pack theme first, then run Antora.
 docs-build: node-sync-version docs-theme-pack docs-antora-run
 
 # Pack the documentation theme (create ui-bundle.zip).
-docs-theme-pack: docs-theme-install
-	yarn workspace @metarr/metarr_docs_theme run pack
+docs-theme-pack:
+	cd documentation-theme
+	gulp bundle
 
 # Run Antora to generate the documentation site.
 docs-antora-run: docs-install

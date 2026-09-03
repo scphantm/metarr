@@ -18,8 +18,7 @@ const task = require('./gulp.d/tasks')
 const glob = {
   all: [srcDir, previewSrcDir],
   css: `${srcDir}/css/**/*.css`,
-  js: ['gulpfile.js', 'gulp.d/**/*.js', `${srcDir}/helpers/*.js`],
-  // TODO: Re-add src/js scanning after updating highlight.bundle.js for highlight.js v11+
+  js: ['gulpfile.js', 'gulp.d/**/*.js', `${srcDir}/helpers/*.js`, `${srcDir}/js/**/+([^.])?(.bundle).js`],
 }
 
 const cleanTask = createTask({
@@ -28,29 +27,6 @@ const cleanTask = createTask({
   call: task.remove(['build', 'public']),
 })
 
-const lintCssTask = createTask({
-  name: 'lint:css',
-  desc: 'Lint the CSS source files using stylelint (standard config)',
-  call: task.lintCss(glob.css),
-})
-
-const lintJsTask = createTask({
-  name: 'lint:js',
-  desc: 'Lint the JavaScript source files using eslint (JavaScript Standard Style)',
-  call: task.lintJs(glob.js),
-})
-
-const lintTask = createTask({
-  name: 'lint',
-  desc: 'Lint the CSS and JavaScript source files',
-  call: parallel(lintCssTask, lintJsTask),
-})
-
-const formatTask = createTask({
-  name: 'format',
-  desc: 'Format the JavaScript source files using prettify (JavaScript Standard Style)',
-  call: task.format(glob.js),
-})
 
 const buildTask = createTask({
   name: 'build',
@@ -64,7 +40,7 @@ const buildTask = createTask({
 
 const bundleBuildTask = createTask({
   name: 'bundle:build',
-  call: series(cleanTask, lintTask, buildTask),
+  call: series(cleanTask, buildTask),
 })
 
 const bundlePackTask = createTask({
@@ -115,8 +91,6 @@ const previewTask = createTask({
 module.exports = exportTasks(
   bundleTask,
   cleanTask,
-  lintTask,
-  formatTask,
   buildTask,
   bundleTask,
   bundlePackTask,

@@ -1,6 +1,6 @@
 FROM asciidoctor/docker-asciidoctor:latest
 
-RUN apk add nodejs npm rsync openssh
-RUN npm install -g yarn
+RUN apk add nodejs npm rsync openssh ruby-dev build-base
+RUN npm install -g yarn gulp
 RUN gem install bundle
 
