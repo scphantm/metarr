@@ -12,6 +12,7 @@ content:
 ui:
   bundle:
     url: ./../documentation-theme/build/ui-bundle.zip
+    # url: https://gitlab.com/antora/antora-ui-default/-/jobs/artifacts/HEAD/raw/build/ui-bundle.zip?job=bundle-stable
     snapshot: true
     # supplemental_files: ../documentation-theme-supplemental-ui
 
@@ -38,6 +39,7 @@ antora:
         - yaml
         - go
         - json
+        - proto
       use_line_numbers: true
       theme: solarized-dark
 asciidoc:

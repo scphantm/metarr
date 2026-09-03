@@ -19,7 +19,9 @@
     "pkg": "^5.8.1",
     "prettier": "^3.9.6",
     "stylelint": "^17.14.1",
-    "stylelint-config-standard": "^40.0.0"
+    "stylelint-config-standard": "^40.0.0",
+    "antora": "^3.2.0",
+    "@asciidoctor/core": "~2.2"
   },
   "version": "0.1.0"
 }

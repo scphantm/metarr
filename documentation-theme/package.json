@@ -5,15 +5,11 @@
   "description": "An archetype project that produces a UI for creating documentation sites with Antora",
   "homepage": "https://github.com/scphantm/metarr-documentation-theme",
   "license": "MPL-2.0",
-  "engines": {
-    "node": "== 22.0.0"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/scphantm/metarr-documentation-theme.git"
   },
   "devDependencies": {
-    "@asciidoctor/core": "~4.0.11",
     "@fontsource/roboto": "~5.3",
     "@fontsource/roboto-mono": "~5.3",
     "@vscode/gulp-vinyl-zip": "~2.7",
@@ -26,10 +22,8 @@
     "gulp": "~4.0",
     "gulp-concat": "~2.6",
     "gulp-connect": "~5.7",
-    "gulp-eslint": "~6.0",
     "gulp-imagemin": "~7.1",
     "gulp-postcss": "~9.0",
-    "gulp-stylelint": "~13.0",
     "gulp-uglify": "~3.0",
     "handlebars": "~4.7",
     "imagemin-gifsicle": "^7.0.0",
@@ -43,7 +37,6 @@
     "postcss-custom-properties": "~10.0",
     "postcss-import": "~14.0",
     "postcss-url": "~10.1",
-    "prettier-eslint": "~17.1.2",
     "require-directory": "~2.1",
     "require-from-string": "~2.0",
     "shiki": "^4.4.3",
