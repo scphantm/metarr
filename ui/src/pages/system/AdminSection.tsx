@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Input, Select, Space, Typography } from "antd";
+import { Input, Modal, Select, Space, Typography } from "antd";
 
 import { useUpdateAdmin } from "../../api/queries";
 import {
@@ -56,6 +56,7 @@ export function AdminSection({ admin }: { admin: AdminUser }) {
         hint="None: no login required, every request runs as this administrator. Password: the credentials above are required."
       >
         <AuthenticationSchemePicker
+          admin={admin}
           scheme={admin.authenticationScheme}
           onChange={(authenticationScheme) =>
             updateAdmin.mutateAsync({ authenticationScheme })
@@ -67,25 +68,61 @@ export function AdminSection({ admin }: { admin: AdminUser }) {
 }
 
 function AuthenticationSchemePicker({
+  admin,
   scheme,
   onChange,
 }: {
+  admin: AdminUser;
   scheme: AuthenticationScheme;
   onChange: (scheme: AuthenticationScheme) => Promise<unknown>;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pendingScheme, setPendingScheme] = useState<AuthenticationScheme | null>(null);
 
-  async function select(next: AuthenticationScheme) {
-    if (next === scheme) return;
+  async function confirmAndSelect() {
+    if (!pendingScheme) return;
     setError(null);
     setSaving(true);
     try {
-      await onChange(next);
+      await onChange(pendingScheme);
+      setPendingScheme(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       setSaving(false);
+    }
+  }
+
+  function handleSelect(next: AuthenticationScheme) {
+    if (next === scheme) return;
+
+    if (scheme === AuthenticationScheme.PASSWORD && next === AuthenticationScheme.NONE) {
+      setPendingScheme(next);
+      Modal.confirm({
+        title: "Disable authentication?",
+        content: "Anyone who can reach Metarr will have full administrative control. Authentication can be re-enabled at any time.",
+        okText: "Disable",
+        okType: "danger",
+        onOk: () => void confirmAndSelect(),
+        onCancel: () => {
+          setPendingScheme(null);
+        },
+      });
+    } else if (scheme === AuthenticationScheme.NONE && next === AuthenticationScheme.PASSWORD) {
+      setPendingScheme(next);
+      Modal.info({
+        title: "Enable authentication",
+        content: `The admin username is "${admin.username}". Make sure you know the password before enabling, or set it first in the Password field above.`,
+        okText: "Continue",
+        onOk: () => void confirmAndSelect(),
+        onCancel: () => {
+          setPendingScheme(null);
+        },
+      });
+    } else {
+      setPendingScheme(next);
+      void confirmAndSelect();
     }
   }
 
@@ -98,7 +135,7 @@ function AuthenticationSchemePicker({
             : AuthenticationScheme.NONE
         }
         loading={saving}
-        onChange={(next) => void select(next)}
+        onChange={(next) => handleSelect(next)}
         options={[
           { value: AuthenticationScheme.NONE, label: "None" },
           { value: AuthenticationScheme.PASSWORD, label: "Password" },
