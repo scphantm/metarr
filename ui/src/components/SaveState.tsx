@@ -1,18 +1,13 @@
 import { Space, Spin, Typography } from "antd";
-import {
-  CheckCircleFilled,
-  CloseCircleFilled,
-  ClockCircleOutlined,
-  ExclamationCircleFilled,
-} from "@ant-design/icons";
+import { CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
 
 import type { SaveState } from "./useSaveState";
 
 /*
  * The visual vocabulary for the save lifecycle. It is deliberately small and
- * always in the same place, so a user learns it once: a spinner means in
- * flight, a clock means accepted but not yet stored, a tick means the server
- * has confirmed it, and anything red needs reading.
+ * always in the same place, so a user learns it once: a spinner means the
+ * write is in flight, a tick means the server has stored it, and anything red
+ * needs reading. Writes are synchronous, so there is no "queued" state.
  */
 
 export function SaveIndicator({
@@ -49,37 +44,7 @@ export function SaveIndicator({
       <Space size={4} align="center">
         <Spin size="small" />
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          Sending…
-        </Typography.Text>
-      </Space>
-    );
-  }
-
-  if (state === "pending") {
-    return (
-      <Space
-        size={4}
-        align="center"
-        title="The API accepted this write and queued it. It is stored once the background listener has processed the event."
-      >
-        <ClockCircleOutlined style={{ color: "var(--color-yellow)" }} />
-        <Typography.Text style={{ fontSize: 12, color: "var(--color-yellow)" }}>
-          Queued
-        </Typography.Text>
-      </Space>
-    );
-  }
-
-  if (state === "unconfirmed") {
-    return (
-      <Space
-        size={4}
-        align="center"
-        title="The write was accepted but the server has not reported the new value yet. It may still land; reload to check."
-      >
-        <ExclamationCircleFilled style={{ color: "var(--color-orange)" }} />
-        <Typography.Text style={{ fontSize: 12, color: "var(--color-orange)" }}>
-          Not confirmed
+          Saving…
         </Typography.Text>
       </Space>
     );

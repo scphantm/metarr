@@ -28,7 +28,6 @@ import {
   useStreamStatus,
 } from "./streams";
 import type { DescMessage, MessageInitShape } from "@bufbuild/protobuf";
-import type { AcceptedResponse as ConnectAcceptedResponse } from "../gen/metarr/v1/common_pb";
 import type { EventBusConfig as ConnectEventBusConfig } from "../gen/metarr/v1/event_bus_pb";
 import type { LoggingConfig as ConnectLoggingConfig } from "../gen/metarr/v1/logging_pb";
 import {
@@ -36,14 +35,12 @@ import {
   type SonarrInstance as ConnectSonarrInstance,
 } from "../gen/metarr/v1/sonarr_interfaces_pb";
 import type { AdminUser as ConnectAdminUser } from "../gen/metarr/v1/admin_pb";
+import type { Config as ConnectConfig } from "../gen/metarr/v1/config_pb";
 import {
   AccessLevel,
   type APIKeyEntry as ConnectAPIKeyEntry,
 } from "../gen/metarr/v1/api_keys_pb";
-import {
-  AgentSchema,
-  type Agent as ConnectAgent,
-} from "../gen/metarr/v1/agents_pb";
+import { AgentSchema } from "../gen/metarr/v1/agents_pb";
 import {
   SidecarTypeDefinitionSchema,
   type SidecarTypeDefinition as ConnectSidecarType,
@@ -81,13 +78,10 @@ export const queryKeys = {
 /*
  * Reads.
  *
- * The still-async config sections write through a system_config_update event,
- * so a mutation settling does not mean the read is fresh yet: those mutations
- * invalidate their queries and the sections that own them poll briefly while a
- * save is outstanding — see useSaveState. The scalar sections on the
- * synchronous AIP write path (event bus, logging — docs/adr/0002) are the
- * exception: their Update returns the stored section, which is written straight
- * into the section's cache, so no poll runs.
+ * Every config write is synchronous now (docs/adr/0002): the RPC returns the
+ * stored resource and its hook splices that into the query cache, so a
+ * settled mutation means the read is already fresh — there is no
+ * queued→confirmed poll (useSaveState no longer re-reads).
  */
 
 export function useConfig() {
@@ -105,65 +99,90 @@ export function useDirectoryScannerConfig() {
   });
 }
 
-// ListScanDirectories / ListSidecarTypes are paginated (AIP-158) with a
-// server-side page cap, so — like useSonarrInstances — the settings screens
-// drain the pages rather than assuming one call returns them all. Both
-// collections are operator-bounded, so this is one page in practice.
-export function useScanDirectories() {
+// Every config List RPC is the AIP-158 / 132 / 160 contract: page_size /
+// page_token / order_by / filter (filter translation is still deferred
+// server-side — a non-empty filter is Unimplemented). The settings screens
+// show a whole operator-bounded collection at once, so these hooks drain the
+// pages; order_by / filter / page_size are surfaced for callers that want
+// them even though no screen passes any yet.
+export type ListOptions = {
+  orderBy?: string;
+  filter?: string;
+  pageSize?: number;
+};
+
+// listKey keeps the default (no-options) call keyed exactly as before, so the
+// collection write hooks that splice into that cache entry still hit it.
+function listKey(base: readonly unknown[], options: ListOptions) {
+  return Object.keys(options).length > 0 ? [...base, options] : base;
+}
+
+async function drainPages<T>(
+  fetchPage: (
+    pageToken: string,
+  ) => Promise<{ items: T[]; nextPageToken: string }>,
+): Promise<T[]> {
+  const all: T[] = [];
+  let pageToken = "";
+  do {
+    const page = await fetchPage(pageToken);
+    all.push(...page.items);
+    pageToken = page.nextPageToken;
+  } while (pageToken !== "");
+  return all;
+}
+
+export function useScanDirectories(options: ListOptions = {}) {
   return useQuery({
-    queryKey: queryKeys.scanDirectories,
-    queryFn: async () => {
-      const directories = [];
-      let pageToken = "";
-      do {
+    queryKey: listKey(queryKeys.scanDirectories, options),
+    queryFn: () =>
+      drainPages(async (pageToken) => {
         const page = await directoryScannerClient.listScanDirectories({
           pageToken,
+          orderBy: options.orderBy,
+          filter: options.filter,
+          pageSize: options.pageSize,
         });
-        directories.push(...page.scanDirectories);
-        pageToken = page.nextPageToken;
-      } while (pageToken !== "");
-      return directories;
-    },
+        return {
+          items: page.scanDirectories,
+          nextPageToken: page.nextPageToken,
+        };
+      }),
   });
 }
 
-export function useSidecarTypes() {
+export function useSidecarTypes(options: ListOptions = {}) {
   return useQuery({
-    queryKey: queryKeys.sidecarTypes,
-    queryFn: async () => {
-      const types = [];
-      let pageToken = "";
-      do {
+    queryKey: listKey(queryKeys.sidecarTypes, options),
+    queryFn: () =>
+      drainPages(async (pageToken) => {
         const page = await directoryScannerClient.listSidecarTypes({
           pageToken,
+          orderBy: options.orderBy,
+          filter: options.filter,
+          pageSize: options.pageSize,
         });
-        types.push(...page.sidecarTypes);
-        pageToken = page.nextPageToken;
-      } while (pageToken !== "");
-      return types;
-    },
+        return { items: page.sidecarTypes, nextPageToken: page.nextPageToken };
+      }),
   });
 }
 
-// ListSonarrInstances is paginated (AIP-158) with a server-side page cap, so
-// the settings screen — which shows every instance at once — drains the
-// pages rather than assuming one call returns them all. The collection is
-// operator-bounded, so this is a handful of entries in one page in practice.
-export function useSonarrInstances() {
+export function useSonarrInstances(options: ListOptions = {}) {
   return useQuery({
-    queryKey: queryKeys.sonarr,
-    queryFn: async () => {
-      const instances = [];
-      let pageToken = "";
-      do {
+    queryKey: listKey(queryKeys.sonarr, options),
+    queryFn: () =>
+      drainPages(async (pageToken) => {
         const page = await sonarrInterfaceClient.listSonarrInstances({
           pageToken,
+          orderBy: options.orderBy,
+          filter: options.filter,
+          pageSize: options.pageSize,
         });
-        instances.push(...page.sonarrInstances);
-        pageToken = page.nextPageToken;
-      } while (pageToken !== "");
-      return instances;
-    },
+        return {
+          items: page.sonarrInstances,
+          nextPageToken: page.nextPageToken,
+        };
+      }),
   });
 }
 
@@ -194,23 +213,20 @@ export function useAgentsPresenceStreamStatus() {
 }
 
 // ListAgents is paginated (AIP-158); the screen shows every agent at once, so
-// it drains the pages like useSonarrInstances. The collection is
-// operator-bounded, so this is one page in practice.
+// it drains the pages. This cache entry is also written by StreamPresence
+// (the merged live view), so unlike the other List hooks it is not keyed by
+// ListOptions — order_by / filter on a socket-merged list would need a
+// separate non-streamed hook.
 export function useAgents() {
   useStream(agentsPresenceStream, queryKeys.agents);
 
   return useQuery({
     queryKey: queryKeys.agents,
-    queryFn: async () => {
-      const agents = [];
-      let pageToken = "";
-      do {
+    queryFn: () =>
+      drainPages(async (pageToken) => {
         const page = await agentClient.listAgents({ pageToken });
-        agents.push(...page.agents);
-        pageToken = page.nextPageToken;
-      } while (pageToken !== "");
-      return agents;
-    },
+        return { items: page.agents, nextPageToken: page.nextPageToken };
+      }),
     staleTime: Infinity,
   });
 }
@@ -291,9 +307,7 @@ export function useBusSnapshot() {
 
 // StatsService.Purge is the one write on the service: it clears a jammed
 // durable stream (one by name, or every discovered one) server-side — an
-// approximate trim plus a consumer-group fast-forward. There is no
-// system_config_update event behind it, so like the workflow mutations it
-// gets a plain useMutation rather than useConfigMutation. On success the bus
+// approximate trim plus a consumer-group fast-forward. On success the bus
 // snapshot is invalidated so the drained depth shows on the next frame
 // without waiting for the sampler's own cadence.
 export type PurgeStreamsTarget = { stream: string } | { all: true };
@@ -355,53 +369,109 @@ export function useLogTail() {
 // A custom method rather than a full Agent update: setting a level should
 // never risk touching an agent's mappings, and it works even for an agent
 // that isn't configured with any yet (the server creates a bare entry) — see
-// SetLogLevel's doc comment on the Go side. It returns the stored Agent;
-// nothing here reads it, so the hook just invalidates.
+// SetLogLevel's doc comment on the Go side. It returns the stored Agent on
+// the same socket-fed cache as the other agent writes, so it reconciles the
+// same way (invalidate, re-merge live presence).
 export function useSetAgentLogLevel() {
-  return useConfigMutation<{ slug: string; log_level: string }, ConnectAgent>(
+  return useAgentCollectionWrite<{ slug: string; log_level: string }>(
     ({ slug, log_level }) =>
       agentClient.setLogLevel({ slug, logLevel: log_level }),
-    [queryKeys.config, queryKeys.agents],
   );
 }
 
 /*
- * Writes. Each invalidates every query that could show the change: the config
- * document overlaps the scoped endpoints, so a scan directory edit has to
- * refresh both its own list and the whole-config read.
+ * Writes. Config writes are synchronous (docs/adr/0002): each RPC returns the
+ * stored resource, and the hook splices that response into the query cache —
+ * a scoped list, or the aggregate ["config"] document — rather than
+ * invalidating and refetching. The agent writes are the exception: their
+ * cache is socket-fed by StreamPresence, so they invalidate and let the
+ * refetch re-merge live presence.
  */
 
-// TResult defaults to the generated metarr.v1.AcceptedResponse message every
-// config mutation returns; a still-migrating domain's mutationFn can name its
-// own type instead. Nothing downstream reads these fields today — onSuccess
-// only triggers invalidation.
-function useConfigMutation<TVariables, TResult = ConnectAcceptedResponse>(
-  mutationFn: (variables: TVariables) => Promise<TResult>,
-  keysToInvalidate: readonly (readonly unknown[])[],
-): UseMutationResult<TResult, Error, TVariables> {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn,
-    onSuccess: () => {
-      keysToInvalidate.forEach((key) => {
-        void queryClient.invalidateQueries({ queryKey: key });
-      });
-    },
+// AdminService and ApiKeyService are synchronous AIP writes (docs/adr/0002):
+// each returns the stored resource, and there is no dedicated query for it —
+// the Security screen paints from the aggregate GetConfig read (["config"]).
+// So rather than invalidate and refetch the whole document, each write
+// splices its own response into that cached Config through patchConfigCache.
+
+const apiKeyGroups = ["admin", "user", "webhook", "readOnly"] as const;
+type ApiKeyGroup = (typeof apiKeyGroups)[number];
+
+// The AccessLevel enum a request carries, mapped to the field it addresses on
+// the stored APIKeysConfig. UNSPECIFIED has no group — the server rejects it,
+// so the cache splice just skips.
+const apiKeyGroupOf: Partial<Record<AccessLevel, ApiKeyGroup>> = {
+  [AccessLevel.ADMIN]: "admin",
+  [AccessLevel.USER]: "user",
+  [AccessLevel.WEBHOOK]: "webhook",
+  [AccessLevel.READ_ONLY]: "readOnly",
+};
+
+function patchConfigCache(
+  queryClient: QueryClient,
+  update: (config: ConnectConfig) => ConnectConfig,
+) {
+  const existing = queryClient.getQueryData<ConnectConfig>(queryKeys.config);
+  if (!existing) {
+    // The aggregate read the Security screen paints from is not populated —
+    // nothing to splice into, so fall back to a refetch.
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.config,
+      exact: true,
+    });
+    return;
+  }
+  queryClient.setQueryData<ConnectConfig>(queryKeys.config, update(existing));
+}
+
+// patchApiKeyGroup rewrites one APIKeysConfig group's entries in the cached
+// aggregate Config, preserving the branded message shape.
+function patchApiKeyGroup(
+  queryClient: QueryClient,
+  group: ApiKeyGroup,
+  update: (entries: ConnectAPIKeyEntry[]) => ConnectAPIKeyEntry[],
+) {
+  patchConfigCache(queryClient, (config) => {
+    const existing = config.apiKeys ?? {
+      $typeName: "metarr.v1.APIKeysConfig" as const,
+      admin: [],
+      user: [],
+      webhook: [],
+      readOnly: [],
+    };
+    return {
+      ...config,
+      apiKeys: { ...existing, [group]: update(existing[group] ?? []) },
+    };
   });
+}
+
+// patchApiKeyById is patchApiKeyGroup for the id-addressed writes: id names a
+// key without an access level, so the splice first finds which group holds
+// it. An id no cached group holds is a no-op.
+function patchApiKeyById(
+  queryClient: QueryClient,
+  id: string,
+  update: (entries: ConnectAPIKeyEntry[]) => ConnectAPIKeyEntry[],
+) {
+  const config = queryClient.getQueryData<ConnectConfig>(queryKeys.config);
+  const group = apiKeyGroups.find((g) =>
+    (config?.apiKeys?.[g] ?? []).some((entry) => entry.id === id),
+  );
+  if (group) patchApiKeyGroup(queryClient, group, update);
 }
 
 // AdminService.UpdateAdminUser is an AIP-134 partial update: update_mask
 // names the identity fields the operator changed (username / email) and a
 // new password rides new_password, never the mask (docs/adr/0010). The
 // caller passes only what it is changing; the hook derives the mask. The
-// response is the stored account with the credential blanked; nothing reads
-// it, so the hook just invalidates the aggregate GetConfig read the Security
-// screen paints from.
+// response is the stored account with the credential blanked.
 type AdminPatch = { username?: string; email?: string; password?: string };
 
 export function useUpdateAdmin() {
-  return useConfigMutation<AdminPatch, ConnectAdminUser>(
-    ({ username, email, password }) => {
+  const queryClient = useQueryClient();
+  return useMutation<ConnectAdminUser, Error, AdminPatch>({
+    mutationFn: ({ username, email, password }) => {
       const admin: { username?: string; email?: string } = {};
       if (username !== undefined) admin.username = username;
       if (email !== undefined) admin.email = email;
@@ -411,32 +481,43 @@ export function useUpdateAdmin() {
         newPassword: password ?? "",
       });
     },
-    [queryKeys.config],
-  );
+    onSuccess: (stored) => {
+      patchConfigCache(queryClient, (config) => ({ ...config, admin: stored }));
+    },
+  });
 }
 
 // ApiKeyService is a minted-id collection scoped by the AccessLevel enum
-// (docs/adr/0010). Create takes no id — the server mints one; Update is a
-// FieldMask partial update matched by id; Delete is id-only. Each returns the
-// stored resource (Delete returns empty); nothing reads it, so the hooks
-// invalidate the aggregate GetConfig read the Security screen paints from.
+// (docs/adr/0010). Create takes no id — the server mints one and returns the
+// entry; Update is a FieldMask partial update matched by id; Delete is
+// id-only. Each write reconciles the addressed group in the cached Config
+// from its own response.
 export function useCreateApiKey() {
-  return useConfigMutation<
-    { accessLevel: AccessLevel; name: string },
-    ConnectAPIKeyEntry
-  >(
-    ({ accessLevel, name }) =>
+  const queryClient = useQueryClient();
+  return useMutation<
+    ConnectAPIKeyEntry,
+    Error,
+    { accessLevel: AccessLevel; name: string }
+  >({
+    mutationFn: ({ accessLevel, name }) =>
       apiKeyClient.createApiKey({ accessLevel, apiKey: { name } }),
-    [queryKeys.config],
-  );
+    onSuccess: (stored, { accessLevel }) => {
+      const group = apiKeyGroupOf[accessLevel];
+      if (group) {
+        patchApiKeyGroup(queryClient, group, (entries) => [...entries, stored]);
+      }
+    },
+  });
 }
 
 export function useUpdateApiKey() {
-  return useConfigMutation<
-    { id: string; name?: string; apiKey?: string },
-    ConnectAPIKeyEntry
-  >(
-    ({ id, name, apiKey }) => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ConnectAPIKeyEntry,
+    Error,
+    { id: string; name?: string; apiKey?: string }
+  >({
+    mutationFn: ({ id, name, apiKey }) => {
       const fields: { name?: string; apiKey?: string } = {};
       if (name !== undefined) fields.name = name;
       if (apiKey !== undefined) fields.apiKey = apiKey;
@@ -445,17 +526,25 @@ export function useUpdateApiKey() {
         updateMask: updateMaskFor(fields),
       });
     },
-    [queryKeys.config],
-  );
+    onSuccess: (stored) => {
+      patchApiKeyById(queryClient, stored.id, (entries) =>
+        entries.map((entry) => (entry.id === stored.id ? stored : entry)),
+      );
+    },
+  });
 }
 
 export function useDeleteApiKey() {
-  // Delete-by-id, bare string like useDeleteSonarrInstance / useDeleteAgent;
-  // the empty response is unused, only the invalidation matters.
-  return useConfigMutation<string, unknown>(
-    (id) => apiKeyClient.deleteApiKey({ id }),
-    [queryKeys.config],
-  );
+  // Delete-by-id, bare string like useDeleteSonarrInstance / useDeleteAgent.
+  const queryClient = useQueryClient();
+  return useMutation<unknown, Error, string>({
+    mutationFn: (id) => apiKeyClient.deleteApiKey({ id }),
+    onSuccess: (_result, id) => {
+      patchApiKeyById(queryClient, id, (entries) =>
+        entries.filter((entry) => entry.id !== id),
+      );
+    },
+  });
 }
 
 // The keys of a config patch are camelCase message-field names; a protobuf
@@ -829,10 +918,9 @@ export function useDeleteSonarrInstance() {
 }
 
 /*
- * Workflows. Unlike everything above, these are a direct, synchronous Mongo
- * read/write with no config_update event behind them — see the Go handler's
- * doc comment on UpsertWorkflow — so they get their own mutation hook rather
- * than useConfigMutation, whose return type is hardwired to AcceptedResponse.
+ * Workflows. These are a direct Mongo read/write with no config document
+ * overlap — see the Go handler's doc comment on UpsertWorkflow — so they
+ * invalidate only the workflow keys.
  */
 
 export function useWorkflow(id: string) {

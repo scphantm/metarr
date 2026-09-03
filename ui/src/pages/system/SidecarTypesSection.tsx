@@ -12,7 +12,6 @@ import {
 import { ArrowDownOutlined, ArrowUpOutlined } from "@ant-design/icons";
 
 import {
-  queryKeys,
   useCreateSidecarType,
   useDeleteSidecarType,
   useReorderSidecarTypes,
@@ -288,14 +287,11 @@ function SidecarTypeDetail({
   onSave: (next: SidecarTypeDefinition) => Promise<unknown>;
   onRemove: () => void;
 }) {
-  const key = queryKeys.sidecarTypes;
-
   return (
     <div className="sidecar-type-detail">
       <Row label="Type name" hint="Written onto every file classified this way">
         <EditableText
           label="Type name"
-          queryKey={key}
           value={entry.type}
           validate={(next) => (next ? null : "A type name is required")}
           onSave={(type) => onSave({ ...entry, type })}
@@ -305,7 +301,6 @@ function SidecarTypeDetail({
       <Row label="Category">
         <EditableSelect
           label="Category"
-          queryKey={key}
           value={entry.category}
           options={sidecarCategories}
           onSave={(category) => onSave({ ...entry, category })}
@@ -318,7 +313,6 @@ function SidecarTypeDetail({
       >
         <EditableList
           label="Patterns"
-          queryKey={key}
           values={entry.patterns}
           placeholder="(?i)^poster$"
           monospace
@@ -344,7 +338,6 @@ function SidecarTypeDetail({
       >
         <EditableList
           label="Extensions"
-          queryKey={key}
           values={entry.extensions}
           placeholder=".jpg"
           monospace
@@ -399,19 +392,23 @@ function NewSidecarType({
     }
     setError(null);
 
-    await onCreate({
-      // An empty id is what asks the server to create. It mints the id itself
-      // and rejects one chosen by the caller with a 404, so this must not be a
-      // generated UUID.
-      id: "",
-      type: type.trim(),
-      category,
-      // New entries are created disabled by the server regardless; sending a
-      // non-zero order here is rejected outright.
-      order: 0,
-      patterns: [pattern.trim()],
-      extensions: [],
-    });
+    try {
+      await onCreate({
+        // An empty id is what asks the server to create. It mints the id
+        // itself and rejects one chosen by the caller with a 404, so this
+        // must not be a generated UUID.
+        id: "",
+        type: type.trim(),
+        category,
+        // New entries are created disabled by the server regardless; sending
+        // a non-zero order here is rejected outright.
+        order: 0,
+        patterns: [pattern.trim()],
+        extensions: [],
+      });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    }
   }
 
   return (

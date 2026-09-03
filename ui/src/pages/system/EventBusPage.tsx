@@ -1,10 +1,6 @@
 import { Alert, Typography } from "antd";
 
-import {
-  queryKeys,
-  useEventBusConfig,
-  useUpdateEventBusConfig,
-} from "../../api/queries";
+import { useEventBusConfig, useUpdateEventBusConfig } from "../../api/queries";
 import type { EventBusConfig } from "../../gen/metarr/v1/event_bus_pb";
 import { Card, Row } from "../../components/Card";
 import { EditableNumber } from "../../components/Editable";
@@ -91,7 +87,6 @@ function NumberField({
     <Row label={label} hint={hint}>
       <EditableNumber
         label={label}
-        queryKey={queryKeys.eventBus}
         value={value}
         min={min}
         onSave={(next) => save({ [field]: next })}

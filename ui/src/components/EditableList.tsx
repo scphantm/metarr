@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Flex, Input, Space, Tag, Typography } from "antd";
 
 import { SaveIndicator } from "./SaveState";
-import { sameStringList, useSaveState } from "./useSaveState";
+import { useSaveState } from "./useSaveState";
 
 /*
  * A string array edited as antd's documented "editable tags" pattern:
@@ -17,7 +17,6 @@ export function EditableList({
   values,
   onSave,
   label,
-  queryKey,
   placeholder,
   monospace = false,
   normalize,
@@ -27,7 +26,6 @@ export function EditableList({
   values: string[];
   onSave: (next: string[]) => Promise<unknown>;
   label: string;
-  queryKey: readonly unknown[];
   placeholder: string;
   monospace?: boolean;
   // normalize runs before an entry is stored — extensions get lowercased and
@@ -39,7 +37,7 @@ export function EditableList({
 }) {
   const { state, error, displayValue, save, dismissError } = useSaveState<
     string[]
-  >({ serverValue: values, queryKey, isEqual: sameStringList });
+  >({ serverValue: values });
 
   const [draft, setDraft] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);

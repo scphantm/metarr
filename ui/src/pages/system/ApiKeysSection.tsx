@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Input, Space, Typography } from "antd";
 
 import {
-  queryKeys,
   useCreateApiKey,
   useDeleteApiKey,
   useUpdateApiKey,
@@ -103,7 +102,6 @@ export function ApiKeysSection({ config }: { config: Config }) {
                       <div className="api-key-row-name">
                         <EditableText
                           label="Key name"
-                          queryKey={queryKeys.config}
                           value={entry.name}
                           placeholder="Unnamed"
                           onSave={(name) =>
@@ -114,7 +112,6 @@ export function ApiKeysSection({ config }: { config: Config }) {
                       <div className="api-key-row-value">
                         <EditableText
                           label="API key"
-                          queryKey={queryKeys.config}
                           value={entry.apiKey}
                           placeholder="No key set"
                           monospace
