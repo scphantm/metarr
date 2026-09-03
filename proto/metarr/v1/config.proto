@@ -4,7 +4,6 @@ package metarr.v1;
 
 import "metarr/v1/admin.proto";
 import "metarr/v1/agents.proto";
-import "metarr/v1/api_keys.proto";
 import "metarr/v1/auth.proto";
 import "metarr/v1/directory_scanner.proto";
 import "metarr/v1/event_bus.proto";
@@ -25,11 +24,11 @@ message InterfacesConfig {
 // all read this one shape. The singleton _id the document is stored under
 // is a storage concern and deliberately not a field here.
 //
-// admin and api_keys are managed through AdminService and ApiKeyService
-// respectively; ConfigService owns only the read-only aggregate below, for
-// the UI's first paint (docs/adr/0010).
+// admin is managed through AdminService; ConfigService owns only the
+// read-only aggregate below, for the UI's first paint (docs/adr/0010).
 message Config {
-  APIKeysConfig api_keys = 1;
+  reserved 1;
+  reserved "api_keys";
   AdminUser admin = 2;
   InterfacesConfig interfaces = 3;
   DirectoryScannerConfig directory_scanner = 4;

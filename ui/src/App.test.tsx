@@ -16,7 +16,6 @@ vi.mock("./api/clients", () => ({
   // queries.ts pulls the rest in at module load; they only need to exist.
   adminClient: {},
   agentClient: {},
-  apiKeyClient: {},
   configClient: {},
   directoryScannerClient: {},
   eventBusClient: {},

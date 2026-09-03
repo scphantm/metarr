@@ -1,55 +1,37 @@
 package auth
 
 import (
+	"net/http"
 	"testing"
-
-	"Metarr/internal/shared/appconfig"
 )
 
-// TestResolve_IsDeterministicForAKeyInMoreThanOneGroup pins the role
-// precedence Resolve applies when the same API key string appears in more
-// than one group. The groups are searched in a fixed order — admin, user,
-// webhook, read only — so the resolved role is the same on every call. The
-// natural way to write this lookup over grouped keys is to range a map,
-// whose iteration order is randomised; that nondeterminism is invisible in
-// a single-run test, so this one resolves the same key many times.
-func TestResolve_IsDeterministicForAKeyInMoreThanOneGroup(t *testing.T) {
-	const sharedKey = "key-present-in-two-groups"
-
-	config := &appconfig.Config{
-		ApiKeys: &appconfig.APIKeysConfig{
-			User:     []*appconfig.APIKeyEntry{{Id: "u", ApiKey: sharedKey}},
-			ReadOnly: []*appconfig.APIKeyEntry{{Id: "r", ApiKey: sharedKey}},
-		},
+// Authorized is the whole authorization decision now that the role arrives
+// pre-resolved from the JWT claims: a role/group gate plus the read-only
+// role's GET-only restriction. This pins that matrix.
+func TestAuthorized(t *testing.T) {
+	cases := []struct {
+		role   Role
+		group  Group
+		method string
+		want   bool
+	}{
+		{RoleAdmin, GroupConfig, http.MethodPost, true},
+		{RoleAdmin, GroupTasks, http.MethodPost, true},
+		{RoleAdmin, GroupWebhook, http.MethodPost, true},
+		{RoleUser, GroupConfig, http.MethodPost, false},
+		{RoleUser, GroupTasks, http.MethodPost, true},
+		{RoleUser, GroupWebhook, http.MethodPost, true},
+		{RoleReadOnly, GroupTasks, http.MethodGet, true},
+		{RoleReadOnly, GroupTasks, http.MethodPost, false},
+		{RoleReadOnly, GroupConfig, http.MethodGet, false},
+		{RoleWebhook, GroupWebhook, http.MethodPost, true},
+		{RoleWebhook, GroupTasks, http.MethodPost, false},
+		{Role("bogus"), GroupTasks, http.MethodGet, false},
 	}
 
-	for i := 0; i < 128; i++ {
-		role, ok := Resolve(config, sharedKey)
-		if !ok {
-			t.Fatalf("iteration %d: key did not resolve", i)
+	for _, tc := range cases {
+		if got := Authorized(tc.role, tc.group, tc.method); got != tc.want {
+			t.Errorf("Authorized(%q, %q, %s) = %v, want %v", tc.role, tc.group, tc.method, got, tc.want)
 		}
-		// User is searched before ReadOnly, so the higher-privilege group wins.
-		if role != RoleUser {
-			t.Fatalf("iteration %d: role = %q, want %q (group search order is not deterministic)", i, role, RoleUser)
-		}
-	}
-}
-
-// TestResolve_SearchesGroupsInAdminFirstOrder checks the full precedence
-// chain: a key in every group resolves to admin.
-func TestResolve_SearchesGroupsInAdminFirstOrder(t *testing.T) {
-	const key = "in-every-group"
-	config := &appconfig.Config{
-		ApiKeys: &appconfig.APIKeysConfig{
-			Admin:    []*appconfig.APIKeyEntry{{Id: "a", ApiKey: key}},
-			User:     []*appconfig.APIKeyEntry{{Id: "u", ApiKey: key}},
-			Webhook:  []*appconfig.APIKeyEntry{{Id: "w", ApiKey: key}},
-			ReadOnly: []*appconfig.APIKeyEntry{{Id: "r", ApiKey: key}},
-		},
-	}
-
-	role, ok := Resolve(config, key)
-	if !ok || role != RoleAdmin {
-		t.Fatalf("role = %q, ok = %v; want %q, true", role, ok, RoleAdmin)
 	}
 }

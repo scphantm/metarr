@@ -29,7 +29,6 @@ import (
 	"Metarr/internal/server/logtail"
 	"Metarr/internal/server/mongostore"
 	"Metarr/internal/server/services"
-	"Metarr/internal/server/session"
 	"Metarr/internal/server/webui"
 	workflowcatalog "Metarr/internal/server/workflow/catalog"
 	"Metarr/internal/shared/appconfig"
@@ -42,8 +41,8 @@ import (
 )
 
 // httpClientEnvFile is the JetBrains HTTP Client's per-developer secrets
-// file, kept in sync with freshly bootstrapped API keys if the developer
-// has one in .http/.
+// file, kept in sync with the freshly bootstrapped admin password if the
+// developer has one in .http/.
 const httpClientEnvFile = ".http/http-client.private.env.json"
 
 // @title			Metarr API
@@ -131,7 +130,6 @@ func run() error {
 	appConfigStore := appconfigstore.New(appConfigRepo, appConfigRepo)
 	localDirectoryRepo := mongostore.NewLocalDirectoryRepo(mongoClient, cfg.MongoDatabase)
 	workflowRepo := mongostore.NewWorkflowRepo(mongoClient, cfg.MongoDatabase)
-	sessions := session.NewStore(redisClient)
 
 	// The local_directory indexes include the unique index on path that makes a
 	// rescan replace records rather than duplicate them, so a failure here is
@@ -156,9 +154,9 @@ func run() error {
 		"node_types", workflowCatalog.Len(),
 	)
 
-	// Seeds the application config — API keys, the admin account,
-	// directory-scanner defaults, the sidecar classification table, and the
-	// one-time backfills earlier releases needed. Runs synchronously,
+	// Seeds the application config — the admin account, the HMAC signing
+	// secret, directory-scanner defaults, the sidecar classification table,
+	// and the one-time backfills earlier releases needed. Runs synchronously,
 	// straight to storage, before the rest of the process is up; see
 	// docs/adr/0003 and docs/adr/0004. An ordinary restart with nothing left
 	// to seed costs no write.
@@ -167,20 +165,10 @@ func run() error {
 		return err
 	}
 
-	if bootstrapReport.APIKeys != nil {
-		fmt.Println("==================================================================")
-		fmt.Println("Metarr: generated default API keys (shown only once, save these):")
-		fmt.Println("  admin:     " + bootstrapReport.APIKeys.Admin[0].ApiKey)
-		fmt.Println("  user:      " + bootstrapReport.APIKeys.User[0].ApiKey)
-		fmt.Println("  webhook:   " + bootstrapReport.APIKeys.Webhook[0].ApiKey)
-		fmt.Println("  read_only: " + bootstrapReport.APIKeys.ReadOnly[0].ApiKey)
-		fmt.Println("==================================================================")
-	}
 	switch {
 	case bootstrapReport.Admin.Recovered:
 		fmt.Println("==================================================================")
-		fmt.Println("Metarr: admin credentials were missing (a prior version could zero")
-		fmt.Println("them when editing an API key) — generated a new password:")
+		fmt.Println("Metarr: admin credentials were missing — generated a new password:")
 		fmt.Println("  username: " + bootstrapReport.Admin.Username)
 		fmt.Println("  password: " + bootstrapReport.Admin.Password)
 		fmt.Println("==================================================================")
@@ -194,12 +182,9 @@ func run() error {
 	if bootstrapReport.SidecarTypesAdded > 0 {
 		logger.Info("added built-in sidecar types missing from the stored table", "count", bootstrapReport.SidecarTypesAdded)
 	}
-	if bootstrapReport.APIKeyIDsBackfilled > 0 {
-		logger.Info("minted ids for API key entries stored before the id field existed", "count", bootstrapReport.APIKeyIDsBackfilled)
-	}
 
-	if bootstrapReport.APIKeys != nil || bootstrapReport.Admin.Password != "" {
-		if err := syncHTTPClientEnv(bootstrapReport.APIKeys, bootstrapReport.Admin.Password); err != nil {
+	if bootstrapReport.Admin.Password != "" {
+		if err := syncHTTPClientEnv(bootstrapReport.Admin.Password); err != nil {
 			logger.Error("failed to sync .http/http-client.private.env.json", "error", err)
 		}
 	}
@@ -331,7 +316,7 @@ func run() error {
 	// metarr.v1.LoggingService.StreamTail (internal/server/services), mounted
 	// via connectServices below. wsbus.Hub and GET /api/ws are retired.
 
-	apiHandlers := handlers.New(bus, appConfigStore, localDirectoryRepo, workflowRepo, workflowCatalog, sessions, busSampler, redisClient, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
+	apiHandlers := handlers.New(bus, appConfigStore, localDirectoryRepo, workflowRepo, workflowCatalog, busSampler, redisClient, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
 	uiFS, uiEmbedded := webui.FS()
 	if uiEmbedded {
 		logger.Info("ui embed", "enabled", true)
@@ -345,13 +330,11 @@ func run() error {
 		newConnectService[metarrv1connect.SonarrInterfaceServiceHandler](
 			metarrv1connect.NewSonarrInterfaceServiceHandler,
 			&services.SonarrInterfaceServer{Handlers: apiHandlers},
-			sessions,
 			services.SonarrInterfaceAuthPolicies,
 		),
 		newConnectService[metarrv1connect.AuthServiceHandler](
 			metarrv1connect.NewAuthServiceHandler,
 			&services.AuthServer{Handlers: apiHandlers},
-			sessions,
 			services.AuthAuthPolicies,
 			httpserver.NewConnectRateLimitInterceptor(map[string]time.Duration{
 				"Login":  httpserver.ThrottledInterval,
@@ -361,79 +344,61 @@ func run() error {
 		newConnectService[metarrv1connect.TokenServiceHandler](
 			metarrv1connect.NewTokenServiceHandler,
 			&services.TokenServer{Handlers: apiHandlers},
-			sessions,
 			services.TokenAuthPolicies,
 		),
 		newConnectService[metarrv1connect.ConfigServiceHandler](
 			metarrv1connect.NewConfigServiceHandler,
 			&services.ConfigServer{Handlers: apiHandlers},
-			sessions,
 			services.ConfigAuthPolicies,
 		),
 		newConnectService[metarrv1connect.AdminServiceHandler](
 			metarrv1connect.NewAdminServiceHandler,
 			&services.AdminServer{Handlers: apiHandlers},
-			sessions,
 			services.AdminAuthPolicies,
-		),
-		newConnectService[metarrv1connect.ApiKeyServiceHandler](
-			metarrv1connect.NewApiKeyServiceHandler,
-			&services.ApiKeyServer{Handlers: apiHandlers},
-			sessions,
-			services.ApiKeyAuthPolicies,
 		),
 		newConnectService[metarrv1connect.AgentServiceHandler](
 			metarrv1connect.NewAgentServiceHandler,
 			&services.AgentServer{Handlers: apiHandlers},
-			sessions,
 			services.AgentAuthPolicies,
 		),
 		newConnectService[metarrv1connect.DirectoryScannerServiceHandler](
 			metarrv1connect.NewDirectoryScannerServiceHandler,
 			&services.DirectoryScannerServer{Handlers: apiHandlers},
-			sessions,
 			services.DirectoryScannerAuthPolicies,
 		),
 		newConnectService[metarrv1connect.LoggingServiceHandler](
 			metarrv1connect.NewLoggingServiceHandler,
 			&services.LoggingServer{Handlers: apiHandlers},
-			sessions,
 			services.LoggingAuthPolicies,
 		),
 		newConnectService[metarrv1connect.EventBusServiceHandler](
 			metarrv1connect.NewEventBusServiceHandler,
 			&services.EventBusServer{Handlers: apiHandlers},
-			sessions,
 			services.EventBusAuthPolicies,
 		),
 		newConnectService[metarrv1connect.TaskServiceHandler](
 			metarrv1connect.NewTaskServiceHandler,
 			&services.TaskServer{Handlers: apiHandlers},
-			sessions,
 			services.TaskAuthPolicies,
 		),
 		newConnectService[metarrv1connect.WorkflowCatalogServiceHandler](
 			metarrv1connect.NewWorkflowCatalogServiceHandler,
 			&services.WorkflowCatalogServer{Handlers: apiHandlers},
-			sessions,
 			services.WorkflowCatalogAuthPolicies,
 		),
 		newConnectService[metarrv1connect.LocalDirectoryServiceHandler](
 			metarrv1connect.NewLocalDirectoryServiceHandler,
 			&services.LocalDirectoryServer{Handlers: apiHandlers},
-			sessions,
 			services.LocalDirectoryAuthPolicies,
 		),
 		newConnectService[metarrv1connect.WorkflowServiceHandler](
 			metarrv1connect.NewWorkflowServiceHandler,
 			&services.WorkflowServer{Handlers: apiHandlers},
-			sessions,
 			services.WorkflowAuthPolicies,
 		),
 		newConnectService[metarrv1connect.StatsServiceHandler](
 			metarrv1connect.NewStatsServiceHandler,
 			&services.StatsServer{Handlers: apiHandlers},
-			sessions,
 			services.StatsAuthPolicies,
 		),
 	}
@@ -449,7 +414,6 @@ func run() error {
 		metarrv1connect.TokenServiceName,
 		metarrv1connect.ConfigServiceName,
 		metarrv1connect.AdminServiceName,
-		metarrv1connect.ApiKeyServiceName,
 		metarrv1connect.AgentServiceName,
 		metarrv1connect.DirectoryScannerServiceName,
 		metarrv1connect.LoggingServiceName,
@@ -466,7 +430,7 @@ func run() error {
 		httpserver.ConnectService{Path: reflectPathV1Alpha, Handler: reflectHandlerV1Alpha},
 	)
 
-	router := httpserver.NewRouter(apiHandlers, sessions, logger, uiFS, connectServices)
+	router := httpserver.NewRouter(apiHandlers, logger, uiFS, connectServices)
 	server := httpserver.New(cfg.Host, cfg.Port, router)
 
 	serverErr := make(chan error, 1)
@@ -494,16 +458,13 @@ func run() error {
 }
 
 // syncHTTPClientEnv updates the JetBrains HTTP Client's per-developer
-// secrets file with whichever of the freshly bootstrapped API keys or
-// admin password apply this run — apiKeys is nil, or adminPassword is "",
-// when that part wasn't (re)generated — if the developer has one at the
-// project root; it's a no-op, not an error, if the file doesn't exist.
-// One read and one write handle both fields together, rather than the
-// caller sync-ing each separately. The file is read as a generic map
-// rather than a typed struct because it's IDE-managed and carries fields
-// Go doesn't own — a generic round-trip only touches the fields this call
-// was asked to set and leaves everything else exactly as it was.
-func syncHTTPClientEnv(apiKeys *appconfig.APIKeysConfig, adminPassword string) error {
+// secrets file with the freshly bootstrapped admin password, if the
+// developer has one at the project root; it's a no-op, not an error, if the
+// file doesn't exist. The file is read as a generic map rather than a typed
+// struct because it's IDE-managed and carries fields Go doesn't own — a
+// generic round-trip only touches the field this call was asked to set and
+// leaves everything else exactly as it was.
+func syncHTTPClientEnv(adminPassword string) error {
 	data, err := os.ReadFile(httpClientEnvFile)
 	if os.IsNotExist(err) {
 		return nil
@@ -520,12 +481,6 @@ func syncHTTPClientEnv(apiKeys *appconfig.APIKeysConfig, adminPassword string) e
 	local, _ := envFile["local"].(map[string]any)
 	if local == nil {
 		local = map[string]any{}
-	}
-	if apiKeys != nil {
-		local["api_key_admin"] = apiKeys.Admin[0].ApiKey
-		local["api_key_user"] = apiKeys.User[0].ApiKey
-		local["api_key_webhook"] = apiKeys.Webhook[0].ApiKey
-		local["api_key_read_only"] = apiKeys.ReadOnly[0].ApiKey
 	}
 	if adminPassword != "" {
 		local["admin_pass"] = adminPassword

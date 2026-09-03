@@ -19,15 +19,15 @@ import (
 	"Metarr/internal/shared/correlation"
 )
 
-// AuthServer implements metarrv1connect.AuthServiceHandler, ported directly
-// from internal/server/handlers/auth.go — same session/passwordhash calls,
-// only the transport changed.
+// AuthServer implements metarrv1connect.AuthServiceHandler: password login
+// that mints a session JWT, a client-side logout, and the pre-login scheme
+// probe.
 type AuthServer struct {
 	*handlers.Handlers
 }
 
 // AuthAuthPolicies is this service's method-name -> policy map. Login and
-// GetAuthScheme need no API key at all: Login mints the session, and
+// GetAuthScheme need no JWT at all: Login mints the session token, and
 // GetAuthScheme is the pre-login probe the UI calls on a cold load to decide
 // whether to show the login gate (docs/adr/0012).
 var AuthAuthPolicies = map[string]httpserver.RPCPolicy{
@@ -72,7 +72,7 @@ func (s *AuthServer) Login(
 	expiresAt := time.Now().Unix() + sessionTTL
 
 	return connect.NewResponse(&metarrv1.AuthServiceLoginResponse{
-		JwtToken: token,
+		JwtToken:  token,
 		ExpiresAt: expiresAt,
 	}), nil
 }
@@ -91,18 +91,14 @@ func (s *AuthServer) GetAuthScheme(
 	}), nil
 }
 
+// Logout is a client-side operation: JWTs are stateless, so there is no
+// server-side session to end — the client discards its token. This endpoint
+// stays so the UI has a call to make on logout and so a future audit-log
+// hook has somewhere to live.
 func (s *AuthServer) Logout(
 	ctx context.Context,
 	req *connect.Request[metarrv1.AuthServiceLogoutRequest],
 ) (*connect.Response[metarrv1.AuthServiceLogoutResponse], error) {
-	correlationID := correlation.FromContext(ctx)
-	apiKey := auth.APIKeyFromContext(ctx)
-
-	if err := s.Sessions.Delete(ctx, apiKey); err != nil {
-		s.Logger.Error("failed to delete session", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to log out"))
-	}
-
 	return connect.NewResponse(&metarrv1.AuthServiceLogoutResponse{Status: "logged_out"}), nil
 }
 
@@ -152,8 +148,16 @@ func (s *TokenServer) IssueToken(
 		return nil, connectError(http.StatusInternalServerError, errors.New("authentication configuration error"))
 	}
 
+	// name identifies the integration the token is for; it becomes the JWT
+	// subject so an issued token is traceable back to who asked for it.
+	// Falls back to a generic label when the caller names nothing.
+	subject := req.Msg.GetName()
+	if subject == "" {
+		subject = "integration"
+	}
+
 	roleStr := roleFromAccessLevel(role)
-	token, err := jwt.SignJWT("integration", roleStr, ttl, secret)
+	token, err := jwt.SignJWT(subject, roleStr, ttl, secret)
 	if err != nil {
 		s.Logger.Error("failed to create JWT", "correlation_id", correlationID, "error", err)
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to create token"))
@@ -162,7 +166,7 @@ func (s *TokenServer) IssueToken(
 	expiresAt := time.Now().Unix() + int64(ttl)
 
 	return connect.NewResponse(&metarrv1.IssueTokenResponse{
-		JwtToken: token,
+		JwtToken:  token,
 		ExpiresAt: expiresAt,
 	}), nil
 }

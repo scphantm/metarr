@@ -424,3 +424,7 @@ Metarr.code-workspace
 .vscode/
 cmd/metarr-agent/__debug_*
 cmd/metarr-server/__debug_*
+
+# Compiled binaries built at the repo root
+/metarr-server
+/metarr-agent

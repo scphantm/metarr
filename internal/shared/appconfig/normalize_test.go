@@ -9,9 +9,6 @@ import "testing"
 func TestNormalizeFillsEveryNilSection(t *testing.T) {
 	config := Normalize(&Config{})
 
-	if config.ApiKeys == nil {
-		t.Error("ApiKeys is nil")
-	}
 	if config.Admin == nil {
 		t.Error("Admin is nil")
 	}

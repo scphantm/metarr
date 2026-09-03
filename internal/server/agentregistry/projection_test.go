@@ -13,24 +13,16 @@ import (
 // them by value. Each is distinctive enough that finding one in the encoded
 // projection is unambiguous.
 const (
-	adminKeySecret    = "SECRET-admin-api-key"
-	userKeySecret     = "SECRET-user-api-key"
-	webhookKeySecret  = "SECRET-webhook-api-key"
-	readOnlyKeySecret = "SECRET-readonly-api-key"
-	passwordHash      = "SECRET-password-hash"
-	passwordSalt      = "SECRET-password-salt"
-	sonarrKeySecret   = "SECRET-sonarr-api-key"
-	sonarrURLSecret   = "SECRET-sonarr-url.example.com"
+	hmacSecret      = "SECRET-hmac-signing-key"
+	passwordHash    = "SECRET-password-hash"
+	passwordSalt    = "SECRET-password-salt"
+	sonarrKeySecret = "SECRET-sonarr-api-key"
+	sonarrURLSecret = "SECRET-sonarr-url.example.com"
 )
 
 func configWithEverySecret() *appconfig.Config {
 	return &appconfig.Config{
-		ApiKeys: &appconfig.APIKeysConfig{
-			Admin:    []*appconfig.APIKeyEntry{{Name: "admin", ApiKey: adminKeySecret}},
-			User:     []*appconfig.APIKeyEntry{{Name: "user", ApiKey: userKeySecret}},
-			Webhook:  []*appconfig.APIKeyEntry{{Name: "webhook", ApiKey: webhookKeySecret}},
-			ReadOnly: []*appconfig.APIKeyEntry{{Name: "readonly", ApiKey: readOnlyKeySecret}},
-		},
+		Auth: &appconfig.AuthConfig{HmacSecret: hmacSecret},
 		Admin: &appconfig.AdminUser{
 			Username:     "admin",
 			Email:        "admin@example.com",
@@ -83,8 +75,7 @@ func TestProjectionNeverCarriesASecret(t *testing.T) {
 		body := string(encoded)
 
 		for _, secret := range []string{
-			adminKeySecret, userKeySecret, webhookKeySecret, readOnlyKeySecret,
-			passwordHash, passwordSalt, sonarrKeySecret, sonarrURLSecret,
+			hmacSecret, passwordHash, passwordSalt, sonarrKeySecret, sonarrURLSecret,
 		} {
 			if strings.Contains(body, secret) {
 				t.Errorf("projection for %q leaked %q:\n%s", slug, secret, body)

@@ -3,59 +3,9 @@ package bootstrap
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
-
-	"github.com/google/uuid"
 
 	"Metarr/internal/shared/appconfig"
 )
-
-// guidPlaceholder marks a field in builtin_defaults.json that must become a
-// freshly generated, install-unique value rather than a fixed default —
-// currently only API key ids and secrets. Sidecar-type ids are never
-// templated: MergeMissingSidecarTypes identifies a built-in by id across
-// restarts, so a regenerated id would duplicate every built-in on the next
-// one.
-const guidPlaceholder = "{guid}"
-
-// apiKeysSeedStep generates the four default API key categories the first
-// time the app starts against a database with none configured — mirroring
-// how this used to be seeded by config/mongo-init.js. seeded is set to
-// true iff this call actually generated keys, since Run needs that to know
-// whether to report them (an ordinary restart must not re-report keys that
-// were already shown once).
-func apiKeysSeedStep(template []byte, seeded *bool) func(cfg *appconfig.Config) (bool, error) {
-	return func(cfg *appconfig.Config) (bool, error) {
-		if len(cfg.ApiKeys.Admin) != 0 || len(cfg.ApiKeys.User) != 0 ||
-			len(cfg.ApiKeys.Webhook) != 0 || len(cfg.ApiKeys.ReadOnly) != 0 {
-			return false, nil
-		}
-
-		resolved, err := resolveGUIDsJSON(template)
-		if err != nil {
-			return false, err
-		}
-
-		var parsed struct {
-			Admin    appconfig.APIKeyEntry `json:"admin"`
-			User     appconfig.APIKeyEntry `json:"user"`
-			Webhook  appconfig.APIKeyEntry `json:"webhook"`
-			ReadOnly appconfig.APIKeyEntry `json:"read_only"`
-		}
-		if err := json.Unmarshal(resolved, &parsed); err != nil {
-			return false, err
-		}
-
-		cfg.ApiKeys = &appconfig.APIKeysConfig{
-			Admin:    []*appconfig.APIKeyEntry{&parsed.Admin},
-			User:     []*appconfig.APIKeyEntry{&parsed.User},
-			Webhook:  []*appconfig.APIKeyEntry{&parsed.Webhook},
-			ReadOnly: []*appconfig.APIKeyEntry{&parsed.ReadOnly},
-		}
-		*seeded = true
-		return true, nil
-	}
-}
 
 // directoryScannerDefaultsStep seeds the directory scanner config the first
 // time the app starts against this database (a fresh install, or an
@@ -118,61 +68,6 @@ func sidecarTypesMergeMissingStep(added *int) func(cfg *appconfig.Config) (bool,
 		cfg.DirectoryScanner.SidecarTypes = merged
 		*added = n
 		return true, nil
-	}
-}
-
-// apiKeyIDsBackfillStep mints an id for any API key entry stored before the
-// id field existed, which would otherwise be unaddressable by the scoped
-// upsert/delete operations that key on it. minted receives how many were
-// minted, for Run's report.
-func apiKeyIDsBackfillStep(minted *int) func(cfg *appconfig.Config) (bool, error) {
-	return func(cfg *appconfig.Config) (bool, error) {
-		n := appconfig.BackfillAPIKeyIDs(cfg.ApiKeys)
-		if n == 0 {
-			return false, nil
-		}
-		*minted = n
-		return true, nil
-	}
-}
-
-// resolveGUIDsJSON parses raw as generic JSON, replaces every string value
-// that is exactly guidPlaceholder with an independently generated UUID, and
-// re-marshals the result. It operates on the parsed tree rather than raw
-// text specifically so only a whole-value match ("{guid}", not
-// "prefix{guid}suffix") is ever substituted.
-func resolveGUIDsJSON(raw []byte) ([]byte, error) {
-	var generic any
-	if err := json.Unmarshal(raw, &generic); err != nil {
-		return nil, err
-	}
-	return json.Marshal(resolveGUIDs(generic))
-}
-
-// resolveGUIDs walks a value produced by json.Unmarshal(_, *any) — string,
-// map[string]any, []any, or a scalar — substituting guidPlaceholder strings
-// in place. Every occurrence gets its own freshly generated UUID: reusing
-// one value across occurrences would, for example, give every seeded API
-// key the same id.
-func resolveGUIDs(v any) any {
-	switch val := v.(type) {
-	case string:
-		if val == guidPlaceholder {
-			return uuid.NewString()
-		}
-		return val
-	case map[string]any:
-		for k, item := range val {
-			val[k] = resolveGUIDs(item)
-		}
-		return val
-	case []any:
-		for i, item := range val {
-			val[i] = resolveGUIDs(item)
-		}
-		return val
-	default:
-		return val
 	}
 }
 

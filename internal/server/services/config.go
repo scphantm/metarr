@@ -16,7 +16,7 @@ import (
 // read-only aggregate. GetConfig returns the whole Config document so the UI
 // can paint every settings screen from one call. It has no write — every
 // mutation goes through the per-resource service that owns that section
-// (AdminService, ApiKeyService, SonarrInterfaceService, …), so ADR-0001 is
+// (AdminService, SonarrInterfaceService, …), so ADR-0001 is
 // untouched (docs/adr/0010).
 type ConfigServer struct {
 	*handlers.Handlers

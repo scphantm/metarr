@@ -57,21 +57,6 @@ func TestRun_SeedsEverythingOnADatabasePredatingAllFields(t *testing.T) {
 		t.Fatalf("unexpected error reading final config: %v", err)
 	}
 
-	if report.APIKeys == nil {
-		t.Fatal("expected API keys to be reported as seeded")
-	}
-	for name, entries := range map[string][]*appconfig.APIKeyEntry{
-		"admin": report.APIKeys.Admin, "user": report.APIKeys.User,
-		"webhook": report.APIKeys.Webhook, "read_only": report.APIKeys.ReadOnly,
-	} {
-		if len(entries) != 1 {
-			t.Fatalf("%s: expected exactly one seeded entry, got %d", name, len(entries))
-		}
-		if entries[0].Id == "" || entries[0].ApiKey == "" {
-			t.Fatalf("%s: expected a generated id and key, got %+v", name, entries[0])
-		}
-	}
-
 	if report.Admin.Username == "" || report.Admin.Password == "" {
 		t.Fatalf("expected a seeded admin account, got %+v", report.Admin)
 	}
@@ -118,8 +103,8 @@ func TestRun_CostsOnlyTwoMongoRoundTrips(t *testing.T) {
 	if report.FinalConfig.DirectoryScanner.ParallelCount == 0 {
 		t.Error("Report.FinalConfig does not reflect the static-config step's writes")
 	}
-	if len(report.FinalConfig.ApiKeys.Admin) != 1 {
-		t.Error("Report.FinalConfig does not reflect the api_keys_seed step's writes")
+	if report.FinalConfig.Auth.HmacSecret == "" {
+		t.Error("Report.FinalConfig does not reflect the hmac_secret_seed step's writes")
 	}
 }
 
@@ -153,8 +138,8 @@ func TestRun_AgreesWithDefaultOnTheStaticSections(t *testing.T) {
 func TestRun_OnAFreshInstallOnlySeedsWhatDefaultLeftEmpty(t *testing.T) {
 	// mongostore.AppConfigRepo.Get already returns appconfig.Default() when
 	// nothing is stored, so a genuinely fresh install's first read is
-	// Default(), not appconfig.Config{}. Only API keys and the admin
-	// account should still need seeding from there.
+	// Default(), not appconfig.Config{}. Only the HMAC signing secret and
+	// the admin account should still need seeding from there.
 	store, backend := newStoreOn(appconfig.Default())
 
 	report, err := Run(context.Background(), store)
@@ -162,8 +147,8 @@ func TestRun_OnAFreshInstallOnlySeedsWhatDefaultLeftEmpty(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if report.APIKeys == nil {
-		t.Fatal("expected API keys to be seeded even on a fresh install")
+	if !report.HmacSecretGenerated {
+		t.Fatal("expected the HMAC secret to be seeded even on a fresh install")
 	}
 	if report.Admin.Username == "" {
 		t.Fatal("expected the admin account to be seeded even on a fresh install")
@@ -171,15 +156,12 @@ func TestRun_OnAFreshInstallOnlySeedsWhatDefaultLeftEmpty(t *testing.T) {
 	if report.SidecarTypesAdded != 0 {
 		t.Errorf("SidecarTypesAdded = %d, want 0: the table was already complete", report.SidecarTypesAdded)
 	}
-	if report.APIKeyIDsBackfilled != 0 {
-		t.Errorf("APIKeyIDsBackfilled = %d, want 0: nothing existed yet to backfill", report.APIKeyIDsBackfilled)
-	}
 
-	// Two writes: API keys (seeded) and admin (seeded via SeedAdmin).
+	// Two writes: the HMAC secret (seeded) and admin (seeded via SeedAdmin).
 	// Everything else was already populated by Default() and must not
 	// trigger a write.
 	if backend.upsertCalls != 2 {
-		t.Errorf("upsertCalls = %d, want 2 (api_keys_seed + admin_seed only)", backend.upsertCalls)
+		t.Errorf("upsertCalls = %d, want 2 (hmac_secret_seed + admin_seed only)", backend.upsertCalls)
 	}
 }
 
@@ -198,9 +180,6 @@ func TestRun_IsIdempotentOnASecondRun(t *testing.T) {
 
 	if backend.upsertCalls != afterFirst {
 		t.Errorf("second run performed %d additional writes, want 0", backend.upsertCalls-afterFirst)
-	}
-	if report.APIKeys != nil {
-		t.Error("second run should not re-report API keys that already existed")
 	}
 	if report.Admin.Password != "" {
 		t.Error("second run should not re-report an admin password that already existed")

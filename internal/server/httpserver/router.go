@@ -10,7 +10,6 @@ import (
 
 	_ "Metarr/api"
 	"Metarr/internal/server/handlers"
-	"Metarr/internal/server/session"
 )
 
 // ThrottledInterval caps the heartbeat and auth (login/logout) endpoints at
@@ -39,7 +38,7 @@ type ConnectService struct {
 // migration plan and internal/server/services for each domain's service.
 // If uiFS is provided (non-nil), the router also serves the embedded UI
 // at the root path (/) with SPA fallback.
-func NewRouter(h *handlers.Handlers, sessions *session.Store, logger *slog.Logger, uiFS fs.FS, connectServices []ConnectService) http.Handler {
+func NewRouter(h *handlers.Handlers, logger *slog.Logger, uiFS fs.FS, connectServices []ConnectService) http.Handler {
 	mux := http.NewServeMux()
 
 	for _, svc := range connectServices {
