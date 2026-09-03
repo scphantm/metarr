@@ -4,8 +4,8 @@ import "sync/atomic"
 
 // current is the process-wide singleton holding the live application
 // config. It's read lock-free by anything that needs config values, and
-// swapped atomically by the system_config_update listener whenever the
-// config changes.
+// swapped atomically by the config propagator on every synchronous config
+// write.
 var current atomic.Pointer[Config]
 
 func init() {

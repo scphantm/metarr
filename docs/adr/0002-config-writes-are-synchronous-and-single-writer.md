@@ -43,8 +43,8 @@ timer regardless.
 ## Consequences
 
 - **The `system_config_update` Redis stream, its consumer group, its event name, and
-  `RegisterSystemConfigUpdateListener` are removed.** `config_propagator.Apply` becomes a plain function the store calls
-  after the write, minus the persist step it used to own.
+  `RegisterSystemConfigUpdateListener` are removed.** The config propagator keeps one entry point, `PropagateInProcess`,
+  which the store calls after its own write; the persist step the old listener path owned is gone.
 - **No long-running operations.** The write is done when the RPC returns, so there is no `Operation` to poll —
   `OperationsService`, the `Operation` message, and the `config_operations` Mongo collection are removed (ADR-0010).
 - **A persistence failure reaches the caller synchronously**, as a Connect `Internal` on the call, instead of surfacing

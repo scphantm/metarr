@@ -20,9 +20,7 @@ describe("useSaveState", () => {
 
   it("goes idle → saving → confirmed → idle and shows the in-flight value while saving", async () => {
     let resolve!: () => void;
-    const run = vi.fn(
-      () => new Promise<void>((r) => (resolve = r)),
-    );
+    const run = vi.fn(() => new Promise<void>((r) => (resolve = r)));
     const { result } = renderHook(() => useSaveState({ serverValue: "a" }));
 
     void act(() => {
