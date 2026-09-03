@@ -70,6 +70,7 @@ help:
 	@echo ""
 	@echo "DOCUMENTATION (from make/docs.mk):"
 	@echo "  make docs-install     Install documentation dependencies"
+	@echo "  make docs-clean       Cleans the NPM Dependencies"
 	@echo "  make docs-build       Build the Antora documentation site"
 	@echo "  make docs-serve       Start a local documentation server"
 	@echo "  make docs-shell       Launch interactive shell in documentation container (for debugging)"
