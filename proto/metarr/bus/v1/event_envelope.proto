@@ -18,7 +18,7 @@ option go_package = "Metarr/internal/genproto/metarr/bus/v1;busv1";
 // dispatches on `name` regardless.
 message EventEnvelope {
   // name is the dispatch discriminator, e.g. "agent.scan" or
-  // "system_config_update". Consumers switch on it to choose a payload type.
+  // "agent.scan_result". Consumers switch on it to choose a payload type.
   string name = 1;
 
   // source is the process that published the event: "metarr-server" or

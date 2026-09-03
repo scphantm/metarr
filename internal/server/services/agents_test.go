@@ -151,7 +151,7 @@ func newTestAgentServer(t *testing.T, seed *appconfig.Config) (*AgentServer, *fa
 	t.Cleanup(func() { _ = client.Close() })
 
 	backend := &fakeConfigBackend{cfg: seed}
-	store := appconfigstore.New(backend, backend, backend)
+	store := appconfigstore.New(backend, backend)
 	// bus is nil: List / Forget never touch it, and no test here publishes a
 	// projection.
 	registry := agentregistry.New(client, nil, slog.Default())

@@ -45,13 +45,6 @@ const (
 
 // Fixed Redis Streams and the consumer groups that read them.
 const (
-	// SystemConfigUpdateStream is the Redis Stream the system_config_update
-	// event is fired on when the application config is changed via the API.
-	SystemConfigUpdateStream = "events.system_config_update"
-	// SystemConfigUpdateGroup is the consumer group used to read
-	// SystemConfigUpdateStream.
-	SystemConfigUpdateGroup = "system_config_update_group"
-
 	// AgentScanResultStream is the shared Redis Stream the agents report their
 	// scan results on. Scanning itself is addressed to one agent over its own
 	// command stream (AgentCommandStream) because a filesystem only exists on
@@ -72,9 +65,6 @@ const (
 
 // Event-name discriminators carried in the Event envelope's Name field.
 const (
-	// SystemConfigUpdateEventName is carried by a system_config_update event.
-	SystemConfigUpdateEventName = "system_config_update"
-
 	// AgentScanCommandEventName asks an agent to walk one mapped directory.
 	AgentScanCommandEventName = "agent.scan"
 	// AgentScanResultEventName carries one scanned item directory back.
@@ -242,7 +232,6 @@ const streamScanCount = 100
 // DiscoverStreamTopics expands the pattern against live Redis.
 func StreamTopics() []Topic {
 	return []Topic{
-		SystemConfigUpdateTopic().Topic,
 		AgentScanResultTopic().Topic,
 		agentNodeResultTopic().Topic,
 		agentCommandStreamPatternTopic().Topic,
@@ -322,18 +311,6 @@ func matchesStreamGlob(pattern, name string) bool {
 	return len(name) >= len(prefix)+len(suffix) &&
 		strings.HasPrefix(name, prefix) &&
 		strings.HasSuffix(name, suffix)
-}
-
-// SystemConfigUpdateTopic is the stream the server's config-update listener
-// registers on.
-func SystemConfigUpdateTopic() StreamTopic {
-	return StreamTopic{Topic{
-		Name:     SystemConfigUpdateStream,
-		Kind:     KindStream,
-		Group:    SystemConfigUpdateGroup,
-		Consumed: true,
-		Events:   []string{SystemConfigUpdateEventName},
-	}}
 }
 
 // AgentScanResultTopic is the shared stream the server's scan-result

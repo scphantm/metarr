@@ -17,7 +17,7 @@ import (
 
 func newTestApiKeyServer(seed *appconfig.Config) (*ApiKeyServer, *fakeConfigBackend) {
 	backend := &fakeConfigBackend{cfg: seed}
-	store := appconfigstore.New(backend, backend, backend)
+	store := appconfigstore.New(backend, backend)
 	return &ApiKeyServer{Handlers: &handlers.Handlers{
 		AppConfigStore: store,
 		Logger:         slog.Default(),

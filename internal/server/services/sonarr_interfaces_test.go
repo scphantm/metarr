@@ -17,7 +17,7 @@ import (
 
 func newTestSonarrServer(seed *appconfig.Config) (*SonarrInterfaceServer, *fakeConfigBackend) {
 	backend := &fakeConfigBackend{cfg: seed}
-	store := appconfigstore.New(backend, backend, backend)
+	store := appconfigstore.New(backend, backend)
 	return &SonarrInterfaceServer{Handlers: &handlers.Handlers{
 		AppConfigStore: store,
 		Logger:         slog.Default(),

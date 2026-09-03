@@ -35,7 +35,7 @@ const (
 type EventEnvelope struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// name is the dispatch discriminator, e.g. "agent.scan" or
-	// "system_config_update". Consumers switch on it to choose a payload type.
+	// "agent.scan_result". Consumers switch on it to choose a payload type.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// source is the process that published the event: "metarr-server" or
 	// "metarr-agent-{slug}". It matches the logging `source` convention. The

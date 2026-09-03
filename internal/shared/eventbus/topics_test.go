@@ -35,6 +35,12 @@ func TestStreamTopicTable(t *testing.T) {
 		t.Errorf("%s should be reserved-unconsumed, got %+v", AgentNodeResultStream, node)
 	}
 
+	// The removed system_config_update stream must not be back: the async
+	// config-write path it fed no longer exists (scphantm/metarr#96).
+	if _, resurrected := byName["events.system_config_update"]; resurrected {
+		t.Error("events.system_config_update is in the durable stream topic table again")
+	}
+
 	// Exactly one pattern row, for the per-agent command streams.
 	patterns := 0
 	for _, topic := range StreamTopics() {
@@ -158,7 +164,6 @@ func TestKnownPubSubChannelsUnchanged(t *testing.T) {
 // unknown name are rejected.
 func TestStreamTopicPublishableGuard(t *testing.T) {
 	ok := []Topic{
-		SystemConfigUpdateTopic().Topic,
 		AgentScanResultTopic().Topic,
 		agentNodeResultTopic().Topic,
 		AgentCommandTopic("nas-01").Topic,
@@ -221,7 +226,7 @@ func TestDiscoverStreamTopicsExpandsPerAgentStreams(t *testing.T) {
 	}
 
 	// The static rows are still present, unchanged.
-	if !containsTopic(topics, SystemConfigUpdateStream) || !containsTopic(topics, AgentNodeResultStream) {
+	if !containsTopic(topics, AgentScanResultStream) || !containsTopic(topics, AgentNodeResultStream) {
 		t.Errorf("discovery dropped a static row: %+v", topics)
 	}
 }
@@ -242,7 +247,7 @@ func TestSlugAndGroupRoundTrip(t *testing.T) {
 
 	for _, notAStream := range []string{
 		"", "events.agent..commands", "events.agent.nas.01.commands",
-		"events.agent_scan_results", "events.system_config_update",
+		"events.agent_scan_results", "events.agent_node_results",
 	} {
 		if got := groupForAgentCommandStream(notAStream); got != "" {
 			t.Errorf("groupForAgentCommandStream(%q) = %q, want empty", notAStream, got)
@@ -354,7 +359,6 @@ func wantRequestTopic(RequestTopic) {}
 // ErrWrongKind. These calls fail to build if a constructor's return type is
 // ever widened back to a bare Topic or changed to the wrong wrapper.
 func TestTopicConstructorsReturnTheKindTypedWrapper(t *testing.T) {
-	wantStreamTopic(SystemConfigUpdateTopic())
 	wantStreamTopic(AgentScanResultTopic())
 	wantStreamTopic(AgentCommandTopic("nas-01"))
 	wantNotifyTopic(LogTopic())
@@ -363,7 +367,7 @@ func TestTopicConstructorsReturnTheKindTypedWrapper(t *testing.T) {
 	wantRequestTopic(AgentRequestTopic("nas-01"))
 
 	// The embedded row still carries the matching Kind.
-	if SystemConfigUpdateTopic().Kind != KindStream ||
+	if AgentScanResultTopic().Kind != KindStream ||
 		LogTopic().Kind != KindNotify ||
 		HeartbeatTopic().Kind != KindRequestReply {
 		t.Fatal("a wrapper's embedded Topic.Kind disagrees with its wrapper type")

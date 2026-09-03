@@ -205,8 +205,8 @@ func TestBusRetriesThenDropsUnprocessableMessage(t *testing.T) {
 	bus := newChannelBus(t, SourceServer, nil)
 
 	var calls atomic.Int32
-	if err := bus.HandleStream(SystemConfigUpdateTopic(), map[string]StreamHandler{
-		SystemConfigUpdateEventName: func(_ context.Context, _ *Event) error {
+	if err := bus.HandleStream(AgentScanResultTopic(), map[string]StreamHandler{
+		AgentScanResultEventName: func(_ context.Context, _ *Event) error {
 			calls.Add(1)
 			return errUnreachable
 		},
@@ -215,7 +215,7 @@ func TestBusRetriesThenDropsUnprocessableMessage(t *testing.T) {
 	}
 	runBus(t, bus)
 
-	mustPublish(t, bus, SystemConfigUpdateTopic(), SystemConfigUpdateEventName, "corr", []byte(`{}`))
+	mustPublish(t, bus, AgentScanResultTopic(), AgentScanResultEventName, "corr", []byte(`{}`))
 
 	want := int32(testPolicy().MaxAttempts + 1)
 	deadline := time.Now().Add(3 * time.Second)
@@ -262,7 +262,7 @@ func TestBusBusinessFailureReturningNilIsNotRetried(t *testing.T) {
 
 func TestBusPublishRejectsOffTableName(t *testing.T) {
 	bus := newChannelBus(t, SourceServer, nil)
-	err := bus.Publish(context.Background(), SystemConfigUpdateTopic(), "not.a.real.event", "corr", nil)
+	err := bus.Publish(context.Background(), AgentScanResultTopic(), "not.a.real.event", "corr", nil)
 	if !errors.Is(err, ErrUnknownEvent) {
 		t.Fatalf("err = %v, want ErrUnknownEvent", err)
 	}
@@ -288,7 +288,7 @@ func TestBusPublishRejectsPatternTopic(t *testing.T) {
 
 func TestBusHandleStreamRejectsUnknownEventKey(t *testing.T) {
 	bus := newChannelBus(t, SourceServer, nil)
-	err := bus.HandleStream(SystemConfigUpdateTopic(), map[string]StreamHandler{
+	err := bus.HandleStream(AgentScanResultTopic(), map[string]StreamHandler{
 		"bogus.event": func(context.Context, *Event) error { return nil },
 	})
 	if !errors.Is(err, ErrUnknownEvent) {
@@ -298,8 +298,8 @@ func TestBusHandleStreamRejectsUnknownEventKey(t *testing.T) {
 
 func TestBusRegistrationAfterRunIsRejected(t *testing.T) {
 	bus := newChannelBus(t, SourceServer, nil)
-	if err := bus.HandleStream(SystemConfigUpdateTopic(), map[string]StreamHandler{
-		SystemConfigUpdateEventName: func(context.Context, *Event) error { return nil },
+	if err := bus.HandleStream(AgentScanResultTopic(), map[string]StreamHandler{
+		AgentScanResultEventName: func(context.Context, *Event) error { return nil },
 	}); err != nil {
 		t.Fatalf("HandleStream: %v", err)
 	}
@@ -315,8 +315,8 @@ func TestBusRegistrationAfterRunIsRejected(t *testing.T) {
 
 func TestBusSecondRunIsRejected(t *testing.T) {
 	bus := newChannelBus(t, SourceServer, nil)
-	if err := bus.HandleStream(SystemConfigUpdateTopic(), map[string]StreamHandler{
-		SystemConfigUpdateEventName: func(context.Context, *Event) error { return nil },
+	if err := bus.HandleStream(AgentScanResultTopic(), map[string]StreamHandler{
+		AgentScanResultEventName: func(context.Context, *Event) error { return nil },
 	}); err != nil {
 		t.Fatalf("HandleStream: %v", err)
 	}
@@ -332,7 +332,7 @@ func TestBusSecondRunIsRejected(t *testing.T) {
 // rather than returning a "Publish before Run" error.
 func TestBusPublishWorksBeforeRun(t *testing.T) {
 	bus := newChannelBus(t, SourceServer, nil)
-	if err := bus.Publish(context.Background(), SystemConfigUpdateTopic(), SystemConfigUpdateEventName, "early", []byte(`{}`)); err != nil {
+	if err := bus.Publish(context.Background(), AgentScanResultTopic(), AgentScanResultEventName, "early", []byte(`{}`)); err != nil {
 		t.Fatalf("Publish before Run: %v", err)
 	}
 }
@@ -341,8 +341,8 @@ func TestBusPublishWorksBeforeRun(t *testing.T) {
 // router ever reports itself running.
 func TestBusReadyUnblocksOnEarlyCancel(t *testing.T) {
 	bus := newChannelBus(t, SourceServer, nil)
-	if err := bus.HandleStream(SystemConfigUpdateTopic(), map[string]StreamHandler{
-		SystemConfigUpdateEventName: func(context.Context, *Event) error { return nil },
+	if err := bus.HandleStream(AgentScanResultTopic(), map[string]StreamHandler{
+		AgentScanResultEventName: func(context.Context, *Event) error { return nil },
 	}); err != nil {
 		t.Fatalf("HandleStream: %v", err)
 	}
@@ -382,8 +382,8 @@ func TestBusRunSetupFailureIsRecoverable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	if err := bus.HandleStream(SystemConfigUpdateTopic(), map[string]StreamHandler{
-		SystemConfigUpdateEventName: func(context.Context, *Event) error { return nil },
+	if err := bus.HandleStream(AgentScanResultTopic(), map[string]StreamHandler{
+		AgentScanResultEventName: func(context.Context, *Event) error { return nil },
 	}); err != nil {
 		t.Fatalf("HandleStream: %v", err)
 	}

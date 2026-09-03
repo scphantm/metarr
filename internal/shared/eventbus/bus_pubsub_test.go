@@ -191,8 +191,8 @@ func TestBusRunDrivesStreamAndPubSubUnderOneCall(t *testing.T) {
 	bus := newPubSubBus(t, SourceServer)
 
 	streamGot := make(chan string, 1)
-	if err := bus.HandleStream(SystemConfigUpdateTopic(), map[string]StreamHandler{
-		SystemConfigUpdateEventName: func(_ context.Context, e *Event) error {
+	if err := bus.HandleStream(AgentScanResultTopic(), map[string]StreamHandler{
+		AgentScanResultEventName: func(_ context.Context, e *Event) error {
 			streamGot <- e.GetCorrelationId()
 			return nil
 		},
@@ -208,7 +208,7 @@ func TestBusRunDrivesStreamAndPubSubUnderOneCall(t *testing.T) {
 	runBus(t, bus)
 
 	ctx := context.Background()
-	if err := bus.Publish(ctx, SystemConfigUpdateTopic(), SystemConfigUpdateEventName, "s1", []byte(`{}`)); err != nil {
+	if err := bus.Publish(ctx, AgentScanResultTopic(), AgentScanResultEventName, "s1", []byte(`{}`)); err != nil {
 		t.Fatalf("Publish: %v", err)
 	}
 	if err := bus.Notify(ctx, LogTopic(), []byte("log-line")); err != nil {

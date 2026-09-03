@@ -78,10 +78,10 @@ func TestPurgeAllStreams(t *testing.T) {
 	ctx := context.Background()
 
 	agentStream := AgentCommandStream("nas-01")
-	seedStreamEntry(t, client, SystemConfigUpdateStream, 40*time.Second)
-	seedStreamEntry(t, client, SystemConfigUpdateStream, 30*time.Second)
+	seedStreamEntry(t, client, AgentScanResultStream, 40*time.Second)
+	seedStreamEntry(t, client, AgentScanResultStream, 30*time.Second)
 	seedStreamEntry(t, client, agentStream, 25*time.Second)
-	// AgentScanResultStream left empty; AgentNodeResultStream never created.
+	// AgentNodeResultStream is never created.
 
 	results, err := PurgeAllStreams(ctx, client)
 	if err != nil {
@@ -93,20 +93,20 @@ func TestPurgeAllStreams(t *testing.T) {
 		dropped[r.Stream] = r.Dropped
 	}
 	for _, want := range []string{
-		SystemConfigUpdateStream, AgentScanResultStream, AgentNodeResultStream, agentStream,
+		AgentScanResultStream, AgentNodeResultStream, agentStream,
 	} {
 		if _, ok := dropped[want]; !ok {
 			t.Errorf("stream %q was not purged", want)
 		}
 	}
-	if dropped[SystemConfigUpdateStream] != 2 {
-		t.Errorf("%s dropped = %d, want 2", SystemConfigUpdateStream, dropped[SystemConfigUpdateStream])
+	if dropped[AgentScanResultStream] != 2 {
+		t.Errorf("%s dropped = %d, want 2", AgentScanResultStream, dropped[AgentScanResultStream])
 	}
 	if dropped[agentStream] != 1 {
 		t.Errorf("%s dropped = %d, want 1", agentStream, dropped[agentStream])
 	}
 
-	if n, _ := client.XLen(ctx, SystemConfigUpdateStream).Result(); n != 0 {
-		t.Errorf("%s length after purge-all = %d, want 0", SystemConfigUpdateStream, n)
+	if n, _ := client.XLen(ctx, AgentScanResultStream).Result(); n != 0 {
+		t.Errorf("%s length after purge-all = %d, want 0", AgentScanResultStream, n)
 	}
 }

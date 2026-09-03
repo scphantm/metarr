@@ -40,7 +40,6 @@ func TestCollectStreamsListsEveryStreamTopic(t *testing.T) {
 	streams, _, _ := sampler.collectStreams(context.Background())
 
 	for _, want := range []string{
-		eventbus.SystemConfigUpdateStream,
 		eventbus.AgentScanResultStream,
 		eventbus.AgentNodeResultStream,
 	} {
@@ -189,7 +188,7 @@ func TestPassKeepsSnapshotWhenOneStreamIsUnreadable(t *testing.T) {
 	// error rather than read as not-yet-created.
 	mr.Server().SetPreHook(func(c *server.Peer, cmd string, args ...string) bool {
 		if strings.EqualFold(cmd, "XINFO") && len(args) >= 2 &&
-			strings.EqualFold(args[0], "STREAM") && args[1] == eventbus.SystemConfigUpdateStream {
+			strings.EqualFold(args[0], "STREAM") && args[1] == eventbus.AgentScanResultStream {
 			c.WriteError("ERR simulated stream read failure")
 			return true
 		}
@@ -202,12 +201,12 @@ func TestPassKeepsSnapshotWhenOneStreamIsUnreadable(t *testing.T) {
 		t.Fatal("pass produced no snapshot")
 	}
 
-	bad := findStream(snap.GetStreams(), eventbus.SystemConfigUpdateStream)
+	bad := findStream(snap.GetStreams(), eventbus.AgentScanResultStream)
 	if bad == nil || bad.GetError() == "" {
 		t.Fatalf("the unreadable stream should carry an error, got %+v", bad)
 	}
 
-	if good := findStream(snap.GetStreams(), eventbus.AgentScanResultStream); good == nil || good.GetError() != "" {
+	if good := findStream(snap.GetStreams(), eventbus.AgentNodeResultStream); good == nil || good.GetError() != "" {
 		t.Errorf("a healthy stream row was lost or flagged: %+v", good)
 	}
 	if snap.GetServer() == nil || len(snap.GetServer().GetFieldErrors()) != 0 {

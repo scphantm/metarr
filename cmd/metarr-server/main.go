@@ -128,7 +128,7 @@ func run() error {
 		return err
 	}
 	appConfigRepo := mongostore.NewAppConfigRepo(mongoClient, cfg.MongoDatabase)
-	appConfigStore := appconfigstore.New(appConfigRepo, appConfigRepo, bus)
+	appConfigStore := appconfigstore.New(appConfigRepo, appConfigRepo)
 	localDirectoryRepo := mongostore.NewLocalDirectoryRepo(mongoClient, cfg.MongoDatabase)
 	workflowRepo := mongostore.NewWorkflowRepo(mongoClient, cfg.MongoDatabase)
 	sessions := session.NewStore(redisClient)
@@ -159,9 +159,9 @@ func run() error {
 	// Seeds the application config — API keys, the admin account,
 	// directory-scanner defaults, the sidecar classification table, and the
 	// one-time backfills earlier releases needed. Runs synchronously,
-	// straight to storage, before the system_config_update listener exists
-	// to persist a fired event; see docs/adr/0003 and docs/adr/0004. An
-	// ordinary restart with nothing left to seed costs no write.
+	// straight to storage, before the rest of the process is up; see
+	// docs/adr/0003 and docs/adr/0004. An ordinary restart with nothing left
+	// to seed costs no write.
 	bootstrapReport, err := bootstrap.Run(connectCtx, appConfigStore)
 	if err != nil {
 		return err
@@ -263,15 +263,11 @@ func run() error {
 	// the half that persists what they report. The age-based retention sweep
 	// runs inside bus.Run (Config.RetentionSweep) rather than as its own
 	// goroutine.
-	// The config propagator is shared: the system_config_update listener runs
-	// its Apply (persist + propagate) for the services that still fire an
-	// event, and the config store runs its PropagateInProcess after the
-	// synchronous MutateSync write (docs/adr/0002).
-	configPropagator := listeners.NewConfigPropagator(appConfigRepo, agentRegistry, logShipper, logger)
+	// The config store runs the propagator's PropagateInProcess after every
+	// synchronous MutateSync write, to make the change live in-process
+	// (docs/adr/0002).
+	configPropagator := listeners.NewConfigPropagator(agentRegistry, logShipper, logger)
 	appConfigStore.SetPropagator(configPropagator)
-	if err := listeners.RegisterSystemConfigUpdateListener(bus, configPropagator, logger); err != nil {
-		return err
-	}
 	if err := listeners.RegisterAgentScanResultListener(bus, localDirectoryRepo, logger); err != nil {
 		return err
 	}

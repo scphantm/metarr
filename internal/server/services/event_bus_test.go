@@ -17,7 +17,7 @@ import (
 
 func newTestEventBusServer(seed *appconfig.Config) (*EventBusServer, *fakeConfigBackend) {
 	backend := &fakeConfigBackend{cfg: seed}
-	store := appconfigstore.New(backend, backend, backend)
+	store := appconfigstore.New(backend, backend)
 	return &EventBusServer{Handlers: &handlers.Handlers{
 		AppConfigStore: store,
 		Logger:         slog.Default(),
