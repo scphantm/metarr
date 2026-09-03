@@ -169,7 +169,9 @@ exists on the machine that has it mounted.
 
 |`events.system_config_update`
 |`system_config_update_group`
-|Configuration writes.
+|Retained legacy consumer. Configuration writes are now synchronous and no longer
+publish here (see _Configuration writes are synchronous_); the stream and its
+listener remain as a fallback.
 
 |`events.sonarr_cache_data`
 |`sonarr_cache_data_group`
@@ -322,17 +324,22 @@ authorization concept attached to each route, not a mount point:
 Interactive API documentation is generated from annotations on the handlers and
 served at `/swagger/index.html`.
 
-== Configuration writes are eventually consistent
+== Configuration writes are synchronous
 
-Every configuration mutation is event-sourced rather than written directly. The
-handler reads the current document, applies the change, publishes the whole
-document as a `system_config_update` event, and returns `202 Accepted`. A
-listener persists it, swaps the in-memory singleton, recompiles the sidecar
-table, applies the new log level, and republishes each agent's projection.
+Every configuration mutation is a synchronous per-resource write. Each area is
+edited through its own resource service with the standard method set — `Create` /
+`Get` / `List` / `Update` / `Delete`, named per resource, no `Upsert`; `Update`
+carries a `google.protobuf.FieldMask` naming exactly which fields change. The
+service reads the current document under the config store's lock, applies the
+change, persists it to Mongo, then — still under the lock — swaps the in-memory
+singleton, recompiles the sidecar table, applies the new log level, and
+republishes each agent's projection. The stored resource is returned before the
+call completes; `Delete` returns empty. Validation failures come back on the same
+call as an error.
 
-The practical consequence: a write followed immediately by a read can race. The
-UI accounts for this by showing each save moving from *queued* to *confirmed*
-rather than claiming success on the response.
+There is no queue and no `Operation`: a read that follows a completed write sees
+the new value, so the UI writes each response straight into its cache with no
+*queued* → *confirmed* step.
 
 == Not yet built
 
