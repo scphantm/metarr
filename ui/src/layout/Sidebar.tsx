@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
 import { Button, Segmented, Typography } from "antd";
-import { PushpinFilled, PushpinOutlined } from "@ant-design/icons";
+import { PushpinFilled, PushpinOutlined, LockOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { useTheme } from "../theme/ThemeContext";
+import { useAuthScheme } from "../api/queries";
+import { AuthenticationScheme } from "../gen/metarr/v1/admin_pb";
 import "./Sidebar.css";
 
 /*
@@ -22,6 +25,10 @@ export function Sidebar({
 }) {
   const { theme, toggleTheme } = useTheme();
   const { username, expiresAt, logout } = useAuth();
+  const authScheme = useAuthScheme();
+  const navigate = useNavigate();
+
+  const schemeIsNone = authScheme.data === AuthenticationScheme.NONE;
 
   return (
     <aside className="sidebar" aria-label="Sidebar">
@@ -41,31 +48,49 @@ export function Sidebar({
         ) : null}
       </div>
 
-      <section className="sidebar-section">
-        <Typography.Text type="secondary" className="sidebar-section-title">
-          Session
-        </Typography.Text>
-        <div className="sidebar-session-card">
-          <div className="sidebar-session-name">{username ?? "Signed in"}</div>
-          {expiresAt ? (
-            <Typography.Text
-              type="secondary"
-              className="sidebar-session-expiry"
-            >
-              Expires {new Date(expiresAt).toLocaleTimeString()}
-            </Typography.Text>
-          ) : null}
+      {schemeIsNone ? (
+        <section className="sidebar-section">
+          <Typography.Text type="secondary" className="sidebar-section-title">
+            Security
+          </Typography.Text>
           <Button
-            type="link"
-            size="small"
+            type="text"
             danger
-            onClick={() => void logout()}
-            className="sidebar-signout"
+            icon={<LockOutlined />}
+            onClick={() => navigate("/system/security")}
+            className="sidebar-auth-disabled"
+            title="Authentication is disabled. Click to enable it."
           >
-            Sign out
+            Authentication disabled
           </Button>
-        </div>
-      </section>
+        </section>
+      ) : (
+        <section className="sidebar-section">
+          <Typography.Text type="secondary" className="sidebar-section-title">
+            Session
+          </Typography.Text>
+          <div className="sidebar-session-card">
+            <div className="sidebar-session-name">{username ?? "Signed in"}</div>
+            {expiresAt ? (
+              <Typography.Text
+                type="secondary"
+                className="sidebar-session-expiry"
+              >
+                Expires {new Date(expiresAt).toLocaleTimeString()}
+              </Typography.Text>
+            ) : null}
+            <Button
+              type="link"
+              size="small"
+              danger
+              onClick={() => void logout()}
+              className="sidebar-signout"
+            >
+              Sign out
+            </Button>
+          </div>
+        </section>
+      )}
 
       <section className="sidebar-section">
         <Typography.Text type="secondary" className="sidebar-section-title">
