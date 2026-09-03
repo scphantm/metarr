@@ -1,13 +1,18 @@
 package services
 
 import (
+	"context"
+	"io"
+	"log/slog"
 	"testing"
 
+	"connectrpc.com/connect"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
+	"Metarr/internal/server/handlers"
 	"Metarr/internal/server/mongostore"
 )
 
@@ -125,5 +130,138 @@ func TestWorkflowUpsertAcceptsAnEmptyGraph(t *testing.T) {
 	}
 	if stored.SchemaVersion != 1 {
 		t.Fatalf("SchemaVersion = %d, want 1", stored.SchemaVersion)
+	}
+}
+
+// newTestWorkflowServer builds a WorkflowServer backed by an in-memory
+// WorkflowStore — the fake-backed, handler-level seam the prefactor (#111)
+// exists to make possible.
+func newTestWorkflowServer(t *testing.T) (*WorkflowServer, *fakeWorkflowStore) {
+	t.Helper()
+	store := newFakeWorkflowStore()
+	return &WorkflowServer{
+		Handlers: &handlers.Handlers{Logger: slog.New(slog.NewTextHandler(io.Discard, nil))},
+		Store:    store,
+	}, store
+}
+
+func upsertReq(name, documentID string) *connect.Request[metarrv1.WorkflowServiceUpsertRequest] {
+	return connect.NewRequest(&metarrv1.WorkflowServiceUpsertRequest{
+		DocumentId:  documentID,
+		Name:        name,
+		Description: "d",
+		Tags:        []string{"t"},
+		Graph:       &metarrv1.WorkflowGraph{SchemaVersion: 1},
+	})
+}
+
+// TestWorkflowServerSeamRoundTrips drives the service end to end against the
+// fake store: create mints a document id at version 1, a second save on that
+// id appends version 2, and earlier versions stay fetchable.
+func TestWorkflowServerSeamRoundTrips(t *testing.T) {
+	srv, _ := newTestWorkflowServer(t)
+	ctx := context.Background()
+
+	created, err := srv.Upsert(ctx, upsertReq("first", ""))
+	if err != nil {
+		t.Fatalf("Upsert create: %v", err)
+	}
+	id := created.Msg.GetWorkflow().GetDocumentId()
+	if id == "" {
+		t.Fatal("created workflow has no document id")
+	}
+	if got := created.Msg.GetWorkflow().GetVersion(); got != 1 {
+		t.Fatalf("created version = %d, want 1", got)
+	}
+
+	got, err := srv.Get(ctx, connect.NewRequest(&metarrv1.WorkflowServiceGetRequest{Id: id}))
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got.Msg.GetWorkflow().GetName() != "first" {
+		t.Fatalf("Get name = %q, want %q", got.Msg.GetWorkflow().GetName(), "first")
+	}
+
+	updated, err := srv.Upsert(ctx, upsertReq("second", id))
+	if err != nil {
+		t.Fatalf("Upsert update: %v", err)
+	}
+	if got := updated.Msg.GetWorkflow().GetVersion(); got != 2 {
+		t.Fatalf("updated version = %d, want 2", got)
+	}
+
+	v1, err := srv.GetVersion(ctx, connect.NewRequest(&metarrv1.WorkflowServiceGetVersionRequest{Id: id, Version: 1}))
+	if err != nil {
+		t.Fatalf("GetVersion 1: %v", err)
+	}
+	if v1.Msg.GetWorkflow().GetName() != "first" {
+		t.Fatalf("version 1 name = %q, want %q", v1.Msg.GetWorkflow().GetName(), "first")
+	}
+
+	versions, err := srv.ListVersions(ctx, connect.NewRequest(&metarrv1.WorkflowServiceListVersionsRequest{Id: id}))
+	if err != nil {
+		t.Fatalf("ListVersions: %v", err)
+	}
+	if n := len(versions.Msg.GetVersions()); n != 2 {
+		t.Fatalf("ListVersions returned %d, want 2", n)
+	}
+
+	list, err := srv.List(ctx, connect.NewRequest(&metarrv1.WorkflowServiceListRequest{}))
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if n := len(list.Msg.GetWorkflows()); n != 1 {
+		t.Fatalf("List returned %d latest workflows, want 1", n)
+	}
+}
+
+// TestWorkflowServerListPaginatesThroughSeam pins that limit/cursor
+// pagination still threads through the interface unchanged.
+func TestWorkflowServerListPaginatesThroughSeam(t *testing.T) {
+	srv, _ := newTestWorkflowServer(t)
+	ctx := context.Background()
+
+	for _, name := range []string{"a", "b", "c"} {
+		if _, err := srv.Upsert(ctx, upsertReq(name, "")); err != nil {
+			t.Fatalf("Upsert %s: %v", name, err)
+		}
+	}
+
+	first, err := srv.List(ctx, connect.NewRequest(&metarrv1.WorkflowServiceListRequest{Limit: 2}))
+	if err != nil {
+		t.Fatalf("List page 1: %v", err)
+	}
+	if !first.Msg.GetHasMore() || first.Msg.GetNextCursor() == "" {
+		t.Fatalf("page 1 hasMore=%v nextCursor=%q, want more", first.Msg.GetHasMore(), first.Msg.GetNextCursor())
+	}
+	if n := len(first.Msg.GetWorkflows()); n != 2 {
+		t.Fatalf("page 1 returned %d, want 2", n)
+	}
+
+	second, err := srv.List(ctx, connect.NewRequest(&metarrv1.WorkflowServiceListRequest{
+		Limit:  2,
+		Cursor: first.Msg.GetNextCursor(),
+	}))
+	if err != nil {
+		t.Fatalf("List page 2: %v", err)
+	}
+	if n := len(second.Msg.GetWorkflows()); n != 1 {
+		t.Fatalf("page 2 returned %d, want 1", n)
+	}
+	if second.Msg.GetHasMore() {
+		t.Fatal("page 2 should be the last page")
+	}
+}
+
+// TestWorkflowServerGetUnknownIsNotFound pins the error mapping through the
+// seam: a versioned.ErrNotFound from the store becomes CodeNotFound.
+func TestWorkflowServerGetUnknownIsNotFound(t *testing.T) {
+	srv, _ := newTestWorkflowServer(t)
+
+	_, err := srv.Get(context.Background(), connect.NewRequest(&metarrv1.WorkflowServiceGetRequest{
+		Id: bson.NewObjectID().Hex(),
+	}))
+	if got := connect.CodeOf(err); got != connect.CodeNotFound {
+		t.Fatalf("Get unknown id code = %v, want %v", got, connect.CodeNotFound)
 	}
 }

@@ -23,7 +23,6 @@ type Handlers struct {
 	Bus                *eventbus.Bus
 	AppConfigStore     *appconfigstore.Store
 	LocalDirectoryRepo *mongostore.LocalDirectoryRepo
-	WorkflowRepo       *mongostore.WorkflowRepo
 	WorkflowCatalog    *workflow.Catalog
 	Stats              *busstats.Sampler
 	Redis              redis.UniversalClient
@@ -38,7 +37,6 @@ func New(
 	bus *eventbus.Bus,
 	appConfigStore *appconfigstore.Store,
 	localDirectoryRepo *mongostore.LocalDirectoryRepo,
-	workflowRepo *mongostore.WorkflowRepo,
 	workflowCatalog *workflow.Catalog,
 	stats *busstats.Sampler,
 	redisClient redis.UniversalClient,
@@ -51,7 +49,6 @@ func New(
 		Bus:                bus,
 		AppConfigStore:     appConfigStore,
 		LocalDirectoryRepo: localDirectoryRepo,
-		WorkflowRepo:       workflowRepo,
 		WorkflowCatalog:    workflowCatalog,
 		Stats:              stats,
 		Redis:              redisClient,

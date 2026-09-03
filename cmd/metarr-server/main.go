@@ -316,7 +316,7 @@ func run() error {
 	// metarr.v1.LoggingService.StreamTail (internal/server/services), mounted
 	// via connectServices below. wsbus.Hub and GET /api/ws are retired.
 
-	apiHandlers := handlers.New(bus, appConfigStore, localDirectoryRepo, workflowRepo, workflowCatalog, busSampler, redisClient, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
+	apiHandlers := handlers.New(bus, appConfigStore, localDirectoryRepo, workflowCatalog, busSampler, redisClient, agentRegistry, logTailBuffer, logger, cfg.HeartbeatTimeout)
 	uiFS, uiEmbedded := webui.FS()
 	if uiEmbedded {
 		logger.Info("ui embed", "enabled", true)
@@ -393,7 +393,7 @@ func run() error {
 		),
 		newConnectService[metarrv1connect.WorkflowServiceHandler](
 			metarrv1connect.NewWorkflowServiceHandler,
-			&services.WorkflowServer{Handlers: apiHandlers},
+			&services.WorkflowServer{Handlers: apiHandlers, Store: workflowRepo},
 			services.WorkflowAuthPolicies,
 		),
 		newConnectService[metarrv1connect.StatsServiceHandler](
