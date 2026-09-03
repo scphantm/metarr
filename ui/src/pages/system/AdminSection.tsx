@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input, Space, Typography } from "antd";
 
-import { queryKeys, useUpdateAdmin } from "../../api/queries";
+import { useUpdateAdmin } from "../../api/queries";
 import type { AdminUser } from "../../gen/metarr/v1/admin_pb";
 import { Button, Card, Row } from "../../components/Card";
 import { EditableText } from "../../components/Editable";
@@ -24,7 +24,6 @@ export function AdminSection({ admin }: { admin: AdminUser }) {
       <Row label="Username">
         <EditableText
           label="Username"
-          queryKey={queryKeys.config}
           value={admin.username}
           validate={(next) => (next ? null : "Username cannot be empty")}
           onSave={(username) => updateAdmin.mutateAsync({ username })}
@@ -34,7 +33,6 @@ export function AdminSection({ admin }: { admin: AdminUser }) {
       <Row label="Email">
         <EditableText
           label="Email"
-          queryKey={queryKeys.config}
           value={admin.email}
           validate={(next) =>
             next.includes("@") ? null : "Must be an email address"
@@ -89,7 +87,7 @@ function PasswordChanger() {
       <Space align="center">
         <Button onClick={() => setOpen(true)}>Change password</Button>
         {done ? (
-          <SaveIndicator state="pending" />
+          <SaveIndicator state="confirmed" />
         ) : (
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             ••••••••

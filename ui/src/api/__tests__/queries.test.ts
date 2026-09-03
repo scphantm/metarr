@@ -746,14 +746,39 @@ describe("Agent hooks", () => {
   });
 });
 
+// A minimal aggregate Config for seeding the ["config"] cache the admin and
+// API-key writes reconcile against.
+function seedConfig(overrides: Record<string, unknown> = {}) {
+  return {
+    $typeName: "metarr.v1.Config",
+    admin: {
+      $typeName: "metarr.v1.AdminUser",
+      username: "admin",
+      email: "admin@example.com",
+      passwordSalt: "",
+      passwordHash: "",
+    },
+    apiKeys: {
+      $typeName: "metarr.v1.APIKeysConfig",
+      admin: [],
+      user: [],
+      webhook: [],
+      readOnly: [],
+    },
+    ...overrides,
+  };
+}
+
 // AdminService.UpdateAdminUser is an AIP-134 partial update: the hook derives
-// the update_mask from which identity fields the caller passed, and a new
-// password rides new_password (never the mask). Each variant invalidates the
-// aggregate GetConfig read the Security screen paints from.
+// the update_mask from which identity fields the caller passed, a new
+// password rides new_password (never the mask), and the stored account the
+// write returns is spliced into the aggregate GetConfig cache.
 describe("useUpdateAdmin", () => {
-  it("sends a username-only mask and an empty new_password", async () => {
-    updateAdminUser.mockReset().mockResolvedValue({ username: "renamed" });
-    const { invalidate, wrapper } = mutationHarness();
+  it("sends a username-only mask and splices the stored account into the config cache", async () => {
+    const stored = { $typeName: "metarr.v1.AdminUser", username: "renamed" };
+    updateAdminUser.mockReset().mockResolvedValue(stored);
+    const { queryClient, wrapper } = mutationHarness();
+    queryClient.setQueryData(queryKeys.config, seedConfig());
 
     const { result } = renderHook(() => useUpdateAdmin(), { wrapper });
     result.current.mutate({ username: "renamed" });
@@ -764,12 +789,15 @@ describe("useUpdateAdmin", () => {
       updateMask: { paths: ["username"] },
       newPassword: "",
     });
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.config });
+    expect(
+      (queryClient.getQueryData(queryKeys.config) as { admin: unknown }).admin,
+    ).toEqual(stored);
   });
 
   it("sends an empty mask and the new password when only a password changes", async () => {
     updateAdminUser.mockReset().mockResolvedValue({ username: "admin" });
-    const { wrapper } = mutationHarness();
+    const { queryClient, wrapper } = mutationHarness();
+    queryClient.setQueryData(queryKeys.config, seedConfig());
 
     const { result } = renderHook(() => useUpdateAdmin(), { wrapper });
     result.current.mutate({ password: "a-new-secret" });
@@ -783,11 +811,19 @@ describe("useUpdateAdmin", () => {
   });
 });
 
-// ApiKeyService is a minted-id collection scoped by the AccessLevel enum.
+// ApiKeyService is a minted-id collection scoped by the AccessLevel enum;
+// each write reconciles the addressed group in the ["config"] cache from its
+// own response.
 describe("API key hooks", () => {
-  it("useCreateApiKey sends the access level and a name, no id", async () => {
-    createApiKey.mockReset().mockResolvedValue({ id: "minted", name: "ci" });
-    const { invalidate, wrapper } = mutationHarness();
+  it("useCreateApiKey sends no id and appends the minted entry to its group", async () => {
+    const minted = {
+      $typeName: "metarr.v1.APIKeyEntry",
+      id: "minted",
+      name: "ci",
+    };
+    createApiKey.mockReset().mockResolvedValue(minted);
+    const { queryClient, wrapper } = mutationHarness();
+    queryClient.setQueryData(queryKeys.config, seedConfig());
 
     const { result } = renderHook(() => useCreateApiKey(), { wrapper });
     result.current.mutate({ accessLevel: AccessLevel.WEBHOOK, name: "ci" });
@@ -797,12 +833,40 @@ describe("API key hooks", () => {
       accessLevel: AccessLevel.WEBHOOK,
       apiKey: { name: "ci" },
     });
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.config });
+    const cached = queryClient.getQueryData(queryKeys.config) as {
+      apiKeys: { webhook: unknown[] };
+    };
+    expect(cached.apiKeys.webhook).toEqual([minted]);
   });
 
-  it("useUpdateApiKey derives the mask from the changed field", async () => {
-    updateApiKey.mockReset().mockResolvedValue({ id: "k1", apiKey: "v" });
-    const { wrapper } = mutationHarness();
+  it("useUpdateApiKey derives the mask and replaces the entry in whichever group holds it", async () => {
+    const stored = {
+      $typeName: "metarr.v1.APIKeyEntry",
+      id: "k1",
+      name: "old",
+      apiKey: "v",
+    };
+    updateApiKey.mockReset().mockResolvedValue(stored);
+    const { queryClient, wrapper } = mutationHarness();
+    queryClient.setQueryData(
+      queryKeys.config,
+      seedConfig({
+        apiKeys: {
+          $typeName: "metarr.v1.APIKeysConfig",
+          admin: [],
+          user: [
+            {
+              $typeName: "metarr.v1.APIKeyEntry",
+              id: "k1",
+              name: "old",
+              apiKey: "",
+            },
+          ],
+          webhook: [],
+          readOnly: [],
+        },
+      }),
+    );
 
     const { result } = renderHook(() => useUpdateApiKey(), { wrapper });
     result.current.mutate({ id: "k1", apiKey: "v" });
@@ -812,17 +876,38 @@ describe("API key hooks", () => {
       apiKey: { id: "k1", apiKey: "v" },
       updateMask: { paths: ["api_key"] },
     });
+    const cached = queryClient.getQueryData(queryKeys.config) as {
+      apiKeys: { user: unknown[] };
+    };
+    expect(cached.apiKeys.user).toEqual([stored]);
   });
 
-  it("useDeleteApiKey sends the id alone", async () => {
+  it("useDeleteApiKey sends the id alone and drops the entry from its group", async () => {
     deleteApiKey.mockReset().mockResolvedValue({});
-    const { invalidate, wrapper } = mutationHarness();
+    const { queryClient, wrapper } = mutationHarness();
+    queryClient.setQueryData(
+      queryKeys.config,
+      seedConfig({
+        apiKeys: {
+          $typeName: "metarr.v1.APIKeysConfig",
+          admin: [
+            { $typeName: "metarr.v1.APIKeyEntry", id: "k1", name: "gone" },
+          ],
+          user: [],
+          webhook: [],
+          readOnly: [],
+        },
+      }),
+    );
 
     const { result } = renderHook(() => useDeleteApiKey(), { wrapper });
     result.current.mutate("k1");
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(deleteApiKey).toHaveBeenCalledWith({ id: "k1" });
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.config });
+    const cached = queryClient.getQueryData(queryKeys.config) as {
+      apiKeys: { admin: unknown[] };
+    };
+    expect(cached.apiKeys.admin).toEqual([]);
   });
 });
