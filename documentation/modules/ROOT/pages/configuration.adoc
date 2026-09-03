@@ -126,19 +126,21 @@ organized into seven areas:
 |*System → Configuration → Chatbot*
 |===
 
-=== Saving is queued, not immediate
+=== Saving is synchronous
 
-Every settings change is published as an event and acknowledged with
-`202 Accepted` before it has been written. A listener persists it a moment later
-and swaps it into memory.
+Each area is edited through its own resource API following the standard method
+set — `Create` / `Get` / `List` / `Update` / `Delete`, named per resource, no
+`Upsert`. A write persists to MongoDB under the config store's lock, propagates
+in process (the live-config singleton, the sidecar registry, each agent's
+projection), and returns the stored resource before the call completes; `Delete`
+returns nothing. `Update` carries a field mask that names exactly which fields
+change.
 
-This is why the UI shows a save moving from *queued* to *confirmed* rather than
-flashing "saved" on the response: the confirmation means the change has actually
-landed. If a field still says "not confirmed" after twenty seconds, the write did
-not complete — check that the server is healthy rather than assuming it took.
-
-The practical consequence for anyone using the API directly: a write followed
-immediately by a read can race, and briefly return the old value.
+There is no queue and no acknowledgement step. When the call returns, the change
+has already landed, so a read that follows it sees the new value, and a
+validation problem comes back on the same call as an error rather than surfacing
+later. The UI writes the returned resource straight into its cache — there is no
+*queued* → *confirmed* transition to wait on.
 
 === Interfaces
 
