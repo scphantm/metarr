@@ -11,6 +11,7 @@ import {
   adminClient,
   agentClient,
   apiKeyClient,
+  authClient,
   configClient,
   directoryScannerClient,
   eventBusClient,
@@ -34,7 +35,10 @@ import {
   SonarrInstanceSchema,
   type SonarrInstance as ConnectSonarrInstance,
 } from "../gen/metarr/v1/sonarr_interfaces_pb";
-import type { AdminUser as ConnectAdminUser } from "../gen/metarr/v1/admin_pb";
+import {
+  AuthenticationScheme,
+  type AdminUser as ConnectAdminUser,
+} from "../gen/metarr/v1/admin_pb";
 import type { Config as ConnectConfig } from "../gen/metarr/v1/config_pb";
 import {
   AccessLevel,
@@ -66,6 +70,9 @@ export const queryKeys = {
   agents: ["stats", "agents"] as const,
   logging: ["config", "logging"] as const,
   eventBus: ["config", "event-bus"] as const,
+  // Outside the config tree: the pre-login scheme probe is unauthenticated
+  // and drives the app's render gate, not a settings screen.
+  authScheme: ["auth-scheme"] as const,
   logTail: ["stats", "log-tail"] as const,
   // Outside the config tree: workflows are a server-only, single-
   // collection concern with no config-mutation event behind them at all.
@@ -88,6 +95,20 @@ export function useConfig() {
   return useQuery({
     queryKey: queryKeys.config,
     queryFn: async () => (await configClient.getConfig({})).config,
+  });
+}
+
+// The active authentication scheme, read through the unauthenticated
+// AuthService.GetAuthScheme probe (docs/adr/0012). App.tsx runs this before
+// its first render-gate decision so a cold load never flashes the app shell
+// on the way to the login screen. The server normalises the value, so it is
+// never AuthenticationScheme.UNSPECIFIED. It only changes when an operator
+// edits it on the Security page, and that mutation invalidates this key.
+export function useAuthScheme() {
+  return useQuery({
+    queryKey: queryKeys.authScheme,
+    queryFn: async () => (await authClient.getAuthScheme({})).scheme,
+    staleTime: Infinity,
   });
 }
 
@@ -466,23 +487,40 @@ function patchApiKeyById(
 // new password rides new_password, never the mask (docs/adr/0010). The
 // caller passes only what it is changing; the hook derives the mask. The
 // response is the stored account with the credential blanked.
-type AdminPatch = { username?: string; email?: string; password?: string };
+type AdminPatch = {
+  username?: string;
+  email?: string;
+  password?: string;
+  authenticationScheme?: AuthenticationScheme;
+};
 
 export function useUpdateAdmin() {
   const queryClient = useQueryClient();
   return useMutation<ConnectAdminUser, Error, AdminPatch>({
-    mutationFn: ({ username, email, password }) => {
-      const admin: { username?: string; email?: string } = {};
+    mutationFn: ({ username, email, password, authenticationScheme }) => {
+      const admin: {
+        username?: string;
+        email?: string;
+        authenticationScheme?: AuthenticationScheme;
+      } = {};
       if (username !== undefined) admin.username = username;
       if (email !== undefined) admin.email = email;
+      if (authenticationScheme !== undefined)
+        admin.authenticationScheme = authenticationScheme;
       return adminClient.updateAdminUser({
         admin,
         updateMask: updateMaskFor(admin),
         newPassword: password ?? "",
       });
     },
-    onSuccess: (stored) => {
+    onSuccess: (stored, patch) => {
       patchConfigCache(queryClient, (config) => ({ ...config, admin: stored }));
+      // The render gate reads the scheme through its own unauthenticated
+      // probe (useAuthScheme); keep that cache coherent when the operator
+      // changes the scheme here.
+      if (patch.authenticationScheme !== undefined) {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.authScheme });
+      }
     },
   });
 }

@@ -1,7 +1,10 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
+import { useAuthScheme } from "./api/queries";
+import { AuthenticationScheme } from "./gen/metarr/v1/admin_pb";
 import { useAuth } from "./auth/AuthContext";
 import { LoginScreen } from "./auth/LoginScreen";
+import { StartupGate } from "./auth/StartupGate";
 import { AppShell } from "./layout/AppShell";
 import { PageContextProvider } from "./pagecontext/PageContextRegistry";
 import { AgentsPage, AgentsSidebar } from "./pages/system/AgentsPage";
@@ -31,8 +34,19 @@ import { WorkflowListPage } from "./pages/workflows/WorkflowListPage";
 
 export function App() {
   const { isAuthenticated } = useAuth();
+  const authScheme = useAuthScheme();
 
-  if (!isAuthenticated) {
+  // Resolve the scheme before the first gate decision so a cold load never
+  // flashes the app shell on the way to the login screen (docs/adr/0012).
+  if (authScheme.isLoading) {
+    return <StartupGate />;
+  }
+
+  // Fail closed: show the login screen unless the probe positively reported
+  // scheme None. An unreachable server (data undefined) keeps today's
+  // behaviour — the login wall.
+  const schemeAllowsOpenAccess = authScheme.data === AuthenticationScheme.NONE;
+  if (!schemeAllowsOpenAccess && !isAuthenticated) {
     return <LoginScreen />;
   }
 

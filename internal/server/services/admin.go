@@ -33,10 +33,18 @@ var AdminAuthPolicies = map[string]httpserver.RPCPolicy{
 	"UpdateAdminUser": {Group: auth.GroupConfig},
 }
 
-// adminIdentityFields is the set of paths UpdateAdminUser's update_mask may
+// adminMaskFields is the set of paths UpdateAdminUser's update_mask may
 // name. The credential never travels in the mask (docs/adr/0005) — a new
-// password rides new_password instead.
-var adminIdentityFields = map[string]bool{"username": true, "email": true}
+// password rides new_password instead. authentication_scheme is a masked
+// field like the identity ones (docs/adr/0012).
+var adminMaskFields = map[string]bool{"username": true, "email": true, "authentication_scheme": true}
+
+// validAuthScheme reports whether scheme is one an operator may set:
+// AUTHENTICATION_SCHEME_UNSPECIFIED and any out-of-range value are rejected
+// (docs/adr/0012).
+func validAuthScheme(scheme metarrv1.AuthenticationScheme) bool {
+	return scheme == appconfig.AuthSchemeNone || scheme == appconfig.AuthSchemePassword
+}
 
 // blankAdminCredential clears the stored credential fields on a clone before
 // it goes out on the wire (docs/adr/0005).
@@ -60,10 +68,12 @@ func (s *AdminServer) GetAdminUser(
 	return connect.NewResponse(blankAdminCredential(admin)), nil
 }
 
-// UpdateAdminUser is an AIP-134 partial update of the identity fields plus an
-// out-of-band new_password. The mask may name only username / email; a set
-// field that is explicitly empty is rejected rather than silently clearing
-// the value. new_password is never masked and is acted on only when
+// UpdateAdminUser is an AIP-134 partial update of the identity fields and
+// the authentication scheme, plus an out-of-band new_password. The mask may
+// name only username / email / authentication_scheme; a set identity field
+// that is explicitly empty is rejected rather than silently clearing the
+// value, and an unspecified or unknown authentication_scheme is
+// InvalidArgument. new_password is never masked and is acted on only when
 // non-empty. A request carrying only new_password (empty mask) is allowed.
 func (s *AdminServer) UpdateAdminUser(
 	ctx context.Context,
@@ -80,9 +90,9 @@ func (s *AdminServer) UpdateAdminUser(
 			errors.New("update_mask must name at least one field, or new_password must be set"))
 	}
 	for _, path := range maskPaths {
-		if !adminIdentityFields[path] {
+		if !adminMaskFields[path] {
 			return nil, connectError(http.StatusBadRequest,
-				fmt.Errorf("%w: the admin update_mask may name only username or email", errUnknownPath))
+				fmt.Errorf("%w: the admin update_mask may name only username, email or authentication_scheme", errUnknownPath))
 		}
 	}
 	if patch == nil && len(maskPaths) > 0 {
@@ -94,6 +104,10 @@ func (s *AdminServer) UpdateAdminUser(
 		}
 		if path == "email" && patch.GetEmail() == "" {
 			return nil, connectError(http.StatusBadRequest, errors.New("email cannot be empty"))
+		}
+		if path == "authentication_scheme" && !validAuthScheme(patch.GetAuthenticationScheme()) {
+			return nil, connectError(http.StatusBadRequest,
+				errors.New("authentication_scheme must be AUTHENTICATION_SCHEME_NONE or AUTHENTICATION_SCHEME_PASSWORD"))
 		}
 	}
 

@@ -43,6 +43,16 @@ type (
 	AgentDirectoryMapping  = metarrv1.AgentDirectoryMapping
 	LoggingConfig          = metarrv1.LoggingConfig
 	EventBusConfig         = metarrv1.EventBusConfig
+	AuthenticationScheme   = metarrv1.AuthenticationScheme
+)
+
+// The authentication schemes (docs/adr/0012). Unspecified is the unset value
+// Normalize maps to None; None and Password are the two an operator picks
+// between.
+const (
+	AuthSchemeUnspecified = metarrv1.AuthenticationScheme_AUTHENTICATION_SCHEME_UNSPECIFIED
+	AuthSchemeNone        = metarrv1.AuthenticationScheme_AUTHENTICATION_SCHEME_NONE
+	AuthSchemePassword    = metarrv1.AuthenticationScheme_AUTHENTICATION_SCHEME_PASSWORD
 )
 
 // LogLevelInfo and LogLevelDebug are the two levels the System > Logging
@@ -106,8 +116,20 @@ func Normalize(config *Config) *Config {
 
 	normalizeSections(config)
 	normalizeSonarrStorage(config)
+	normalizeAuthenticationScheme(config)
 
 	return config
+}
+
+// normalizeAuthenticationScheme maps an admin record that names no scheme —
+// a document written before the field existed, or a freshly seeded one — to
+// AuthSchemeNone, so the auth interceptor and every other read site can
+// compare against a concrete value. This is the config layer guaranteeing
+// the default (docs/adr/0012), independent of builtin_defaults.json.
+func normalizeAuthenticationScheme(config *Config) {
+	if config.Admin.AuthenticationScheme == AuthSchemeUnspecified {
+		config.Admin.AuthenticationScheme = AuthSchemeNone
+	}
 }
 
 // normalizeSections fills every top-level config section that decoded nil,
@@ -254,7 +276,11 @@ func Default() *Config {
 			Webhook:  []*APIKeyEntry{},
 			ReadOnly: []*APIKeyEntry{},
 		},
-		Admin:      &AdminUser{},
+		// Scheme set explicitly: Default feeds the pre-bootstrap live-config
+		// singleton, which is read without going through Normalize, and the
+		// auth interceptor must see a concrete scheme from the first request
+		// (docs/adr/0012).
+		Admin:      &AdminUser{AuthenticationScheme: AuthSchemeNone},
 		Interfaces: &InterfacesConfig{Sonarr: []*SonarrInstance{}},
 		DirectoryScanner: &DirectoryScannerConfig{
 			ParallelCount:   defaults.DirectoryScanner.ParallelCount,

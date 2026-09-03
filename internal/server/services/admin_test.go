@@ -57,6 +57,24 @@ func TestGetAdminUser_NeverCarriesTheCredential(t *testing.T) {
 	}
 }
 
+func TestGetAdminUser_ReturnsTheAuthenticationScheme(t *testing.T) {
+	seed := seededAdmin()
+	seed.Admin.AuthenticationScheme = appconfig.AuthSchemePassword
+	withLiveConfig(t, seed)
+	server, _ := newTestAdminServer(nil)
+
+	resp, err := server.GetAdminUser(context.Background(), connect.NewRequest(&metarrv1.GetAdminUserRequest{}))
+	if err != nil {
+		t.Fatalf("GetAdminUser: %v", err)
+	}
+	if resp.Msg.GetAuthenticationScheme() != appconfig.AuthSchemePassword {
+		t.Fatalf("scheme = %v, want Password", resp.Msg.GetAuthenticationScheme())
+	}
+	if resp.Msg.GetPasswordHash() != "" || resp.Msg.GetPasswordSalt() != "" {
+		t.Fatalf("credential leaked alongside the scheme: %+v", resp.Msg)
+	}
+}
+
 func TestUpdateAdminUser_MaskOnlyEditLeavesThePasswordUntouched(t *testing.T) {
 	server, backend := newTestAdminServer(seededAdmin())
 
@@ -133,6 +151,69 @@ func TestUpdateAdminUser_UnknownMaskPathIsInvalidArgument(t *testing.T) {
 		updateAdminReq(&metarrv1.AdminUser{PasswordHash: "sneaky"}, "", "password_hash"))
 	if connect.CodeOf(err) != connect.CodeInvalidArgument {
 		t.Fatalf("code = %v, want InvalidArgument", connect.CodeOf(err))
+	}
+}
+
+func TestUpdateAdminUser_AuthenticationSchemeRoundTripsWhenMasked(t *testing.T) {
+	seed := seededAdmin()
+	seed.Admin.AuthenticationScheme = appconfig.AuthSchemeNone
+	server, backend := newTestAdminServer(seed)
+
+	resp, err := server.UpdateAdminUser(correlation.WithID(context.Background(), "c1"),
+		updateAdminReq(
+			&metarrv1.AdminUser{AuthenticationScheme: appconfig.AuthSchemePassword},
+			"", "authentication_scheme"))
+	if err != nil {
+		t.Fatalf("UpdateAdminUser: %v", err)
+	}
+	if resp.Msg.GetAuthenticationScheme() != appconfig.AuthSchemePassword {
+		t.Fatalf("response scheme = %v, want Password", resp.Msg.GetAuthenticationScheme())
+	}
+	if got := backend.cfg.GetAdmin().GetAuthenticationScheme(); got != appconfig.AuthSchemePassword {
+		t.Fatalf("stored scheme = %v, want Password", got)
+	}
+	// A scheme-only edit must not disturb the identity or the credential.
+	if backend.cfg.GetAdmin().GetUsername() != "admin" ||
+		backend.cfg.GetAdmin().GetPasswordHash() != "seed-hash" {
+		t.Fatalf("scheme edit disturbed the rest of the record: %+v", backend.cfg.GetAdmin())
+	}
+}
+
+func TestUpdateAdminUser_UnknownAuthenticationSchemeIsInvalidArgument(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		scheme metarrv1.AuthenticationScheme
+	}{
+		{"unspecified", appconfig.AuthSchemeUnspecified},
+		{"out of range", metarrv1.AuthenticationScheme(99)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server, backend := newTestAdminServer(seededAdmin())
+
+			_, err := server.UpdateAdminUser(context.Background(),
+				updateAdminReq(&metarrv1.AdminUser{AuthenticationScheme: tc.scheme}, "", "authentication_scheme"))
+			if connect.CodeOf(err) != connect.CodeInvalidArgument {
+				t.Fatalf("code = %v, want InvalidArgument", connect.CodeOf(err))
+			}
+			if backend.cfg.GetAdmin().GetAuthenticationScheme() != appconfig.AuthSchemeUnspecified {
+				t.Fatalf("a rejected request changed the stored scheme: %+v", backend.cfg.GetAdmin())
+			}
+		})
+	}
+}
+
+func TestUpdateAdminUser_SchemeUntouchedWhenNotNamedInMask(t *testing.T) {
+	seed := seededAdmin()
+	seed.Admin.AuthenticationScheme = appconfig.AuthSchemePassword
+	server, backend := newTestAdminServer(seed)
+
+	_, err := server.UpdateAdminUser(correlation.WithID(context.Background(), "c1"),
+		updateAdminReq(&metarrv1.AdminUser{Email: "new@example.com"}, "", "email"))
+	if err != nil {
+		t.Fatalf("UpdateAdminUser: %v", err)
+	}
+	if got := backend.cfg.GetAdmin().GetAuthenticationScheme(); got != appconfig.AuthSchemePassword {
+		t.Fatalf("scheme changed by an email-only edit: %v", got)
 	}
 }
 
