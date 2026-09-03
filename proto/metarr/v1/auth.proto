@@ -12,14 +12,25 @@ message AuthConfig {
   string hmac_secret = 1;
 }
 
+// AccessLevel is the fixed four-value set of access levels for JWT tokens.
+// It is a closed enumeration used by TokenService to specify the role of issued tokens.
+// ACCESS_LEVEL_UNSPECIFIED is the unset value and is always InvalidArgument where a level is required.
+enum AccessLevel {
+  ACCESS_LEVEL_UNSPECIFIED = 0;
+  ACCESS_LEVEL_ADMIN = 1;
+  ACCESS_LEVEL_USER = 2;
+  ACCESS_LEVEL_WEBHOOK = 3;
+  ACCESS_LEVEL_READ_ONLY = 4;
+}
+
 message AuthServiceLoginRequest {
   string username = 1;
   string password = 2;
 }
 
 message AuthServiceLoginResponse {
-  string api_key = 1;
-  int32 expires_in_seconds = 2;
+  string jwt_token = 1;
+  int64 expires_at = 2;
 }
 
 message AuthServiceLogoutRequest {}
@@ -34,6 +45,17 @@ message AuthServiceGetAuthSchemeResponse {
   AuthenticationScheme scheme = 1;
 }
 
+message IssueTokenRequest {
+  AccessLevel role = 1;
+  int32 ttl_seconds = 2;
+  string name = 3;
+}
+
+message IssueTokenResponse {
+  string jwt_token = 1;
+  int64 expires_at = 2;
+}
+
 service AuthService {
   // Login is callable without an API key — see connect_auth.go's NoAuth
   // policy. Rate-limited independently from Logout, matching the REST
@@ -45,4 +67,11 @@ service AuthService {
   // Login), so the UI can decide whether to show the login gate on a cold
   // load (docs/adr/0012).
   rpc GetAuthScheme(AuthServiceGetAuthSchemeRequest) returns (AuthServiceGetAuthSchemeResponse);
+}
+
+// TokenService handles the issuance of programmatic JWT tokens.
+service TokenService {
+  // IssueToken creates a new JWT token with the specified role and TTL.
+  // Only callable by admin users.
+  rpc IssueToken(IssueTokenRequest) returns (IssueTokenResponse);
 }

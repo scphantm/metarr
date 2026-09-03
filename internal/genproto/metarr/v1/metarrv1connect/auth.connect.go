@@ -23,6 +23,8 @@ const _ = connect.IsAtLeastVersion1_13_0
 const (
 	// AuthServiceName is the fully-qualified name of the AuthService service.
 	AuthServiceName = "metarr.v1.AuthService"
+	// TokenServiceName is the fully-qualified name of the TokenService service.
+	TokenServiceName = "metarr.v1.TokenService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -40,6 +42,8 @@ const (
 	// AuthServiceGetAuthSchemeProcedure is the fully-qualified name of the AuthService's GetAuthScheme
 	// RPC.
 	AuthServiceGetAuthSchemeProcedure = "/metarr.v1.AuthService/GetAuthScheme"
+	// TokenServiceIssueTokenProcedure is the fully-qualified name of the TokenService's IssueToken RPC.
+	TokenServiceIssueTokenProcedure = "/metarr.v1.TokenService/IssueToken"
 )
 
 // AuthServiceClient is a client for the metarr.v1.AuthService service.
@@ -176,4 +180,78 @@ func (UnimplementedAuthServiceHandler) Logout(context.Context, *connect.Request[
 
 func (UnimplementedAuthServiceHandler) GetAuthScheme(context.Context, *connect.Request[v1.AuthServiceGetAuthSchemeRequest]) (*connect.Response[v1.AuthServiceGetAuthSchemeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.AuthService.GetAuthScheme is not implemented"))
+}
+
+// TokenServiceClient is a client for the metarr.v1.TokenService service.
+type TokenServiceClient interface {
+	// IssueToken creates a new JWT token with the specified role and TTL.
+	// Only callable by admin users.
+	IssueToken(context.Context, *connect.Request[v1.IssueTokenRequest]) (*connect.Response[v1.IssueTokenResponse], error)
+}
+
+// NewTokenServiceClient constructs a client for the metarr.v1.TokenService service. By default, it
+// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
+// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
+// connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewTokenServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) TokenServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	tokenServiceMethods := v1.File_metarr_v1_auth_proto.Services().ByName("TokenService").Methods()
+	return &tokenServiceClient{
+		issueToken: connect.NewClient[v1.IssueTokenRequest, v1.IssueTokenResponse](
+			httpClient,
+			baseURL+TokenServiceIssueTokenProcedure,
+			connect.WithSchema(tokenServiceMethods.ByName("IssueToken")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// tokenServiceClient implements TokenServiceClient.
+type tokenServiceClient struct {
+	issueToken *connect.Client[v1.IssueTokenRequest, v1.IssueTokenResponse]
+}
+
+// IssueToken calls metarr.v1.TokenService.IssueToken.
+func (c *tokenServiceClient) IssueToken(ctx context.Context, req *connect.Request[v1.IssueTokenRequest]) (*connect.Response[v1.IssueTokenResponse], error) {
+	return c.issueToken.CallUnary(ctx, req)
+}
+
+// TokenServiceHandler is an implementation of the metarr.v1.TokenService service.
+type TokenServiceHandler interface {
+	// IssueToken creates a new JWT token with the specified role and TTL.
+	// Only callable by admin users.
+	IssueToken(context.Context, *connect.Request[v1.IssueTokenRequest]) (*connect.Response[v1.IssueTokenResponse], error)
+}
+
+// NewTokenServiceHandler builds an HTTP handler from the service implementation. It returns the
+// path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewTokenServiceHandler(svc TokenServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	tokenServiceMethods := v1.File_metarr_v1_auth_proto.Services().ByName("TokenService").Methods()
+	tokenServiceIssueTokenHandler := connect.NewUnaryHandler(
+		TokenServiceIssueTokenProcedure,
+		svc.IssueToken,
+		connect.WithSchema(tokenServiceMethods.ByName("IssueToken")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/metarr.v1.TokenService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case TokenServiceIssueTokenProcedure:
+			tokenServiceIssueTokenHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedTokenServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedTokenServiceHandler struct{}
+
+func (UnimplementedTokenServiceHandler) IssueToken(context.Context, *connect.Request[v1.IssueTokenRequest]) (*connect.Response[v1.IssueTokenResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.TokenService.IssueToken is not implemented"))
 }

@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"strings"
@@ -9,15 +10,16 @@ import (
 	"connectrpc.com/connect"
 
 	"Metarr/internal/server/auth"
+	"Metarr/internal/server/jwt"
 	"Metarr/internal/server/session"
 	"Metarr/internal/shared/appconfig"
 )
 
 // schemeNoneSyntheticKey is the API-key marker attached to a request's
 // context when the authentication scheme is None. It stands in for a real
-// resolved key so downstream code (auth.APIKeyFromContext, audit logging)
-// has a non-empty value, and is deliberately not a value auth.Resolve or the
-// session store would ever mint (docs/adr/0012).
+// JWT so downstream code (auth.APIKeyFromContext, audit logging)
+// has a non-empty value, and is deliberately not a value the JWT would
+// mint (docs/adr/0012).
 const schemeNoneSyntheticKey = "authentication-scheme-none"
 
 // RPCPolicy is a Connect RPC's auth requirement — the gRPC-Web equivalent of
@@ -35,12 +37,11 @@ type RPCPolicy struct {
 	NoAuth bool
 }
 
-// connectAuthInterceptor authenticates and authorizes each RPC the same way
-// requireAPIKey does for REST: resolve the caller's role from an API key
-// (session key first, then the static config-based categories), then check
-// that role against the RPC's declared policy. One instance is constructed
-// per service with that service's own method-name -> policy map, so each
-// service's auth requirements live next to its own implementation.
+// connectAuthInterceptor authenticates and authorizes each RPC: verify the
+// JWT from the X-Api-Key header, extract the role from the JWT claims, then
+// check that role against the RPC's declared policy. One instance is
+// constructed per service with that service's own method-name -> policy map,
+// so each service's auth requirements live next to its own implementation.
 type connectAuthInterceptor struct {
 	sessions *session.Store
 	policies map[string]RPCPolicy
@@ -95,24 +96,38 @@ func (i *connectAuthInterceptor) authorize(ctx context.Context, procedure string
 	}
 
 	// Authentication scheme None: every request runs as the administrator
-	// (docs/adr/0012). Attach an administrator role and a synthetic key
-	// marker and return allowed — no header is read, no session store is
-	// consulted, no API key is resolved. A presented X-Api-Key is ignored.
+	// (docs/adr/0012). Synthesize an admin role and return allowed — no
+	// header is read, no JWT is verified. A presented X-Api-Key is ignored.
 	if appconfig.Get().GetAdmin().GetAuthenticationScheme() != appconfig.AuthSchemePassword {
 		ctx = auth.WithAPIKey(ctx, schemeNoneSyntheticKey)
 		ctx = auth.WithRole(ctx, auth.RoleAdmin)
 		return ctx, nil
 	}
 
-	apiKey := header.Get(apiKeyHeaderName)
+	jwtToken := header.Get(apiKeyHeaderName)
+	if jwtToken == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("missing JWT token"))
+	}
 
-	role := auth.RoleAdmin
-	if !i.sessions.Valid(ctx, apiKey) {
-		resolvedRole, ok := auth.Resolve(appconfig.Get(), apiKey)
-		if !ok {
-			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("missing or invalid API key"))
-		}
-		role = resolvedRole
+	cfg := appconfig.Get()
+	if cfg.Auth == nil || cfg.Auth.HmacSecret == "" {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("authentication not configured"))
+	}
+
+	secret, err := base64.StdEncoding.DecodeString(cfg.Auth.HmacSecret)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("authentication configuration error"))
+	}
+
+	claims, err := jwt.VerifyJWT(jwtToken, secret)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid or expired JWT token"))
+	}
+
+	roleStr := claims.Role
+	role := auth.Role(roleStr)
+	if role == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid token role"))
 	}
 
 	method := http.MethodPost
@@ -120,10 +135,10 @@ func (i *connectAuthInterceptor) authorize(ctx context.Context, procedure string
 		method = http.MethodGet
 	}
 	if !auth.Authorized(role, policy.Group, method) {
-		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("API key not authorized for this endpoint"))
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("insufficient permissions for this endpoint"))
 	}
 
-	ctx = auth.WithAPIKey(ctx, apiKey)
+	ctx = auth.WithAPIKey(ctx, jwtToken)
 	ctx = auth.WithRole(ctx, role)
 	return ctx, nil
 }

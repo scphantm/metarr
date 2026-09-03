@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/http"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -11,8 +13,8 @@ import (
 	"Metarr/internal/server/auth"
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/server/httpserver"
+	"Metarr/internal/server/jwt"
 	"Metarr/internal/server/passwordhash"
-	"Metarr/internal/server/session"
 	"Metarr/internal/shared/appconfig"
 	"Metarr/internal/shared/correlation"
 )
@@ -48,15 +50,30 @@ func (s *AuthServer) Login(
 		return nil, connectError(http.StatusUnauthorized, errors.New("invalid username or password"))
 	}
 
-	apiKey, err := s.Sessions.Create(ctx)
-	if err != nil {
-		s.Logger.Error("failed to create session", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to create session"))
+	cfg := appconfig.Get()
+	if cfg.Auth == nil || cfg.Auth.HmacSecret == "" {
+		s.Logger.Error("hmac secret not configured", "correlation_id", correlationID)
+		return nil, connectError(http.StatusInternalServerError, errors.New("authentication not properly configured"))
 	}
 
+	secret, err := base64.StdEncoding.DecodeString(cfg.Auth.HmacSecret)
+	if err != nil {
+		s.Logger.Error("failed to decode hmac secret", "correlation_id", correlationID, "error", err)
+		return nil, connectError(http.StatusInternalServerError, errors.New("authentication configuration error"))
+	}
+
+	const sessionTTL = 24 * 60 * 60
+	token, err := jwt.SignJWT(username, string(jwt.RoleAdmin), int32(sessionTTL), secret)
+	if err != nil {
+		s.Logger.Error("failed to create JWT", "correlation_id", correlationID, "error", err)
+		return nil, connectError(http.StatusInternalServerError, errors.New("failed to create session token"))
+	}
+
+	expiresAt := time.Now().Unix() + sessionTTL
+
 	return connect.NewResponse(&metarrv1.AuthServiceLoginResponse{
-		ApiKey:           apiKey,
-		ExpiresInSeconds: int32(session.TTL.Seconds()),
+		JwtToken: token,
+		ExpiresAt: expiresAt,
 	}), nil
 }
 
@@ -87,4 +104,81 @@ func (s *AuthServer) Logout(
 	}
 
 	return connect.NewResponse(&metarrv1.AuthServiceLogoutResponse{Status: "logged_out"}), nil
+}
+
+// TokenServer implements metarrv1connect.TokenServiceHandler.
+type TokenServer struct {
+	*handlers.Handlers
+}
+
+// TokenAuthPolicies defines the auth policy for TokenService.IssueToken.
+// IssueToken is admin-only.
+var TokenAuthPolicies = map[string]httpserver.RPCPolicy{
+	"IssueToken": {Group: auth.GroupConfig},
+}
+
+// IssueToken creates a new JWT token with the specified role and TTL.
+// Only callable by admin users.
+func (s *TokenServer) IssueToken(
+	ctx context.Context,
+	req *connect.Request[metarrv1.IssueTokenRequest],
+) (*connect.Response[metarrv1.IssueTokenResponse], error) {
+	correlationID := correlation.FromContext(ctx)
+
+	role := req.Msg.GetRole()
+	if role == metarrv1.AccessLevel_ACCESS_LEVEL_UNSPECIFIED {
+		return nil, connectError(http.StatusBadRequest, errors.New("role must be specified"))
+	}
+
+	ttl := req.Msg.GetTtlSeconds()
+	if ttl <= 0 {
+		return nil, connectError(http.StatusBadRequest, errors.New("ttl_seconds must be positive"))
+	}
+
+	const maxTTL = 365 * 24 * 60 * 60
+	if ttl > maxTTL {
+		return nil, connectError(http.StatusBadRequest, errors.New("ttl_seconds exceeds maximum (365 days)"))
+	}
+
+	cfg := appconfig.Get()
+	if cfg.Auth == nil || cfg.Auth.HmacSecret == "" {
+		s.Logger.Error("hmac secret not configured", "correlation_id", correlationID)
+		return nil, connectError(http.StatusInternalServerError, errors.New("authentication not properly configured"))
+	}
+
+	secret, err := base64.StdEncoding.DecodeString(cfg.Auth.HmacSecret)
+	if err != nil {
+		s.Logger.Error("failed to decode hmac secret", "correlation_id", correlationID, "error", err)
+		return nil, connectError(http.StatusInternalServerError, errors.New("authentication configuration error"))
+	}
+
+	roleStr := roleFromAccessLevel(role)
+	token, err := jwt.SignJWT("integration", roleStr, ttl, secret)
+	if err != nil {
+		s.Logger.Error("failed to create JWT", "correlation_id", correlationID, "error", err)
+		return nil, connectError(http.StatusInternalServerError, errors.New("failed to create token"))
+	}
+
+	expiresAt := time.Now().Unix() + int64(ttl)
+
+	return connect.NewResponse(&metarrv1.IssueTokenResponse{
+		JwtToken: token,
+		ExpiresAt: expiresAt,
+	}), nil
+}
+
+// roleFromAccessLevel converts proto AccessLevel to jwt role string.
+func roleFromAccessLevel(level metarrv1.AccessLevel) string {
+	switch level {
+	case metarrv1.AccessLevel_ACCESS_LEVEL_ADMIN:
+		return string(jwt.RoleAdmin)
+	case metarrv1.AccessLevel_ACCESS_LEVEL_USER:
+		return string(jwt.RoleUser)
+	case metarrv1.AccessLevel_ACCESS_LEVEL_WEBHOOK:
+		return string(jwt.RoleWebhook)
+	case metarrv1.AccessLevel_ACCESS_LEVEL_READ_ONLY:
+		return string(jwt.RoleReadOnly)
+	default:
+		return ""
+	}
 }

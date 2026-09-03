@@ -4,6 +4,7 @@ package metarr.v1;
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/field_mask.proto";
+import "metarr/v1/auth.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
@@ -31,19 +32,6 @@ message APIKeysConfig {
   repeated APIKeyEntry read_only = 4;
 }
 
-// AccessLevel is the fixed four-value set of API-key categories. It is a
-// request field on the API-key collection methods, not a resource: AIP says
-// a closed enumeration like this should not be a resource collection, so
-// there is no parent addressing and no AccessLevelService (docs/adr/0010).
-// ACCESS_LEVEL_UNSPECIFIED is the unset value and is always InvalidArgument
-// where a level is required.
-enum AccessLevel {
-  ACCESS_LEVEL_UNSPECIFIED = 0;
-  ACCESS_LEVEL_ADMIN = 1;
-  ACCESS_LEVEL_USER = 2;
-  ACCESS_LEVEL_WEBHOOK = 3;
-  ACCESS_LEVEL_READ_ONLY = 4;
-}
 
 // CreateApiKeyRequest carries no id — the server mints one and returns the
 // stored resource with it set (docs/adr/0010, "Minted id"). access_level

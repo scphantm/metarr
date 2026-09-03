@@ -2,8 +2,8 @@
 // @generated from file metarr/v1/auth.proto (package metarr.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { AuthenticationScheme } from "./admin_pb";
 import { file_metarr_v1_admin } from "./admin_pb";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/auth.proto.
  */
 export const file_metarr_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChRtZXRhcnIvdjEvYXV0aC5wcm90bxIJbWV0YXJyLnYxIiEKCkF1dGhDb25maWcSEwoLaG1hY19zZWNyZXQYASABKAkiPQoXQXV0aFNlcnZpY2VMb2dpblJlcXVlc3QSEAoIdXNlcm5hbWUYASABKAkSEAoIcGFzc3dvcmQYAiABKAkiRwoYQXV0aFNlcnZpY2VMb2dpblJlc3BvbnNlEg8KB2FwaV9rZXkYASABKAkSGgoSZXhwaXJlc19pbl9zZWNvbmRzGAIgASgFIhoKGEF1dGhTZXJ2aWNlTG9nb3V0UmVxdWVzdCIrChlBdXRoU2VydmljZUxvZ291dFJlc3BvbnNlEg4KBnN0YXR1cxgBIAEoCSIhCh9BdXRoU2VydmljZUdldEF1dGhTY2hlbWVSZXF1ZXN0IlMKIEF1dGhTZXJ2aWNlR2V0QXV0aFNjaGVtZVJlc3BvbnNlEi8KBnNjaGVtZRgBIAEoDjIfLm1ldGFyci52MS5BdXRoZW50aWNhdGlvblNjaGVtZTKeAgoLQXV0aFNlcnZpY2USUAoFTG9naW4SIi5tZXRhcnIudjEuQXV0aFNlcnZpY2VMb2dpblJlcXVlc3QaIy5tZXRhcnIudjEuQXV0aFNlcnZpY2VMb2dpblJlc3BvbnNlElMKBkxvZ291dBIjLm1ldGFyci52MS5BdXRoU2VydmljZUxvZ291dFJlcXVlc3QaJC5tZXRhcnIudjEuQXV0aFNlcnZpY2VMb2dvdXRSZXNwb25zZRJoCg1HZXRBdXRoU2NoZW1lEioubWV0YXJyLnYxLkF1dGhTZXJ2aWNlR2V0QXV0aFNjaGVtZVJlcXVlc3QaKy5tZXRhcnIudjEuQXV0aFNlcnZpY2VHZXRBdXRoU2NoZW1lUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_metarr_v1_admin]);
+  fileDesc("ChRtZXRhcnIvdjEvYXV0aC5wcm90bxIJbWV0YXJyLnYxIiEKCkF1dGhDb25maWcSEwoLaG1hY19zZWNyZXQYASABKAkiPQoXQXV0aFNlcnZpY2VMb2dpblJlcXVlc3QSEAoIdXNlcm5hbWUYASABKAkSEAoIcGFzc3dvcmQYAiABKAkiQQoYQXV0aFNlcnZpY2VMb2dpblJlc3BvbnNlEhEKCWp3dF90b2tlbhgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgDIhoKGEF1dGhTZXJ2aWNlTG9nb3V0UmVxdWVzdCIrChlBdXRoU2VydmljZUxvZ291dFJlc3BvbnNlEg4KBnN0YXR1cxgBIAEoCSIhCh9BdXRoU2VydmljZUdldEF1dGhTY2hlbWVSZXF1ZXN0IlMKIEF1dGhTZXJ2aWNlR2V0QXV0aFNjaGVtZVJlc3BvbnNlEi8KBnNjaGVtZRgBIAEoDjIfLm1ldGFyci52MS5BdXRoZW50aWNhdGlvblNjaGVtZSJcChFJc3N1ZVRva2VuUmVxdWVzdBIkCgRyb2xlGAEgASgOMhYubWV0YXJyLnYxLkFjY2Vzc0xldmVsEhMKC3R0bF9zZWNvbmRzGAIgASgFEgwKBG5hbWUYAyABKAkiOwoSSXNzdWVUb2tlblJlc3BvbnNlEhEKCWp3dF90b2tlbhgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgDKpABCgtBY2Nlc3NMZXZlbBIcChhBQ0NFU1NfTEVWRUxfVU5TUEVDSUZJRUQQABIWChJBQ0NFU1NfTEVWRUxfQURNSU4QARIVChFBQ0NFU1NfTEVWRUxfVVNFUhACEhgKFEFDQ0VTU19MRVZFTF9XRUJIT09LEAMSGgoWQUNDRVNTX0xFVkVMX1JFQURfT05MWRAEMp4CCgtBdXRoU2VydmljZRJQCgVMb2dpbhIiLm1ldGFyci52MS5BdXRoU2VydmljZUxvZ2luUmVxdWVzdBojLm1ldGFyci52MS5BdXRoU2VydmljZUxvZ2luUmVzcG9uc2USUwoGTG9nb3V0EiMubWV0YXJyLnYxLkF1dGhTZXJ2aWNlTG9nb3V0UmVxdWVzdBokLm1ldGFyci52MS5BdXRoU2VydmljZUxvZ291dFJlc3BvbnNlEmgKDUdldEF1dGhTY2hlbWUSKi5tZXRhcnIudjEuQXV0aFNlcnZpY2VHZXRBdXRoU2NoZW1lUmVxdWVzdBorLm1ldGFyci52MS5BdXRoU2VydmljZUdldEF1dGhTY2hlbWVSZXNwb25zZTJZCgxUb2tlblNlcnZpY2USSQoKSXNzdWVUb2tlbhIcLm1ldGFyci52MS5Jc3N1ZVRva2VuUmVxdWVzdBodLm1ldGFyci52MS5Jc3N1ZVRva2VuUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_metarr_v1_admin]);
 
 /**
  * AuthConfig holds authentication configuration including the HMAC signing secret.
@@ -62,14 +62,14 @@ export const AuthServiceLoginRequestSchema: GenMessage<AuthServiceLoginRequest> 
  */
 export type AuthServiceLoginResponse = Message<"metarr.v1.AuthServiceLoginResponse"> & {
   /**
-   * @generated from field: string api_key = 1;
+   * @generated from field: string jwt_token = 1;
    */
-  apiKey: string;
+  jwtToken: string;
 
   /**
-   * @generated from field: int32 expires_in_seconds = 2;
+   * @generated from field: int64 expires_at = 2;
    */
-  expiresInSeconds: number;
+  expiresAt: bigint;
 };
 
 /**
@@ -140,6 +140,95 @@ export const AuthServiceGetAuthSchemeResponseSchema: GenMessage<AuthServiceGetAu
   messageDesc(file_metarr_v1_auth, 6);
 
 /**
+ * @generated from message metarr.v1.IssueTokenRequest
+ */
+export type IssueTokenRequest = Message<"metarr.v1.IssueTokenRequest"> & {
+  /**
+   * @generated from field: metarr.v1.AccessLevel role = 1;
+   */
+  role: AccessLevel;
+
+  /**
+   * @generated from field: int32 ttl_seconds = 2;
+   */
+  ttlSeconds: number;
+
+  /**
+   * @generated from field: string name = 3;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message metarr.v1.IssueTokenRequest.
+ * Use `create(IssueTokenRequestSchema)` to create a new message.
+ */
+export const IssueTokenRequestSchema: GenMessage<IssueTokenRequest> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_auth, 7);
+
+/**
+ * @generated from message metarr.v1.IssueTokenResponse
+ */
+export type IssueTokenResponse = Message<"metarr.v1.IssueTokenResponse"> & {
+  /**
+   * @generated from field: string jwt_token = 1;
+   */
+  jwtToken: string;
+
+  /**
+   * @generated from field: int64 expires_at = 2;
+   */
+  expiresAt: bigint;
+};
+
+/**
+ * Describes the message metarr.v1.IssueTokenResponse.
+ * Use `create(IssueTokenResponseSchema)` to create a new message.
+ */
+export const IssueTokenResponseSchema: GenMessage<IssueTokenResponse> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_auth, 8);
+
+/**
+ * AccessLevel is the fixed four-value set of access levels for JWT tokens.
+ * It is a closed enumeration used by TokenService to specify the role of issued tokens.
+ * ACCESS_LEVEL_UNSPECIFIED is the unset value and is always InvalidArgument where a level is required.
+ *
+ * @generated from enum metarr.v1.AccessLevel
+ */
+export enum AccessLevel {
+  /**
+   * @generated from enum value: ACCESS_LEVEL_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: ACCESS_LEVEL_ADMIN = 1;
+   */
+  ADMIN = 1,
+
+  /**
+   * @generated from enum value: ACCESS_LEVEL_USER = 2;
+   */
+  USER = 2,
+
+  /**
+   * @generated from enum value: ACCESS_LEVEL_WEBHOOK = 3;
+   */
+  WEBHOOK = 3,
+
+  /**
+   * @generated from enum value: ACCESS_LEVEL_READ_ONLY = 4;
+   */
+  READ_ONLY = 4,
+}
+
+/**
+ * Describes the enum metarr.v1.AccessLevel.
+ */
+export const AccessLevelSchema: GenEnum<AccessLevel> = /*@__PURE__*/
+  enumDesc(file_metarr_v1_auth, 0);
+
+/**
  * @generated from service metarr.v1.AuthService
  */
 export const AuthService: GenService<{
@@ -178,4 +267,24 @@ export const AuthService: GenService<{
   },
 }> = /*@__PURE__*/
   serviceDesc(file_metarr_v1_auth, 0);
+
+/**
+ * TokenService handles the issuance of programmatic JWT tokens.
+ *
+ * @generated from service metarr.v1.TokenService
+ */
+export const TokenService: GenService<{
+  /**
+   * IssueToken creates a new JWT token with the specified role and TTL.
+   * Only callable by admin users.
+   *
+   * @generated from rpc metarr.v1.TokenService.IssueToken
+   */
+  issueToken: {
+    methodKind: "unary";
+    input: typeof IssueTokenRequestSchema;
+    output: typeof IssueTokenResponseSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_metarr_v1_auth, 1);
 

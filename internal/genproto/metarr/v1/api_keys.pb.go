@@ -23,67 +23,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// AccessLevel is the fixed four-value set of API-key categories. It is a
-// request field on the API-key collection methods, not a resource: AIP says
-// a closed enumeration like this should not be a resource collection, so
-// there is no parent addressing and no AccessLevelService (docs/adr/0010).
-// ACCESS_LEVEL_UNSPECIFIED is the unset value and is always InvalidArgument
-// where a level is required.
-type AccessLevel int32
-
-const (
-	AccessLevel_ACCESS_LEVEL_UNSPECIFIED AccessLevel = 0
-	AccessLevel_ACCESS_LEVEL_ADMIN       AccessLevel = 1
-	AccessLevel_ACCESS_LEVEL_USER        AccessLevel = 2
-	AccessLevel_ACCESS_LEVEL_WEBHOOK     AccessLevel = 3
-	AccessLevel_ACCESS_LEVEL_READ_ONLY   AccessLevel = 4
-)
-
-// Enum value maps for AccessLevel.
-var (
-	AccessLevel_name = map[int32]string{
-		0: "ACCESS_LEVEL_UNSPECIFIED",
-		1: "ACCESS_LEVEL_ADMIN",
-		2: "ACCESS_LEVEL_USER",
-		3: "ACCESS_LEVEL_WEBHOOK",
-		4: "ACCESS_LEVEL_READ_ONLY",
-	}
-	AccessLevel_value = map[string]int32{
-		"ACCESS_LEVEL_UNSPECIFIED": 0,
-		"ACCESS_LEVEL_ADMIN":       1,
-		"ACCESS_LEVEL_USER":        2,
-		"ACCESS_LEVEL_WEBHOOK":     3,
-		"ACCESS_LEVEL_READ_ONLY":   4,
-	}
-)
-
-func (x AccessLevel) Enum() *AccessLevel {
-	p := new(AccessLevel)
-	*p = x
-	return p
-}
-
-func (x AccessLevel) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AccessLevel) Descriptor() protoreflect.EnumDescriptor {
-	return file_metarr_v1_api_keys_proto_enumTypes[0].Descriptor()
-}
-
-func (AccessLevel) Type() protoreflect.EnumType {
-	return &file_metarr_v1_api_keys_proto_enumTypes[0]
-}
-
-func (x AccessLevel) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AccessLevel.Descriptor instead.
-func (AccessLevel) EnumDescriptor() ([]byte, []int) {
-	return file_metarr_v1_api_keys_proto_rawDescGZIP(), []int{0}
-}
-
 // APIKeyEntry is a single named API key. This message is the single
 // definition of that entry across the Go server, the UI and the stored
 // document (docs/adr/0005).
@@ -562,7 +501,7 @@ var File_metarr_v1_api_keys_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_api_keys_proto_rawDesc = "" +
 	"\n" +
-	"\x18metarr/v1/api_keys.proto\x12\tmetarr.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\"J\n" +
+	"\x18metarr/v1/api_keys.proto\x12\tmetarr.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\x14metarr/v1/auth.proto\"J\n" +
 	"\vAPIKeyEntry\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x17\n" +
 	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\x12\x0e\n" +
@@ -592,13 +531,7 @@ const file_metarr_v1_api_keys_proto_rawDesc = "" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
 	"updateMask\"%\n" +
 	"\x13DeleteApiKeyRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id*\x90\x01\n" +
-	"\vAccessLevel\x12\x1c\n" +
-	"\x18ACCESS_LEVEL_UNSPECIFIED\x10\x00\x12\x16\n" +
-	"\x12ACCESS_LEVEL_ADMIN\x10\x01\x12\x15\n" +
-	"\x11ACCESS_LEVEL_USER\x10\x02\x12\x18\n" +
-	"\x14ACCESS_LEVEL_WEBHOOK\x10\x03\x12\x1a\n" +
-	"\x16ACCESS_LEVEL_READ_ONLY\x10\x042\xf7\x02\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id2\xf7\x02\n" +
 	"\rApiKeyService\x12F\n" +
 	"\fCreateApiKey\x12\x1e.metarr.v1.CreateApiKeyRequest\x1a\x16.metarr.v1.APIKeyEntry\x12@\n" +
 	"\tGetApiKey\x12\x1b.metarr.v1.GetApiKeyRequest\x1a\x16.metarr.v1.APIKeyEntry\x12L\n" +
@@ -618,41 +551,40 @@ func file_metarr_v1_api_keys_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_api_keys_proto_rawDescData
 }
 
-var file_metarr_v1_api_keys_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_metarr_v1_api_keys_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_metarr_v1_api_keys_proto_goTypes = []any{
-	(AccessLevel)(0),              // 0: metarr.v1.AccessLevel
-	(*APIKeyEntry)(nil),           // 1: metarr.v1.APIKeyEntry
-	(*APIKeysConfig)(nil),         // 2: metarr.v1.APIKeysConfig
-	(*CreateApiKeyRequest)(nil),   // 3: metarr.v1.CreateApiKeyRequest
-	(*GetApiKeyRequest)(nil),      // 4: metarr.v1.GetApiKeyRequest
-	(*ListApiKeysRequest)(nil),    // 5: metarr.v1.ListApiKeysRequest
-	(*ListApiKeysResponse)(nil),   // 6: metarr.v1.ListApiKeysResponse
-	(*UpdateApiKeyRequest)(nil),   // 7: metarr.v1.UpdateApiKeyRequest
-	(*DeleteApiKeyRequest)(nil),   // 8: metarr.v1.DeleteApiKeyRequest
+	(*APIKeyEntry)(nil),           // 0: metarr.v1.APIKeyEntry
+	(*APIKeysConfig)(nil),         // 1: metarr.v1.APIKeysConfig
+	(*CreateApiKeyRequest)(nil),   // 2: metarr.v1.CreateApiKeyRequest
+	(*GetApiKeyRequest)(nil),      // 3: metarr.v1.GetApiKeyRequest
+	(*ListApiKeysRequest)(nil),    // 4: metarr.v1.ListApiKeysRequest
+	(*ListApiKeysResponse)(nil),   // 5: metarr.v1.ListApiKeysResponse
+	(*UpdateApiKeyRequest)(nil),   // 6: metarr.v1.UpdateApiKeyRequest
+	(*DeleteApiKeyRequest)(nil),   // 7: metarr.v1.DeleteApiKeyRequest
+	(AccessLevel)(0),              // 8: metarr.v1.AccessLevel
 	(*fieldmaskpb.FieldMask)(nil), // 9: google.protobuf.FieldMask
 	(*emptypb.Empty)(nil),         // 10: google.protobuf.Empty
 }
 var file_metarr_v1_api_keys_proto_depIdxs = []int32{
-	1,  // 0: metarr.v1.APIKeysConfig.admin:type_name -> metarr.v1.APIKeyEntry
-	1,  // 1: metarr.v1.APIKeysConfig.user:type_name -> metarr.v1.APIKeyEntry
-	1,  // 2: metarr.v1.APIKeysConfig.webhook:type_name -> metarr.v1.APIKeyEntry
-	1,  // 3: metarr.v1.APIKeysConfig.read_only:type_name -> metarr.v1.APIKeyEntry
-	0,  // 4: metarr.v1.CreateApiKeyRequest.access_level:type_name -> metarr.v1.AccessLevel
-	1,  // 5: metarr.v1.CreateApiKeyRequest.api_key:type_name -> metarr.v1.APIKeyEntry
-	0,  // 6: metarr.v1.ListApiKeysRequest.access_level:type_name -> metarr.v1.AccessLevel
-	1,  // 7: metarr.v1.ListApiKeysResponse.api_keys:type_name -> metarr.v1.APIKeyEntry
-	1,  // 8: metarr.v1.UpdateApiKeyRequest.api_key:type_name -> metarr.v1.APIKeyEntry
+	0,  // 0: metarr.v1.APIKeysConfig.admin:type_name -> metarr.v1.APIKeyEntry
+	0,  // 1: metarr.v1.APIKeysConfig.user:type_name -> metarr.v1.APIKeyEntry
+	0,  // 2: metarr.v1.APIKeysConfig.webhook:type_name -> metarr.v1.APIKeyEntry
+	0,  // 3: metarr.v1.APIKeysConfig.read_only:type_name -> metarr.v1.APIKeyEntry
+	8,  // 4: metarr.v1.CreateApiKeyRequest.access_level:type_name -> metarr.v1.AccessLevel
+	0,  // 5: metarr.v1.CreateApiKeyRequest.api_key:type_name -> metarr.v1.APIKeyEntry
+	8,  // 6: metarr.v1.ListApiKeysRequest.access_level:type_name -> metarr.v1.AccessLevel
+	0,  // 7: metarr.v1.ListApiKeysResponse.api_keys:type_name -> metarr.v1.APIKeyEntry
+	0,  // 8: metarr.v1.UpdateApiKeyRequest.api_key:type_name -> metarr.v1.APIKeyEntry
 	9,  // 9: metarr.v1.UpdateApiKeyRequest.update_mask:type_name -> google.protobuf.FieldMask
-	3,  // 10: metarr.v1.ApiKeyService.CreateApiKey:input_type -> metarr.v1.CreateApiKeyRequest
-	4,  // 11: metarr.v1.ApiKeyService.GetApiKey:input_type -> metarr.v1.GetApiKeyRequest
-	5,  // 12: metarr.v1.ApiKeyService.ListApiKeys:input_type -> metarr.v1.ListApiKeysRequest
-	7,  // 13: metarr.v1.ApiKeyService.UpdateApiKey:input_type -> metarr.v1.UpdateApiKeyRequest
-	8,  // 14: metarr.v1.ApiKeyService.DeleteApiKey:input_type -> metarr.v1.DeleteApiKeyRequest
-	1,  // 15: metarr.v1.ApiKeyService.CreateApiKey:output_type -> metarr.v1.APIKeyEntry
-	1,  // 16: metarr.v1.ApiKeyService.GetApiKey:output_type -> metarr.v1.APIKeyEntry
-	6,  // 17: metarr.v1.ApiKeyService.ListApiKeys:output_type -> metarr.v1.ListApiKeysResponse
-	1,  // 18: metarr.v1.ApiKeyService.UpdateApiKey:output_type -> metarr.v1.APIKeyEntry
+	2,  // 10: metarr.v1.ApiKeyService.CreateApiKey:input_type -> metarr.v1.CreateApiKeyRequest
+	3,  // 11: metarr.v1.ApiKeyService.GetApiKey:input_type -> metarr.v1.GetApiKeyRequest
+	4,  // 12: metarr.v1.ApiKeyService.ListApiKeys:input_type -> metarr.v1.ListApiKeysRequest
+	6,  // 13: metarr.v1.ApiKeyService.UpdateApiKey:input_type -> metarr.v1.UpdateApiKeyRequest
+	7,  // 14: metarr.v1.ApiKeyService.DeleteApiKey:input_type -> metarr.v1.DeleteApiKeyRequest
+	0,  // 15: metarr.v1.ApiKeyService.CreateApiKey:output_type -> metarr.v1.APIKeyEntry
+	0,  // 16: metarr.v1.ApiKeyService.GetApiKey:output_type -> metarr.v1.APIKeyEntry
+	5,  // 17: metarr.v1.ApiKeyService.ListApiKeys:output_type -> metarr.v1.ListApiKeysResponse
+	0,  // 18: metarr.v1.ApiKeyService.UpdateApiKey:output_type -> metarr.v1.APIKeyEntry
 	10, // 19: metarr.v1.ApiKeyService.DeleteApiKey:output_type -> google.protobuf.Empty
 	15, // [15:20] is the sub-list for method output_type
 	10, // [10:15] is the sub-list for method input_type
@@ -666,19 +598,19 @@ func file_metarr_v1_api_keys_proto_init() {
 	if File_metarr_v1_api_keys_proto != nil {
 		return
 	}
+	file_metarr_v1_auth_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_api_keys_proto_rawDesc), len(file_metarr_v1_api_keys_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      0,
 			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_metarr_v1_api_keys_proto_goTypes,
 		DependencyIndexes: file_metarr_v1_api_keys_proto_depIdxs,
-		EnumInfos:         file_metarr_v1_api_keys_proto_enumTypes,
 		MessageInfos:      file_metarr_v1_api_keys_proto_msgTypes,
 	}.Build()
 	File_metarr_v1_api_keys_proto = out.File

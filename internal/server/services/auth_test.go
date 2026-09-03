@@ -2,12 +2,17 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
+	"io"
+	"log/slog"
 	"testing"
 
 	"connectrpc.com/connect"
 
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
 	"Metarr/internal/server/handlers"
+	"Metarr/internal/server/jwt"
+	"Metarr/internal/server/passwordhash"
 	"Metarr/internal/shared/appconfig"
 )
 
@@ -65,5 +70,153 @@ func TestAuthPolicies_GetAuthSchemeIsNoAuth(t *testing.T) {
 	}
 	if !policy.NoAuth {
 		t.Errorf("GetAuthScheme policy = %+v, want NoAuth", policy)
+	}
+}
+
+// TestAuthServiceLogin_SucceedsWithValidCredentials verifies that Login accepts
+// valid username and password, returns a JWT token with admin role and correct TTL.
+func TestAuthServiceLogin_SucceedsWithValidCredentials(t *testing.T) {
+	password := "test-password"
+	salt, hash, err := passwordhash.Hash(password)
+	if err != nil {
+		t.Fatalf("failed to hash password: %v", err)
+	}
+	secret := []byte("test-secret-32-bytes-for-hmac-sha256")
+	encodedSecret := base64.StdEncoding.EncodeToString(secret)
+
+	withLiveConfig(t, &appconfig.Config{
+		Admin: &appconfig.AdminUser{
+			Username:             "admin",
+			AuthenticationScheme: appconfig.AuthSchemePassword,
+			PasswordSalt:         salt,
+			PasswordHash:         hash,
+		},
+		Auth: &appconfig.AuthConfig{HmacSecret: encodedSecret},
+	})
+
+	server := &AuthServer{Handlers: &handlers.Handlers{}}
+
+	resp, err := server.Login(context.Background(),
+		connect.NewRequest(&metarrv1.AuthServiceLoginRequest{
+			Username: "admin",
+			Password: password,
+		}))
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+
+	if resp.Msg.JwtToken == "" {
+		t.Fatal("expected JWT token in response")
+	}
+	if resp.Msg.ExpiresAt == 0 {
+		t.Fatal("expected expires_at in response")
+	}
+
+	claims, err := jwt.VerifyJWT(resp.Msg.JwtToken, secret)
+	if err != nil {
+		t.Fatalf("failed to verify JWT: %v", err)
+	}
+	if claims.Role != string(jwt.RoleAdmin) {
+		t.Fatalf("role = %s, want admin", claims.Role)
+	}
+}
+
+// TestAuthServiceLogin_FailsWithInvalidCredentials verifies that Login rejects
+// invalid username or password.
+func TestAuthServiceLogin_FailsWithInvalidCredentials(t *testing.T) {
+	password := "test-password"
+	salt, hash, err := passwordhash.Hash(password)
+	if err != nil {
+		t.Fatalf("failed to hash password: %v", err)
+	}
+	secret := []byte("test-secret-32-bytes-for-hmac-sha256")
+	encodedSecret := base64.StdEncoding.EncodeToString(secret)
+
+	withLiveConfig(t, &appconfig.Config{
+		Admin: &appconfig.AdminUser{
+			Username:             "admin",
+			AuthenticationScheme: appconfig.AuthSchemePassword,
+			PasswordSalt:         salt,
+			PasswordHash:         hash,
+		},
+		Auth: &appconfig.AuthConfig{HmacSecret: encodedSecret},
+	})
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	server := &AuthServer{Handlers: &handlers.Handlers{Logger: logger}}
+
+	resp, err := server.Login(context.Background(),
+		connect.NewRequest(&metarrv1.AuthServiceLoginRequest{
+			Username: "admin",
+			Password: "wrong-password",
+		}))
+	if err == nil {
+		t.Fatalf("Login with wrong password should fail, got response: %+v", resp)
+	}
+	if c := connect.CodeOf(err); c != connect.CodeUnauthenticated {
+		t.Fatalf("expected Unauthenticated error, got %v", c)
+	}
+}
+
+// TestTokenServiceIssueToken_SucceedsWithValidRequest verifies that IssueToken
+// creates a valid JWT token with the specified role and TTL.
+func TestTokenServiceIssueToken_SucceedsWithValidRequest(t *testing.T) {
+	secret := []byte("test-secret-32-bytes-for-hmac-sha256")
+	encodedSecret := base64.StdEncoding.EncodeToString(secret)
+
+	withLiveConfig(t, &appconfig.Config{
+		Auth: &appconfig.AuthConfig{HmacSecret: encodedSecret},
+	})
+
+	server := &TokenServer{Handlers: &handlers.Handlers{}}
+
+	resp, err := server.IssueToken(context.Background(),
+		connect.NewRequest(&metarrv1.IssueTokenRequest{
+			Role:       metarrv1.AccessLevel_ACCESS_LEVEL_USER,
+			TtlSeconds: 3600,
+			Name:       "test-integration",
+		}))
+	if err != nil {
+		t.Fatalf("IssueToken: %v", err)
+	}
+
+	if resp.Msg.JwtToken == "" {
+		t.Fatal("expected JWT token in response")
+	}
+	if resp.Msg.ExpiresAt == 0 {
+		t.Fatal("expected expires_at in response")
+	}
+
+	claims, err := jwt.VerifyJWT(resp.Msg.JwtToken, secret)
+	if err != nil {
+		t.Fatalf("failed to verify JWT: %v", err)
+	}
+	if claims.Role != string(jwt.RoleUser) {
+		t.Fatalf("role = %s, want user", claims.Role)
+	}
+}
+
+// TestTokenServiceIssueToken_FailsWithInvalidRole verifies that IssueToken
+// rejects an unspecified role.
+func TestTokenServiceIssueToken_FailsWithUnspecifiedRole(t *testing.T) {
+	secret := []byte("test-secret-32-bytes-for-hmac-sha256")
+	encodedSecret := base64.StdEncoding.EncodeToString(secret)
+
+	withLiveConfig(t, &appconfig.Config{
+		Auth: &appconfig.AuthConfig{HmacSecret: encodedSecret},
+	})
+
+	server := &TokenServer{Handlers: &handlers.Handlers{}}
+
+	resp, err := server.IssueToken(context.Background(),
+		connect.NewRequest(&metarrv1.IssueTokenRequest{
+			Role:       metarrv1.AccessLevel_ACCESS_LEVEL_UNSPECIFIED,
+			TtlSeconds: 3600,
+		}))
+	if err == nil {
+		t.Fatalf("IssueToken with unspecified role should fail, got response: %+v", resp)
+	}
+	if c := connect.CodeOf(err); c != connect.CodeInvalidArgument {
+		t.Fatalf("expected InvalidArgument error, got %v", c)
 	}
 }

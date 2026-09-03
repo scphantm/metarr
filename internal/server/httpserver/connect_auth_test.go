@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"context"
+	"encoding/base64"
 	"net/http"
 	"testing"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"Metarr/internal/server/auth"
+	"Metarr/internal/server/jwt"
 	"Metarr/internal/server/session"
 	"Metarr/internal/shared/appconfig"
 )
@@ -24,10 +26,8 @@ func withLiveConfig(t *testing.T, cfg *appconfig.Config) {
 }
 
 // testInterceptor builds the real interceptor and returns it as its concrete
-// type so the test can drive authorize() directly. The session store is a
-// real Store against miniredis purely so the scheme-Password + static-key
-// case does not nil-panic in Store.Valid; no session token is ever created,
-// and the scheme-None cases never reach the store at all.
+// type so the test can drive authorize() directly. The session store parameter
+// is kept for compatibility but not used in JWT verification.
 func testInterceptor(t *testing.T, policies map[string]RPCPolicy) *connectAuthInterceptor {
 	t.Helper()
 	mr := miniredis.RunT(t)
@@ -39,15 +39,24 @@ const testProcedure = "/metarr.v1.SomeService/Do"
 
 var oneWritePolicy = map[string]RPCPolicy{"Do": {Group: auth.GroupConfig}}
 
-func schemeConfig(scheme appconfig.AuthenticationScheme, adminKeys ...string) *appconfig.Config {
-	entries := make([]*appconfig.APIKeyEntry, 0, len(adminKeys))
-	for _, k := range adminKeys {
-		entries = append(entries, &appconfig.APIKeyEntry{ApiKey: k})
-	}
+const testHmacSecret = "test-secret-32-bytes-for-hmac-sha256"
+
+func schemeConfig(scheme appconfig.AuthenticationScheme) *appconfig.Config {
 	return &appconfig.Config{
-		Admin:   &appconfig.AdminUser{AuthenticationScheme: scheme},
-		ApiKeys: &appconfig.APIKeysConfig{Admin: entries},
+		Admin: &appconfig.AdminUser{AuthenticationScheme: scheme},
+		Auth: &appconfig.AuthConfig{
+			HmacSecret: base64.StdEncoding.EncodeToString([]byte(testHmacSecret)),
+		},
 	}
+}
+
+func createJWT(t *testing.T, subject string, role string) string {
+	t.Helper()
+	token, err := jwt.SignJWT(subject, role, 3600, []byte(testHmacSecret))
+	if err != nil {
+		t.Fatalf("failed to create JWT: %v", err)
+	}
+	return token
 }
 
 func TestAuthorize_SchemeNone_NoKey_IsAdministrator(t *testing.T) {
@@ -66,13 +75,13 @@ func TestAuthorize_SchemeNone_NoKey_IsAdministrator(t *testing.T) {
 	}
 }
 
-func TestAuthorize_SchemeNone_LowPrivilegeKey_StillAdministrator(t *testing.T) {
+func TestAuthorize_SchemeNone_InvalidJWT_StillAdministrator(t *testing.T) {
 	withLiveConfig(t, schemeConfig(appconfig.AuthSchemeNone))
 	i := testInterceptor(t, oneWritePolicy)
 
-	// A leftover key from a lower group is presented; scheme None ignores it.
+	// An invalid JWT is presented; scheme None ignores it and synthesizes admin.
 	header := http.Header{}
-	header.Set(apiKeyHeaderName, "some-read-only-key")
+	header.Set(apiKeyHeaderName, "invalid-jwt-token")
 
 	ctx, err := i.authorize(context.Background(), testProcedure, header)
 	if err != nil {
@@ -93,12 +102,13 @@ func TestAuthorize_SchemePassword_NoKey_IsUnauthenticated(t *testing.T) {
 	}
 }
 
-func TestAuthorize_SchemePassword_ValidAdminKey_IsAllowed(t *testing.T) {
-	withLiveConfig(t, schemeConfig(appconfig.AuthSchemePassword, "admin-key"))
+func TestAuthorize_SchemePassword_ValidAdminJWT_IsAllowed(t *testing.T) {
+	withLiveConfig(t, schemeConfig(appconfig.AuthSchemePassword))
 	i := testInterceptor(t, oneWritePolicy)
 
+	token := createJWT(t, "admin", string(jwt.RoleAdmin))
 	header := http.Header{}
-	header.Set(apiKeyHeaderName, "admin-key")
+	header.Set(apiKeyHeaderName, token)
 
 	ctx, err := i.authorize(context.Background(), testProcedure, header)
 	if err != nil {
@@ -106,6 +116,40 @@ func TestAuthorize_SchemePassword_ValidAdminKey_IsAllowed(t *testing.T) {
 	}
 	if role, ok := auth.RoleFromContext(ctx); !ok || role != auth.RoleAdmin {
 		t.Fatalf("context role = %v (ok=%v), want administrator", role, ok)
+	}
+}
+
+func TestAuthorize_SchemePassword_ValidUserJWT_IsAllowed(t *testing.T) {
+	withLiveConfig(t, schemeConfig(appconfig.AuthSchemePassword))
+	// Use a policy that user role can access
+	tasksPolicy := map[string]RPCPolicy{"Do": {Group: auth.GroupTasks}}
+	mr := miniredis.RunT(t)
+	sessions := session.NewStore(redis.NewClient(&redis.Options{Addr: mr.Addr()}))
+	i := NewConnectAuthInterceptor(sessions, tasksPolicy).(*connectAuthInterceptor)
+
+	token := createJWT(t, "integration", string(jwt.RoleUser))
+	header := http.Header{}
+	header.Set(apiKeyHeaderName, token)
+
+	ctx, err := i.authorize(context.Background(), testProcedure, header)
+	if err != nil {
+		t.Fatalf("authorize: %v", err)
+	}
+	if role, ok := auth.RoleFromContext(ctx); !ok || role != auth.RoleUser {
+		t.Fatalf("context role = %v (ok=%v), want user", role, ok)
+	}
+}
+
+func TestAuthorize_SchemePassword_InvalidJWT_IsUnauthenticated(t *testing.T) {
+	withLiveConfig(t, schemeConfig(appconfig.AuthSchemePassword))
+	i := testInterceptor(t, oneWritePolicy)
+
+	header := http.Header{}
+	header.Set(apiKeyHeaderName, "invalid-jwt-token")
+
+	_, err := i.authorize(context.Background(), testProcedure, header)
+	if connect.CodeOf(err) != connect.CodeUnauthenticated {
+		t.Fatalf("code = %v, want Unauthenticated", connect.CodeOf(err))
 	}
 }
 
