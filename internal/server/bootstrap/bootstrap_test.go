@@ -222,3 +222,41 @@ func TestRun_MergesAndReportsNewlyAddedBuiltinSidecarTypes(t *testing.T) {
 		t.Errorf("SidecarTypesAdded = %d, want 1", report.SidecarTypesAdded)
 	}
 }
+
+func TestRun_GeneratesHmacSecretOnFreshInstall(t *testing.T) {
+	store, _ := newStoreOn(&appconfig.Config{})
+
+	report, err := Run(context.Background(), store)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !report.HmacSecretGenerated {
+		t.Fatal("expected HmacSecretGenerated to be true on a fresh install")
+	}
+	if report.FinalConfig.Auth.HmacSecret == "" {
+		t.Fatal("expected HmacSecret to be generated and persisted")
+	}
+	if len(report.FinalConfig.Auth.HmacSecret) < 32 {
+		t.Errorf("HmacSecret is too short: got %d chars, want at least 32 (base64-encoded 24 bytes)", len(report.FinalConfig.Auth.HmacSecret))
+	}
+}
+
+func TestRun_DoesNotRegenerateHmacSecret(t *testing.T) {
+	seeded := appconfig.Default()
+	seeded.Auth.HmacSecret = "test-secret-that-should-not-change"
+	store, _ := newStoreOn(seeded)
+
+	report, err := Run(context.Background(), store)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if report.HmacSecretGenerated {
+		t.Fatal("expected HmacSecretGenerated to be false when secret already exists")
+	}
+	if report.FinalConfig.Auth.HmacSecret != "test-secret-that-should-not-change" {
+		t.Errorf("HmacSecret was modified: got %q, want %q",
+			report.FinalConfig.Auth.HmacSecret, "test-secret-that-should-not-change")
+	}
+}

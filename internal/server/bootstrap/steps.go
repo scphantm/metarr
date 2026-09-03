@@ -1,6 +1,8 @@
 package bootstrap
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 
 	"github.com/google/uuid"
@@ -171,5 +173,27 @@ func resolveGUIDs(v any) any {
 		return val
 	default:
 		return val
+	}
+}
+
+// hmacSecretSeedStep generates the HMAC-SHA256 signing secret the first
+// time the app starts against a database with none configured. The secret is
+// cryptographically random 32 bytes, base64-encoded, and stored in Auth.HmacSecret
+// for use in JWT token signing and verification. generated is set to true iff
+// this call actually generated a secret.
+func hmacSecretSeedStep(generated *bool) func(cfg *appconfig.Config) (bool, error) {
+	return func(cfg *appconfig.Config) (bool, error) {
+		if cfg.Auth.HmacSecret != "" {
+			return false, nil
+		}
+
+		secret := make([]byte, 32)
+		if _, err := rand.Read(secret); err != nil {
+			return false, err
+		}
+
+		cfg.Auth.HmacSecret = base64.StdEncoding.EncodeToString(secret)
+		*generated = true
+		return true, nil
 	}
 }

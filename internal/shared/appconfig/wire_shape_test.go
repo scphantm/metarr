@@ -55,7 +55,7 @@ func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 	}
 
 	assertKeys(t, "config", document, []string{
-		"admin", "agents", "api_keys", "directory_scanner", "event_bus", "interfaces", "logging",
+		"admin", "agents", "api_keys", "auth", "directory_scanner", "event_bus", "interfaces", "logging",
 	})
 	assertKeys(t, "config.admin", document["admin"], []string{
 		"authentication_scheme", "email", "password_hash", "password_salt", "username",
@@ -65,6 +65,9 @@ func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 	})
 	assertKeys(t, "config.api_keys.admin[0]", first(t, document, "api_keys", "admin"), []string{
 		"api_key", "id", "name",
+	})
+	assertKeys(t, "config.auth", document["auth"], []string{
+		"hmac_secret",
 	})
 	assertKeys(t, "config.interfaces", document["interfaces"], []string{"sonarr"})
 

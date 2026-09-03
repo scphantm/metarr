@@ -10,6 +10,8 @@ import type { Agent } from "./agents_pb";
 import { file_metarr_v1_agents } from "./agents_pb";
 import type { APIKeysConfig } from "./api_keys_pb";
 import { file_metarr_v1_api_keys } from "./api_keys_pb";
+import type { AuthConfig } from "./auth_pb";
+import { file_metarr_v1_auth } from "./auth_pb";
 import type { DirectoryScannerConfig } from "./directory_scanner_pb";
 import { file_metarr_v1_directory_scanner } from "./directory_scanner_pb";
 import type { EventBusConfig } from "./event_bus_pb";
@@ -24,7 +26,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/config.proto.
  */
 export const file_metarr_v1_config: GenFile = /*@__PURE__*/
-  fileDesc("ChZtZXRhcnIvdjEvY29uZmlnLnByb3RvEgltZXRhcnIudjEiPQoQSW50ZXJmYWNlc0NvbmZpZxIpCgZzb25hcnIYASADKAsyGS5tZXRhcnIudjEuU29uYXJySW5zdGFuY2UiwwIKBkNvbmZpZxIqCghhcGlfa2V5cxgBIAEoCzIYLm1ldGFyci52MS5BUElLZXlzQ29uZmlnEiMKBWFkbWluGAIgASgLMhQubWV0YXJyLnYxLkFkbWluVXNlchIvCgppbnRlcmZhY2VzGAMgASgLMhsubWV0YXJyLnYxLkludGVyZmFjZXNDb25maWcSPAoRZGlyZWN0b3J5X3NjYW5uZXIYBCABKAsyIS5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lckNvbmZpZxIgCgZhZ2VudHMYBSADKAsyEC5tZXRhcnIudjEuQWdlbnQSKQoHbG9nZ2luZxgGIAEoCzIYLm1ldGFyci52MS5Mb2dnaW5nQ29uZmlnEiwKCWV2ZW50X2J1cxgHIAEoCzIZLm1ldGFyci52MS5FdmVudEJ1c0NvbmZpZyISChBHZXRDb25maWdSZXF1ZXN0IjYKEUdldENvbmZpZ1Jlc3BvbnNlEiEKBmNvbmZpZxgBIAEoCzIRLm1ldGFyci52MS5Db25maWcyVwoNQ29uZmlnU2VydmljZRJGCglHZXRDb25maWcSGy5tZXRhcnIudjEuR2V0Q29uZmlnUmVxdWVzdBocLm1ldGFyci52MS5HZXRDb25maWdSZXNwb25zZUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_metarr_v1_admin, file_metarr_v1_agents, file_metarr_v1_api_keys, file_metarr_v1_directory_scanner, file_metarr_v1_event_bus, file_metarr_v1_logging, file_metarr_v1_sonarr_interfaces]);
+  fileDesc("ChZtZXRhcnIvdjEvY29uZmlnLnByb3RvEgltZXRhcnIudjEiPQoQSW50ZXJmYWNlc0NvbmZpZxIpCgZzb25hcnIYASADKAsyGS5tZXRhcnIudjEuU29uYXJySW5zdGFuY2Ui6AIKBkNvbmZpZxIqCghhcGlfa2V5cxgBIAEoCzIYLm1ldGFyci52MS5BUElLZXlzQ29uZmlnEiMKBWFkbWluGAIgASgLMhQubWV0YXJyLnYxLkFkbWluVXNlchIvCgppbnRlcmZhY2VzGAMgASgLMhsubWV0YXJyLnYxLkludGVyZmFjZXNDb25maWcSPAoRZGlyZWN0b3J5X3NjYW5uZXIYBCABKAsyIS5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lckNvbmZpZxIgCgZhZ2VudHMYBSADKAsyEC5tZXRhcnIudjEuQWdlbnQSKQoHbG9nZ2luZxgGIAEoCzIYLm1ldGFyci52MS5Mb2dnaW5nQ29uZmlnEiwKCWV2ZW50X2J1cxgHIAEoCzIZLm1ldGFyci52MS5FdmVudEJ1c0NvbmZpZxIjCgRhdXRoGAggASgLMhUubWV0YXJyLnYxLkF1dGhDb25maWciEgoQR2V0Q29uZmlnUmVxdWVzdCI2ChFHZXRDb25maWdSZXNwb25zZRIhCgZjb25maWcYASABKAsyES5tZXRhcnIudjEuQ29uZmlnMlcKDUNvbmZpZ1NlcnZpY2USRgoJR2V0Q29uZmlnEhsubWV0YXJyLnYxLkdldENvbmZpZ1JlcXVlc3QaHC5tZXRhcnIudjEuR2V0Q29uZmlnUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_metarr_v1_admin, file_metarr_v1_agents, file_metarr_v1_api_keys, file_metarr_v1_auth, file_metarr_v1_directory_scanner, file_metarr_v1_event_bus, file_metarr_v1_logging, file_metarr_v1_sonarr_interfaces]);
 
 /**
  * InterfacesConfig groups the configuration for every external service
@@ -94,6 +96,11 @@ export type Config = Message<"metarr.v1.Config"> & {
    * @generated from field: metarr.v1.EventBusConfig event_bus = 7;
    */
   eventBus?: EventBusConfig | undefined;
+
+  /**
+   * @generated from field: metarr.v1.AuthConfig auth = 8;
+   */
+  auth?: AuthConfig | undefined;
 };
 
 /**

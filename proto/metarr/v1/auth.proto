@@ -6,6 +6,12 @@ import "metarr/v1/admin.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
+// AuthConfig holds authentication configuration including the HMAC signing secret.
+message AuthConfig {
+  // hmac_secret is the base64-encoded HMAC-SHA256 signing key used for JWT tokens.
+  string hmac_secret = 1;
+}
+
 message AuthServiceLoginRequest {
   string username = 1;
   string password = 2;
