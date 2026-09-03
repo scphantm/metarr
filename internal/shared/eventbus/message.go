@@ -49,10 +49,9 @@ func SlugFromAgentSource(source string) (string, bool) {
 
 // eventMarshal / eventUnmarshal encode the envelope exactly as the stored
 // config is encoded (appconfig.MarshalStored): protojson with proto field
-// names and unpopulated fields emitted. Using one encoding on both the
-// publish and the consume side is what removes the old system_config_update
-// asymmetry — it was published as protojson and read back with encoding/json
-// — by construction.
+// names and unpopulated fields emitted. One encoding on both the publish and
+// the consume side keeps a payload symmetric by construction — no
+// protojson-out / encoding/json-back mismatch on well-known types.
 var (
 	eventMarshal   = protojson.MarshalOptions{UseProtoNames: true, EmitUnpopulated: true}
 	eventUnmarshal = protojson.UnmarshalOptions{DiscardUnknown: true}

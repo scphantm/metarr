@@ -42,18 +42,18 @@ func TestBusOverRedisWireEntryIsPayloadOnly(t *testing.T) {
 
 	transport := RedisStreamTransport(client, NewSlogAdapter(slog.New(slog.NewTextHandler(io.Discard, nil))))
 	bus := newRedisBus(t, transport, client, SourceServer)
-	if err := bus.HandleStream(SystemConfigUpdateTopic(), map[string]StreamHandler{
-		SystemConfigUpdateEventName: func(context.Context, *Event) error { return nil },
+	if err := bus.HandleStream(AgentScanResultTopic(), map[string]StreamHandler{
+		AgentScanResultEventName: func(context.Context, *Event) error { return nil },
 	}); err != nil {
 		t.Fatalf("HandleStream: %v", err)
 	}
 	runBus(t, bus)
 
-	if err := bus.Publish(context.Background(), SystemConfigUpdateTopic(), SystemConfigUpdateEventName, "corr-wire", []byte(`{"hello":"world"}`)); err != nil {
+	if err := bus.Publish(context.Background(), AgentScanResultTopic(), AgentScanResultEventName, "corr-wire", []byte(`{"hello":"world"}`)); err != nil {
 		t.Fatalf("Publish: %v", err)
 	}
 
-	entries, err := client.XRange(context.Background(), SystemConfigUpdateStream, "-", "+").Result()
+	entries, err := client.XRange(context.Background(), AgentScanResultStream, "-", "+").Result()
 	if err != nil {
 		t.Fatalf("XRange: %v", err)
 	}
@@ -72,17 +72,17 @@ func TestBusOverRedisWireEntryIsPayloadOnly(t *testing.T) {
 	if err := UnmarshalEvent([]byte(raw.(string)), &event); err != nil {
 		t.Fatalf("payload field is not an envelope: %v", err)
 	}
-	if event.GetSource() != SourceServer || event.GetName() != SystemConfigUpdateEventName || event.GetCorrelationId() != "corr-wire" {
+	if event.GetSource() != SourceServer || event.GetName() != AgentScanResultEventName || event.GetCorrelationId() != "corr-wire" {
 		t.Errorf("envelope = %+v", &event)
 	}
 
 	// The group the listener reads with was created on first subscribe.
-	groups, err := client.XInfoGroups(context.Background(), SystemConfigUpdateStream).Result()
+	groups, err := client.XInfoGroups(context.Background(), AgentScanResultStream).Result()
 	if err != nil {
 		t.Fatalf("XInfoGroups: %v", err)
 	}
-	if len(groups) != 1 || groups[0].Name != SystemConfigUpdateGroup {
-		t.Fatalf("want group %q created on subscribe, got %+v", SystemConfigUpdateGroup, groups)
+	if len(groups) != 1 || groups[0].Name != AgentScanResultGroup {
+		t.Fatalf("want group %q created on subscribe, got %+v", AgentScanResultGroup, groups)
 	}
 }
 

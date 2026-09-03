@@ -43,17 +43,18 @@ func TestBusCapsEveryPublish(t *testing.T) {
 	}
 
 	ctx := context.Background()
+	agentStream := AgentCommandTopic("nas-01")
 	for i := range 50 {
 		id := strconv.Itoa(i)
-		if err := bus.Publish(ctx, SystemConfigUpdateTopic(), SystemConfigUpdateEventName, id, []byte(`{}`)); err != nil {
-			t.Fatalf("publish system_config_update: %v", err)
+		if err := bus.Publish(ctx, agentStream, AgentScanCommandEventName, id, []byte(`{}`)); err != nil {
+			t.Fatalf("publish agent command: %v", err)
 		}
 		if err := bus.Publish(ctx, AgentScanResultTopic(), AgentScanResultEventName, id, []byte(`{}`)); err != nil {
 			t.Fatalf("publish agent_scan_results: %v", err)
 		}
 	}
 
-	for _, stream := range []string{SystemConfigUpdateStream, AgentScanResultStream} {
+	for _, stream := range []string{AgentCommandStream("nas-01"), AgentScanResultStream} {
 		if got := xlen(t, client, stream); got > maxLen {
 			t.Errorf("%s length %d exceeds the one cap %d", stream, got, maxLen)
 		}
@@ -70,7 +71,7 @@ func TestRetentionSweepTrimsByAge(t *testing.T) {
 	policy := RetentionPolicy{MaxLen: 1_000, RetentionHours: 48}
 
 	agentStream := AgentCommandStream("nas-01")
-	streams := []string{SystemConfigUpdateStream, AgentScanResultStream, AgentNodeResultStream, agentStream}
+	streams := []string{AgentScanResultStream, AgentNodeResultStream, agentStream}
 
 	for _, stream := range streams {
 		// One entry three days old, one a minute old.

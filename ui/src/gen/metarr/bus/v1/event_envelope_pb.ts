@@ -31,7 +31,7 @@ export const file_metarr_bus_v1_event_envelope: GenFile = /*@__PURE__*/
 export type EventEnvelope = Message<"metarr.bus.v1.EventEnvelope"> & {
   /**
    * name is the dispatch discriminator, e.g. "agent.scan" or
-   * "system_config_update". Consumers switch on it to choose a payload type.
+   * "agent.scan_result". Consumers switch on it to choose a payload type.
    *
    * @generated from field: string name = 1;
    */

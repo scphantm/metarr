@@ -10,16 +10,6 @@ import (
 	"Metarr/internal/shared/appconfig"
 )
 
-type fakePersister struct {
-	err       error
-	upsertCfg *appconfig.Config
-}
-
-func (f *fakePersister) Upsert(_ context.Context, cfg *appconfig.Config) error {
-	f.upsertCfg = cfg
-	return f.err
-}
-
 type fakeLiveConfigSetter struct {
 	cfg *appconfig.Config
 }
@@ -62,98 +52,22 @@ func discardLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
-func newTestPropagator() (*ConfigPropagator, *fakePersister, *fakeLiveConfigSetter, *fakeSidecarRegistry, *fakeAgentPublisher, *fakeLogLevelSetter) {
-	persist := &fakePersister{}
+func newTestPropagator() (*ConfigPropagator, *fakeLiveConfigSetter, *fakeSidecarRegistry, *fakeAgentPublisher, *fakeLogLevelSetter) {
 	live := &fakeLiveConfigSetter{}
 	sidecar := &fakeSidecarRegistry{}
 	agents := &fakeAgentPublisher{}
 	logLevel := &fakeLogLevelSetter{}
-	return newConfigPropagator(persist, live, sidecar, agents, logLevel, discardLogger()), persist, live, sidecar, agents, logLevel
+	return newConfigPropagator(live, sidecar, agents, logLevel, discardLogger()), live, sidecar, agents, logLevel
 }
 
-func TestApply_HappyPathInvokesEveryDependency(t *testing.T) {
-	propagator, persist, live, sidecar, agents, logLevel := newTestPropagator()
-	cfg := &appconfig.Config{Logging: &appconfig.LoggingConfig{ServerLevel: appconfig.LogLevelDebug}}
-
-	if err := propagator.Apply(context.Background(), cfg); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if persist.upsertCfg != cfg {
-		t.Error("expected the config to be persisted")
-	}
-	if live.cfg != cfg {
-		t.Error("expected the live config singleton to be swapped")
-	}
-	if sidecar.calls != 1 {
-		t.Errorf("expected the sidecar registry to be compiled once, got %d calls", sidecar.calls)
-	}
-	if agents.calls != 1 {
-		t.Errorf("expected agent projections to be republished once, got %d calls", agents.calls)
-	}
-	if !logLevel.setCalled || logLevel.level != slog.LevelDebug {
-		t.Errorf("expected log level Debug to be applied, got called=%v level=%v", logLevel.setCalled, logLevel.level)
-	}
-}
-
-func TestApply_PersistFailureIsAHardErrorAndStopsPropagation(t *testing.T) {
-	propagator, _, live, sidecar, agents, _ := newTestPropagator()
-	sentinel := errors.New("mongo unavailable")
-	propagator.persist = &fakePersister{err: sentinel}
-
-	err := propagator.Apply(context.Background(), &appconfig.Config{})
-	if !errors.Is(err, sentinel) {
-		t.Fatalf("expected the persist error back unchanged, got %v", err)
-	}
-	if live.cfg != nil {
-		t.Error("expected the live config swap to be skipped after a persist failure")
-	}
-	if sidecar.calls != 0 {
-		t.Error("expected the sidecar registry compile to be skipped after a persist failure")
-	}
-	if agents.calls != 0 {
-		t.Error("expected agent republish to be skipped after a persist failure")
-	}
-}
-
-func TestApply_SidecarRegistryFailureIsLoggedNotReturned(t *testing.T) {
-	propagator, _, live, sidecar, agents, _ := newTestPropagator()
-	sidecar.err = errors.New("invalid regex")
-
-	if err := propagator.Apply(context.Background(), &appconfig.Config{}); err != nil {
-		t.Fatalf("expected no error, sidecar registry failures are log-only, got %v", err)
-	}
-	if live.cfg == nil {
-		t.Error("expected the live config swap to have already happened")
-	}
-	if agents.calls != 1 {
-		t.Error("expected agent republish to still run after a sidecar registry failure")
-	}
-}
-
-func TestApply_AgentPublishFailureIsLoggedNotReturned(t *testing.T) {
-	propagator, _, _, sidecar, agents, _ := newTestPropagator()
-	agents.err = errors.New("redis unavailable")
-
-	if err := propagator.Apply(context.Background(), &appconfig.Config{}); err != nil {
-		t.Fatalf("expected no error, agent publish failures are log-only, got %v", err)
-	}
-	if sidecar.calls != 1 {
-		t.Error("expected the sidecar registry compile to have already run")
-	}
-}
-
-func TestPropagateInProcess_SkipsPersistButRunsEveryInProcessStep(t *testing.T) {
-	propagator, persist, live, sidecar, agents, logLevel := newTestPropagator()
+func TestPropagateInProcess_RunsEveryInProcessStep(t *testing.T) {
+	propagator, live, sidecar, agents, logLevel := newTestPropagator()
 	cfg := &appconfig.Config{Logging: &appconfig.LoggingConfig{ServerLevel: appconfig.LogLevelDebug}}
 
 	if err := propagator.PropagateInProcess(context.Background(), cfg); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if persist.upsertCfg != nil {
-		t.Error("the synchronous write path owns persistence; PropagateInProcess must not persist")
-	}
 	if live.cfg != cfg {
 		t.Error("expected the live config singleton to be swapped")
 	}
@@ -165,12 +79,30 @@ func TestPropagateInProcess_SkipsPersistButRunsEveryInProcessStep(t *testing.T) 
 	}
 }
 
+func TestPropagateInProcess_SidecarRegistryFailureIsLoggedNotReturned(t *testing.T) {
+	propagator, live, sidecar, agents, _ := newTestPropagator()
+	sidecar.err = errors.New("invalid regex")
+
+	if err := propagator.PropagateInProcess(context.Background(), &appconfig.Config{}); err != nil {
+		t.Fatalf("expected no error, sidecar registry failures are log-only, got %v", err)
+	}
+	if live.cfg == nil {
+		t.Error("expected the live config swap to have already happened")
+	}
+	if agents.calls != 1 {
+		t.Error("expected agent republish to still run after a sidecar registry failure")
+	}
+}
+
 func TestPropagateInProcess_AgentPublishFailureIsLoggedNotReturned(t *testing.T) {
-	propagator, _, _, _, agents, _ := newTestPropagator()
+	propagator, _, sidecar, agents, _ := newTestPropagator()
 	agents.err = errors.New("redis unavailable")
 
 	if err := propagator.PropagateInProcess(context.Background(), &appconfig.Config{}); err != nil {
-		t.Fatalf("expected no error, propagation failures are log-only, got %v", err)
+		t.Fatalf("expected no error, agent publish failures are log-only, got %v", err)
+	}
+	if sidecar.calls != 1 {
+		t.Error("expected the sidecar registry compile to have already run")
 	}
 }
 

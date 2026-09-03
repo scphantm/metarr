@@ -516,8 +516,8 @@ export const ResetSidecarTypesResponseSchema: GenMessage<ResetSidecarTypesRespon
  * methods (docs/adr/0010): a scalar section, a slug-addressed scan-directory
  * collection, and a minted-id sidecar-type collection. Reads come from live
  * config; every write goes through AppConfigStore.MutateSync — persist under
- * the store lock, propagate in-process, return the stored resource, no
- * system_config_update event (docs/adr/0002).
+ * the store lock, propagate in-process, return the stored resource
+ * (docs/adr/0002).
  *
  * @generated from service metarr.v1.DirectoryScannerService
  */

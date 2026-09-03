@@ -41,9 +41,8 @@ func TestDeriveTopology(t *testing.T) {
 			name:  "zero agents: static rows only",
 			slugs: nil,
 			wantStreamIdentities: map[string][]string{
-				eventbus.SystemConfigUpdateStream: {server},
-				eventbus.AgentScanResultStream:    {server},
-				eventbus.AgentNodeResultStream:    nil,
+				eventbus.AgentScanResultStream: {server},
+				eventbus.AgentNodeResultStream: nil,
 			},
 			wantChannelIdentities: map[string][]string{
 				eventbus.HeartbeatRequestChannel: {server},
@@ -100,8 +99,8 @@ func TestDeriveTopology(t *testing.T) {
 				t.Errorf("pattern row %q leaked into the topology", eventbus.AgentCommandStreamPattern)
 			}
 			// One command stream and two channels per agent, on top of the
-			// three static streams and two static channels.
-			if want := 3 + len(tc.slugs); len(top.Streams) != want {
+			// two static streams and two static channels.
+			if want := 2 + len(tc.slugs); len(top.Streams) != want {
 				t.Errorf("stream count = %d, want %d", len(top.Streams), want)
 			}
 			if want := 2 + 2*len(tc.slugs); len(top.Channels) != want {
@@ -121,7 +120,6 @@ func TestDeriveTopologyConsumesTheUnifiedTable(t *testing.T) {
 
 	// KindStream rows -> Streams.
 	for _, name := range []string{
-		eventbus.SystemConfigUpdateStream,
 		eventbus.AgentScanResultStream,
 		eventbus.AgentNodeResultStream,
 		eventbus.AgentCommandStream("nas-01"),

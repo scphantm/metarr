@@ -176,10 +176,10 @@ describe("SystemDashboardPage", () => {
     useBusSnapshot.mockReturnValue({
       data: snapshot({}, [
         stream({
-          stream: "events.system_config_update",
+          stream: "events.agent_scan_results",
           groups: [
             group({
-              name: "system_config_update_group",
+              name: "agent_scan_results_group",
               consumers: 1,
               pending: 0,
               lag: 0,
@@ -199,7 +199,7 @@ describe("SystemDashboardPage", () => {
 
     render(<SystemDashboardPage />);
 
-    expect(screen.getByText("events.system_config_update")).toBeDefined();
+    expect(screen.getByText("events.agent_scan_results")).toBeDefined();
     // The reserved node-result stream reads as not-created rather than as an error.
     expect(screen.getByText("events.agent_node_results")).toBeDefined();
     expect(screen.getByText("not created yet")).toBeDefined();
@@ -429,7 +429,7 @@ describe("SystemDashboardPage", () => {
     it("puts a purge action on every stream row and a purge-all action on the card", () => {
       renderWithStreams([
         stream({ stream: "events.agent_scan_results" }),
-        stream({ stream: "events.system_config_update" }),
+        stream({ stream: "events.agent_node_results" }),
       ]);
 
       expect(
@@ -437,7 +437,7 @@ describe("SystemDashboardPage", () => {
       ).toBeDefined();
       expect(
         screen.getByRole("button", {
-          name: "Purge events.system_config_update",
+          name: "Purge events.agent_node_results",
         }),
       ).toBeDefined();
       expect(screen.getByRole("button", { name: "Purge all" })).toBeDefined();
@@ -495,7 +495,7 @@ describe("SystemDashboardPage", () => {
     it("keeps the purge-all confirm disabled until the fixed word is typed", async () => {
       renderWithStreams([
         stream({ stream: "events.agent_scan_results", length: 4 }),
-        stream({ stream: "events.system_config_update", length: 6 }),
+        stream({ stream: "events.agent_node_results", length: 6 }),
       ]);
 
       fireEvent.click(screen.getByRole("button", { name: "Purge all" }));

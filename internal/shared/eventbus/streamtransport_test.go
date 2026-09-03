@@ -10,7 +10,7 @@ import (
 // JSON — no _watermill_message_uuid, no msgpack metadata blob.
 
 func TestMinimalStreamValuesCarriesOnlyPayload(t *testing.T) {
-	envelope := MarshalEventOrFatal(t, newEnvelope(SourceServer, SystemConfigUpdateEventName, "corr-1", []byte(`{"k":1}`)))
+	envelope := MarshalEventOrFatal(t, newEnvelope(SourceServer, AgentScanResultEventName, "corr-1", []byte(`{"k":1}`)))
 
 	values := minimalStreamValues(envelope)
 
@@ -54,7 +54,7 @@ func TestPayloadFromStreamValuesRejectsMissingField(t *testing.T) {
 }
 
 func TestMinimalUnmarshallerYieldsEnvelopePayload(t *testing.T) {
-	envelope := MarshalEventOrFatal(t, newEnvelope(SourceServer, SystemConfigUpdateEventName, "corr-3", []byte(`{"a":true}`)))
+	envelope := MarshalEventOrFatal(t, newEnvelope(SourceServer, AgentScanResultEventName, "corr-3", []byte(`{"a":true}`)))
 
 	msg, err := minimalUnmarshaller{}.Unmarshal(map[string]any{"payload": string(envelope)})
 	if err != nil {

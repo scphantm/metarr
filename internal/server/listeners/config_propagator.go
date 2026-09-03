@@ -9,14 +9,6 @@ import (
 	"Metarr/internal/shared/scanmodel"
 )
 
-// configPersister is the propagator's Mongo dependency, satisfied by
-// *mongostore.AppConfigRepo without any change to that type — the same
-// narrow-interface-at-the-consumer pattern appconfigstore.Store uses for
-// its own dependencies.
-type configPersister interface {
-	Upsert(ctx context.Context, cfg *appconfig.Config) error
-}
-
 // liveConfigSetter swaps the process-wide live config singleton.
 // liveConfigSetterFunc adapts the package-level appconfig.Set to this
 // interface, so a test can substitute a spy instead of mutating real
@@ -59,19 +51,16 @@ type agentPublisher interface {
 	PublishAll(ctx context.Context, config *appconfig.Config) error
 }
 
-// ConfigPropagator is what happens to a new config document once the store
-// has it: persist it (Apply only), swap the live config singleton so the
-// rest of the process sees it immediately, recompile the sidecar
-// classification registry, and republish each agent's own view. It always
-// takes an already-decoded *appconfig.Config, so a test never needs a JSON
-// round-trip to exercise it.
+// ConfigPropagator is what happens to a config document once the config
+// store has persisted it: swap the live config singleton so the rest of the
+// process sees it immediately, apply the server log level, recompile the
+// sidecar classification registry, and republish each agent's own view. It
+// always takes an already-decoded *appconfig.Config, so a test never needs a
+// JSON round-trip to exercise it.
 //
-// It serves both write paths during the AIP conversion: the
-// system_config_update listener calls Apply (persist + propagate) for the
-// services that still fire an event; appconfigstore.Store.MutateSync calls
-// PropagateInProcess (propagate only) after its own Mongo write.
+// appconfigstore.Store.MutateSync calls PropagateInProcess after its own
+// Mongo write; that is the propagator's one entry point.
 type ConfigPropagator struct {
-	persist         configPersister
 	liveConfig      liveConfigSetter
 	sidecarRegistry sidecarRegistrySetter
 	agents          agentPublisher
@@ -79,22 +68,20 @@ type ConfigPropagator struct {
 	logger          *slog.Logger
 }
 
-// NewConfigPropagator wires the production propagator: persistence and agent
-// projections from repo / agents, the live-config singleton and the sidecar
-// registry from their appconfig / scanmodel package-level functions.
+// NewConfigPropagator wires the production propagator: agent projections from
+// agents, the live-config singleton and the sidecar registry from their
+// appconfig / scanmodel package-level functions.
 func NewConfigPropagator(
-	repo configPersister,
 	agents agentPublisher,
 	logShipper logLevelSetter,
 	logger *slog.Logger,
 ) *ConfigPropagator {
-	return newConfigPropagator(repo, liveConfigSetterFunc(appconfig.Set), sidecarRegistryAdapter{}, agents, logShipper, logger)
+	return newConfigPropagator(liveConfigSetterFunc(appconfig.Set), sidecarRegistryAdapter{}, agents, logShipper, logger)
 }
 
 // newConfigPropagator is the all-dependencies constructor, kept so a test can
 // substitute a spy for the live-config singleton and the sidecar registry.
 func newConfigPropagator(
-	persist configPersister,
 	liveConfig liveConfigSetter,
 	sidecarRegistry sidecarRegistrySetter,
 	agents agentPublisher,
@@ -102,7 +89,6 @@ func newConfigPropagator(
 	logger *slog.Logger,
 ) *ConfigPropagator {
 	return &ConfigPropagator{
-		persist:         persist,
 		liveConfig:      liveConfig,
 		sidecarRegistry: sidecarRegistry,
 		agents:          agents,
@@ -111,43 +97,16 @@ func newConfigPropagator(
 	}
 }
 
-// Apply persists cfg and then propagates it in-process.
-//
-// This is the invariant a future change must preserve: persisting cfg is a
-// hard failure, returned to the caller so the stream redelivers the event —
-// but recompiling the sidecar registry and republishing agent projections
-// are logged, never returned, because by that point cfg is already durably
-// persisted and live. Redelivering the whole event to retry either of those
-// would re-run the database write too, and agents re-read on their own timer
-// regardless.
-func (p *ConfigPropagator) Apply(ctx context.Context, cfg *appconfig.Config) error {
+// PropagateInProcess makes an already-persisted cfg live: the caller (the
+// config store's synchronous write path) owns the Mongo write, so this only
+// swaps the singleton, sets the log level, recompiles the sidecar registry
+// and republishes agent projections. Every failure is logged, never returned
+// — the durable write has already succeeded, and agents re-read on their own
+// timer regardless.
+func (p *ConfigPropagator) PropagateInProcess(ctx context.Context, cfg *appconfig.Config) error {
 	correlationID := correlation.FromContext(ctx)
-
-	// cfg arrives decoded from an event payload rather than through the
-	// config store, so this is the boundary where it enters the process and
-	// where its sections are filled in.
 	cfg = appconfig.Normalize(cfg)
 
-	if err := p.persist.Upsert(ctx, cfg); err != nil {
-		p.logger.Error("failed to persist system config update", "correlation_id", correlationID, "error", err)
-		return err
-	}
-
-	p.propagateInProcess(ctx, cfg, correlationID)
-	return nil
-}
-
-// PropagateInProcess makes an already-persisted cfg live: the caller (the
-// config store's synchronous write path) owns the Mongo write, so this skips
-// persistence and only swaps the singleton, sets the log level, recompiles
-// the sidecar registry and republishes agent projections. Every failure is
-// logged, never returned — the durable write has already succeeded.
-func (p *ConfigPropagator) PropagateInProcess(ctx context.Context, cfg *appconfig.Config) error {
-	p.propagateInProcess(ctx, appconfig.Normalize(cfg), correlation.FromContext(ctx))
-	return nil
-}
-
-func (p *ConfigPropagator) propagateInProcess(ctx context.Context, cfg *appconfig.Config, correlationID string) {
 	p.liveConfig.Set(cfg)
 
 	// The server's own verbosity, applied live — the same SetLevel an
@@ -171,4 +130,5 @@ func (p *ConfigPropagator) propagateInProcess(ctx context.Context, cfg *appconfi
 		p.logger.Error("failed to republish agent configuration",
 			"correlation_id", correlationID, "error", err)
 	}
+	return nil
 }
