@@ -26,8 +26,8 @@ const (
 
 // WorkflowServer implements metarrv1connect.WorkflowServiceHandler, ported
 // directly from internal/server/handlers/workflows.go — same Mongo reads
-// and the same synchronous Save call (no system_config_update event; see
-// UpsertWorkflow's doc comment), only the transport changed.
+// and the same synchronous Save call (see UpsertWorkflow's doc comment),
+// only the transport changed.
 type WorkflowServer struct {
 	*handlers.Handlers
 }

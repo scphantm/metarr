@@ -52,7 +52,7 @@ func newShipper(bufferSize int, level *slog.LevelVar) *Shipper {
 
 // SetLevel changes the minimum level this logger emits, live. Both the
 // server's own level and every agent's are controlled through this single
-// method — see the system_config_update listener and ConfigStore.Refresh.
+// method — see the config propagator and ConfigStore.Refresh.
 func (s *Shipper) SetLevel(level slog.Level) {
 	s.level.Set(level)
 }

@@ -22,12 +22,10 @@ lint:
   use:
     - STANDARD
   except:
-    # Deliberate: the config services not yet reshaped to AIP synchronous
-    # writes share the one AcceptedResponse message (mirrors the Go handlers'
-    # shared AcceptedResponse struct, see proto/metarr/v1/common.proto)
-    # rather than each minting its own identical-shaped wrapper type. The AIP
-    # Update methods return the stored resource directly (AIP-134), which is
-    # not named {Method}Response.
+    # Deliberate: the AIP standard methods return the stored resource
+    # directly (AIP-134 Update, AIP-131 Get) or google.protobuf.Empty
+    # (Delete), none of which is named {Method}Response, and a few reads
+    # share a response message rather than minting an identical-shaped one.
     - RPC_REQUEST_RESPONSE_UNIQUE
     - RPC_RESPONSE_STANDARD_NAME
 breaking:
