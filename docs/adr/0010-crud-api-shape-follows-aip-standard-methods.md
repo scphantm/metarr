@@ -101,6 +101,19 @@ honoured only when non-empty.
 (`ADMIN`, `USER`, `WEBHOOK`, `READ_ONLY`) — a fixed four-value set, which AIP itself says should not be modelled as a
 resource collection, so there is no `parent` addressing and no `AccessLevelService`.
 
+**`WorkflowService` follows the same shape (issue #112).** It is not a config service — it is a direct read/write over
+the append-only versioned `workflows` collection, not the `app_config` singleton, so ADR-0002's synchronous config store
+and ADR-0011 do not apply to it — but its API surface is the standard set: `CreateWorkflow` / `GetWorkflow` /
+`ListWorkflows` / `UpdateWorkflow` / `DeleteWorkflow`, resource-shaped request/response messages, a `FieldMask` on
+`Update`, and the `page_size` / `page_token` / `filter` / `order_by` List contract. The workflow resource is addressed
+by the minted document id it already carries (exposed as `id`), so there is no synthetic `name` and no `allow_missing`
+on `Update`. Two custom methods (AIP-136), `GetWorkflowVersion` and `ListWorkflowVersions`, expose version history.
+`Update` appends a new immutable version rather than mutating in place; `graph` is masked wholesale (a mask may name
+`graph` but not a sub-path) because the stored graph is opaque. `Delete` hard-removes every version — the one
+irreversible call in an otherwise append-only store, recorded in ADR-0013. A non-empty `filter` or `order_by` is
+`Unimplemented`: the list is storage-ordered newest-first and AIP-160 translation is deferred, matching the config
+lists.
+
 ## What is adopted, and what is not
 
 | AIP     | area                               | decision                                                                                           |

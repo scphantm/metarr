@@ -9,6 +9,7 @@ import (
 	"connectrpc.com/connect"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
@@ -20,29 +21,43 @@ import (
 )
 
 const (
-	defaultWorkflowLimit = 20
-	maxWorkflowLimit     = 100
+	defaultWorkflowPageSize = 50
+	maxWorkflowPageSize     = 100
 )
 
+// workflowUpdatePaths is the closed set of update_mask paths UpdateWorkflow
+// honours. graph is masked wholesale — a mask may name graph but not a
+// sub-path — because the stored graph is an opaque document (docs/adr/0010).
+var workflowUpdatePaths = map[string]bool{
+	"name":        true,
+	"description": true,
+	"tags":        true,
+	"graph":       true,
+}
+
 // WorkflowStore is the narrow, consumer-declared view of the versioned
-// workflow repository that WorkflowServer needs — only the append-only save
-// plus the four reads it calls today, no speculative surface. It is declared
-// here, by the consumer, the same way appconfigstore declares its own
-// configReader / configWriter interfaces rather than naming a concrete repo.
-// The concrete *mongostore.WorkflowRepo satisfies it unchanged in
-// production; an in-memory fake satisfies it in tests.
+// workflow repository that WorkflowServer needs — the append-only save, the
+// four reads it calls, and the delete-all-versions the AIP DeleteWorkflow
+// method added. It is declared here, by the consumer, the same way
+// appconfigstore declares its own configReader / configWriter interfaces
+// rather than naming a concrete repo. The concrete *mongostore.WorkflowRepo
+// satisfies it unchanged in production; an in-memory fake satisfies it in
+// tests.
 type WorkflowStore interface {
 	Save(ctx context.Context, documentID bson.ObjectID, w mongostore.Workflow) (mongostore.Workflow, error)
 	ListLatest(ctx context.Context, filter versioned.LatestFilter) ([]mongostore.Workflow, string, bool, error)
 	GetLatest(ctx context.Context, documentID bson.ObjectID) (mongostore.Workflow, error)
 	GetVersion(ctx context.Context, documentID bson.ObjectID, version int) (mongostore.Workflow, error)
 	ListVersions(ctx context.Context, documentID bson.ObjectID) ([]mongostore.Workflow, error)
+	DeleteAllVersions(ctx context.Context, documentID bson.ObjectID) error
 }
 
-// WorkflowServer implements metarrv1connect.WorkflowServiceHandler. It reads
-// and writes workflow graphs through the WorkflowStore seam — the append-only
-// versioned store, reached via the concrete repo in production and a fake in
-// tests. Writes are synchronous (see Upsert's doc comment).
+// WorkflowServer implements metarrv1connect.WorkflowServiceHandler on the AIP
+// standard methods (docs/adr/0010). It reads and writes workflow graphs
+// through the WorkflowStore seam — the append-only versioned store, reached
+// via the concrete repo in production and a fake in tests. Writes are
+// synchronous: CreateWorkflow / UpdateWorkflow append a version and return the
+// stored resource, DeleteWorkflow removes every version and returns empty.
 type WorkflowServer struct {
 	*handlers.Handlers
 
@@ -52,67 +67,51 @@ type WorkflowServer struct {
 	Store WorkflowStore
 }
 
-// WorkflowAuthPolicies is this service's method-name -> policy map. Mirrors
-// every workflow route in router.go being GroupTasks.
+// WorkflowAuthPolicies is this service's method-name -> policy map. Every
+// method stays in the tasks group, mirroring the pre-AIP shape: the reads are
+// read-only, the writes are gated.
 var WorkflowAuthPolicies = map[string]httpserver.RPCPolicy{
-	"List":         {Group: auth.GroupTasks, ReadOnly: true},
-	"Get":          {Group: auth.GroupTasks, ReadOnly: true},
-	"ListVersions": {Group: auth.GroupTasks, ReadOnly: true},
-	"GetVersion":   {Group: auth.GroupTasks, ReadOnly: true},
-	"Upsert":       {Group: auth.GroupTasks},
+	"CreateWorkflow":       {Group: auth.GroupTasks},
+	"GetWorkflow":          {Group: auth.GroupTasks, ReadOnly: true},
+	"ListWorkflows":        {Group: auth.GroupTasks, ReadOnly: true},
+	"UpdateWorkflow":       {Group: auth.GroupTasks},
+	"DeleteWorkflow":       {Group: auth.GroupTasks},
+	"GetWorkflowVersion":   {Group: auth.GroupTasks, ReadOnly: true},
+	"ListWorkflowVersions": {Group: auth.GroupTasks, ReadOnly: true},
 }
 
-func (s *WorkflowServer) List(
+func (s *WorkflowServer) CreateWorkflow(
 	ctx context.Context,
-	req *connect.Request[metarrv1.WorkflowServiceListRequest],
-) (*connect.Response[metarrv1.WorkflowServiceListResponse], error) {
-	filter := versioned.LatestFilter{Limit: defaultWorkflowLimit}
-
-	if limit := req.Msg.GetLimit(); limit != 0 {
-		if limit < 1 {
-			return nil, connectError(http.StatusBadRequest, errors.New("limit must be a positive integer"))
-		}
-		if limit > maxWorkflowLimit {
-			limit = maxWorkflowLimit
-		}
-		filter.Limit = int64(limit)
+	req *connect.Request[metarrv1.CreateWorkflowRequest],
+) (*connect.Response[metarrv1.Workflow], error) {
+	entry := req.Msg.GetWorkflow()
+	if entry == nil {
+		return nil, connectError(http.StatusBadRequest, errors.New("workflow is required"))
+	}
+	if entry.GetId() != "" {
+		return nil, connectError(http.StatusBadRequest, errors.New("id is server-minted and must not be set on Create"))
+	}
+	if err := validateWorkflowContent(entry); err != nil {
+		return nil, connectError(http.StatusBadRequest, err)
 	}
 
-	if rawCursor := req.Msg.GetCursor(); rawCursor != "" {
-		cursor, err := bson.ObjectIDFromHex(rawCursor)
-		if err != nil {
-			return nil, connectError(http.StatusBadRequest, errors.New("malformed cursor"))
-		}
-		filter.Cursor = cursor
-	}
-
-	workflows, nextCursor, hasMore, err := s.Store.ListLatest(ctx, filter)
+	stored, err := workflowFromProto(entry)
 	if err != nil {
-		s.Logger.Error("failed to list workflows", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to list workflows"))
+		return nil, connectError(http.StatusBadRequest, err)
 	}
 
-	protoWorkflows := make([]*metarrv1.Workflow, 0, len(workflows))
-	for _, w := range workflows {
-		proto, err := workflowToProto(w)
-		if err != nil {
-			s.Logger.Error("failed to encode workflow", "error", err)
-			return nil, connectError(http.StatusInternalServerError, errors.New("failed to encode workflow"))
-		}
-		protoWorkflows = append(protoWorkflows, proto)
+	saved, err := s.Store.Save(ctx, bson.NilObjectID, stored)
+	if err != nil {
+		s.Logger.Error("failed to save workflow", "error", err)
+		return nil, connectError(http.StatusInternalServerError, errors.New("failed to save workflow"))
 	}
-
-	return connect.NewResponse(&metarrv1.WorkflowServiceListResponse{
-		Workflows:  protoWorkflows,
-		NextCursor: nextCursor,
-		HasMore:    hasMore,
-	}), nil
+	return s.encodeWorkflow(saved)
 }
 
-func (s *WorkflowServer) Get(
+func (s *WorkflowServer) GetWorkflow(
 	ctx context.Context,
-	req *connect.Request[metarrv1.WorkflowServiceGetRequest],
-) (*connect.Response[metarrv1.WorkflowServiceGetResponse], error) {
+	req *connect.Request[metarrv1.GetWorkflowRequest],
+) (*connect.Response[metarrv1.Workflow], error) {
 	workflowID, err := parseRecordID(req.Msg.GetId())
 	if err != nil {
 		return nil, connectError(http.StatusBadRequest, err)
@@ -122,48 +121,138 @@ func (s *WorkflowServer) Get(
 	if err != nil {
 		return nil, workflowLookupError(err, workflowID, s.Logger)
 	}
+	return s.encodeWorkflow(workflow)
+}
 
-	proto, err := workflowToProto(workflow)
+func (s *WorkflowServer) ListWorkflows(
+	ctx context.Context,
+	req *connect.Request[metarrv1.ListWorkflowsRequest],
+) (*connect.Response[metarrv1.ListWorkflowsResponse], error) {
+	if err := parseListFilter(req.Msg.GetFilter()); err != nil {
+		return nil, aipConnectError(err)
+	}
+	// The list is storage-ordered newest-first and paged by an opaque _id
+	// cursor, so an order_by cannot be applied across pages. It is
+	// Unimplemented rather than silently ignored, matching how filter is
+	// handled (docs/adr/0010).
+	if req.Msg.GetOrderBy() != "" {
+		return nil, connect.NewError(connect.CodeUnimplemented,
+			errors.New("order_by is not supported: workflows are listed newest-first"))
+	}
+
+	filter := versioned.LatestFilter{Limit: defaultWorkflowPageSize}
+	if pageSize := req.Msg.GetPageSize(); pageSize != 0 {
+		if pageSize < 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("page_size must not be negative"))
+		}
+		if pageSize > maxWorkflowPageSize {
+			pageSize = maxWorkflowPageSize
+		}
+		filter.Limit = int64(pageSize)
+	}
+
+	if rawToken := req.Msg.GetPageToken(); rawToken != "" {
+		cursor, err := bson.ObjectIDFromHex(rawToken)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("malformed page_token"))
+		}
+		filter.Cursor = cursor
+	}
+
+	workflows, nextToken, _, err := s.Store.ListLatest(ctx, filter)
+	if err != nil {
+		s.Logger.Error("failed to list workflows", "error", err)
+		return nil, connectError(http.StatusInternalServerError, errors.New("failed to list workflows"))
+	}
+
+	protoWorkflows, err := s.encodeWorkflows(workflows)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&metarrv1.ListWorkflowsResponse{
+		Workflows:     protoWorkflows,
+		NextPageToken: nextToken,
+	}), nil
+}
+
+// UpdateWorkflow is an AIP-134 partial update: read the latest version, apply
+// the mask, append the merged result as a new immutable version. Allowed mask
+// paths are name / description / tags / graph (graph wholesale); an empty mask
+// or any other path is InvalidArgument. The merged workflow must still carry a
+// name, a description and at least one tag.
+func (s *WorkflowServer) UpdateWorkflow(
+	ctx context.Context,
+	req *connect.Request[metarrv1.UpdateWorkflowRequest],
+) (*connect.Response[metarrv1.Workflow], error) {
+	patch := req.Msg.GetWorkflow()
+	if patch == nil {
+		return nil, connectError(http.StatusBadRequest, errors.New("workflow is required"))
+	}
+	workflowID, err := parseRecordID(patch.GetId())
+	if err != nil {
+		return nil, connectError(http.StatusBadRequest, err)
+	}
+
+	for _, path := range req.Msg.GetUpdateMask().GetPaths() {
+		if !workflowUpdatePaths[path] {
+			return nil, connect.NewError(connect.CodeInvalidArgument,
+				errors.New("update_mask may name only name, description, tags or graph"))
+		}
+	}
+
+	current, err := s.Store.GetLatest(ctx, workflowID)
+	if err != nil {
+		return nil, workflowLookupError(err, workflowID, s.Logger)
+	}
+
+	merged, err := workflowToProto(current)
 	if err != nil {
 		s.Logger.Error("failed to encode workflow", "error", err)
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to encode workflow"))
 	}
+	if maskErr := applyUpdateMask(merged, patch, req.Msg.GetUpdateMask()); maskErr != nil {
+		return nil, aipConnectError(maskErr)
+	}
+	if err := validateWorkflowContent(merged); err != nil {
+		return nil, connectError(http.StatusBadRequest, err)
+	}
 
-	return connect.NewResponse(&metarrv1.WorkflowServiceGetResponse{Workflow: proto}), nil
+	stored, err := workflowFromProto(merged)
+	if err != nil {
+		return nil, connectError(http.StatusBadRequest, err)
+	}
+	saved, err := s.Store.Save(ctx, workflowID, stored)
+	if err != nil {
+		s.Logger.Error("failed to save workflow", "error", err)
+		return nil, connectError(http.StatusInternalServerError, errors.New("failed to save workflow"))
+	}
+	return s.encodeWorkflow(saved)
 }
 
-func (s *WorkflowServer) ListVersions(
+// DeleteWorkflow hard-removes every version of the workflow (docs/adr/0013).
+func (s *WorkflowServer) DeleteWorkflow(
 	ctx context.Context,
-	req *connect.Request[metarrv1.WorkflowServiceListVersionsRequest],
-) (*connect.Response[metarrv1.WorkflowServiceListVersionsResponse], error) {
+	req *connect.Request[metarrv1.DeleteWorkflowRequest],
+) (*connect.Response[emptypb.Empty], error) {
 	workflowID, err := parseRecordID(req.Msg.GetId())
 	if err != nil {
 		return nil, connectError(http.StatusBadRequest, err)
 	}
 
-	versions, err := s.Store.ListVersions(ctx, workflowID)
-	if err != nil {
-		s.Logger.Error("failed to list workflow versions", "workflow_id", workflowID.Hex(), "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to list workflow versions"))
-	}
-
-	protoVersions := make([]*metarrv1.Workflow, 0, len(versions))
-	for _, w := range versions {
-		proto, err := workflowToProto(w)
-		if err != nil {
-			s.Logger.Error("failed to encode workflow", "error", err)
-			return nil, connectError(http.StatusInternalServerError, errors.New("failed to encode workflow"))
+	if err := s.Store.DeleteAllVersions(ctx, workflowID); err != nil {
+		if errors.Is(err, versioned.ErrNotFound) {
+			return nil, connectError(http.StatusNotFound, errors.New("no workflow with that id"))
 		}
-		protoVersions = append(protoVersions, proto)
+		s.Logger.Error("failed to delete workflow", "workflow_id", workflowID.Hex(), "error", err)
+		return nil, connectError(http.StatusInternalServerError, errors.New("failed to delete workflow"))
 	}
-
-	return connect.NewResponse(&metarrv1.WorkflowServiceListVersionsResponse{Versions: protoVersions}), nil
+	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
-func (s *WorkflowServer) GetVersion(
+func (s *WorkflowServer) GetWorkflowVersion(
 	ctx context.Context,
-	req *connect.Request[metarrv1.WorkflowServiceGetVersionRequest],
-) (*connect.Response[metarrv1.WorkflowServiceGetVersionResponse], error) {
+	req *connect.Request[metarrv1.GetWorkflowVersionRequest],
+) (*connect.Response[metarrv1.Workflow], error) {
 	workflowID, err := parseRecordID(req.Msg.GetId())
 	if err != nil {
 		return nil, connectError(http.StatusBadRequest, err)
@@ -178,51 +267,72 @@ func (s *WorkflowServer) GetVersion(
 	if err != nil {
 		return nil, workflowLookupError(err, workflowID, s.Logger)
 	}
-
-	proto, err := workflowToProto(workflow)
-	if err != nil {
-		s.Logger.Error("failed to encode workflow", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to encode workflow"))
-	}
-
-	return connect.NewResponse(&metarrv1.WorkflowServiceGetVersionResponse{Workflow: proto}), nil
+	return s.encodeWorkflow(workflow)
 }
 
-func (s *WorkflowServer) Upsert(
+func (s *WorkflowServer) ListWorkflowVersions(
 	ctx context.Context,
-	req *connect.Request[metarrv1.WorkflowServiceUpsertRequest],
-) (*connect.Response[metarrv1.WorkflowServiceUpsertResponse], error) {
-	if req.Msg.GetName() == "" || req.Msg.GetDescription() == "" || len(req.Msg.GetTags()) == 0 {
-		return nil, connectError(http.StatusBadRequest, errors.New("name, description and at least one tag are required"))
-	}
-
-	var documentID bson.ObjectID
-	if raw := req.Msg.GetDocumentId(); raw != "" {
-		id, err := bson.ObjectIDFromHex(raw)
-		if err != nil {
-			return nil, connectError(http.StatusBadRequest, errors.New("malformed document_id"))
-		}
-		documentID = id
-	}
-
-	entry, err := workflowFromUpsertProto(req.Msg)
+	req *connect.Request[metarrv1.ListWorkflowVersionsRequest],
+) (*connect.Response[metarrv1.ListWorkflowVersionsResponse], error) {
+	workflowID, err := parseRecordID(req.Msg.GetId())
 	if err != nil {
 		return nil, connectError(http.StatusBadRequest, err)
 	}
 
-	saved, err := s.Store.Save(ctx, documentID, entry)
+	versions, err := s.Store.ListVersions(ctx, workflowID)
 	if err != nil {
-		s.Logger.Error("failed to save workflow", "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to save workflow"))
+		s.Logger.Error("failed to list workflow versions", "workflow_id", workflowID.Hex(), "error", err)
+		return nil, connectError(http.StatusInternalServerError, errors.New("failed to list workflow versions"))
 	}
 
-	proto, err := workflowToProto(saved)
+	protoVersions, err := s.encodeWorkflows(versions)
+	if err != nil {
+		return nil, err
+	}
+
+	page, nextToken, err := paginateSlice(protoVersions, req.Msg.GetPageSize(), req.Msg.GetPageToken())
+	if err != nil {
+		return nil, aipConnectError(err)
+	}
+	return connect.NewResponse(&metarrv1.ListWorkflowVersionsResponse{
+		Workflows:     page,
+		NextPageToken: nextToken,
+	}), nil
+}
+
+// encodeWorkflow converts one stored workflow to its proto form, mapping an
+// encoding failure to a 500 the same way every method did inline before.
+func (s *WorkflowServer) encodeWorkflow(w mongostore.Workflow) (*connect.Response[metarrv1.Workflow], error) {
+	proto, err := workflowToProto(w)
 	if err != nil {
 		s.Logger.Error("failed to encode workflow", "error", err)
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to encode workflow"))
 	}
+	return connect.NewResponse(proto), nil
+}
 
-	return connect.NewResponse(&metarrv1.WorkflowServiceUpsertResponse{Workflow: proto}), nil
+func (s *WorkflowServer) encodeWorkflows(workflows []mongostore.Workflow) ([]*metarrv1.Workflow, error) {
+	out := make([]*metarrv1.Workflow, 0, len(workflows))
+	for _, w := range workflows {
+		proto, err := workflowToProto(w)
+		if err != nil {
+			s.Logger.Error("failed to encode workflow", "error", err)
+			return nil, connectError(http.StatusInternalServerError, errors.New("failed to encode workflow"))
+		}
+		out = append(out, proto)
+	}
+	return out, nil
+}
+
+// validateWorkflowContent carries the pre-AIP Upsert rules forward: a workflow
+// needs a name, a description and at least one tag. CreateWorkflow runs it on
+// the request; UpdateWorkflow runs it on the merged result so a mask cannot
+// strip a workflow below the minimum.
+func validateWorkflowContent(w *metarrv1.Workflow) error {
+	if w.GetName() == "" || w.GetDescription() == "" || len(w.GetTags()) == 0 {
+		return errors.New("name, description and at least one tag are required")
+	}
+	return nil
 }
 
 // The workflow graph is a generated message (workflow.Graph aliases
@@ -293,8 +403,7 @@ func workflowToProto(w mongostore.Workflow) (*metarrv1.Workflow, error) {
 		return nil, err
 	}
 	return &metarrv1.Workflow{
-		Id:          w.ID.Hex(),
-		DocumentId:  w.DocumentID.Hex(),
+		Id:          w.DocumentID.Hex(),
 		Version:     int32(w.Version),
 		CreatedAt:   timestamppb.New(w.CreatedAt),
 		Name:        w.Name,
@@ -304,15 +413,19 @@ func workflowToProto(w mongostore.Workflow) (*metarrv1.Workflow, error) {
 	}, nil
 }
 
-func workflowFromUpsertProto(req *metarrv1.WorkflowServiceUpsertRequest) (mongostore.Workflow, error) {
-	stored, err := graphFromProto(req.Graph)
+// workflowFromProto turns a Workflow message (a Create body, or an
+// UpdateWorkflow merged result) into the loose document mongostore persists.
+// Only the content fields are read — id / version / created_at are the store's
+// to assign.
+func workflowFromProto(w *metarrv1.Workflow) (mongostore.Workflow, error) {
+	stored, err := graphFromProto(w.GetGraph())
 	if err != nil {
 		return mongostore.Workflow{}, errors.New("malformed graph")
 	}
 	return mongostore.Workflow{
-		Name:          req.Name,
-		Description:   req.Description,
-		Tags:          req.Tags,
+		Name:          w.GetName(),
+		Description:   w.GetDescription(),
+		Tags:          w.GetTags(),
 		SchemaVersion: stored.SchemaVersion,
 		Nodes:         stored.Nodes,
 		Edges:         stored.Edges,

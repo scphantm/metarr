@@ -9,6 +9,7 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	http "net/http"
 	strings "strings"
 )
@@ -33,27 +34,38 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// WorkflowServiceListProcedure is the fully-qualified name of the WorkflowService's List RPC.
-	WorkflowServiceListProcedure = "/metarr.v1.WorkflowService/List"
-	// WorkflowServiceGetProcedure is the fully-qualified name of the WorkflowService's Get RPC.
-	WorkflowServiceGetProcedure = "/metarr.v1.WorkflowService/Get"
-	// WorkflowServiceListVersionsProcedure is the fully-qualified name of the WorkflowService's
-	// ListVersions RPC.
-	WorkflowServiceListVersionsProcedure = "/metarr.v1.WorkflowService/ListVersions"
-	// WorkflowServiceGetVersionProcedure is the fully-qualified name of the WorkflowService's
-	// GetVersion RPC.
-	WorkflowServiceGetVersionProcedure = "/metarr.v1.WorkflowService/GetVersion"
-	// WorkflowServiceUpsertProcedure is the fully-qualified name of the WorkflowService's Upsert RPC.
-	WorkflowServiceUpsertProcedure = "/metarr.v1.WorkflowService/Upsert"
+	// WorkflowServiceCreateWorkflowProcedure is the fully-qualified name of the WorkflowService's
+	// CreateWorkflow RPC.
+	WorkflowServiceCreateWorkflowProcedure = "/metarr.v1.WorkflowService/CreateWorkflow"
+	// WorkflowServiceGetWorkflowProcedure is the fully-qualified name of the WorkflowService's
+	// GetWorkflow RPC.
+	WorkflowServiceGetWorkflowProcedure = "/metarr.v1.WorkflowService/GetWorkflow"
+	// WorkflowServiceListWorkflowsProcedure is the fully-qualified name of the WorkflowService's
+	// ListWorkflows RPC.
+	WorkflowServiceListWorkflowsProcedure = "/metarr.v1.WorkflowService/ListWorkflows"
+	// WorkflowServiceUpdateWorkflowProcedure is the fully-qualified name of the WorkflowService's
+	// UpdateWorkflow RPC.
+	WorkflowServiceUpdateWorkflowProcedure = "/metarr.v1.WorkflowService/UpdateWorkflow"
+	// WorkflowServiceDeleteWorkflowProcedure is the fully-qualified name of the WorkflowService's
+	// DeleteWorkflow RPC.
+	WorkflowServiceDeleteWorkflowProcedure = "/metarr.v1.WorkflowService/DeleteWorkflow"
+	// WorkflowServiceGetWorkflowVersionProcedure is the fully-qualified name of the WorkflowService's
+	// GetWorkflowVersion RPC.
+	WorkflowServiceGetWorkflowVersionProcedure = "/metarr.v1.WorkflowService/GetWorkflowVersion"
+	// WorkflowServiceListWorkflowVersionsProcedure is the fully-qualified name of the WorkflowService's
+	// ListWorkflowVersions RPC.
+	WorkflowServiceListWorkflowVersionsProcedure = "/metarr.v1.WorkflowService/ListWorkflowVersions"
 )
 
 // WorkflowServiceClient is a client for the metarr.v1.WorkflowService service.
 type WorkflowServiceClient interface {
-	List(context.Context, *connect.Request[v1.WorkflowServiceListRequest]) (*connect.Response[v1.WorkflowServiceListResponse], error)
-	Get(context.Context, *connect.Request[v1.WorkflowServiceGetRequest]) (*connect.Response[v1.WorkflowServiceGetResponse], error)
-	ListVersions(context.Context, *connect.Request[v1.WorkflowServiceListVersionsRequest]) (*connect.Response[v1.WorkflowServiceListVersionsResponse], error)
-	GetVersion(context.Context, *connect.Request[v1.WorkflowServiceGetVersionRequest]) (*connect.Response[v1.WorkflowServiceGetVersionResponse], error)
-	Upsert(context.Context, *connect.Request[v1.WorkflowServiceUpsertRequest]) (*connect.Response[v1.WorkflowServiceUpsertResponse], error)
+	CreateWorkflow(context.Context, *connect.Request[v1.CreateWorkflowRequest]) (*connect.Response[v1.Workflow], error)
+	GetWorkflow(context.Context, *connect.Request[v1.GetWorkflowRequest]) (*connect.Response[v1.Workflow], error)
+	ListWorkflows(context.Context, *connect.Request[v1.ListWorkflowsRequest]) (*connect.Response[v1.ListWorkflowsResponse], error)
+	UpdateWorkflow(context.Context, *connect.Request[v1.UpdateWorkflowRequest]) (*connect.Response[v1.Workflow], error)
+	DeleteWorkflow(context.Context, *connect.Request[v1.DeleteWorkflowRequest]) (*connect.Response[emptypb.Empty], error)
+	GetWorkflowVersion(context.Context, *connect.Request[v1.GetWorkflowVersionRequest]) (*connect.Response[v1.Workflow], error)
+	ListWorkflowVersions(context.Context, *connect.Request[v1.ListWorkflowVersionsRequest]) (*connect.Response[v1.ListWorkflowVersionsResponse], error)
 }
 
 // NewWorkflowServiceClient constructs a client for the metarr.v1.WorkflowService service. By
@@ -67,34 +79,46 @@ func NewWorkflowServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 	baseURL = strings.TrimRight(baseURL, "/")
 	workflowServiceMethods := v1.File_metarr_v1_workflows_proto.Services().ByName("WorkflowService").Methods()
 	return &workflowServiceClient{
-		list: connect.NewClient[v1.WorkflowServiceListRequest, v1.WorkflowServiceListResponse](
+		createWorkflow: connect.NewClient[v1.CreateWorkflowRequest, v1.Workflow](
 			httpClient,
-			baseURL+WorkflowServiceListProcedure,
-			connect.WithSchema(workflowServiceMethods.ByName("List")),
+			baseURL+WorkflowServiceCreateWorkflowProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("CreateWorkflow")),
 			connect.WithClientOptions(opts...),
 		),
-		get: connect.NewClient[v1.WorkflowServiceGetRequest, v1.WorkflowServiceGetResponse](
+		getWorkflow: connect.NewClient[v1.GetWorkflowRequest, v1.Workflow](
 			httpClient,
-			baseURL+WorkflowServiceGetProcedure,
-			connect.WithSchema(workflowServiceMethods.ByName("Get")),
+			baseURL+WorkflowServiceGetWorkflowProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("GetWorkflow")),
 			connect.WithClientOptions(opts...),
 		),
-		listVersions: connect.NewClient[v1.WorkflowServiceListVersionsRequest, v1.WorkflowServiceListVersionsResponse](
+		listWorkflows: connect.NewClient[v1.ListWorkflowsRequest, v1.ListWorkflowsResponse](
 			httpClient,
-			baseURL+WorkflowServiceListVersionsProcedure,
-			connect.WithSchema(workflowServiceMethods.ByName("ListVersions")),
+			baseURL+WorkflowServiceListWorkflowsProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("ListWorkflows")),
 			connect.WithClientOptions(opts...),
 		),
-		getVersion: connect.NewClient[v1.WorkflowServiceGetVersionRequest, v1.WorkflowServiceGetVersionResponse](
+		updateWorkflow: connect.NewClient[v1.UpdateWorkflowRequest, v1.Workflow](
 			httpClient,
-			baseURL+WorkflowServiceGetVersionProcedure,
-			connect.WithSchema(workflowServiceMethods.ByName("GetVersion")),
+			baseURL+WorkflowServiceUpdateWorkflowProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("UpdateWorkflow")),
 			connect.WithClientOptions(opts...),
 		),
-		upsert: connect.NewClient[v1.WorkflowServiceUpsertRequest, v1.WorkflowServiceUpsertResponse](
+		deleteWorkflow: connect.NewClient[v1.DeleteWorkflowRequest, emptypb.Empty](
 			httpClient,
-			baseURL+WorkflowServiceUpsertProcedure,
-			connect.WithSchema(workflowServiceMethods.ByName("Upsert")),
+			baseURL+WorkflowServiceDeleteWorkflowProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("DeleteWorkflow")),
+			connect.WithClientOptions(opts...),
+		),
+		getWorkflowVersion: connect.NewClient[v1.GetWorkflowVersionRequest, v1.Workflow](
+			httpClient,
+			baseURL+WorkflowServiceGetWorkflowVersionProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("GetWorkflowVersion")),
+			connect.WithClientOptions(opts...),
+		),
+		listWorkflowVersions: connect.NewClient[v1.ListWorkflowVersionsRequest, v1.ListWorkflowVersionsResponse](
+			httpClient,
+			baseURL+WorkflowServiceListWorkflowVersionsProcedure,
+			connect.WithSchema(workflowServiceMethods.ByName("ListWorkflowVersions")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -102,45 +126,59 @@ func NewWorkflowServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 
 // workflowServiceClient implements WorkflowServiceClient.
 type workflowServiceClient struct {
-	list         *connect.Client[v1.WorkflowServiceListRequest, v1.WorkflowServiceListResponse]
-	get          *connect.Client[v1.WorkflowServiceGetRequest, v1.WorkflowServiceGetResponse]
-	listVersions *connect.Client[v1.WorkflowServiceListVersionsRequest, v1.WorkflowServiceListVersionsResponse]
-	getVersion   *connect.Client[v1.WorkflowServiceGetVersionRequest, v1.WorkflowServiceGetVersionResponse]
-	upsert       *connect.Client[v1.WorkflowServiceUpsertRequest, v1.WorkflowServiceUpsertResponse]
+	createWorkflow       *connect.Client[v1.CreateWorkflowRequest, v1.Workflow]
+	getWorkflow          *connect.Client[v1.GetWorkflowRequest, v1.Workflow]
+	listWorkflows        *connect.Client[v1.ListWorkflowsRequest, v1.ListWorkflowsResponse]
+	updateWorkflow       *connect.Client[v1.UpdateWorkflowRequest, v1.Workflow]
+	deleteWorkflow       *connect.Client[v1.DeleteWorkflowRequest, emptypb.Empty]
+	getWorkflowVersion   *connect.Client[v1.GetWorkflowVersionRequest, v1.Workflow]
+	listWorkflowVersions *connect.Client[v1.ListWorkflowVersionsRequest, v1.ListWorkflowVersionsResponse]
 }
 
-// List calls metarr.v1.WorkflowService.List.
-func (c *workflowServiceClient) List(ctx context.Context, req *connect.Request[v1.WorkflowServiceListRequest]) (*connect.Response[v1.WorkflowServiceListResponse], error) {
-	return c.list.CallUnary(ctx, req)
+// CreateWorkflow calls metarr.v1.WorkflowService.CreateWorkflow.
+func (c *workflowServiceClient) CreateWorkflow(ctx context.Context, req *connect.Request[v1.CreateWorkflowRequest]) (*connect.Response[v1.Workflow], error) {
+	return c.createWorkflow.CallUnary(ctx, req)
 }
 
-// Get calls metarr.v1.WorkflowService.Get.
-func (c *workflowServiceClient) Get(ctx context.Context, req *connect.Request[v1.WorkflowServiceGetRequest]) (*connect.Response[v1.WorkflowServiceGetResponse], error) {
-	return c.get.CallUnary(ctx, req)
+// GetWorkflow calls metarr.v1.WorkflowService.GetWorkflow.
+func (c *workflowServiceClient) GetWorkflow(ctx context.Context, req *connect.Request[v1.GetWorkflowRequest]) (*connect.Response[v1.Workflow], error) {
+	return c.getWorkflow.CallUnary(ctx, req)
 }
 
-// ListVersions calls metarr.v1.WorkflowService.ListVersions.
-func (c *workflowServiceClient) ListVersions(ctx context.Context, req *connect.Request[v1.WorkflowServiceListVersionsRequest]) (*connect.Response[v1.WorkflowServiceListVersionsResponse], error) {
-	return c.listVersions.CallUnary(ctx, req)
+// ListWorkflows calls metarr.v1.WorkflowService.ListWorkflows.
+func (c *workflowServiceClient) ListWorkflows(ctx context.Context, req *connect.Request[v1.ListWorkflowsRequest]) (*connect.Response[v1.ListWorkflowsResponse], error) {
+	return c.listWorkflows.CallUnary(ctx, req)
 }
 
-// GetVersion calls metarr.v1.WorkflowService.GetVersion.
-func (c *workflowServiceClient) GetVersion(ctx context.Context, req *connect.Request[v1.WorkflowServiceGetVersionRequest]) (*connect.Response[v1.WorkflowServiceGetVersionResponse], error) {
-	return c.getVersion.CallUnary(ctx, req)
+// UpdateWorkflow calls metarr.v1.WorkflowService.UpdateWorkflow.
+func (c *workflowServiceClient) UpdateWorkflow(ctx context.Context, req *connect.Request[v1.UpdateWorkflowRequest]) (*connect.Response[v1.Workflow], error) {
+	return c.updateWorkflow.CallUnary(ctx, req)
 }
 
-// Upsert calls metarr.v1.WorkflowService.Upsert.
-func (c *workflowServiceClient) Upsert(ctx context.Context, req *connect.Request[v1.WorkflowServiceUpsertRequest]) (*connect.Response[v1.WorkflowServiceUpsertResponse], error) {
-	return c.upsert.CallUnary(ctx, req)
+// DeleteWorkflow calls metarr.v1.WorkflowService.DeleteWorkflow.
+func (c *workflowServiceClient) DeleteWorkflow(ctx context.Context, req *connect.Request[v1.DeleteWorkflowRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.deleteWorkflow.CallUnary(ctx, req)
+}
+
+// GetWorkflowVersion calls metarr.v1.WorkflowService.GetWorkflowVersion.
+func (c *workflowServiceClient) GetWorkflowVersion(ctx context.Context, req *connect.Request[v1.GetWorkflowVersionRequest]) (*connect.Response[v1.Workflow], error) {
+	return c.getWorkflowVersion.CallUnary(ctx, req)
+}
+
+// ListWorkflowVersions calls metarr.v1.WorkflowService.ListWorkflowVersions.
+func (c *workflowServiceClient) ListWorkflowVersions(ctx context.Context, req *connect.Request[v1.ListWorkflowVersionsRequest]) (*connect.Response[v1.ListWorkflowVersionsResponse], error) {
+	return c.listWorkflowVersions.CallUnary(ctx, req)
 }
 
 // WorkflowServiceHandler is an implementation of the metarr.v1.WorkflowService service.
 type WorkflowServiceHandler interface {
-	List(context.Context, *connect.Request[v1.WorkflowServiceListRequest]) (*connect.Response[v1.WorkflowServiceListResponse], error)
-	Get(context.Context, *connect.Request[v1.WorkflowServiceGetRequest]) (*connect.Response[v1.WorkflowServiceGetResponse], error)
-	ListVersions(context.Context, *connect.Request[v1.WorkflowServiceListVersionsRequest]) (*connect.Response[v1.WorkflowServiceListVersionsResponse], error)
-	GetVersion(context.Context, *connect.Request[v1.WorkflowServiceGetVersionRequest]) (*connect.Response[v1.WorkflowServiceGetVersionResponse], error)
-	Upsert(context.Context, *connect.Request[v1.WorkflowServiceUpsertRequest]) (*connect.Response[v1.WorkflowServiceUpsertResponse], error)
+	CreateWorkflow(context.Context, *connect.Request[v1.CreateWorkflowRequest]) (*connect.Response[v1.Workflow], error)
+	GetWorkflow(context.Context, *connect.Request[v1.GetWorkflowRequest]) (*connect.Response[v1.Workflow], error)
+	ListWorkflows(context.Context, *connect.Request[v1.ListWorkflowsRequest]) (*connect.Response[v1.ListWorkflowsResponse], error)
+	UpdateWorkflow(context.Context, *connect.Request[v1.UpdateWorkflowRequest]) (*connect.Response[v1.Workflow], error)
+	DeleteWorkflow(context.Context, *connect.Request[v1.DeleteWorkflowRequest]) (*connect.Response[emptypb.Empty], error)
+	GetWorkflowVersion(context.Context, *connect.Request[v1.GetWorkflowVersionRequest]) (*connect.Response[v1.Workflow], error)
+	ListWorkflowVersions(context.Context, *connect.Request[v1.ListWorkflowVersionsRequest]) (*connect.Response[v1.ListWorkflowVersionsResponse], error)
 }
 
 // NewWorkflowServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -150,48 +188,64 @@ type WorkflowServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewWorkflowServiceHandler(svc WorkflowServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	workflowServiceMethods := v1.File_metarr_v1_workflows_proto.Services().ByName("WorkflowService").Methods()
-	workflowServiceListHandler := connect.NewUnaryHandler(
-		WorkflowServiceListProcedure,
-		svc.List,
-		connect.WithSchema(workflowServiceMethods.ByName("List")),
+	workflowServiceCreateWorkflowHandler := connect.NewUnaryHandler(
+		WorkflowServiceCreateWorkflowProcedure,
+		svc.CreateWorkflow,
+		connect.WithSchema(workflowServiceMethods.ByName("CreateWorkflow")),
 		connect.WithHandlerOptions(opts...),
 	)
-	workflowServiceGetHandler := connect.NewUnaryHandler(
-		WorkflowServiceGetProcedure,
-		svc.Get,
-		connect.WithSchema(workflowServiceMethods.ByName("Get")),
+	workflowServiceGetWorkflowHandler := connect.NewUnaryHandler(
+		WorkflowServiceGetWorkflowProcedure,
+		svc.GetWorkflow,
+		connect.WithSchema(workflowServiceMethods.ByName("GetWorkflow")),
 		connect.WithHandlerOptions(opts...),
 	)
-	workflowServiceListVersionsHandler := connect.NewUnaryHandler(
-		WorkflowServiceListVersionsProcedure,
-		svc.ListVersions,
-		connect.WithSchema(workflowServiceMethods.ByName("ListVersions")),
+	workflowServiceListWorkflowsHandler := connect.NewUnaryHandler(
+		WorkflowServiceListWorkflowsProcedure,
+		svc.ListWorkflows,
+		connect.WithSchema(workflowServiceMethods.ByName("ListWorkflows")),
 		connect.WithHandlerOptions(opts...),
 	)
-	workflowServiceGetVersionHandler := connect.NewUnaryHandler(
-		WorkflowServiceGetVersionProcedure,
-		svc.GetVersion,
-		connect.WithSchema(workflowServiceMethods.ByName("GetVersion")),
+	workflowServiceUpdateWorkflowHandler := connect.NewUnaryHandler(
+		WorkflowServiceUpdateWorkflowProcedure,
+		svc.UpdateWorkflow,
+		connect.WithSchema(workflowServiceMethods.ByName("UpdateWorkflow")),
 		connect.WithHandlerOptions(opts...),
 	)
-	workflowServiceUpsertHandler := connect.NewUnaryHandler(
-		WorkflowServiceUpsertProcedure,
-		svc.Upsert,
-		connect.WithSchema(workflowServiceMethods.ByName("Upsert")),
+	workflowServiceDeleteWorkflowHandler := connect.NewUnaryHandler(
+		WorkflowServiceDeleteWorkflowProcedure,
+		svc.DeleteWorkflow,
+		connect.WithSchema(workflowServiceMethods.ByName("DeleteWorkflow")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workflowServiceGetWorkflowVersionHandler := connect.NewUnaryHandler(
+		WorkflowServiceGetWorkflowVersionProcedure,
+		svc.GetWorkflowVersion,
+		connect.WithSchema(workflowServiceMethods.ByName("GetWorkflowVersion")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workflowServiceListWorkflowVersionsHandler := connect.NewUnaryHandler(
+		WorkflowServiceListWorkflowVersionsProcedure,
+		svc.ListWorkflowVersions,
+		connect.WithSchema(workflowServiceMethods.ByName("ListWorkflowVersions")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/metarr.v1.WorkflowService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case WorkflowServiceListProcedure:
-			workflowServiceListHandler.ServeHTTP(w, r)
-		case WorkflowServiceGetProcedure:
-			workflowServiceGetHandler.ServeHTTP(w, r)
-		case WorkflowServiceListVersionsProcedure:
-			workflowServiceListVersionsHandler.ServeHTTP(w, r)
-		case WorkflowServiceGetVersionProcedure:
-			workflowServiceGetVersionHandler.ServeHTTP(w, r)
-		case WorkflowServiceUpsertProcedure:
-			workflowServiceUpsertHandler.ServeHTTP(w, r)
+		case WorkflowServiceCreateWorkflowProcedure:
+			workflowServiceCreateWorkflowHandler.ServeHTTP(w, r)
+		case WorkflowServiceGetWorkflowProcedure:
+			workflowServiceGetWorkflowHandler.ServeHTTP(w, r)
+		case WorkflowServiceListWorkflowsProcedure:
+			workflowServiceListWorkflowsHandler.ServeHTTP(w, r)
+		case WorkflowServiceUpdateWorkflowProcedure:
+			workflowServiceUpdateWorkflowHandler.ServeHTTP(w, r)
+		case WorkflowServiceDeleteWorkflowProcedure:
+			workflowServiceDeleteWorkflowHandler.ServeHTTP(w, r)
+		case WorkflowServiceGetWorkflowVersionProcedure:
+			workflowServiceGetWorkflowVersionHandler.ServeHTTP(w, r)
+		case WorkflowServiceListWorkflowVersionsProcedure:
+			workflowServiceListWorkflowVersionsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -201,22 +255,30 @@ func NewWorkflowServiceHandler(svc WorkflowServiceHandler, opts ...connect.Handl
 // UnimplementedWorkflowServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedWorkflowServiceHandler struct{}
 
-func (UnimplementedWorkflowServiceHandler) List(context.Context, *connect.Request[v1.WorkflowServiceListRequest]) (*connect.Response[v1.WorkflowServiceListResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.WorkflowService.List is not implemented"))
+func (UnimplementedWorkflowServiceHandler) CreateWorkflow(context.Context, *connect.Request[v1.CreateWorkflowRequest]) (*connect.Response[v1.Workflow], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.WorkflowService.CreateWorkflow is not implemented"))
 }
 
-func (UnimplementedWorkflowServiceHandler) Get(context.Context, *connect.Request[v1.WorkflowServiceGetRequest]) (*connect.Response[v1.WorkflowServiceGetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.WorkflowService.Get is not implemented"))
+func (UnimplementedWorkflowServiceHandler) GetWorkflow(context.Context, *connect.Request[v1.GetWorkflowRequest]) (*connect.Response[v1.Workflow], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.WorkflowService.GetWorkflow is not implemented"))
 }
 
-func (UnimplementedWorkflowServiceHandler) ListVersions(context.Context, *connect.Request[v1.WorkflowServiceListVersionsRequest]) (*connect.Response[v1.WorkflowServiceListVersionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.WorkflowService.ListVersions is not implemented"))
+func (UnimplementedWorkflowServiceHandler) ListWorkflows(context.Context, *connect.Request[v1.ListWorkflowsRequest]) (*connect.Response[v1.ListWorkflowsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.WorkflowService.ListWorkflows is not implemented"))
 }
 
-func (UnimplementedWorkflowServiceHandler) GetVersion(context.Context, *connect.Request[v1.WorkflowServiceGetVersionRequest]) (*connect.Response[v1.WorkflowServiceGetVersionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.WorkflowService.GetVersion is not implemented"))
+func (UnimplementedWorkflowServiceHandler) UpdateWorkflow(context.Context, *connect.Request[v1.UpdateWorkflowRequest]) (*connect.Response[v1.Workflow], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.WorkflowService.UpdateWorkflow is not implemented"))
 }
 
-func (UnimplementedWorkflowServiceHandler) Upsert(context.Context, *connect.Request[v1.WorkflowServiceUpsertRequest]) (*connect.Response[v1.WorkflowServiceUpsertResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.WorkflowService.Upsert is not implemented"))
+func (UnimplementedWorkflowServiceHandler) DeleteWorkflow(context.Context, *connect.Request[v1.DeleteWorkflowRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.WorkflowService.DeleteWorkflow is not implemented"))
+}
+
+func (UnimplementedWorkflowServiceHandler) GetWorkflowVersion(context.Context, *connect.Request[v1.GetWorkflowVersionRequest]) (*connect.Response[v1.Workflow], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.WorkflowService.GetWorkflowVersion is not implemented"))
+}
+
+func (UnimplementedWorkflowServiceHandler) ListWorkflowVersions(context.Context, *connect.Request[v1.ListWorkflowVersionsRequest]) (*connect.Response[v1.ListWorkflowVersionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.WorkflowService.ListWorkflowVersions is not implemented"))
 }

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Alert, Space, Spin, Tag, Typography } from "antd";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
-import { useWorkflowList } from "../../api/queries";
+import { useDeleteWorkflow, useWorkflowList } from "../../api/queries";
 import { Button, Card, EmptyState } from "../../components/Card";
 import { PageHeader } from "../../layout/AppShell";
 import "./WorkflowListPage.css";
@@ -26,6 +26,8 @@ export function WorkflowListPage() {
     isError,
     error,
   } = useWorkflowList();
+
+  const deleteWorkflow = useDeleteWorkflow();
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -82,17 +84,33 @@ export function WorkflowListPage() {
 
         {workflows.map((workflow) => (
           <Card
-            key={workflow.documentId}
+            key={workflow.id}
             title={workflow.name}
             description={workflow.description}
             actions={
-              <Button
-                onClick={() => {
-                  void navigate(`/workflows/${workflow.documentId}/edit`);
-                }}
-              >
-                Edit
-              </Button>
+              <Space size={8}>
+                <Button
+                  onClick={() => {
+                    void navigate(`/workflows/${workflow.id}/edit`);
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Delete the workflow "${workflow.name}"? Every version of it is removed and this cannot be undone.`,
+                      )
+                    ) {
+                      void deleteWorkflow.mutateAsync(workflow.id);
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              </Space>
             }
           >
             <div className="workflow-list-tags-row">

@@ -81,3 +81,10 @@ func (r *WorkflowRepo) GetVersion(ctx context.Context, documentID bson.ObjectID,
 func (r *WorkflowRepo) ListVersions(ctx context.Context, documentID bson.ObjectID) ([]Workflow, error) {
 	return r.store.ListVersions(ctx, documentID)
 }
+
+// DeleteAllVersions hard-removes every version of one workflow. An unknown id
+// is versioned.ErrNotFound. See docs/adr/0013 for why a delete in an
+// append-only store removes the whole history rather than tombstoning.
+func (r *WorkflowRepo) DeleteAllVersions(ctx context.Context, documentID bson.ObjectID) error {
+	return r.store.DeleteAllVersions(ctx, documentID)
+}
