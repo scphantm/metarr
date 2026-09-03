@@ -73,12 +73,10 @@ func (x *InterfacesConfig) GetSonarr() []*SonarrInstance {
 // all read this one shape. The singleton _id the document is stored under
 // is a storage concern and deliberately not a field here.
 //
-// admin and api_keys are managed through AdminService and ApiKeyService
-// respectively; ConfigService owns only the read-only aggregate below, for
-// the UI's first paint (docs/adr/0010).
+// admin is managed through AdminService; ConfigService owns only the
+// read-only aggregate below, for the UI's first paint (docs/adr/0010).
 type Config struct {
 	state            protoimpl.MessageState  `protogen:"open.v1"`
-	ApiKeys          *APIKeysConfig          `protobuf:"bytes,1,opt,name=api_keys,json=apiKeys,proto3" json:"api_keys,omitempty"`
 	Admin            *AdminUser              `protobuf:"bytes,2,opt,name=admin,proto3" json:"admin,omitempty"`
 	Interfaces       *InterfacesConfig       `protobuf:"bytes,3,opt,name=interfaces,proto3" json:"interfaces,omitempty"`
 	DirectoryScanner *DirectoryScannerConfig `protobuf:"bytes,4,opt,name=directory_scanner,json=directoryScanner,proto3" json:"directory_scanner,omitempty"`
@@ -118,13 +116,6 @@ func (x *Config) ProtoReflect() protoreflect.Message {
 // Deprecated: Use Config.ProtoReflect.Descriptor instead.
 func (*Config) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_config_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *Config) GetApiKeys() *APIKeysConfig {
-	if x != nil {
-		return x.ApiKeys
-	}
-	return nil
 }
 
 func (x *Config) GetAdmin() *AdminUser {
@@ -260,11 +251,10 @@ var File_metarr_v1_config_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_config_proto_rawDesc = "" +
 	"\n" +
-	"\x16metarr/v1/config.proto\x12\tmetarr.v1\x1a\x15metarr/v1/admin.proto\x1a\x16metarr/v1/agents.proto\x1a\x18metarr/v1/api_keys.proto\x1a\x14metarr/v1/auth.proto\x1a!metarr/v1/directory_scanner.proto\x1a\x19metarr/v1/event_bus.proto\x1a\x17metarr/v1/logging.proto\x1a!metarr/v1/sonarr_interfaces.proto\"E\n" +
+	"\x16metarr/v1/config.proto\x12\tmetarr.v1\x1a\x15metarr/v1/admin.proto\x1a\x16metarr/v1/agents.proto\x1a\x14metarr/v1/auth.proto\x1a!metarr/v1/directory_scanner.proto\x1a\x19metarr/v1/event_bus.proto\x1a\x17metarr/v1/logging.proto\x1a!metarr/v1/sonarr_interfaces.proto\"E\n" +
 	"\x10InterfacesConfig\x121\n" +
-	"\x06sonarr\x18\x01 \x03(\v2\x19.metarr.v1.SonarrInstanceR\x06sonarr\"\xb7\x03\n" +
-	"\x06Config\x123\n" +
-	"\bapi_keys\x18\x01 \x01(\v2\x18.metarr.v1.APIKeysConfigR\aapiKeys\x12*\n" +
+	"\x06sonarr\x18\x01 \x03(\v2\x19.metarr.v1.SonarrInstanceR\x06sonarr\"\x92\x03\n" +
+	"\x06Config\x12*\n" +
 	"\x05admin\x18\x02 \x01(\v2\x14.metarr.v1.AdminUserR\x05admin\x12;\n" +
 	"\n" +
 	"interfaces\x18\x03 \x01(\v2\x1b.metarr.v1.InterfacesConfigR\n" +
@@ -273,7 +263,7 @@ const file_metarr_v1_config_proto_rawDesc = "" +
 	"\x06agents\x18\x05 \x03(\v2\x10.metarr.v1.AgentR\x06agents\x122\n" +
 	"\alogging\x18\x06 \x01(\v2\x18.metarr.v1.LoggingConfigR\alogging\x126\n" +
 	"\tevent_bus\x18\a \x01(\v2\x19.metarr.v1.EventBusConfigR\beventBus\x12)\n" +
-	"\x04auth\x18\b \x01(\v2\x15.metarr.v1.AuthConfigR\x04auth\"\x12\n" +
+	"\x04auth\x18\b \x01(\v2\x15.metarr.v1.AuthConfigR\x04authJ\x04\b\x01\x10\x02R\bapi_keys\"\x12\n" +
 	"\x10GetConfigRequest\">\n" +
 	"\x11GetConfigResponse\x12)\n" +
 	"\x06config\x18\x01 \x01(\v2\x11.metarr.v1.ConfigR\x06config2W\n" +
@@ -299,32 +289,30 @@ var file_metarr_v1_config_proto_goTypes = []any{
 	(*GetConfigRequest)(nil),       // 2: metarr.v1.GetConfigRequest
 	(*GetConfigResponse)(nil),      // 3: metarr.v1.GetConfigResponse
 	(*SonarrInstance)(nil),         // 4: metarr.v1.SonarrInstance
-	(*APIKeysConfig)(nil),          // 5: metarr.v1.APIKeysConfig
-	(*AdminUser)(nil),              // 6: metarr.v1.AdminUser
-	(*DirectoryScannerConfig)(nil), // 7: metarr.v1.DirectoryScannerConfig
-	(*Agent)(nil),                  // 8: metarr.v1.Agent
-	(*LoggingConfig)(nil),          // 9: metarr.v1.LoggingConfig
-	(*EventBusConfig)(nil),         // 10: metarr.v1.EventBusConfig
-	(*AuthConfig)(nil),             // 11: metarr.v1.AuthConfig
+	(*AdminUser)(nil),              // 5: metarr.v1.AdminUser
+	(*DirectoryScannerConfig)(nil), // 6: metarr.v1.DirectoryScannerConfig
+	(*Agent)(nil),                  // 7: metarr.v1.Agent
+	(*LoggingConfig)(nil),          // 8: metarr.v1.LoggingConfig
+	(*EventBusConfig)(nil),         // 9: metarr.v1.EventBusConfig
+	(*AuthConfig)(nil),             // 10: metarr.v1.AuthConfig
 }
 var file_metarr_v1_config_proto_depIdxs = []int32{
 	4,  // 0: metarr.v1.InterfacesConfig.sonarr:type_name -> metarr.v1.SonarrInstance
-	5,  // 1: metarr.v1.Config.api_keys:type_name -> metarr.v1.APIKeysConfig
-	6,  // 2: metarr.v1.Config.admin:type_name -> metarr.v1.AdminUser
-	0,  // 3: metarr.v1.Config.interfaces:type_name -> metarr.v1.InterfacesConfig
-	7,  // 4: metarr.v1.Config.directory_scanner:type_name -> metarr.v1.DirectoryScannerConfig
-	8,  // 5: metarr.v1.Config.agents:type_name -> metarr.v1.Agent
-	9,  // 6: metarr.v1.Config.logging:type_name -> metarr.v1.LoggingConfig
-	10, // 7: metarr.v1.Config.event_bus:type_name -> metarr.v1.EventBusConfig
-	11, // 8: metarr.v1.Config.auth:type_name -> metarr.v1.AuthConfig
-	1,  // 9: metarr.v1.GetConfigResponse.config:type_name -> metarr.v1.Config
-	2,  // 10: metarr.v1.ConfigService.GetConfig:input_type -> metarr.v1.GetConfigRequest
-	3,  // 11: metarr.v1.ConfigService.GetConfig:output_type -> metarr.v1.GetConfigResponse
-	11, // [11:12] is the sub-list for method output_type
-	10, // [10:11] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	5,  // 1: metarr.v1.Config.admin:type_name -> metarr.v1.AdminUser
+	0,  // 2: metarr.v1.Config.interfaces:type_name -> metarr.v1.InterfacesConfig
+	6,  // 3: metarr.v1.Config.directory_scanner:type_name -> metarr.v1.DirectoryScannerConfig
+	7,  // 4: metarr.v1.Config.agents:type_name -> metarr.v1.Agent
+	8,  // 5: metarr.v1.Config.logging:type_name -> metarr.v1.LoggingConfig
+	9,  // 6: metarr.v1.Config.event_bus:type_name -> metarr.v1.EventBusConfig
+	10, // 7: metarr.v1.Config.auth:type_name -> metarr.v1.AuthConfig
+	1,  // 8: metarr.v1.GetConfigResponse.config:type_name -> metarr.v1.Config
+	2,  // 9: metarr.v1.ConfigService.GetConfig:input_type -> metarr.v1.GetConfigRequest
+	3,  // 10: metarr.v1.ConfigService.GetConfig:output_type -> metarr.v1.GetConfigResponse
+	10, // [10:11] is the sub-list for method output_type
+	9,  // [9:10] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_config_proto_init() }
@@ -334,7 +322,6 @@ func file_metarr_v1_config_proto_init() {
 	}
 	file_metarr_v1_admin_proto_init()
 	file_metarr_v1_agents_proto_init()
-	file_metarr_v1_api_keys_proto_init()
 	file_metarr_v1_auth_proto_init()
 	file_metarr_v1_directory_scanner_proto_init()
 	file_metarr_v1_event_bus_proto_init()

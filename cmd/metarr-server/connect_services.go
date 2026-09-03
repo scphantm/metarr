@@ -6,7 +6,6 @@ import (
 	"connectrpc.com/connect"
 
 	"Metarr/internal/server/httpserver"
-	"Metarr/internal/server/session"
 )
 
 // newConnectService wraps one generated NewXServiceHandler(svc, opts...)
@@ -28,13 +27,12 @@ import (
 func newConnectService[T any](
 	newHandler func(svc T, opts ...connect.HandlerOption) (string, http.Handler),
 	svc T,
-	sessions *session.Store,
 	policies map[string]httpserver.RPCPolicy,
 	extraInterceptors ...connect.Interceptor,
 ) httpserver.ConnectService {
 	interceptors := append(
 		append([]connect.Interceptor{}, extraInterceptors...),
-		httpserver.NewConnectAuthInterceptor(sessions, policies),
+		httpserver.NewConnectAuthInterceptor(policies),
 	)
 	path, handler := newHandler(svc, connect.WithInterceptors(interceptors...))
 	return httpserver.ConnectService{Path: path, Handler: handler}

@@ -30,8 +30,6 @@ const SingletonID = "app_config"
 type (
 	Config                 = metarrv1.Config
 	AdminUser              = metarrv1.AdminUser
-	APIKeysConfig          = metarrv1.APIKeysConfig
-	APIKeyEntry            = metarrv1.APIKeyEntry
 	InterfacesConfig       = metarrv1.InterfacesConfig
 	SonarrInstance         = metarrv1.SonarrInstance
 	RootDirMapping         = metarrv1.RootDirMapping
@@ -138,9 +136,6 @@ func normalizeAuthenticationScheme(config *Config) {
 // carried a section — the case startup bootstrap exists to handle — decodes
 // with it nil rather than zeroed.
 func normalizeSections(config *Config) {
-	if config.ApiKeys == nil {
-		config.ApiKeys = &APIKeysConfig{}
-	}
 	if config.Admin == nil {
 		config.Admin = &AdminUser{}
 	}
@@ -262,24 +257,17 @@ func FindSidecarTypeIndexByID(scanner *DirectoryScannerConfig, id string) int {
 }
 
 // Default returns the zero-value configuration (matching
-// app_config.default.yaml: no API keys or interfaces configured yet).
+// app_config.default.yaml: no interfaces configured yet).
 //
 // Static sections (directory scanner settings, sidecar types, logging) come
 // from the same embedded builtin_defaults.json the startup bootstrap reads,
 // so the two can never again drift the way ParallelCount once did — see
-// docs/adr/0004-bootstrap-module-and-embedded-defaults-file.md. API keys and
-// the admin account stay empty here regardless: those are generated, not
-// defaulted, and generating them is the startup bootstrap's job, not this
-// function's.
+// docs/adr/0004-bootstrap-module-and-embedded-defaults-file.md. The admin
+// account stays empty here regardless: it is generated, not defaulted, and
+// generating it is the startup bootstrap's job, not this function's.
 func Default() *Config {
 	defaults := loadBuiltinDefaults()
 	return &Config{
-		ApiKeys: &APIKeysConfig{
-			Admin:    []*APIKeyEntry{},
-			User:     []*APIKeyEntry{},
-			Webhook:  []*APIKeyEntry{},
-			ReadOnly: []*APIKeyEntry{},
-		},
 		// Scheme set explicitly: Default feeds the pre-bootstrap live-config
 		// singleton, which is read without going through Normalize, and the
 		// auth interceptor must see a concrete scheme from the first request

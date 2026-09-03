@@ -14,7 +14,6 @@ import (
 	"Metarr/internal/server/busstats"
 	"Metarr/internal/server/logtail"
 	"Metarr/internal/server/mongostore"
-	"Metarr/internal/server/session"
 	"Metarr/internal/shared/eventbus"
 	"Metarr/internal/shared/workflow"
 )
@@ -26,7 +25,6 @@ type Handlers struct {
 	LocalDirectoryRepo *mongostore.LocalDirectoryRepo
 	WorkflowRepo       *mongostore.WorkflowRepo
 	WorkflowCatalog    *workflow.Catalog
-	Sessions           *session.Store
 	Stats              *busstats.Sampler
 	Redis              redis.UniversalClient
 	Agents             *agentregistry.Registry
@@ -42,7 +40,6 @@ func New(
 	localDirectoryRepo *mongostore.LocalDirectoryRepo,
 	workflowRepo *mongostore.WorkflowRepo,
 	workflowCatalog *workflow.Catalog,
-	sessions *session.Store,
 	stats *busstats.Sampler,
 	redisClient redis.UniversalClient,
 	agents *agentregistry.Registry,
@@ -56,7 +53,6 @@ func New(
 		LocalDirectoryRepo: localDirectoryRepo,
 		WorkflowRepo:       workflowRepo,
 		WorkflowCatalog:    workflowCatalog,
-		Sessions:           sessions,
 		Stats:              stats,
 		Redis:              redisClient,
 		Agents:             agents,

@@ -450,27 +450,5 @@
     "username": "admin",
     "email": "admin@example.com",
     "authentication_scheme": "AUTHENTICATION_SCHEME_NONE"
-  },
-  "api_keys": {
-    "admin": {
-      "id": "{guid}",
-      "name": "Administrator Key",
-      "api_key": "{guid}"
-    },
-    "user": {
-      "id": "{guid}",
-      "name": "User Key",
-      "api_key": "{guid}"
-    },
-    "webhook": {
-      "id": "{guid}",
-      "name": "Webhook Key",
-      "api_key": "{guid}"
-    },
-    "read_only": {
-      "id": "{guid}",
-      "name": "Read Only Key",
-      "api_key": "{guid}"
-    }
   }
 }

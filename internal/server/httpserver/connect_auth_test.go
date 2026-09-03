@@ -7,12 +7,9 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	"github.com/alicebob/miniredis/v2"
-	"github.com/redis/go-redis/v9"
 
 	"Metarr/internal/server/auth"
 	"Metarr/internal/server/jwt"
-	"Metarr/internal/server/session"
 	"Metarr/internal/shared/appconfig"
 )
 
@@ -26,13 +23,10 @@ func withLiveConfig(t *testing.T, cfg *appconfig.Config) {
 }
 
 // testInterceptor builds the real interceptor and returns it as its concrete
-// type so the test can drive authorize() directly. The session store parameter
-// is kept for compatibility but not used in JWT verification.
+// type so the test can drive authorize() directly.
 func testInterceptor(t *testing.T, policies map[string]RPCPolicy) *connectAuthInterceptor {
 	t.Helper()
-	mr := miniredis.RunT(t)
-	sessions := session.NewStore(redis.NewClient(&redis.Options{Addr: mr.Addr()}))
-	return NewConnectAuthInterceptor(sessions, policies).(*connectAuthInterceptor)
+	return NewConnectAuthInterceptor(policies).(*connectAuthInterceptor)
 }
 
 const testProcedure = "/metarr.v1.SomeService/Do"
@@ -123,9 +117,7 @@ func TestAuthorize_SchemePassword_ValidUserJWT_IsAllowed(t *testing.T) {
 	withLiveConfig(t, schemeConfig(appconfig.AuthSchemePassword))
 	// Use a policy that user role can access
 	tasksPolicy := map[string]RPCPolicy{"Do": {Group: auth.GroupTasks}}
-	mr := miniredis.RunT(t)
-	sessions := session.NewStore(redis.NewClient(&redis.Options{Addr: mr.Addr()}))
-	i := NewConnectAuthInterceptor(sessions, tasksPolicy).(*connectAuthInterceptor)
+	i := NewConnectAuthInterceptor(tasksPolicy).(*connectAuthInterceptor)
 
 	token := createJWT(t, "integration", string(jwt.RoleUser))
 	header := http.Header{}
@@ -150,6 +142,32 @@ func TestAuthorize_SchemePassword_InvalidJWT_IsUnauthenticated(t *testing.T) {
 	_, err := i.authorize(context.Background(), testProcedure, header)
 	if connect.CodeOf(err) != connect.CodeUnauthenticated {
 		t.Fatalf("code = %v, want Unauthenticated", connect.CodeOf(err))
+	}
+}
+
+// decodeHMACSecret memoises the base64 decode across authorize() calls; it
+// must still return the right bytes when the encoded secret changes (a
+// rotation) and when it does not.
+func TestDecodeHMACSecret_CachesAndRefreshesOnChange(t *testing.T) {
+	first := base64.StdEncoding.EncodeToString([]byte("secret-one"))
+	second := base64.StdEncoding.EncodeToString([]byte("secret-two"))
+
+	got, err := decodeHMACSecret(first)
+	if err != nil || string(got) != "secret-one" {
+		t.Fatalf("decodeHMACSecret(first) = %q, %v; want \"secret-one\", nil", got, err)
+	}
+	// Same input again: the cached slice comes back.
+	again, _ := decodeHMACSecret(first)
+	if string(again) != "secret-one" {
+		t.Fatalf("cached decode = %q, want \"secret-one\"", again)
+	}
+	// A rotated secret must not keep returning the stale bytes.
+	rotated, err := decodeHMACSecret(second)
+	if err != nil || string(rotated) != "secret-two" {
+		t.Fatalf("decodeHMACSecret(second) = %q, %v; want \"secret-two\", nil", rotated, err)
+	}
+	if _, err := decodeHMACSecret("not-base64!!!"); err == nil {
+		t.Fatal("expected an error decoding invalid base64")
 	}
 }
 

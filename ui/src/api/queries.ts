@@ -10,7 +10,6 @@ import {
 import {
   adminClient,
   agentClient,
-  apiKeyClient,
   authClient,
   configClient,
   directoryScannerClient,
@@ -40,10 +39,6 @@ import {
   type AdminUser as ConnectAdminUser,
 } from "../gen/metarr/v1/admin_pb";
 import type { Config as ConnectConfig } from "../gen/metarr/v1/config_pb";
-import {
-  AccessLevel,
-  type APIKeyEntry as ConnectAPIKeyEntry,
-} from "../gen/metarr/v1/api_keys_pb";
 import { AgentSchema } from "../gen/metarr/v1/agents_pb";
 import {
   SidecarTypeDefinitionSchema,
@@ -409,24 +404,11 @@ export function useSetAgentLogLevel() {
  * refetch re-merge live presence.
  */
 
-// AdminService and ApiKeyService are synchronous AIP writes (docs/adr/0002):
-// each returns the stored resource, and there is no dedicated query for it —
+// AdminService.UpdateAdminUser is a synchronous AIP write (docs/adr/0002):
+// it returns the stored resource, and there is no dedicated query for it —
 // the Security screen paints from the aggregate GetConfig read (["config"]).
-// So rather than invalidate and refetch the whole document, each write
+// So rather than invalidate and refetch the whole document, the write
 // splices its own response into that cached Config through patchConfigCache.
-
-const apiKeyGroups = ["admin", "user", "webhook", "readOnly"] as const;
-type ApiKeyGroup = (typeof apiKeyGroups)[number];
-
-// The AccessLevel enum a request carries, mapped to the field it addresses on
-// the stored APIKeysConfig. UNSPECIFIED has no group — the server rejects it,
-// so the cache splice just skips.
-const apiKeyGroupOf: Partial<Record<AccessLevel, ApiKeyGroup>> = {
-  [AccessLevel.ADMIN]: "admin",
-  [AccessLevel.USER]: "user",
-  [AccessLevel.WEBHOOK]: "webhook",
-  [AccessLevel.READ_ONLY]: "readOnly",
-};
 
 function patchConfigCache(
   queryClient: QueryClient,
@@ -443,43 +425,6 @@ function patchConfigCache(
     return;
   }
   queryClient.setQueryData<ConnectConfig>(queryKeys.config, update(existing));
-}
-
-// patchApiKeyGroup rewrites one APIKeysConfig group's entries in the cached
-// aggregate Config, preserving the branded message shape.
-function patchApiKeyGroup(
-  queryClient: QueryClient,
-  group: ApiKeyGroup,
-  update: (entries: ConnectAPIKeyEntry[]) => ConnectAPIKeyEntry[],
-) {
-  patchConfigCache(queryClient, (config) => {
-    const existing = config.apiKeys ?? {
-      $typeName: "metarr.v1.APIKeysConfig" as const,
-      admin: [],
-      user: [],
-      webhook: [],
-      readOnly: [],
-    };
-    return {
-      ...config,
-      apiKeys: { ...existing, [group]: update(existing[group] ?? []) },
-    };
-  });
-}
-
-// patchApiKeyById is patchApiKeyGroup for the id-addressed writes: id names a
-// key without an access level, so the splice first finds which group holds
-// it. An id no cached group holds is a no-op.
-function patchApiKeyById(
-  queryClient: QueryClient,
-  id: string,
-  update: (entries: ConnectAPIKeyEntry[]) => ConnectAPIKeyEntry[],
-) {
-  const config = queryClient.getQueryData<ConnectConfig>(queryKeys.config);
-  const group = apiKeyGroups.find((g) =>
-    (config?.apiKeys?.[g] ?? []).some((entry) => entry.id === id),
-  );
-  if (group) patchApiKeyGroup(queryClient, group, update);
 }
 
 // AdminService.UpdateAdminUser is an AIP-134 partial update: update_mask
@@ -521,66 +466,6 @@ export function useUpdateAdmin() {
       if (patch.authenticationScheme !== undefined) {
         void queryClient.invalidateQueries({ queryKey: queryKeys.authScheme });
       }
-    },
-  });
-}
-
-// ApiKeyService is a minted-id collection scoped by the AccessLevel enum
-// (docs/adr/0010). Create takes no id — the server mints one and returns the
-// entry; Update is a FieldMask partial update matched by id; Delete is
-// id-only. Each write reconciles the addressed group in the cached Config
-// from its own response.
-export function useCreateApiKey() {
-  const queryClient = useQueryClient();
-  return useMutation<
-    ConnectAPIKeyEntry,
-    Error,
-    { accessLevel: AccessLevel; name: string }
-  >({
-    mutationFn: ({ accessLevel, name }) =>
-      apiKeyClient.createApiKey({ accessLevel, apiKey: { name } }),
-    onSuccess: (stored, { accessLevel }) => {
-      const group = apiKeyGroupOf[accessLevel];
-      if (group) {
-        patchApiKeyGroup(queryClient, group, (entries) => [...entries, stored]);
-      }
-    },
-  });
-}
-
-export function useUpdateApiKey() {
-  const queryClient = useQueryClient();
-  return useMutation<
-    ConnectAPIKeyEntry,
-    Error,
-    { id: string; name?: string; apiKey?: string }
-  >({
-    mutationFn: ({ id, name, apiKey }) => {
-      const fields: { name?: string; apiKey?: string } = {};
-      if (name !== undefined) fields.name = name;
-      if (apiKey !== undefined) fields.apiKey = apiKey;
-      return apiKeyClient.updateApiKey({
-        apiKey: { id, ...fields },
-        updateMask: updateMaskFor(fields),
-      });
-    },
-    onSuccess: (stored) => {
-      patchApiKeyById(queryClient, stored.id, (entries) =>
-        entries.map((entry) => (entry.id === stored.id ? stored : entry)),
-      );
-    },
-  });
-}
-
-export function useDeleteApiKey() {
-  // Delete-by-id, bare string like useDeleteSonarrInstance / useDeleteAgent.
-  const queryClient = useQueryClient();
-  return useMutation<unknown, Error, string>({
-    mutationFn: (id) => apiKeyClient.deleteApiKey({ id }),
-    onSuccess: (_result, id) => {
-      patchApiKeyById(queryClient, id, (entries) =>
-        entries.filter((entry) => entry.id !== id),
-      );
     },
   });
 }

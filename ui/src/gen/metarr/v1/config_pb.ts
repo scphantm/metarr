@@ -8,8 +8,6 @@ import type { AdminUser } from "./admin_pb";
 import { file_metarr_v1_admin } from "./admin_pb";
 import type { Agent } from "./agents_pb";
 import { file_metarr_v1_agents } from "./agents_pb";
-import type { APIKeysConfig } from "./api_keys_pb";
-import { file_metarr_v1_api_keys } from "./api_keys_pb";
 import type { AuthConfig } from "./auth_pb";
 import { file_metarr_v1_auth } from "./auth_pb";
 import type { DirectoryScannerConfig } from "./directory_scanner_pb";
@@ -26,7 +24,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/config.proto.
  */
 export const file_metarr_v1_config: GenFile = /*@__PURE__*/
-  fileDesc("ChZtZXRhcnIvdjEvY29uZmlnLnByb3RvEgltZXRhcnIudjEiPQoQSW50ZXJmYWNlc0NvbmZpZxIpCgZzb25hcnIYASADKAsyGS5tZXRhcnIudjEuU29uYXJySW5zdGFuY2Ui6AIKBkNvbmZpZxIqCghhcGlfa2V5cxgBIAEoCzIYLm1ldGFyci52MS5BUElLZXlzQ29uZmlnEiMKBWFkbWluGAIgASgLMhQubWV0YXJyLnYxLkFkbWluVXNlchIvCgppbnRlcmZhY2VzGAMgASgLMhsubWV0YXJyLnYxLkludGVyZmFjZXNDb25maWcSPAoRZGlyZWN0b3J5X3NjYW5uZXIYBCABKAsyIS5tZXRhcnIudjEuRGlyZWN0b3J5U2Nhbm5lckNvbmZpZxIgCgZhZ2VudHMYBSADKAsyEC5tZXRhcnIudjEuQWdlbnQSKQoHbG9nZ2luZxgGIAEoCzIYLm1ldGFyci52MS5Mb2dnaW5nQ29uZmlnEiwKCWV2ZW50X2J1cxgHIAEoCzIZLm1ldGFyci52MS5FdmVudEJ1c0NvbmZpZxIjCgRhdXRoGAggASgLMhUubWV0YXJyLnYxLkF1dGhDb25maWciEgoQR2V0Q29uZmlnUmVxdWVzdCI2ChFHZXRDb25maWdSZXNwb25zZRIhCgZjb25maWcYASABKAsyES5tZXRhcnIudjEuQ29uZmlnMlcKDUNvbmZpZ1NlcnZpY2USRgoJR2V0Q29uZmlnEhsubWV0YXJyLnYxLkdldENvbmZpZ1JlcXVlc3QaHC5tZXRhcnIudjEuR2V0Q29uZmlnUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_metarr_v1_admin, file_metarr_v1_agents, file_metarr_v1_api_keys, file_metarr_v1_auth, file_metarr_v1_directory_scanner, file_metarr_v1_event_bus, file_metarr_v1_logging, file_metarr_v1_sonarr_interfaces]);
+  fileDesc("ChZtZXRhcnIvdjEvY29uZmlnLnByb3RvEgltZXRhcnIudjEiPQoQSW50ZXJmYWNlc0NvbmZpZxIpCgZzb25hcnIYASADKAsyGS5tZXRhcnIudjEuU29uYXJySW5zdGFuY2UizAIKBkNvbmZpZxIjCgVhZG1pbhgCIAEoCzIULm1ldGFyci52MS5BZG1pblVzZXISLwoKaW50ZXJmYWNlcxgDIAEoCzIbLm1ldGFyci52MS5JbnRlcmZhY2VzQ29uZmlnEjwKEWRpcmVjdG9yeV9zY2FubmVyGAQgASgLMiEubWV0YXJyLnYxLkRpcmVjdG9yeVNjYW5uZXJDb25maWcSIAoGYWdlbnRzGAUgAygLMhAubWV0YXJyLnYxLkFnZW50EikKB2xvZ2dpbmcYBiABKAsyGC5tZXRhcnIudjEuTG9nZ2luZ0NvbmZpZxIsCglldmVudF9idXMYByABKAsyGS5tZXRhcnIudjEuRXZlbnRCdXNDb25maWcSIwoEYXV0aBgIIAEoCzIVLm1ldGFyci52MS5BdXRoQ29uZmlnSgQIARACUghhcGlfa2V5cyISChBHZXRDb25maWdSZXF1ZXN0IjYKEUdldENvbmZpZ1Jlc3BvbnNlEiEKBmNvbmZpZxgBIAEoCzIRLm1ldGFyci52MS5Db25maWcyVwoNQ29uZmlnU2VydmljZRJGCglHZXRDb25maWcSGy5tZXRhcnIudjEuR2V0Q29uZmlnUmVxdWVzdBocLm1ldGFyci52MS5HZXRDb25maWdSZXNwb25zZUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_metarr_v1_admin, file_metarr_v1_agents, file_metarr_v1_auth, file_metarr_v1_directory_scanner, file_metarr_v1_event_bus, file_metarr_v1_logging, file_metarr_v1_sonarr_interfaces]);
 
 /**
  * InterfacesConfig groups the configuration for every external service
@@ -55,18 +53,12 @@ export const InterfacesConfigSchema: GenMessage<InterfacesConfig> = /*@__PURE__*
  * all read this one shape. The singleton _id the document is stored under
  * is a storage concern and deliberately not a field here.
  *
- * admin and api_keys are managed through AdminService and ApiKeyService
- * respectively; ConfigService owns only the read-only aggregate below, for
- * the UI's first paint (docs/adr/0010).
+ * admin is managed through AdminService; ConfigService owns only the
+ * read-only aggregate below, for the UI's first paint (docs/adr/0010).
  *
  * @generated from message metarr.v1.Config
  */
 export type Config = Message<"metarr.v1.Config"> & {
-  /**
-   * @generated from field: metarr.v1.APIKeysConfig api_keys = 1;
-   */
-  apiKeys?: APIKeysConfig | undefined;
-
   /**
    * @generated from field: metarr.v1.AdminUser admin = 2;
    */

@@ -5,7 +5,6 @@ import { Button } from "../../components/Card";
 import { PageError, PageLoading } from "../../components/PageState";
 import { PageHeader } from "../../layout/AppShell";
 import { AdminSection } from "./AdminSection";
-import { ApiKeysSection } from "./ApiKeysSection";
 import { SavingInfoSidebar } from "./SavingInfoSidebar";
 
 export function SecurityPage() {
@@ -36,7 +35,7 @@ export function SecurityPage() {
     <>
       <PageHeader
         title="Security"
-        description="The administrator account and API keys, both stored in the single application config document. Click a value to edit it."
+        description="The administrator account, stored in the single application config document. Click a value to edit it."
         actions={
           <Button
             onClick={() =>
@@ -51,8 +50,6 @@ export function SecurityPage() {
 
       <div className="page-body">
         <AdminSection admin={config.data.admin} />
-
-        <ApiKeysSection config={config.data} />
       </div>
     </>
   );

@@ -17,9 +17,6 @@ const updateAgent = vi.fn();
 const deleteAgent = vi.fn();
 const setLogLevel = vi.fn();
 const updateAdminUser = vi.fn();
-const createApiKey = vi.fn();
-const updateApiKey = vi.fn();
-const deleteApiKey = vi.fn();
 const getDirectoryScannerConfig = vi.fn();
 const updateDirectoryScannerConfig = vi.fn();
 const listScanDirectories = vi.fn();
@@ -47,11 +44,6 @@ vi.mock("../clients", () => ({
   configClient: {},
   adminClient: {
     updateAdminUser: (...args: unknown[]) => updateAdminUser(...args),
-  },
-  apiKeyClient: {
-    createApiKey: (...args: unknown[]) => createApiKey(...args),
-    updateApiKey: (...args: unknown[]) => updateApiKey(...args),
-    deleteApiKey: (...args: unknown[]) => deleteApiKey(...args),
   },
   eventBusClient: {
     getEventBusConfig: (...args: unknown[]) => getEventBusConfig(...args),
@@ -114,11 +106,7 @@ import {
   useDeleteAgent,
   useSetAgentLogLevel,
   useUpdateAdmin,
-  useCreateApiKey,
-  useUpdateApiKey,
-  useDeleteApiKey,
 } from "../queries";
-import { AccessLevel } from "../../gen/metarr/v1/api_keys_pb";
 
 describe("queryKeys", () => {
   describe("static keys", () => {
@@ -746,8 +734,8 @@ describe("Agent hooks", () => {
   });
 });
 
-// A minimal aggregate Config for seeding the ["config"] cache the admin and
-// API-key writes reconcile against.
+// A minimal aggregate Config for seeding the ["config"] cache the admin
+// write reconciles against.
 function seedConfig(overrides: Record<string, unknown> = {}) {
   return {
     $typeName: "metarr.v1.Config",
@@ -757,13 +745,6 @@ function seedConfig(overrides: Record<string, unknown> = {}) {
       email: "admin@example.com",
       passwordSalt: "",
       passwordHash: "",
-    },
-    apiKeys: {
-      $typeName: "metarr.v1.APIKeysConfig",
-      admin: [],
-      user: [],
-      webhook: [],
-      readOnly: [],
     },
     ...overrides,
   };
@@ -808,106 +789,5 @@ describe("useUpdateAdmin", () => {
       updateMask: { paths: [] },
       newPassword: "a-new-secret",
     });
-  });
-});
-
-// ApiKeyService is a minted-id collection scoped by the AccessLevel enum;
-// each write reconciles the addressed group in the ["config"] cache from its
-// own response.
-describe("API key hooks", () => {
-  it("useCreateApiKey sends no id and appends the minted entry to its group", async () => {
-    const minted = {
-      $typeName: "metarr.v1.APIKeyEntry",
-      id: "minted",
-      name: "ci",
-    };
-    createApiKey.mockReset().mockResolvedValue(minted);
-    const { queryClient, wrapper } = mutationHarness();
-    queryClient.setQueryData(queryKeys.config, seedConfig());
-
-    const { result } = renderHook(() => useCreateApiKey(), { wrapper });
-    result.current.mutate({ accessLevel: AccessLevel.WEBHOOK, name: "ci" });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(createApiKey).toHaveBeenCalledWith({
-      accessLevel: AccessLevel.WEBHOOK,
-      apiKey: { name: "ci" },
-    });
-    const cached = queryClient.getQueryData(queryKeys.config) as {
-      apiKeys: { webhook: unknown[] };
-    };
-    expect(cached.apiKeys.webhook).toEqual([minted]);
-  });
-
-  it("useUpdateApiKey derives the mask and replaces the entry in whichever group holds it", async () => {
-    const stored = {
-      $typeName: "metarr.v1.APIKeyEntry",
-      id: "k1",
-      name: "old",
-      apiKey: "v",
-    };
-    updateApiKey.mockReset().mockResolvedValue(stored);
-    const { queryClient, wrapper } = mutationHarness();
-    queryClient.setQueryData(
-      queryKeys.config,
-      seedConfig({
-        apiKeys: {
-          $typeName: "metarr.v1.APIKeysConfig",
-          admin: [],
-          user: [
-            {
-              $typeName: "metarr.v1.APIKeyEntry",
-              id: "k1",
-              name: "old",
-              apiKey: "",
-            },
-          ],
-          webhook: [],
-          readOnly: [],
-        },
-      }),
-    );
-
-    const { result } = renderHook(() => useUpdateApiKey(), { wrapper });
-    result.current.mutate({ id: "k1", apiKey: "v" });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(updateApiKey).toHaveBeenCalledWith({
-      apiKey: { id: "k1", apiKey: "v" },
-      updateMask: { paths: ["api_key"] },
-    });
-    const cached = queryClient.getQueryData(queryKeys.config) as {
-      apiKeys: { user: unknown[] };
-    };
-    expect(cached.apiKeys.user).toEqual([stored]);
-  });
-
-  it("useDeleteApiKey sends the id alone and drops the entry from its group", async () => {
-    deleteApiKey.mockReset().mockResolvedValue({});
-    const { queryClient, wrapper } = mutationHarness();
-    queryClient.setQueryData(
-      queryKeys.config,
-      seedConfig({
-        apiKeys: {
-          $typeName: "metarr.v1.APIKeysConfig",
-          admin: [
-            { $typeName: "metarr.v1.APIKeyEntry", id: "k1", name: "gone" },
-          ],
-          user: [],
-          webhook: [],
-          readOnly: [],
-        },
-      }),
-    );
-
-    const { result } = renderHook(() => useDeleteApiKey(), { wrapper });
-    result.current.mutate("k1");
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(deleteApiKey).toHaveBeenCalledWith({ id: "k1" });
-    const cached = queryClient.getQueryData(queryKeys.config) as {
-      apiKeys: { admin: unknown[] };
-    };
-    expect(cached.apiKeys.admin).toEqual([]);
   });
 });

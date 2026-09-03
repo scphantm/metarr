@@ -9,17 +9,14 @@ import (
 // builtinDefaultsJSON is Metarr's built-in configuration defaults: what a
 // fresh install starts with, and what a startup bootstrap seeds into a
 // database missing a section. It versions with the release rather than
-// being edited on disk — see docs/adr/0004 for why. api_keys carries
-// "{guid}" placeholders it is not this package's job to resolve: minting a
-// fresh secret is a startup-seeding concern, not a config-model one. See
+// being edited on disk — see docs/adr/0004 for why. See
 // Metarr/internal/server/bootstrap.
 //
 //go:embed builtin_defaults.json
 var builtinDefaultsJSON []byte
 
 // builtinDefaultsDoc is the shape of builtin_defaults.json. Only the
-// sections this package itself needs are typed here; api_keys stays raw
-// (see BuiltinAPIKeysTemplateJSON).
+// sections this package itself needs are typed here.
 type builtinDefaultsDoc struct {
 	DirectoryScanner struct {
 		ParallelCount int32 `json:"parallel_count"`
@@ -79,17 +76,4 @@ func loadBuiltinDefaults() builtinDefaultsDoc {
 func DefaultAdminIdentity() (username, email string) {
 	d := loadBuiltinDefaults()
 	return d.Admin.Username, d.Admin.Email
-}
-
-// BuiltinAPIKeysTemplateJSON returns the raw api_keys section of the
-// embedded defaults file, unresolved: its "{guid}" placeholders are left
-// for the caller to substitute with freshly generated values.
-func BuiltinAPIKeysTemplateJSON() ([]byte, error) {
-	var raw struct {
-		APIKeys json.RawMessage `json:"api_keys"`
-	}
-	if err := json.Unmarshal(builtinDefaultsJSON, &raw); err != nil {
-		return nil, err
-	}
-	return raw.APIKeys, nil
 }

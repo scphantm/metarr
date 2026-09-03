@@ -1,7 +1,7 @@
-// Package bootstrap seeds the application config at server startup: API
-// keys, the admin account, directory-scanner defaults, the sidecar
-// classification table, and the handful of one-time backfills earlier
-// releases needed. See docs/adr/0003-bootstrap-is-synchronous-not-a-mutation.md
+// Package bootstrap seeds the application config at server startup: the
+// admin account, the HMAC signing secret, directory-scanner defaults, the
+// sidecar classification table, and the handful of one-time backfills
+// earlier releases needed. See docs/adr/0003-bootstrap-is-synchronous-not-a-mutation.md
 // for why this runs synchronously, straight to storage, before any listener
 // exists to persist a fired event, and
 // docs/adr/0004-bootstrap-module-and-embedded-defaults-file.md for why
@@ -24,12 +24,6 @@ import (
 // nothing to seed this run, which is the ordinary case on every restart
 // after the first.
 type Report struct {
-	// APIKeys is non-nil only when this run generated the four default API
-	// key categories for the first time. The plaintext keys live only here
-	// and in the persisted document — Metarr never stores them anywhere
-	// they could be re-displayed later.
-	APIKeys *appconfig.APIKeysConfig
-
 	// Admin reports whether an admin account was created or recovered, and
 	// carries the plaintext password when either happened.
 	Admin appconfigstore.AdminSeedResult
@@ -37,10 +31,6 @@ type Report struct {
 	// SidecarTypesAdded is how many built-in sidecar types this run added
 	// to a table that predates them (0 on an ordinary restart).
 	SidecarTypesAdded int
-
-	// APIKeyIDsBackfilled is how many stored API key entries this run
-	// minted a missing id for (0 once every entry has one).
-	APIKeyIDsBackfilled int
 
 	// HmacSecretGenerated reports whether an HMAC signing secret was
 	// generated for the first time (false on an ordinary restart).
@@ -80,13 +70,7 @@ func Run(ctx context.Context, store *appconfigstore.Store) (Report, error) {
 	}
 	report.Admin = adminSeed
 
-	apiKeysTemplate, err := appconfig.BuiltinAPIKeysTemplateJSON()
-	if err != nil {
-		return report, fmt.Errorf("bootstrap: loading api_keys defaults: %w", err)
-	}
-
-	var apiKeysSeeded bool
-	apply := staticConfigSteps(apiKeysTemplate, &apiKeysSeeded, &report.SidecarTypesAdded, &report.APIKeyIDsBackfilled, &report.HmacSecretGenerated)
+	apply := staticConfigSteps(&report.SidecarTypesAdded, &report.HmacSecretGenerated)
 
 	var finalCfg *appconfig.Config
 	if err := store.Bootstrap(ctx, func(cfg *appconfig.Config) (bool, error) {
@@ -96,10 +80,6 @@ func Run(ctx context.Context, store *appconfigstore.Store) (Report, error) {
 		return report, fmt.Errorf("bootstrap: %w", err)
 	}
 	report.FinalConfig = finalCfg
-
-	if apiKeysSeeded {
-		report.APIKeys = finalCfg.ApiKeys
-	}
 
 	return report, nil
 }
@@ -111,18 +91,16 @@ func Run(ctx context.Context, store *appconfigstore.Store) (Report, error) {
 // errors stops the sequence immediately, wrapped with its own name so a
 // failure is still traceable to the step that caused it despite no longer
 // being its own Bootstrap call.
-func staticConfigSteps(apiKeysTemplate []byte, apiKeysSeeded *bool, sidecarTypesAdded, apiKeyIDsBackfilled *int, hmacSecretGenerated *bool) func(cfg *appconfig.Config) (bool, error) {
+func staticConfigSteps(sidecarTypesAdded *int, hmacSecretGenerated *bool) func(cfg *appconfig.Config) (bool, error) {
 	steps := []struct {
 		name  string
 		apply func(*appconfig.Config) (bool, error)
 	}{
-		{"api_keys_seed", apiKeysSeedStep(apiKeysTemplate, apiKeysSeeded)},
 		{"directory_scanner_defaults", directoryScannerDefaultsStep},
 		{"sidecar_types_seed", sidecarTypesSeedStep},
 		{"logging_defaults", loggingDefaultsStep},
 		{"event_bus_defaults", eventBusDefaultsStep},
 		{"sidecar_types_merge_missing", sidecarTypesMergeMissingStep(sidecarTypesAdded)},
-		{"api_key_ids_backfill", apiKeyIDsBackfillStep(apiKeyIDsBackfilled)},
 		{"hmac_secret_seed", hmacSecretSeedStep(hmacSecretGenerated)},
 	}
 

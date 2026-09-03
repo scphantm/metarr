@@ -18,15 +18,14 @@ import (
 
 // TestMarshalStoredUsesProtoFieldNames pins the serialized key names for the
 // config document. protojson defaults to camelCase; UseProtoNames is what
-// keeps api_keys as api_keys, and a regression there changes what is written
-// to the database.
+// keeps directory_scanner as directory_scanner, and a regression there
+// changes what is written to the database.
 func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 	config := Default()
 	config.Admin = &AdminUser{
 		Username: "admin", Email: "admin@example.com",
 		PasswordSalt: "salt", PasswordHash: "hash",
 	}
-	config.ApiKeys.Admin = []*APIKeyEntry{{Id: "id", Name: "name", ApiKey: "key"}}
 	config.Interfaces.Sonarr = []*SonarrInstance{{
 		InstanceName: "n", InstanceSlug: "s", SonarrUrl: "u", SonarrApiKey: "k",
 		RootDirMap: []*RootDirMapping{{SonarrPath: "a", LocalPath: "b"}},
@@ -55,16 +54,10 @@ func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 	}
 
 	assertKeys(t, "config", document, []string{
-		"admin", "agents", "api_keys", "auth", "directory_scanner", "event_bus", "interfaces", "logging",
+		"admin", "agents", "auth", "directory_scanner", "event_bus", "interfaces", "logging",
 	})
 	assertKeys(t, "config.admin", document["admin"], []string{
 		"authentication_scheme", "email", "password_hash", "password_salt", "username",
-	})
-	assertKeys(t, "config.api_keys", document["api_keys"], []string{
-		"admin", "read_only", "user", "webhook",
-	})
-	assertKeys(t, "config.api_keys.admin[0]", first(t, document, "api_keys", "admin"), []string{
-		"api_key", "id", "name",
 	})
 	assertKeys(t, "config.auth", document["auth"], []string{
 		"hmac_secret",
@@ -148,7 +141,6 @@ func TestMarshalStoredEmitsUnpopulatedFields(t *testing.T) {
 func TestStoredRoundTrip(t *testing.T) {
 	original := Default()
 	original.Admin = &AdminUser{Username: "admin", Email: "a@b.c", PasswordSalt: "s", PasswordHash: "h"}
-	original.ApiKeys.User = []*APIKeyEntry{{Id: "u1", Name: "ci", ApiKey: "secret"}}
 	original.Interfaces.Sonarr = []*SonarrInstance{{
 		InstanceSlug: "main", SonarrUrl: "http://sonarr", SonarrApiKey: "k",
 		Storage: &StorageConfig{Mode: "versioned", MaxCount: 5},

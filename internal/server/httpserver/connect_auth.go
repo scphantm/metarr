@@ -6,14 +6,47 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"sync"
 
 	"connectrpc.com/connect"
 
 	"Metarr/internal/server/auth"
 	"Metarr/internal/server/jwt"
-	"Metarr/internal/server/session"
 	"Metarr/internal/shared/appconfig"
 )
+
+// hmacSecretCache memoises the base64 decode of the configured HMAC secret.
+// authorize() runs on every authenticated RPC and the secret only changes
+// when config is re-propagated in-process, so decoding it once per distinct
+// encoded value keeps a per-request base64 allocation off the hot path.
+var hmacSecretCache struct {
+	mu      sync.RWMutex
+	encoded string
+	decoded []byte
+}
+
+// decodeHMACSecret returns the raw bytes of the base64-encoded HMAC secret,
+// reusing the last decode when encoded is unchanged.
+func decodeHMACSecret(encoded string) ([]byte, error) {
+	hmacSecretCache.mu.RLock()
+	if hmacSecretCache.encoded == encoded && hmacSecretCache.decoded != nil {
+		decoded := hmacSecretCache.decoded
+		hmacSecretCache.mu.RUnlock()
+		return decoded, nil
+	}
+	hmacSecretCache.mu.RUnlock()
+
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, err
+	}
+
+	hmacSecretCache.mu.Lock()
+	hmacSecretCache.encoded = encoded
+	hmacSecretCache.decoded = decoded
+	hmacSecretCache.mu.Unlock()
+	return decoded, nil
+}
 
 // schemeNoneSyntheticKey is the API-key marker attached to a request's
 // context when the authentication scheme is None. It stands in for a real
@@ -43,15 +76,14 @@ type RPCPolicy struct {
 // constructed per service with that service's own method-name -> policy map,
 // so each service's auth requirements live next to its own implementation.
 type connectAuthInterceptor struct {
-	sessions *session.Store
 	policies map[string]RPCPolicy
 }
 
 // NewConnectAuthInterceptor builds an interceptor for one service. policies
-// is keyed by RPC method name (e.g. "List", "Upsert" — the last segment of
+// is keyed by RPC method name (e.g. "List", "Get" — the last segment of
 // connect.Spec.Procedure), not the fully-qualified procedure string.
-func NewConnectAuthInterceptor(sessions *session.Store, policies map[string]RPCPolicy) connect.Interceptor {
-	return &connectAuthInterceptor{sessions: sessions, policies: policies}
+func NewConnectAuthInterceptor(policies map[string]RPCPolicy) connect.Interceptor {
+	return &connectAuthInterceptor{policies: policies}
 }
 
 func (i *connectAuthInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
@@ -114,7 +146,7 @@ func (i *connectAuthInterceptor) authorize(ctx context.Context, procedure string
 		return nil, connect.NewError(connect.CodeInternal, errors.New("authentication not configured"))
 	}
 
-	secret, err := base64.StdEncoding.DecodeString(cfg.Auth.HmacSecret)
+	secret, err := decodeHMACSecret(cfg.Auth.HmacSecret)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.New("authentication configuration error"))
 	}
@@ -124,8 +156,7 @@ func (i *connectAuthInterceptor) authorize(ctx context.Context, procedure string
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid or expired JWT token"))
 	}
 
-	roleStr := claims.Role
-	role := auth.Role(roleStr)
+	role := auth.Role(claims.Role)
 	if role == "" {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid token role"))
 	}

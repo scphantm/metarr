@@ -17,8 +17,8 @@ import (
 //
 // This function is the security boundary of the agent design, so it is written
 // as an allow-list and must stay that way. The Config it reads from holds the
-// admin password salt and hash, all four categories of API key, and every
-// Sonarr credential; agents run on machines the server does not control, and
+// admin password salt and hash, the JWT HMAC signing secret, and every Sonarr
+// credential; agents run on machines the server does not control, and
 // several of them may be operated by different people. Building the projection
 // by copying the config and deleting the secrets would mean every future field
 // is exposed by default, and the one someone forgets to delete is a credential

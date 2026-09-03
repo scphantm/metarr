@@ -75,8 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (credentials: LoginCredentials) => {
     const response = await authClient.login(credentials);
 
-    setApiKey(response.apiKey);
-    const expiry = Date.now() + response.expiresInSeconds * 1000;
+    setApiKey(response.jwtToken);
+    // expiresAt is an absolute Unix timestamp in seconds; store it as an
+    // epoch-millisecond number to match the rest of this context.
+    const expiry = Number(response.expiresAt) * 1000;
     setIsAuthenticated(true);
     setUsername(credentials.username);
     setExpiresAt(expiry);

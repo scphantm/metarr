@@ -1,16 +1,14 @@
-// Package auth implements API key based authorization: resolving a
-// presented key to the role that issued it, and deciding whether that role
-// may access a given router group and HTTP method.
+// Package auth implements role-based authorization: deciding whether the
+// role carried by a request's verified JWT may access a given router group
+// and HTTP method.
 package auth
 
 import (
 	"context"
 	"net/http"
-
-	"Metarr/internal/shared/appconfig"
 )
 
-// Role identifies which api_keys category a resolved API key belongs to.
+// Role identifies the access level a request's JWT claims carry.
 type Role string
 
 const (
@@ -36,38 +34,6 @@ var allowedGroups = map[Role]map[Group]bool{
 	RoleUser:     {GroupTasks: true, GroupWebhook: true},
 	RoleReadOnly: {GroupTasks: true, GroupWebhook: true},
 	RoleWebhook:  {GroupWebhook: true},
-}
-
-// Resolve looks up apiKey against the configured API key categories,
-// returning the matching role. ok is false if apiKey is empty or doesn't
-// match any configured key.
-func Resolve(config *appconfig.Config, apiKey string) (role Role, ok bool) {
-	if apiKey == "" {
-		return "", false
-	}
-
-	for _, entry := range config.ApiKeys.Admin {
-		if entry.ApiKey == apiKey {
-			return RoleAdmin, true
-		}
-	}
-	for _, entry := range config.ApiKeys.User {
-		if entry.ApiKey == apiKey {
-			return RoleUser, true
-		}
-	}
-	for _, entry := range config.ApiKeys.Webhook {
-		if entry.ApiKey == apiKey {
-			return RoleWebhook, true
-		}
-	}
-	for _, entry := range config.ApiKeys.ReadOnly {
-		if entry.ApiKey == apiKey {
-			return RoleReadOnly, true
-		}
-	}
-
-	return "", false
 }
 
 // Authorized reports whether role may perform method against group.

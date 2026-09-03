@@ -194,6 +194,39 @@ func TestTokenServiceIssueToken_SucceedsWithValidRequest(t *testing.T) {
 	if claims.Role != string(jwt.RoleUser) {
 		t.Fatalf("role = %s, want user", claims.Role)
 	}
+	// The request's name is carried into the token as its subject so an
+	// issued token is traceable back to the integration it was minted for.
+	if claims.Subject != "test-integration" {
+		t.Fatalf("subject = %q, want %q", claims.Subject, "test-integration")
+	}
+}
+
+// TestTokenServiceIssueToken_DefaultsSubjectWhenUnnamed verifies IssueToken
+// still mints a usable token when the caller names no integration.
+func TestTokenServiceIssueToken_DefaultsSubjectWhenUnnamed(t *testing.T) {
+	secret := []byte("test-secret-32-bytes-for-hmac-sha256")
+	withLiveConfig(t, &appconfig.Config{
+		Auth: &appconfig.AuthConfig{HmacSecret: base64.StdEncoding.EncodeToString(secret)},
+	})
+
+	server := &TokenServer{Handlers: &handlers.Handlers{}}
+
+	resp, err := server.IssueToken(context.Background(),
+		connect.NewRequest(&metarrv1.IssueTokenRequest{
+			Role:       metarrv1.AccessLevel_ACCESS_LEVEL_WEBHOOK,
+			TtlSeconds: 3600,
+		}))
+	if err != nil {
+		t.Fatalf("IssueToken: %v", err)
+	}
+
+	claims, err := jwt.VerifyJWT(resp.Msg.JwtToken, secret)
+	if err != nil {
+		t.Fatalf("failed to verify JWT: %v", err)
+	}
+	if claims.Subject == "" {
+		t.Fatal("expected a non-empty fallback subject")
+	}
 }
 
 // TestTokenServiceIssueToken_FailsWithInvalidRole verifies that IssueToken
