@@ -5,7 +5,8 @@ const browserify = require('browserify')
 const concat = require('gulp-concat')
 const cssnano = require('cssnano')
 const fs = require('fs-extra')
-const imagemin = require('gulp-imagemin')
+const imageminPlugin = require('gulp-imagemin')
+const imagemin = imageminPlugin.default
 const merge = require('merge-stream')
 const ospath = require('path')
 const path = ospath.posix
@@ -83,14 +84,14 @@ module.exports = (src, dest, preview) => () => {
         ? through()
         : imagemin(
           [
-            imagemin.gifsicle(),
-            imagemin.jpegtran(),
-            imagemin.optipng(),
-            imagemin.svgo({
+            imageminPlugin.gifsicle(),
+            imageminPlugin.mozjpeg(),
+            imageminPlugin.optipng(),
+            imageminPlugin.svgo({
               plugins: [
-                { cleanupIDs: { preservePrefixes: ['icon-', 'view-'] } },
-                { removeViewBox: false },
-                { removeDesc: false },
+                { name: 'cleanupIDs', params: { preservePrefixes: ['icon-', 'view-'] } },
+                { name: 'removeViewBox', params: false },
+                { name: 'removeDesc', params: false },
               ],
             }),
           ].reduce((accum, it) => (it ? accum.concat(it) : accum), [])
