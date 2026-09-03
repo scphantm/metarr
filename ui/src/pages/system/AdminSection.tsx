@@ -78,7 +78,8 @@ function AuthenticationSchemePicker({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [pendingScheme, setPendingScheme] = useState<AuthenticationScheme | null>(null);
+  const [pendingScheme, setPendingScheme] =
+    useState<AuthenticationScheme | null>(null);
 
   async function confirmAndSelect() {
     if (!pendingScheme) return;
@@ -97,11 +98,15 @@ function AuthenticationSchemePicker({
   function handleSelect(next: AuthenticationScheme) {
     if (next === scheme) return;
 
-    if (scheme === AuthenticationScheme.PASSWORD && next === AuthenticationScheme.NONE) {
+    if (
+      scheme === AuthenticationScheme.PASSWORD &&
+      next === AuthenticationScheme.NONE
+    ) {
       setPendingScheme(next);
       Modal.confirm({
         title: "Disable authentication?",
-        content: "Anyone who can reach Metarr will have full administrative control. Authentication can be re-enabled at any time.",
+        content:
+          "Anyone who can reach Metarr will have full administrative control. Authentication can be re-enabled at any time.",
         okText: "Disable",
         okType: "danger",
         onOk: () => void confirmAndSelect(),
@@ -109,7 +114,10 @@ function AuthenticationSchemePicker({
           setPendingScheme(null);
         },
       });
-    } else if (scheme === AuthenticationScheme.NONE && next === AuthenticationScheme.PASSWORD) {
+    } else if (
+      scheme === AuthenticationScheme.NONE &&
+      next === AuthenticationScheme.PASSWORD
+    ) {
       setPendingScheme(next);
       Modal.info({
         title: "Enable authentication",

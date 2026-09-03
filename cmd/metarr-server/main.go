@@ -358,6 +358,12 @@ func run() error {
 				"Logout": httpserver.ThrottledInterval,
 			}),
 		),
+		newConnectService[metarrv1connect.TokenServiceHandler](
+			metarrv1connect.NewTokenServiceHandler,
+			&services.TokenServer{Handlers: apiHandlers},
+			sessions,
+			services.TokenAuthPolicies,
+		),
 		newConnectService[metarrv1connect.ConfigServiceHandler](
 			metarrv1connect.NewConfigServiceHandler,
 			&services.ConfigServer{Handlers: apiHandlers},
@@ -440,6 +446,7 @@ func run() error {
 	reflector := grpcreflect.NewStaticReflector(
 		metarrv1connect.SonarrInterfaceServiceName,
 		metarrv1connect.AuthServiceName,
+		metarrv1connect.TokenServiceName,
 		metarrv1connect.ConfigServiceName,
 		metarrv1connect.AdminServiceName,
 		metarrv1connect.ApiKeyServiceName,

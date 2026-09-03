@@ -21,6 +21,64 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// AccessLevel is the fixed four-value set of access levels for JWT tokens.
+// It is a closed enumeration used by TokenService to specify the role of issued tokens.
+// ACCESS_LEVEL_UNSPECIFIED is the unset value and is always InvalidArgument where a level is required.
+type AccessLevel int32
+
+const (
+	AccessLevel_ACCESS_LEVEL_UNSPECIFIED AccessLevel = 0
+	AccessLevel_ACCESS_LEVEL_ADMIN       AccessLevel = 1
+	AccessLevel_ACCESS_LEVEL_USER        AccessLevel = 2
+	AccessLevel_ACCESS_LEVEL_WEBHOOK     AccessLevel = 3
+	AccessLevel_ACCESS_LEVEL_READ_ONLY   AccessLevel = 4
+)
+
+// Enum value maps for AccessLevel.
+var (
+	AccessLevel_name = map[int32]string{
+		0: "ACCESS_LEVEL_UNSPECIFIED",
+		1: "ACCESS_LEVEL_ADMIN",
+		2: "ACCESS_LEVEL_USER",
+		3: "ACCESS_LEVEL_WEBHOOK",
+		4: "ACCESS_LEVEL_READ_ONLY",
+	}
+	AccessLevel_value = map[string]int32{
+		"ACCESS_LEVEL_UNSPECIFIED": 0,
+		"ACCESS_LEVEL_ADMIN":       1,
+		"ACCESS_LEVEL_USER":        2,
+		"ACCESS_LEVEL_WEBHOOK":     3,
+		"ACCESS_LEVEL_READ_ONLY":   4,
+	}
+)
+
+func (x AccessLevel) Enum() *AccessLevel {
+	p := new(AccessLevel)
+	*p = x
+	return p
+}
+
+func (x AccessLevel) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AccessLevel) Descriptor() protoreflect.EnumDescriptor {
+	return file_metarr_v1_auth_proto_enumTypes[0].Descriptor()
+}
+
+func (AccessLevel) Type() protoreflect.EnumType {
+	return &file_metarr_v1_auth_proto_enumTypes[0]
+}
+
+func (x AccessLevel) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AccessLevel.Descriptor instead.
+func (AccessLevel) EnumDescriptor() ([]byte, []int) {
+	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{0}
+}
+
 // AuthConfig holds authentication configuration including the HMAC signing secret.
 type AuthConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -120,11 +178,11 @@ func (x *AuthServiceLoginRequest) GetPassword() string {
 }
 
 type AuthServiceLoginResponse struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	ApiKey           string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
-	ExpiresInSeconds int32                  `protobuf:"varint,2,opt,name=expires_in_seconds,json=expiresInSeconds,proto3" json:"expires_in_seconds,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JwtToken      string                 `protobuf:"bytes,1,opt,name=jwt_token,json=jwtToken,proto3" json:"jwt_token,omitempty"`
+	ExpiresAt     int64                  `protobuf:"varint,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AuthServiceLoginResponse) Reset() {
@@ -157,16 +215,16 @@ func (*AuthServiceLoginResponse) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *AuthServiceLoginResponse) GetApiKey() string {
+func (x *AuthServiceLoginResponse) GetJwtToken() string {
 	if x != nil {
-		return x.ApiKey
+		return x.JwtToken
 	}
 	return ""
 }
 
-func (x *AuthServiceLoginResponse) GetExpiresInSeconds() int32 {
+func (x *AuthServiceLoginResponse) GetExpiresAt() int64 {
 	if x != nil {
-		return x.ExpiresInSeconds
+		return x.ExpiresAt
 	}
 	return 0
 }
@@ -331,6 +389,118 @@ func (x *AuthServiceGetAuthSchemeResponse) GetScheme() AuthenticationScheme {
 	return AuthenticationScheme_AUTHENTICATION_SCHEME_UNSPECIFIED
 }
 
+type IssueTokenRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Role          AccessLevel            `protobuf:"varint,1,opt,name=role,proto3,enum=metarr.v1.AccessLevel" json:"role,omitempty"`
+	TtlSeconds    int32                  `protobuf:"varint,2,opt,name=ttl_seconds,json=ttlSeconds,proto3" json:"ttl_seconds,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IssueTokenRequest) Reset() {
+	*x = IssueTokenRequest{}
+	mi := &file_metarr_v1_auth_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IssueTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IssueTokenRequest) ProtoMessage() {}
+
+func (x *IssueTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_auth_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IssueTokenRequest.ProtoReflect.Descriptor instead.
+func (*IssueTokenRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *IssueTokenRequest) GetRole() AccessLevel {
+	if x != nil {
+		return x.Role
+	}
+	return AccessLevel_ACCESS_LEVEL_UNSPECIFIED
+}
+
+func (x *IssueTokenRequest) GetTtlSeconds() int32 {
+	if x != nil {
+		return x.TtlSeconds
+	}
+	return 0
+}
+
+func (x *IssueTokenRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type IssueTokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JwtToken      string                 `protobuf:"bytes,1,opt,name=jwt_token,json=jwtToken,proto3" json:"jwt_token,omitempty"`
+	ExpiresAt     int64                  `protobuf:"varint,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IssueTokenResponse) Reset() {
+	*x = IssueTokenResponse{}
+	mi := &file_metarr_v1_auth_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IssueTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IssueTokenResponse) ProtoMessage() {}
+
+func (x *IssueTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_auth_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IssueTokenResponse.ProtoReflect.Descriptor instead.
+func (*IssueTokenResponse) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *IssueTokenResponse) GetJwtToken() string {
+	if x != nil {
+		return x.JwtToken
+	}
+	return ""
+}
+
+func (x *IssueTokenResponse) GetExpiresAt() int64 {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return 0
+}
+
 var File_metarr_v1_auth_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_auth_proto_rawDesc = "" +
@@ -342,20 +512,39 @@ const file_metarr_v1_auth_proto_rawDesc = "" +
 	"hmacSecret\"Q\n" +
 	"\x17AuthServiceLoginRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"a\n" +
-	"\x18AuthServiceLoginResponse\x12\x17\n" +
-	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12,\n" +
-	"\x12expires_in_seconds\x18\x02 \x01(\x05R\x10expiresInSeconds\"\x1a\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"V\n" +
+	"\x18AuthServiceLoginResponse\x12\x1b\n" +
+	"\tjwt_token\x18\x01 \x01(\tR\bjwtToken\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x02 \x01(\x03R\texpiresAt\"\x1a\n" +
 	"\x18AuthServiceLogoutRequest\"3\n" +
 	"\x19AuthServiceLogoutResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\"!\n" +
 	"\x1fAuthServiceGetAuthSchemeRequest\"[\n" +
 	" AuthServiceGetAuthSchemeResponse\x127\n" +
-	"\x06scheme\x18\x01 \x01(\x0e2\x1f.metarr.v1.AuthenticationSchemeR\x06scheme2\x9e\x02\n" +
+	"\x06scheme\x18\x01 \x01(\x0e2\x1f.metarr.v1.AuthenticationSchemeR\x06scheme\"t\n" +
+	"\x11IssueTokenRequest\x12*\n" +
+	"\x04role\x18\x01 \x01(\x0e2\x16.metarr.v1.AccessLevelR\x04role\x12\x1f\n" +
+	"\vttl_seconds\x18\x02 \x01(\x05R\n" +
+	"ttlSeconds\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"P\n" +
+	"\x12IssueTokenResponse\x12\x1b\n" +
+	"\tjwt_token\x18\x01 \x01(\tR\bjwtToken\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x02 \x01(\x03R\texpiresAt*\x90\x01\n" +
+	"\vAccessLevel\x12\x1c\n" +
+	"\x18ACCESS_LEVEL_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12ACCESS_LEVEL_ADMIN\x10\x01\x12\x15\n" +
+	"\x11ACCESS_LEVEL_USER\x10\x02\x12\x18\n" +
+	"\x14ACCESS_LEVEL_WEBHOOK\x10\x03\x12\x1a\n" +
+	"\x16ACCESS_LEVEL_READ_ONLY\x10\x042\x9e\x02\n" +
 	"\vAuthService\x12P\n" +
 	"\x05Login\x12\".metarr.v1.AuthServiceLoginRequest\x1a#.metarr.v1.AuthServiceLoginResponse\x12S\n" +
 	"\x06Logout\x12#.metarr.v1.AuthServiceLogoutRequest\x1a$.metarr.v1.AuthServiceLogoutResponse\x12h\n" +
-	"\rGetAuthScheme\x12*.metarr.v1.AuthServiceGetAuthSchemeRequest\x1a+.metarr.v1.AuthServiceGetAuthSchemeResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
+	"\rGetAuthScheme\x12*.metarr.v1.AuthServiceGetAuthSchemeRequest\x1a+.metarr.v1.AuthServiceGetAuthSchemeResponse2Y\n" +
+	"\fTokenService\x12I\n" +
+	"\n" +
+	"IssueToken\x12\x1c.metarr.v1.IssueTokenRequest\x1a\x1d.metarr.v1.IssueTokenResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
 
 var (
 	file_metarr_v1_auth_proto_rawDescOnce sync.Once
@@ -369,30 +558,37 @@ func file_metarr_v1_auth_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_auth_proto_rawDescData
 }
 
-var file_metarr_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_metarr_v1_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_metarr_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_metarr_v1_auth_proto_goTypes = []any{
-	(*AuthConfig)(nil),                       // 0: metarr.v1.AuthConfig
-	(*AuthServiceLoginRequest)(nil),          // 1: metarr.v1.AuthServiceLoginRequest
-	(*AuthServiceLoginResponse)(nil),         // 2: metarr.v1.AuthServiceLoginResponse
-	(*AuthServiceLogoutRequest)(nil),         // 3: metarr.v1.AuthServiceLogoutRequest
-	(*AuthServiceLogoutResponse)(nil),        // 4: metarr.v1.AuthServiceLogoutResponse
-	(*AuthServiceGetAuthSchemeRequest)(nil),  // 5: metarr.v1.AuthServiceGetAuthSchemeRequest
-	(*AuthServiceGetAuthSchemeResponse)(nil), // 6: metarr.v1.AuthServiceGetAuthSchemeResponse
-	(AuthenticationScheme)(0),                // 7: metarr.v1.AuthenticationScheme
+	(AccessLevel)(0),                         // 0: metarr.v1.AccessLevel
+	(*AuthConfig)(nil),                       // 1: metarr.v1.AuthConfig
+	(*AuthServiceLoginRequest)(nil),          // 2: metarr.v1.AuthServiceLoginRequest
+	(*AuthServiceLoginResponse)(nil),         // 3: metarr.v1.AuthServiceLoginResponse
+	(*AuthServiceLogoutRequest)(nil),         // 4: metarr.v1.AuthServiceLogoutRequest
+	(*AuthServiceLogoutResponse)(nil),        // 5: metarr.v1.AuthServiceLogoutResponse
+	(*AuthServiceGetAuthSchemeRequest)(nil),  // 6: metarr.v1.AuthServiceGetAuthSchemeRequest
+	(*AuthServiceGetAuthSchemeResponse)(nil), // 7: metarr.v1.AuthServiceGetAuthSchemeResponse
+	(*IssueTokenRequest)(nil),                // 8: metarr.v1.IssueTokenRequest
+	(*IssueTokenResponse)(nil),               // 9: metarr.v1.IssueTokenResponse
+	(AuthenticationScheme)(0),                // 10: metarr.v1.AuthenticationScheme
 }
 var file_metarr_v1_auth_proto_depIdxs = []int32{
-	7, // 0: metarr.v1.AuthServiceGetAuthSchemeResponse.scheme:type_name -> metarr.v1.AuthenticationScheme
-	1, // 1: metarr.v1.AuthService.Login:input_type -> metarr.v1.AuthServiceLoginRequest
-	3, // 2: metarr.v1.AuthService.Logout:input_type -> metarr.v1.AuthServiceLogoutRequest
-	5, // 3: metarr.v1.AuthService.GetAuthScheme:input_type -> metarr.v1.AuthServiceGetAuthSchemeRequest
-	2, // 4: metarr.v1.AuthService.Login:output_type -> metarr.v1.AuthServiceLoginResponse
-	4, // 5: metarr.v1.AuthService.Logout:output_type -> metarr.v1.AuthServiceLogoutResponse
-	6, // 6: metarr.v1.AuthService.GetAuthScheme:output_type -> metarr.v1.AuthServiceGetAuthSchemeResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	10, // 0: metarr.v1.AuthServiceGetAuthSchemeResponse.scheme:type_name -> metarr.v1.AuthenticationScheme
+	0,  // 1: metarr.v1.IssueTokenRequest.role:type_name -> metarr.v1.AccessLevel
+	2,  // 2: metarr.v1.AuthService.Login:input_type -> metarr.v1.AuthServiceLoginRequest
+	4,  // 3: metarr.v1.AuthService.Logout:input_type -> metarr.v1.AuthServiceLogoutRequest
+	6,  // 4: metarr.v1.AuthService.GetAuthScheme:input_type -> metarr.v1.AuthServiceGetAuthSchemeRequest
+	8,  // 5: metarr.v1.TokenService.IssueToken:input_type -> metarr.v1.IssueTokenRequest
+	3,  // 6: metarr.v1.AuthService.Login:output_type -> metarr.v1.AuthServiceLoginResponse
+	5,  // 7: metarr.v1.AuthService.Logout:output_type -> metarr.v1.AuthServiceLogoutResponse
+	7,  // 8: metarr.v1.AuthService.GetAuthScheme:output_type -> metarr.v1.AuthServiceGetAuthSchemeResponse
+	9,  // 9: metarr.v1.TokenService.IssueToken:output_type -> metarr.v1.IssueTokenResponse
+	6,  // [6:10] is the sub-list for method output_type
+	2,  // [2:6] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_auth_proto_init() }
@@ -406,13 +602,14 @@ func file_metarr_v1_auth_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_auth_proto_rawDesc), len(file_metarr_v1_auth_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   7,
+			NumEnums:      1,
+			NumMessages:   9,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_metarr_v1_auth_proto_goTypes,
 		DependencyIndexes: file_metarr_v1_auth_proto_depIdxs,
+		EnumInfos:         file_metarr_v1_auth_proto_enumTypes,
 		MessageInfos:      file_metarr_v1_auth_proto_msgTypes,
 	}.Build()
 	File_metarr_v1_auth_proto = out.File

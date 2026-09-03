@@ -1,6 +1,10 @@
 import type { ReactNode } from "react";
 import { Button, Segmented, Typography } from "antd";
-import { PushpinFilled, PushpinOutlined, LockOutlined } from "@ant-design/icons";
+import {
+  PushpinFilled,
+  PushpinOutlined,
+  LockOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
@@ -70,7 +74,9 @@ export function Sidebar({
             Session
           </Typography.Text>
           <div className="sidebar-session-card">
-            <div className="sidebar-session-name">{username ?? "Signed in"}</div>
+            <div className="sidebar-session-name">
+              {username ?? "Signed in"}
+            </div>
             {expiresAt ? (
               <Typography.Text
                 type="secondary"

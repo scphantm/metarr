@@ -2,17 +2,19 @@
 // @generated from file metarr/v1/api_keys.proto (package metarr.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { EmptySchema, FieldMask } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_empty, file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
+import type { AccessLevel } from "./auth_pb";
+import { file_metarr_v1_auth } from "./auth_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metarr/v1/api_keys.proto.
  */
 export const file_metarr_v1_api_keys: GenFile = /*@__PURE__*/
-  fileDesc("ChhtZXRhcnIvdjEvYXBpX2tleXMucHJvdG8SCW1ldGFyci52MSI4CgtBUElLZXlFbnRyeRIMCgRuYW1lGAEgASgJEg8KB2FwaV9rZXkYAiABKAkSCgoCaWQYAyABKAkisAEKDUFQSUtleXNDb25maWcSJQoFYWRtaW4YASADKAsyFi5tZXRhcnIudjEuQVBJS2V5RW50cnkSJAoEdXNlchgCIAMoCzIWLm1ldGFyci52MS5BUElLZXlFbnRyeRInCgd3ZWJob29rGAMgAygLMhYubWV0YXJyLnYxLkFQSUtleUVudHJ5EikKCXJlYWRfb25seRgEIAMoCzIWLm1ldGFyci52MS5BUElLZXlFbnRyeSJsChNDcmVhdGVBcGlLZXlSZXF1ZXN0EiwKDGFjY2Vzc19sZXZlbBgBIAEoDjIWLm1ldGFyci52MS5BY2Nlc3NMZXZlbBInCgdhcGlfa2V5GAIgASgLMhYubWV0YXJyLnYxLkFQSUtleUVudHJ5Ih4KEEdldEFwaUtleVJlcXVlc3QSCgoCaWQYASABKAkiiwEKEkxpc3RBcGlLZXlzUmVxdWVzdBIsCgxhY2Nlc3NfbGV2ZWwYASABKA4yFi5tZXRhcnIudjEuQWNjZXNzTGV2ZWwSEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAkSDgoGZmlsdGVyGAQgASgJEhAKCG9yZGVyX2J5GAUgASgJIlgKE0xpc3RBcGlLZXlzUmVzcG9uc2USKAoIYXBpX2tleXMYASADKAsyFi5tZXRhcnIudjEuQVBJS2V5RW50cnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIm8KE1VwZGF0ZUFwaUtleVJlcXVlc3QSJwoHYXBpX2tleRgBIAEoCzIWLm1ldGFyci52MS5BUElLZXlFbnRyeRIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2siIQoTRGVsZXRlQXBpS2V5UmVxdWVzdBIKCgJpZBgBIAEoCSqQAQoLQWNjZXNzTGV2ZWwSHAoYQUNDRVNTX0xFVkVMX1VOU1BFQ0lGSUVEEAASFgoSQUNDRVNTX0xFVkVMX0FETUlOEAESFQoRQUNDRVNTX0xFVkVMX1VTRVIQAhIYChRBQ0NFU1NfTEVWRUxfV0VCSE9PSxADEhoKFkFDQ0VTU19MRVZFTF9SRUFEX09OTFkQBDL3AgoNQXBpS2V5U2VydmljZRJGCgxDcmVhdGVBcGlLZXkSHi5tZXRhcnIudjEuQ3JlYXRlQXBpS2V5UmVxdWVzdBoWLm1ldGFyci52MS5BUElLZXlFbnRyeRJACglHZXRBcGlLZXkSGy5tZXRhcnIudjEuR2V0QXBpS2V5UmVxdWVzdBoWLm1ldGFyci52MS5BUElLZXlFbnRyeRJMCgtMaXN0QXBpS2V5cxIdLm1ldGFyci52MS5MaXN0QXBpS2V5c1JlcXVlc3QaHi5tZXRhcnIudjEuTGlzdEFwaUtleXNSZXNwb25zZRJGCgxVcGRhdGVBcGlLZXkSHi5tZXRhcnIudjEuVXBkYXRlQXBpS2V5UmVxdWVzdBoWLm1ldGFyci52MS5BUElLZXlFbnRyeRJGCgxEZWxldGVBcGlLZXkSHi5tZXRhcnIudjEuRGVsZXRlQXBpS2V5UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_google_protobuf_empty, file_google_protobuf_field_mask]);
+  fileDesc("ChhtZXRhcnIvdjEvYXBpX2tleXMucHJvdG8SCW1ldGFyci52MSI4CgtBUElLZXlFbnRyeRIMCgRuYW1lGAEgASgJEg8KB2FwaV9rZXkYAiABKAkSCgoCaWQYAyABKAkisAEKDUFQSUtleXNDb25maWcSJQoFYWRtaW4YASADKAsyFi5tZXRhcnIudjEuQVBJS2V5RW50cnkSJAoEdXNlchgCIAMoCzIWLm1ldGFyci52MS5BUElLZXlFbnRyeRInCgd3ZWJob29rGAMgAygLMhYubWV0YXJyLnYxLkFQSUtleUVudHJ5EikKCXJlYWRfb25seRgEIAMoCzIWLm1ldGFyci52MS5BUElLZXlFbnRyeSJsChNDcmVhdGVBcGlLZXlSZXF1ZXN0EiwKDGFjY2Vzc19sZXZlbBgBIAEoDjIWLm1ldGFyci52MS5BY2Nlc3NMZXZlbBInCgdhcGlfa2V5GAIgASgLMhYubWV0YXJyLnYxLkFQSUtleUVudHJ5Ih4KEEdldEFwaUtleVJlcXVlc3QSCgoCaWQYASABKAkiiwEKEkxpc3RBcGlLZXlzUmVxdWVzdBIsCgxhY2Nlc3NfbGV2ZWwYASABKA4yFi5tZXRhcnIudjEuQWNjZXNzTGV2ZWwSEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAkSDgoGZmlsdGVyGAQgASgJEhAKCG9yZGVyX2J5GAUgASgJIlgKE0xpc3RBcGlLZXlzUmVzcG9uc2USKAoIYXBpX2tleXMYASADKAsyFi5tZXRhcnIudjEuQVBJS2V5RW50cnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIm8KE1VwZGF0ZUFwaUtleVJlcXVlc3QSJwoHYXBpX2tleRgBIAEoCzIWLm1ldGFyci52MS5BUElLZXlFbnRyeRIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2siIQoTRGVsZXRlQXBpS2V5UmVxdWVzdBIKCgJpZBgBIAEoCTL3AgoNQXBpS2V5U2VydmljZRJGCgxDcmVhdGVBcGlLZXkSHi5tZXRhcnIudjEuQ3JlYXRlQXBpS2V5UmVxdWVzdBoWLm1ldGFyci52MS5BUElLZXlFbnRyeRJACglHZXRBcGlLZXkSGy5tZXRhcnIudjEuR2V0QXBpS2V5UmVxdWVzdBoWLm1ldGFyci52MS5BUElLZXlFbnRyeRJMCgtMaXN0QXBpS2V5cxIdLm1ldGFyci52MS5MaXN0QXBpS2V5c1JlcXVlc3QaHi5tZXRhcnIudjEuTGlzdEFwaUtleXNSZXNwb25zZRJGCgxVcGRhdGVBcGlLZXkSHi5tZXRhcnIudjEuVXBkYXRlQXBpS2V5UmVxdWVzdBoWLm1ldGFyci52MS5BUElLZXlFbnRyeRJGCgxEZWxldGVBcGlLZXkSHi5tZXRhcnIudjEuRGVsZXRlQXBpS2V5UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_google_protobuf_empty, file_google_protobuf_field_mask, file_metarr_v1_auth]);
 
 /**
  * APIKeyEntry is a single named API key. This message is the single
@@ -240,49 +242,6 @@ export type DeleteApiKeyRequest = Message<"metarr.v1.DeleteApiKeyRequest"> & {
  */
 export const DeleteApiKeyRequestSchema: GenMessage<DeleteApiKeyRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_api_keys, 7);
-
-/**
- * AccessLevel is the fixed four-value set of API-key categories. It is a
- * request field on the API-key collection methods, not a resource: AIP says
- * a closed enumeration like this should not be a resource collection, so
- * there is no parent addressing and no AccessLevelService (docs/adr/0010).
- * ACCESS_LEVEL_UNSPECIFIED is the unset value and is always InvalidArgument
- * where a level is required.
- *
- * @generated from enum metarr.v1.AccessLevel
- */
-export enum AccessLevel {
-  /**
-   * @generated from enum value: ACCESS_LEVEL_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * @generated from enum value: ACCESS_LEVEL_ADMIN = 1;
-   */
-  ADMIN = 1,
-
-  /**
-   * @generated from enum value: ACCESS_LEVEL_USER = 2;
-   */
-  USER = 2,
-
-  /**
-   * @generated from enum value: ACCESS_LEVEL_WEBHOOK = 3;
-   */
-  WEBHOOK = 3,
-
-  /**
-   * @generated from enum value: ACCESS_LEVEL_READ_ONLY = 4;
-   */
-  READ_ONLY = 4,
-}
-
-/**
- * Describes the enum metarr.v1.AccessLevel.
- */
-export const AccessLevelSchema: GenEnum<AccessLevel> = /*@__PURE__*/
-  enumDesc(file_metarr_v1_api_keys, 0);
 
 /**
  * ApiKeyService is the API-key collection on AIP standard methods
