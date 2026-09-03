@@ -29,6 +29,9 @@ const updateSidecarType = vi.fn();
 const deleteSidecarType = vi.fn();
 const reorderSidecarTypes = vi.fn();
 const resetSidecarTypes = vi.fn();
+const createWorkflow = vi.fn();
+const updateWorkflow = vi.fn();
+const deleteWorkflow = vi.fn();
 
 vi.mock("../clients", () => ({
   statsClient: { purge: (...args: unknown[]) => purge(...args) },
@@ -76,7 +79,11 @@ vi.mock("../clients", () => ({
     resetSidecarTypes: (...args: unknown[]) => resetSidecarTypes(...args),
   },
   workflowCatalogClient: {},
-  workflowClient: {},
+  workflowClient: {
+    createWorkflow: (...args: unknown[]) => createWorkflow(...args),
+    updateWorkflow: (...args: unknown[]) => updateWorkflow(...args),
+    deleteWorkflow: (...args: unknown[]) => deleteWorkflow(...args),
+  },
 }));
 
 import {
@@ -106,6 +113,9 @@ import {
   useDeleteAgent,
   useSetAgentLogLevel,
   useUpdateAdmin,
+  useCreateWorkflow,
+  useUpdateWorkflow,
+  useDeleteWorkflow,
 } from "../queries";
 
 describe("queryKeys", () => {
@@ -789,5 +799,72 @@ describe("useUpdateAdmin", () => {
       updateMask: { paths: [] },
       newPassword: "a-new-secret",
     });
+  });
+});
+
+// WorkflowService is on the AIP standard methods (docs/adr/0010). The editor
+// save hook is split in two: useCreateWorkflow sends the resource with no id
+// (the store mints it) and invalidates the list; useUpdateWorkflow carries
+// the id plus a full name/description/tags/graph mask (graph wholesale) and
+// invalidates the single workflow and its version list. useDeleteWorkflow
+// removes every version by id and invalidates the list.
+describe("workflow write hooks", () => {
+  it("useCreateWorkflow calls the client with no id and invalidates the list", async () => {
+    createWorkflow.mockReset().mockResolvedValue({
+      $typeName: "metarr.v1.Workflow",
+      id: "wf-1",
+      version: 1,
+    });
+    const { invalidate, wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useCreateWorkflow(), { wrapper });
+    result.current.mutate({ name: "n", description: "d", tags: ["t"] });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(createWorkflow).toHaveBeenCalledWith({
+      workflow: { name: "n", description: "d", tags: ["t"] },
+    });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.workflows });
+  });
+
+  it("useUpdateWorkflow sends the full mask and invalidates the workflow and its versions", async () => {
+    updateWorkflow.mockReset().mockResolvedValue({
+      $typeName: "metarr.v1.Workflow",
+      id: "wf-1",
+      version: 2,
+    });
+    const { invalidate, wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useUpdateWorkflow(), { wrapper });
+    result.current.mutate({
+      id: "wf-1",
+      name: "n2",
+      description: "d",
+      tags: ["t"],
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(updateWorkflow).toHaveBeenCalledWith({
+      workflow: { id: "wf-1", name: "n2", description: "d", tags: ["t"] },
+      updateMask: { paths: ["name", "description", "tags", "graph"] },
+    });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.workflow("wf-1"),
+    });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: queryKeys.workflowVersions("wf-1"),
+    });
+  });
+
+  it("useDeleteWorkflow calls delete with the id and invalidates the list", async () => {
+    deleteWorkflow.mockReset().mockResolvedValue({});
+    const { invalidate, wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useDeleteWorkflow(), { wrapper });
+    result.current.mutate("wf-1");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(deleteWorkflow).toHaveBeenCalledWith({ id: "wf-1" });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.workflows });
   });
 });

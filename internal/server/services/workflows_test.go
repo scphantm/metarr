@@ -9,6 +9,7 @@ import (
 	"connectrpc.com/connect"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
@@ -83,14 +84,14 @@ func TestWorkflowGraphSurvivesStoreAndLoad(t *testing.T) {
 		Viewport: mustStruct(t, map[string]any{"x": 1.0, "y": 2.0, "zoom": 1.5}),
 	}
 
-	req := &metarrv1.WorkflowServiceUpsertRequest{
+	msg := &metarrv1.Workflow{
 		Name: "keeps unknown things", Description: "d", Tags: []string{"t"}, Graph: original,
 	}
 
-	// Store: the request becomes the loose document mongostore persists.
-	stored, err := workflowFromUpsertProto(req)
+	// Store: the message becomes the loose document mongostore persists.
+	stored, err := workflowFromProto(msg)
 	if err != nil {
-		t.Fatalf("workflowFromUpsertProto: %v", err)
+		t.Fatalf("workflowFromProto: %v", err)
 	}
 
 	// Simulate the Mongo round trip the versioned store performs — BSON
@@ -116,17 +117,15 @@ func TestWorkflowGraphSurvivesStoreAndLoad(t *testing.T) {
 	}
 }
 
-// TestWorkflowUpsertAcceptsAnEmptyGraph pins that the retype did not make a
+// TestWorkflowCreateAcceptsAnEmptyGraph pins that the retype did not make a
 // blank canvas un-saveable — people save half-built flows all the time.
-func TestWorkflowUpsertAcceptsAnEmptyGraph(t *testing.T) {
-	// An empty graph is legitimate — people save blank canvases — so the
-	// conversion must not reject it.
-	stored, err := workflowFromUpsertProto(&metarrv1.WorkflowServiceUpsertRequest{
+func TestWorkflowCreateAcceptsAnEmptyGraph(t *testing.T) {
+	stored, err := workflowFromProto(&metarrv1.Workflow{
 		Name: "n", Description: "d", Tags: []string{"t"},
 		Graph: &metarrv1.WorkflowGraph{SchemaVersion: 1},
 	})
 	if err != nil {
-		t.Fatalf("workflowFromUpsertProto on an empty graph: %v", err)
+		t.Fatalf("workflowFromProto on an empty graph: %v", err)
 	}
 	if stored.SchemaVersion != 1 {
 		t.Fatalf("SchemaVersion = %d, want 1", stored.SchemaVersion)
@@ -145,123 +144,263 @@ func newTestWorkflowServer(t *testing.T) (*WorkflowServer, *fakeWorkflowStore) {
 	}, store
 }
 
-func upsertReq(name, documentID string) *connect.Request[metarrv1.WorkflowServiceUpsertRequest] {
-	return connect.NewRequest(&metarrv1.WorkflowServiceUpsertRequest{
-		DocumentId:  documentID,
-		Name:        name,
-		Description: "d",
-		Tags:        []string{"t"},
-		Graph:       &metarrv1.WorkflowGraph{SchemaVersion: 1},
+func createWorkflowReq(name string) *connect.Request[metarrv1.CreateWorkflowRequest] {
+	return connect.NewRequest(&metarrv1.CreateWorkflowRequest{
+		Workflow: &metarrv1.Workflow{
+			Name:        name,
+			Description: "d",
+			Tags:        []string{"t"},
+			Graph:       &metarrv1.WorkflowGraph{SchemaVersion: 1},
+		},
 	})
 }
 
-// TestWorkflowServerSeamRoundTrips drives the service end to end against the
-// fake store: create mints a document id at version 1, a second save on that
-// id appends version 2, and earlier versions stay fetchable.
-func TestWorkflowServerSeamRoundTrips(t *testing.T) {
+func mustCreateWorkflow(t *testing.T, srv *WorkflowServer, name string) *metarrv1.Workflow {
+	t.Helper()
+	res, err := srv.CreateWorkflow(context.Background(), createWorkflowReq(name))
+	if err != nil {
+		t.Fatalf("CreateWorkflow(%q): %v", name, err)
+	}
+	return res.Msg
+}
+
+// TestWorkflowCreateGetList drives the standard reads against the fake store:
+// create mints an id at version 1, and Get / List reflect what was created.
+func TestWorkflowCreateGetList(t *testing.T) {
 	srv, _ := newTestWorkflowServer(t)
 	ctx := context.Background()
 
-	created, err := srv.Upsert(ctx, upsertReq("first", ""))
-	if err != nil {
-		t.Fatalf("Upsert create: %v", err)
+	created := mustCreateWorkflow(t, srv, "first")
+	if created.GetId() == "" {
+		t.Fatal("created workflow has no id")
 	}
-	id := created.Msg.GetWorkflow().GetDocumentId()
-	if id == "" {
-		t.Fatal("created workflow has no document id")
-	}
-	if got := created.Msg.GetWorkflow().GetVersion(); got != 1 {
-		t.Fatalf("created version = %d, want 1", got)
+	if created.GetVersion() != 1 {
+		t.Fatalf("created version = %d, want 1", created.GetVersion())
 	}
 
-	got, err := srv.Get(ctx, connect.NewRequest(&metarrv1.WorkflowServiceGetRequest{Id: id}))
+	got, err := srv.GetWorkflow(ctx, connect.NewRequest(&metarrv1.GetWorkflowRequest{Id: created.GetId()}))
 	if err != nil {
-		t.Fatalf("Get: %v", err)
+		t.Fatalf("GetWorkflow: %v", err)
 	}
-	if got.Msg.GetWorkflow().GetName() != "first" {
-		t.Fatalf("Get name = %q, want %q", got.Msg.GetWorkflow().GetName(), "first")
+	if got.Msg.GetName() != "first" {
+		t.Fatalf("GetWorkflow name = %q, want %q", got.Msg.GetName(), "first")
 	}
 
-	updated, err := srv.Upsert(ctx, upsertReq("second", id))
+	list, err := srv.ListWorkflows(ctx, connect.NewRequest(&metarrv1.ListWorkflowsRequest{}))
 	if err != nil {
-		t.Fatalf("Upsert update: %v", err)
-	}
-	if got := updated.Msg.GetWorkflow().GetVersion(); got != 2 {
-		t.Fatalf("updated version = %d, want 2", got)
-	}
-
-	v1, err := srv.GetVersion(ctx, connect.NewRequest(&metarrv1.WorkflowServiceGetVersionRequest{Id: id, Version: 1}))
-	if err != nil {
-		t.Fatalf("GetVersion 1: %v", err)
-	}
-	if v1.Msg.GetWorkflow().GetName() != "first" {
-		t.Fatalf("version 1 name = %q, want %q", v1.Msg.GetWorkflow().GetName(), "first")
-	}
-
-	versions, err := srv.ListVersions(ctx, connect.NewRequest(&metarrv1.WorkflowServiceListVersionsRequest{Id: id}))
-	if err != nil {
-		t.Fatalf("ListVersions: %v", err)
-	}
-	if n := len(versions.Msg.GetVersions()); n != 2 {
-		t.Fatalf("ListVersions returned %d, want 2", n)
-	}
-
-	list, err := srv.List(ctx, connect.NewRequest(&metarrv1.WorkflowServiceListRequest{}))
-	if err != nil {
-		t.Fatalf("List: %v", err)
+		t.Fatalf("ListWorkflows: %v", err)
 	}
 	if n := len(list.Msg.GetWorkflows()); n != 1 {
-		t.Fatalf("List returned %d latest workflows, want 1", n)
+		t.Fatalf("ListWorkflows returned %d, want 1", n)
 	}
 }
 
-// TestWorkflowServerListPaginatesThroughSeam pins that limit/cursor
-// pagination still threads through the interface unchanged.
-func TestWorkflowServerListPaginatesThroughSeam(t *testing.T) {
+func TestWorkflowCreateRejectsMissingContent(t *testing.T) {
+	srv, _ := newTestWorkflowServer(t)
+
+	_, err := srv.CreateWorkflow(context.Background(), connect.NewRequest(&metarrv1.CreateWorkflowRequest{
+		Workflow: &metarrv1.Workflow{Name: "n", Description: "d", Graph: &metarrv1.WorkflowGraph{SchemaVersion: 1}},
+	}))
+	if got := connect.CodeOf(err); got != connect.CodeInvalidArgument {
+		t.Fatalf("CreateWorkflow without tags code = %v, want %v", got, connect.CodeInvalidArgument)
+	}
+}
+
+func TestWorkflowCreateRejectsClientSuppliedID(t *testing.T) {
+	srv, _ := newTestWorkflowServer(t)
+
+	req := createWorkflowReq("first")
+	req.Msg.Workflow.Id = bson.NewObjectID().Hex()
+	_, err := srv.CreateWorkflow(context.Background(), req)
+	if got := connect.CodeOf(err); got != connect.CodeInvalidArgument {
+		t.Fatalf("CreateWorkflow with an id code = %v, want %v", got, connect.CodeInvalidArgument)
+	}
+}
+
+// TestWorkflowUpdateAppendsVersion pins that UpdateWorkflow appends an
+// immutable version and leaves the earlier one fetchable by version.
+func TestWorkflowUpdateAppendsVersion(t *testing.T) {
+	srv, _ := newTestWorkflowServer(t)
+	ctx := context.Background()
+
+	created := mustCreateWorkflow(t, srv, "first")
+	id := created.GetId()
+
+	updated, err := srv.UpdateWorkflow(ctx, connect.NewRequest(&metarrv1.UpdateWorkflowRequest{
+		Workflow:   &metarrv1.Workflow{Id: id, Name: "second"},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"name"}},
+	}))
+	if err != nil {
+		t.Fatalf("UpdateWorkflow: %v", err)
+	}
+	if updated.Msg.GetVersion() != 2 {
+		t.Fatalf("updated version = %d, want 2", updated.Msg.GetVersion())
+	}
+	if updated.Msg.GetName() != "second" {
+		t.Fatalf("updated name = %q, want %q", updated.Msg.GetName(), "second")
+	}
+	// The mask named only name, so description and tags carry over.
+	if updated.Msg.GetDescription() != "d" || len(updated.Msg.GetTags()) != 1 {
+		t.Fatalf("unmasked fields not preserved: %+v", updated.Msg)
+	}
+
+	v1, err := srv.GetWorkflowVersion(ctx, connect.NewRequest(&metarrv1.GetWorkflowVersionRequest{Id: id, Version: 1}))
+	if err != nil {
+		t.Fatalf("GetWorkflowVersion 1: %v", err)
+	}
+	if v1.Msg.GetName() != "first" {
+		t.Fatalf("version 1 name = %q, want %q", v1.Msg.GetName(), "first")
+	}
+
+	versions, err := srv.ListWorkflowVersions(ctx, connect.NewRequest(&metarrv1.ListWorkflowVersionsRequest{Id: id}))
+	if err != nil {
+		t.Fatalf("ListWorkflowVersions: %v", err)
+	}
+	if n := len(versions.Msg.GetWorkflows()); n != 2 {
+		t.Fatalf("ListWorkflowVersions returned %d, want 2", n)
+	}
+}
+
+func TestWorkflowUpdateMaskErrors(t *testing.T) {
+	srv, _ := newTestWorkflowServer(t)
+	ctx := context.Background()
+	id := mustCreateWorkflow(t, srv, "first").GetId()
+
+	cases := map[string]*fieldmaskpb.FieldMask{
+		"empty mask":      {},
+		"unknown path":    {Paths: []string{"schema_version"}},
+		"graph sub-path":  {Paths: []string{"graph.nodes"}},
+		"nil mask":        nil,
+		"created_at path": {Paths: []string{"created_at"}},
+		"version path":    {Paths: []string{"version"}},
+		"id path in mask": {Paths: []string{"id"}},
+	}
+	for name, mask := range cases {
+		_, err := srv.UpdateWorkflow(ctx, connect.NewRequest(&metarrv1.UpdateWorkflowRequest{
+			Workflow:   &metarrv1.Workflow{Id: id, Name: "x"},
+			UpdateMask: mask,
+		}))
+		if got := connect.CodeOf(err); got != connect.CodeInvalidArgument {
+			t.Fatalf("%s: code = %v, want %v", name, got, connect.CodeInvalidArgument)
+		}
+	}
+}
+
+// TestWorkflowUpdateRejectsEmptiedTags pins that the merged result is
+// re-validated: a mask that clears tags cannot land.
+func TestWorkflowUpdateRejectsEmptiedTags(t *testing.T) {
+	srv, _ := newTestWorkflowServer(t)
+	id := mustCreateWorkflow(t, srv, "first").GetId()
+
+	_, err := srv.UpdateWorkflow(context.Background(), connect.NewRequest(&metarrv1.UpdateWorkflowRequest{
+		Workflow:   &metarrv1.Workflow{Id: id, Tags: nil},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"tags"}},
+	}))
+	if got := connect.CodeOf(err); got != connect.CodeInvalidArgument {
+		t.Fatalf("update emptying tags code = %v, want %v", got, connect.CodeInvalidArgument)
+	}
+}
+
+func TestWorkflowUpdateUnknownIDIsNotFound(t *testing.T) {
+	srv, _ := newTestWorkflowServer(t)
+
+	_, err := srv.UpdateWorkflow(context.Background(), connect.NewRequest(&metarrv1.UpdateWorkflowRequest{
+		Workflow:   &metarrv1.Workflow{Id: bson.NewObjectID().Hex(), Name: "x"},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"name"}},
+	}))
+	if got := connect.CodeOf(err); got != connect.CodeNotFound {
+		t.Fatalf("UpdateWorkflow unknown id code = %v, want %v", got, connect.CodeNotFound)
+	}
+}
+
+// TestWorkflowDeleteRemovesEveryVersion pins the surprising call in an
+// append-only store: delete drops all versions and a later Get is NotFound.
+func TestWorkflowDeleteRemovesEveryVersion(t *testing.T) {
+	srv, store := newTestWorkflowServer(t)
+	ctx := context.Background()
+	id := mustCreateWorkflow(t, srv, "first").GetId()
+
+	if _, err := srv.UpdateWorkflow(ctx, connect.NewRequest(&metarrv1.UpdateWorkflowRequest{
+		Workflow:   &metarrv1.Workflow{Id: id, Name: "second"},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"name"}},
+	})); err != nil {
+		t.Fatalf("UpdateWorkflow: %v", err)
+	}
+
+	if _, err := srv.DeleteWorkflow(ctx, connect.NewRequest(&metarrv1.DeleteWorkflowRequest{Id: id})); err != nil {
+		t.Fatalf("DeleteWorkflow: %v", err)
+	}
+
+	docID, _ := bson.ObjectIDFromHex(id)
+	if remaining, _ := store.ListVersions(ctx, docID); len(remaining) != 0 {
+		t.Fatalf("delete left %d versions behind", len(remaining))
+	}
+
+	_, err := srv.GetWorkflow(ctx, connect.NewRequest(&metarrv1.GetWorkflowRequest{Id: id}))
+	if got := connect.CodeOf(err); got != connect.CodeNotFound {
+		t.Fatalf("GetWorkflow after delete code = %v, want %v", got, connect.CodeNotFound)
+	}
+
+	_, err = srv.DeleteWorkflow(ctx, connect.NewRequest(&metarrv1.DeleteWorkflowRequest{Id: id}))
+	if got := connect.CodeOf(err); got != connect.CodeNotFound {
+		t.Fatalf("second DeleteWorkflow code = %v, want %v", got, connect.CodeNotFound)
+	}
+}
+
+// TestWorkflowListPaginates pins page_size / page_token threading through the
+// seam and the empty next_page_token that ends the list.
+func TestWorkflowListPaginates(t *testing.T) {
 	srv, _ := newTestWorkflowServer(t)
 	ctx := context.Background()
 
 	for _, name := range []string{"a", "b", "c"} {
-		if _, err := srv.Upsert(ctx, upsertReq(name, "")); err != nil {
-			t.Fatalf("Upsert %s: %v", name, err)
-		}
+		mustCreateWorkflow(t, srv, name)
 	}
 
-	first, err := srv.List(ctx, connect.NewRequest(&metarrv1.WorkflowServiceListRequest{Limit: 2}))
+	first, err := srv.ListWorkflows(ctx, connect.NewRequest(&metarrv1.ListWorkflowsRequest{PageSize: 2}))
 	if err != nil {
-		t.Fatalf("List page 1: %v", err)
-	}
-	if !first.Msg.GetHasMore() || first.Msg.GetNextCursor() == "" {
-		t.Fatalf("page 1 hasMore=%v nextCursor=%q, want more", first.Msg.GetHasMore(), first.Msg.GetNextCursor())
+		t.Fatalf("ListWorkflows page 1: %v", err)
 	}
 	if n := len(first.Msg.GetWorkflows()); n != 2 {
 		t.Fatalf("page 1 returned %d, want 2", n)
 	}
+	if first.Msg.GetNextPageToken() == "" {
+		t.Fatal("page 1 has no next_page_token")
+	}
 
-	second, err := srv.List(ctx, connect.NewRequest(&metarrv1.WorkflowServiceListRequest{
-		Limit:  2,
-		Cursor: first.Msg.GetNextCursor(),
+	second, err := srv.ListWorkflows(ctx, connect.NewRequest(&metarrv1.ListWorkflowsRequest{
+		PageSize:  2,
+		PageToken: first.Msg.GetNextPageToken(),
 	}))
 	if err != nil {
-		t.Fatalf("List page 2: %v", err)
+		t.Fatalf("ListWorkflows page 2: %v", err)
 	}
 	if n := len(second.Msg.GetWorkflows()); n != 1 {
 		t.Fatalf("page 2 returned %d, want 1", n)
 	}
-	if second.Msg.GetHasMore() {
+	if second.Msg.GetNextPageToken() != "" {
 		t.Fatal("page 2 should be the last page")
 	}
 }
 
-// TestWorkflowServerGetUnknownIsNotFound pins the error mapping through the
-// seam: a versioned.ErrNotFound from the store becomes CodeNotFound.
-func TestWorkflowServerGetUnknownIsNotFound(t *testing.T) {
+func TestWorkflowListFilterIsUnimplemented(t *testing.T) {
 	srv, _ := newTestWorkflowServer(t)
 
-	_, err := srv.Get(context.Background(), connect.NewRequest(&metarrv1.WorkflowServiceGetRequest{
+	_, err := srv.ListWorkflows(context.Background(), connect.NewRequest(&metarrv1.ListWorkflowsRequest{
+		Filter: `name = "x"`,
+	}))
+	if got := connect.CodeOf(err); got != connect.CodeUnimplemented {
+		t.Fatalf("ListWorkflows filter code = %v, want %v", got, connect.CodeUnimplemented)
+	}
+}
+
+func TestWorkflowGetUnknownIsNotFound(t *testing.T) {
+	srv, _ := newTestWorkflowServer(t)
+
+	_, err := srv.GetWorkflow(context.Background(), connect.NewRequest(&metarrv1.GetWorkflowRequest{
 		Id: bson.NewObjectID().Hex(),
 	}))
 	if got := connect.CodeOf(err); got != connect.CodeNotFound {
-		t.Fatalf("Get unknown id code = %v, want %v", got, connect.CodeNotFound)
+		t.Fatalf("GetWorkflow unknown id code = %v, want %v", got, connect.CodeNotFound)
 	}
 }

@@ -4,8 +4,8 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { EmptySchema, FieldMask, Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_empty, file_google_protobuf_field_mask, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { WorkflowGraph } from "./workflow_graph_pb";
 import { file_metarr_v1_workflow_graph } from "./workflow_graph_pb";
 import type { Message } from "@bufbuild/protobuf";
@@ -14,32 +14,34 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/workflows.proto.
  */
 export const file_metarr_v1_workflows: GenFile = /*@__PURE__*/
-  fileDesc("ChltZXRhcnIvdjEvd29ya2Zsb3dzLnByb3RvEgltZXRhcnIudjEixgEKCFdvcmtmbG93EgoKAmlkGAEgASgJEhMKC2RvY3VtZW50X2lkGAIgASgJEg8KB3ZlcnNpb24YAyABKAUSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEbmFtZRgFIAEoCRITCgtkZXNjcmlwdGlvbhgGIAEoCRIMCgR0YWdzGAcgAygJEicKBWdyYXBoGAggASgLMhgubWV0YXJyLnYxLldvcmtmbG93R3JhcGgiOwoaV29ya2Zsb3dTZXJ2aWNlTGlzdFJlcXVlc3QSDQoFbGltaXQYASABKAUSDgoGY3Vyc29yGAIgASgJImwKG1dvcmtmbG93U2VydmljZUxpc3RSZXNwb25zZRImCgl3b3JrZmxvd3MYASADKAsyEy5tZXRhcnIudjEuV29ya2Zsb3cSEwoLbmV4dF9jdXJzb3IYAiABKAkSEAoIaGFzX21vcmUYAyABKAgiJwoZV29ya2Zsb3dTZXJ2aWNlR2V0UmVxdWVzdBIKCgJpZBgBIAEoCSJDChpXb3JrZmxvd1NlcnZpY2VHZXRSZXNwb25zZRIlCgh3b3JrZmxvdxgBIAEoCzITLm1ldGFyci52MS5Xb3JrZmxvdyIwCiJXb3JrZmxvd1NlcnZpY2VMaXN0VmVyc2lvbnNSZXF1ZXN0EgoKAmlkGAEgASgJIkwKI1dvcmtmbG93U2VydmljZUxpc3RWZXJzaW9uc1Jlc3BvbnNlEiUKCHZlcnNpb25zGAEgAygLMhMubWV0YXJyLnYxLldvcmtmbG93Ij8KIFdvcmtmbG93U2VydmljZUdldFZlcnNpb25SZXF1ZXN0EgoKAmlkGAEgASgJEg8KB3ZlcnNpb24YAiABKAUiSgohV29ya2Zsb3dTZXJ2aWNlR2V0VmVyc2lvblJlc3BvbnNlEiUKCHdvcmtmbG93GAEgASgLMhMubWV0YXJyLnYxLldvcmtmbG93Io0BChxXb3JrZmxvd1NlcnZpY2VVcHNlcnRSZXF1ZXN0EhMKC2RvY3VtZW50X2lkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSDAoEdGFncxgEIAMoCRInCgVncmFwaBgFIAEoCzIYLm1ldGFyci52MS5Xb3JrZmxvd0dyYXBoIkYKHVdvcmtmbG93U2VydmljZVVwc2VydFJlc3BvbnNlEiUKCHdvcmtmbG93GAEgASgLMhMubWV0YXJyLnYxLldvcmtmbG93MvEDCg9Xb3JrZmxvd1NlcnZpY2USVQoETGlzdBIlLm1ldGFyci52MS5Xb3JrZmxvd1NlcnZpY2VMaXN0UmVxdWVzdBomLm1ldGFyci52MS5Xb3JrZmxvd1NlcnZpY2VMaXN0UmVzcG9uc2USUgoDR2V0EiQubWV0YXJyLnYxLldvcmtmbG93U2VydmljZUdldFJlcXVlc3QaJS5tZXRhcnIudjEuV29ya2Zsb3dTZXJ2aWNlR2V0UmVzcG9uc2USbQoMTGlzdFZlcnNpb25zEi0ubWV0YXJyLnYxLldvcmtmbG93U2VydmljZUxpc3RWZXJzaW9uc1JlcXVlc3QaLi5tZXRhcnIudjEuV29ya2Zsb3dTZXJ2aWNlTGlzdFZlcnNpb25zUmVzcG9uc2USZwoKR2V0VmVyc2lvbhIrLm1ldGFyci52MS5Xb3JrZmxvd1NlcnZpY2VHZXRWZXJzaW9uUmVxdWVzdBosLm1ldGFyci52MS5Xb3JrZmxvd1NlcnZpY2VHZXRWZXJzaW9uUmVzcG9uc2USWwoGVXBzZXJ0EicubWV0YXJyLnYxLldvcmtmbG93U2VydmljZVVwc2VydFJlcXVlc3QaKC5tZXRhcnIudjEuV29ya2Zsb3dTZXJ2aWNlVXBzZXJ0UmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_google_protobuf_timestamp, file_metarr_v1_workflow_graph]);
+  fileDesc("ChltZXRhcnIvdjEvd29ya2Zsb3dzLnByb3RvEgltZXRhcnIudjEitwEKCFdvcmtmbG93EgoKAmlkGAIgASgJEg8KB3ZlcnNpb24YAyABKAUSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEbmFtZRgFIAEoCRITCgtkZXNjcmlwdGlvbhgGIAEoCRIMCgR0YWdzGAcgAygJEicKBWdyYXBoGAggASgLMhgubWV0YXJyLnYxLldvcmtmbG93R3JhcGhKBAgBEAIiPgoVQ3JlYXRlV29ya2Zsb3dSZXF1ZXN0EiUKCHdvcmtmbG93GAEgASgLMhMubWV0YXJyLnYxLldvcmtmbG93IiAKEkdldFdvcmtmbG93UmVxdWVzdBIKCgJpZBgBIAEoCSJfChRMaXN0V29ya2Zsb3dzUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRIOCgZmaWx0ZXIYAyABKAkSEAoIb3JkZXJfYnkYBCABKAkiWAoVTGlzdFdvcmtmbG93c1Jlc3BvbnNlEiYKCXdvcmtmbG93cxgBIAMoCzITLm1ldGFyci52MS5Xb3JrZmxvdxIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkibwoVVXBkYXRlV29ya2Zsb3dSZXF1ZXN0EiUKCHdvcmtmbG93GAEgASgLMhMubWV0YXJyLnYxLldvcmtmbG93Ei8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzayIjChVEZWxldGVXb3JrZmxvd1JlcXVlc3QSCgoCaWQYASABKAkiOAoZR2V0V29ya2Zsb3dWZXJzaW9uUmVxdWVzdBIKCgJpZBgBIAEoCRIPCgd2ZXJzaW9uGAIgASgFIlAKG0xpc3RXb3JrZmxvd1ZlcnNpb25zUmVxdWVzdBIKCgJpZBgBIAEoCRIRCglwYWdlX3NpemUYAiABKAUSEgoKcGFnZV90b2tlbhgDIAEoCSJfChxMaXN0V29ya2Zsb3dWZXJzaW9uc1Jlc3BvbnNlEiYKCXdvcmtmbG93cxgBIAMoCzITLm1ldGFyci52MS5Xb3JrZmxvdxIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkywAQKD1dvcmtmbG93U2VydmljZRJHCg5DcmVhdGVXb3JrZmxvdxIgLm1ldGFyci52MS5DcmVhdGVXb3JrZmxvd1JlcXVlc3QaEy5tZXRhcnIudjEuV29ya2Zsb3cSQQoLR2V0V29ya2Zsb3cSHS5tZXRhcnIudjEuR2V0V29ya2Zsb3dSZXF1ZXN0GhMubWV0YXJyLnYxLldvcmtmbG93ElIKDUxpc3RXb3JrZmxvd3MSHy5tZXRhcnIudjEuTGlzdFdvcmtmbG93c1JlcXVlc3QaIC5tZXRhcnIudjEuTGlzdFdvcmtmbG93c1Jlc3BvbnNlEkcKDlVwZGF0ZVdvcmtmbG93EiAubWV0YXJyLnYxLlVwZGF0ZVdvcmtmbG93UmVxdWVzdBoTLm1ldGFyci52MS5Xb3JrZmxvdxJKCg5EZWxldGVXb3JrZmxvdxIgLm1ldGFyci52MS5EZWxldGVXb3JrZmxvd1JlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSTwoSR2V0V29ya2Zsb3dWZXJzaW9uEiQubWV0YXJyLnYxLkdldFdvcmtmbG93VmVyc2lvblJlcXVlc3QaEy5tZXRhcnIudjEuV29ya2Zsb3cSZwoUTGlzdFdvcmtmbG93VmVyc2lvbnMSJi5tZXRhcnIudjEuTGlzdFdvcmtmbG93VmVyc2lvbnNSZXF1ZXN0GicubWV0YXJyLnYxLkxpc3RXb3JrZmxvd1ZlcnNpb25zUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_google_protobuf_empty, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_metarr_v1_workflow_graph]);
 
 /**
- * Workflow is one version of a versioned workflow document: the scalar
- * metadata plus the authored graph. internal/server/mongostore.Workflow is
- * the stored form; internal/shared/workflow aliases WorkflowGraph and its
- * parts. See docs/adr/0005.
+ * Workflow is one version of a versioned workflow document, always returned as
+ * the latest version by the standard reads: the scalar metadata plus the
+ * authored graph. internal/server/mongostore.Workflow is the stored form;
+ * internal/shared/workflow aliases WorkflowGraph and its parts. See
+ * docs/adr/0005 and docs/adr/0010.
+ *
+ * id is the logical document id — the value every version shares, minted once
+ * when version 1 is created. It kept field number 2 across the rename from
+ * document_id (wire-compatible; the BSON field in the collection is
+ * independent of the message field name). Field 1 held the per-version raw
+ * object id and is retired — a version is addressed by id plus version.
  *
  * The graph's open content — a node's settings, and its extra field — is
  * carried as structured values so a node whose type this build does not
  * recognise, and settings it does not recognise, round-trip through storage
- * unchanged. schema_version lives on WorkflowGraph, which is the canonical
- * graph shape the catalog also advertises.
+ * unchanged. schema_version lives on WorkflowGraph, the canonical graph shape
+ * the catalog also advertises, not on this message.
  *
  * @generated from message metarr.v1.Workflow
  */
 export type Workflow = Message<"metarr.v1.Workflow"> & {
   /**
-   * @generated from field: string id = 1;
+   * @generated from field: string id = 2;
    */
   id: string;
-
-  /**
-   * @generated from field: string document_id = 2;
-   */
-  documentId: string;
 
   /**
    * @generated from field: int32 version = 3;
@@ -80,75 +82,14 @@ export const WorkflowSchema: GenMessage<Workflow> = /*@__PURE__*/
   messageDesc(file_metarr_v1_workflows, 0);
 
 /**
- * @generated from message metarr.v1.WorkflowServiceListRequest
+ * CreateWorkflowRequest carries the resource only — no id, the store mints it
+ * and returns the persisted workflow at version 1. name, description and at
+ * least one tag are required (InvalidArgument otherwise); the graph is stored
+ * as-is and its validity stays the client's job via the catalog validate RPC.
+ *
+ * @generated from message metarr.v1.CreateWorkflowRequest
  */
-export type WorkflowServiceListRequest = Message<"metarr.v1.WorkflowServiceListRequest"> & {
-  /**
-   * @generated from field: int32 limit = 1;
-   */
-  limit: number;
-
-  /**
-   * @generated from field: string cursor = 2;
-   */
-  cursor: string;
-};
-
-/**
- * Describes the message metarr.v1.WorkflowServiceListRequest.
- * Use `create(WorkflowServiceListRequestSchema)` to create a new message.
- */
-export const WorkflowServiceListRequestSchema: GenMessage<WorkflowServiceListRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_workflows, 1);
-
-/**
- * @generated from message metarr.v1.WorkflowServiceListResponse
- */
-export type WorkflowServiceListResponse = Message<"metarr.v1.WorkflowServiceListResponse"> & {
-  /**
-   * @generated from field: repeated metarr.v1.Workflow workflows = 1;
-   */
-  workflows: Workflow[];
-
-  /**
-   * @generated from field: string next_cursor = 2;
-   */
-  nextCursor: string;
-
-  /**
-   * @generated from field: bool has_more = 3;
-   */
-  hasMore: boolean;
-};
-
-/**
- * Describes the message metarr.v1.WorkflowServiceListResponse.
- * Use `create(WorkflowServiceListResponseSchema)` to create a new message.
- */
-export const WorkflowServiceListResponseSchema: GenMessage<WorkflowServiceListResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_workflows, 2);
-
-/**
- * @generated from message metarr.v1.WorkflowServiceGetRequest
- */
-export type WorkflowServiceGetRequest = Message<"metarr.v1.WorkflowServiceGetRequest"> & {
-  /**
-   * @generated from field: string id = 1;
-   */
-  id: string;
-};
-
-/**
- * Describes the message metarr.v1.WorkflowServiceGetRequest.
- * Use `create(WorkflowServiceGetRequestSchema)` to create a new message.
- */
-export const WorkflowServiceGetRequestSchema: GenMessage<WorkflowServiceGetRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_workflows, 3);
-
-/**
- * @generated from message metarr.v1.WorkflowServiceGetResponse
- */
-export type WorkflowServiceGetResponse = Message<"metarr.v1.WorkflowServiceGetResponse"> & {
+export type CreateWorkflowRequest = Message<"metarr.v1.CreateWorkflowRequest"> & {
   /**
    * @generated from field: metarr.v1.Workflow workflow = 1;
    */
@@ -156,16 +97,16 @@ export type WorkflowServiceGetResponse = Message<"metarr.v1.WorkflowServiceGetRe
 };
 
 /**
- * Describes the message metarr.v1.WorkflowServiceGetResponse.
- * Use `create(WorkflowServiceGetResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.CreateWorkflowRequest.
+ * Use `create(CreateWorkflowRequestSchema)` to create a new message.
  */
-export const WorkflowServiceGetResponseSchema: GenMessage<WorkflowServiceGetResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_workflows, 4);
+export const CreateWorkflowRequestSchema: GenMessage<CreateWorkflowRequest> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_workflows, 1);
 
 /**
- * @generated from message metarr.v1.WorkflowServiceListVersionsRequest
+ * @generated from message metarr.v1.GetWorkflowRequest
  */
-export type WorkflowServiceListVersionsRequest = Message<"metarr.v1.WorkflowServiceListVersionsRequest"> & {
+export type GetWorkflowRequest = Message<"metarr.v1.GetWorkflowRequest"> & {
   /**
    * @generated from field: string id = 1;
    */
@@ -173,33 +114,127 @@ export type WorkflowServiceListVersionsRequest = Message<"metarr.v1.WorkflowServ
 };
 
 /**
- * Describes the message metarr.v1.WorkflowServiceListVersionsRequest.
- * Use `create(WorkflowServiceListVersionsRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.GetWorkflowRequest.
+ * Use `create(GetWorkflowRequestSchema)` to create a new message.
  */
-export const WorkflowServiceListVersionsRequestSchema: GenMessage<WorkflowServiceListVersionsRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_workflows, 5);
+export const GetWorkflowRequestSchema: GenMessage<GetWorkflowRequest> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_workflows, 2);
 
 /**
- * @generated from message metarr.v1.WorkflowServiceListVersionsResponse
+ * ListWorkflowsRequest is the AIP-158 page window over the latest version of
+ * every workflow, newest first. page_size defaults to 50 and is capped at
+ * 100; page_token is the opaque cursor a previous response returned. A
+ * non-empty filter or order_by is Unimplemented — the list is storage-ordered
+ * and AIP-160 translation is deferred, matching the config lists.
+ *
+ * @generated from message metarr.v1.ListWorkflowsRequest
  */
-export type WorkflowServiceListVersionsResponse = Message<"metarr.v1.WorkflowServiceListVersionsResponse"> & {
+export type ListWorkflowsRequest = Message<"metarr.v1.ListWorkflowsRequest"> & {
   /**
-   * @generated from field: repeated metarr.v1.Workflow versions = 1;
+   * @generated from field: int32 page_size = 1;
    */
-  versions: Workflow[];
+  pageSize: number;
+
+  /**
+   * @generated from field: string page_token = 2;
+   */
+  pageToken: string;
+
+  /**
+   * @generated from field: string filter = 3;
+   */
+  filter: string;
+
+  /**
+   * @generated from field: string order_by = 4;
+   */
+  orderBy: string;
 };
 
 /**
- * Describes the message metarr.v1.WorkflowServiceListVersionsResponse.
- * Use `create(WorkflowServiceListVersionsResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.ListWorkflowsRequest.
+ * Use `create(ListWorkflowsRequestSchema)` to create a new message.
  */
-export const WorkflowServiceListVersionsResponseSchema: GenMessage<WorkflowServiceListVersionsResponse> = /*@__PURE__*/
+export const ListWorkflowsRequestSchema: GenMessage<ListWorkflowsRequest> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_workflows, 3);
+
+/**
+ * @generated from message metarr.v1.ListWorkflowsResponse
+ */
+export type ListWorkflowsResponse = Message<"metarr.v1.ListWorkflowsResponse"> & {
+  /**
+   * @generated from field: repeated metarr.v1.Workflow workflows = 1;
+   */
+  workflows: Workflow[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message metarr.v1.ListWorkflowsResponse.
+ * Use `create(ListWorkflowsResponseSchema)` to create a new message.
+ */
+export const ListWorkflowsResponseSchema: GenMessage<ListWorkflowsResponse> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_workflows, 4);
+
+/**
+ * UpdateWorkflowRequest is an AIP-134 partial update: workflow.id addresses
+ * the document, update_mask is authoritative for which fields change. Allowed
+ * paths are name, description, tags and graph; graph is masked wholesale (a
+ * path may name graph but not a sub-path). An empty mask or an unknown path
+ * is InvalidArgument. The update reads the latest version, applies the mask,
+ * and appends the result as a new immutable version. There is no
+ * allow_missing — a knob that must always be false is a footgun (docs/adr/0010).
+ *
+ * @generated from message metarr.v1.UpdateWorkflowRequest
+ */
+export type UpdateWorkflowRequest = Message<"metarr.v1.UpdateWorkflowRequest"> & {
+  /**
+   * @generated from field: metarr.v1.Workflow workflow = 1;
+   */
+  workflow?: Workflow | undefined;
+
+  /**
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask | undefined;
+};
+
+/**
+ * Describes the message metarr.v1.UpdateWorkflowRequest.
+ * Use `create(UpdateWorkflowRequestSchema)` to create a new message.
+ */
+export const UpdateWorkflowRequestSchema: GenMessage<UpdateWorkflowRequest> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_workflows, 5);
+
+/**
+ * DeleteWorkflowRequest hard-removes every version of the workflow — not a
+ * soft delete, not a tombstone version. The one surprising call in an
+ * otherwise append-only store; see docs/adr/0013.
+ *
+ * @generated from message metarr.v1.DeleteWorkflowRequest
+ */
+export type DeleteWorkflowRequest = Message<"metarr.v1.DeleteWorkflowRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message metarr.v1.DeleteWorkflowRequest.
+ * Use `create(DeleteWorkflowRequestSchema)` to create a new message.
+ */
+export const DeleteWorkflowRequestSchema: GenMessage<DeleteWorkflowRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_workflows, 6);
 
 /**
- * @generated from message metarr.v1.WorkflowServiceGetVersionRequest
+ * @generated from message metarr.v1.GetWorkflowVersionRequest
  */
-export type WorkflowServiceGetVersionRequest = Message<"metarr.v1.WorkflowServiceGetVersionRequest"> & {
+export type GetWorkflowVersionRequest = Message<"metarr.v1.GetWorkflowVersionRequest"> & {
   /**
    * @generated from field: string id = 1;
    */
@@ -212,134 +247,128 @@ export type WorkflowServiceGetVersionRequest = Message<"metarr.v1.WorkflowServic
 };
 
 /**
- * Describes the message metarr.v1.WorkflowServiceGetVersionRequest.
- * Use `create(WorkflowServiceGetVersionRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.GetWorkflowVersionRequest.
+ * Use `create(GetWorkflowVersionRequestSchema)` to create a new message.
  */
-export const WorkflowServiceGetVersionRequestSchema: GenMessage<WorkflowServiceGetVersionRequest> = /*@__PURE__*/
+export const GetWorkflowVersionRequestSchema: GenMessage<GetWorkflowVersionRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_workflows, 7);
 
 /**
- * @generated from message metarr.v1.WorkflowServiceGetVersionResponse
+ * @generated from message metarr.v1.ListWorkflowVersionsRequest
  */
-export type WorkflowServiceGetVersionResponse = Message<"metarr.v1.WorkflowServiceGetVersionResponse"> & {
+export type ListWorkflowVersionsRequest = Message<"metarr.v1.ListWorkflowVersionsRequest"> & {
   /**
-   * @generated from field: metarr.v1.Workflow workflow = 1;
+   * @generated from field: string id = 1;
    */
-  workflow?: Workflow | undefined;
+  id: string;
+
+  /**
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
 };
 
 /**
- * Describes the message metarr.v1.WorkflowServiceGetVersionResponse.
- * Use `create(WorkflowServiceGetVersionResponseSchema)` to create a new message.
+ * Describes the message metarr.v1.ListWorkflowVersionsRequest.
+ * Use `create(ListWorkflowVersionsRequestSchema)` to create a new message.
  */
-export const WorkflowServiceGetVersionResponseSchema: GenMessage<WorkflowServiceGetVersionResponse> = /*@__PURE__*/
+export const ListWorkflowVersionsRequestSchema: GenMessage<ListWorkflowVersionsRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_workflows, 8);
 
 /**
- * WorkflowServiceUpsertRequest omits id/version/created_at — Upsert decides
- * those. document_id empty creates a new workflow (version 1); set, it
- * appends a new version. Nothing is ever overwritten in place.
- *
- * @generated from message metarr.v1.WorkflowServiceUpsertRequest
+ * @generated from message metarr.v1.ListWorkflowVersionsResponse
  */
-export type WorkflowServiceUpsertRequest = Message<"metarr.v1.WorkflowServiceUpsertRequest"> & {
+export type ListWorkflowVersionsResponse = Message<"metarr.v1.ListWorkflowVersionsResponse"> & {
   /**
-   * @generated from field: string document_id = 1;
+   * @generated from field: repeated metarr.v1.Workflow workflows = 1;
    */
-  documentId: string;
+  workflows: Workflow[];
 
   /**
-   * @generated from field: string name = 2;
+   * @generated from field: string next_page_token = 2;
    */
-  name: string;
-
-  /**
-   * @generated from field: string description = 3;
-   */
-  description: string;
-
-  /**
-   * @generated from field: repeated string tags = 4;
-   */
-  tags: string[];
-
-  /**
-   * @generated from field: metarr.v1.WorkflowGraph graph = 5;
-   */
-  graph?: WorkflowGraph | undefined;
+  nextPageToken: string;
 };
 
 /**
- * Describes the message metarr.v1.WorkflowServiceUpsertRequest.
- * Use `create(WorkflowServiceUpsertRequestSchema)` to create a new message.
+ * Describes the message metarr.v1.ListWorkflowVersionsResponse.
+ * Use `create(ListWorkflowVersionsResponseSchema)` to create a new message.
  */
-export const WorkflowServiceUpsertRequestSchema: GenMessage<WorkflowServiceUpsertRequest> = /*@__PURE__*/
+export const ListWorkflowVersionsResponseSchema: GenMessage<ListWorkflowVersionsResponse> = /*@__PURE__*/
   messageDesc(file_metarr_v1_workflows, 9);
 
 /**
- * @generated from message metarr.v1.WorkflowServiceUpsertResponse
- */
-export type WorkflowServiceUpsertResponse = Message<"metarr.v1.WorkflowServiceUpsertResponse"> & {
-  /**
-   * @generated from field: metarr.v1.Workflow workflow = 1;
-   */
-  workflow?: Workflow | undefined;
-};
-
-/**
- * Describes the message metarr.v1.WorkflowServiceUpsertResponse.
- * Use `create(WorkflowServiceUpsertResponseSchema)` to create a new message.
- */
-export const WorkflowServiceUpsertResponseSchema: GenMessage<WorkflowServiceUpsertResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_workflows, 10);
-
-/**
- * WorkflowService is a direct, synchronous Mongo read/write (see
- * UpsertWorkflow's doc comment on the Go side): Upsert appends a new
- * immutable version and returns the persisted Workflow.
+ * WorkflowService is a direct, synchronous Mongo read/write over the
+ * append-only versioned store. It follows the AIP standard methods every
+ * config service uses (docs/adr/0010) — Create / Get / List / Update / Delete
+ * — with GetWorkflowVersion / ListWorkflowVersions as custom methods (AIP-136)
+ * for history. Create and Update return the stored Workflow; Delete returns
+ * empty. Storage is unchanged by the reshape: ADR-0011 (config is one
+ * document) does not apply here.
  *
  * @generated from service metarr.v1.WorkflowService
  */
 export const WorkflowService: GenService<{
   /**
-   * @generated from rpc metarr.v1.WorkflowService.List
+   * @generated from rpc metarr.v1.WorkflowService.CreateWorkflow
    */
-  list: {
+  createWorkflow: {
     methodKind: "unary";
-    input: typeof WorkflowServiceListRequestSchema;
-    output: typeof WorkflowServiceListResponseSchema;
+    input: typeof CreateWorkflowRequestSchema;
+    output: typeof WorkflowSchema;
   },
   /**
-   * @generated from rpc metarr.v1.WorkflowService.Get
+   * @generated from rpc metarr.v1.WorkflowService.GetWorkflow
    */
-  get: {
+  getWorkflow: {
     methodKind: "unary";
-    input: typeof WorkflowServiceGetRequestSchema;
-    output: typeof WorkflowServiceGetResponseSchema;
+    input: typeof GetWorkflowRequestSchema;
+    output: typeof WorkflowSchema;
   },
   /**
-   * @generated from rpc metarr.v1.WorkflowService.ListVersions
+   * @generated from rpc metarr.v1.WorkflowService.ListWorkflows
    */
-  listVersions: {
+  listWorkflows: {
     methodKind: "unary";
-    input: typeof WorkflowServiceListVersionsRequestSchema;
-    output: typeof WorkflowServiceListVersionsResponseSchema;
+    input: typeof ListWorkflowsRequestSchema;
+    output: typeof ListWorkflowsResponseSchema;
   },
   /**
-   * @generated from rpc metarr.v1.WorkflowService.GetVersion
+   * @generated from rpc metarr.v1.WorkflowService.UpdateWorkflow
    */
-  getVersion: {
+  updateWorkflow: {
     methodKind: "unary";
-    input: typeof WorkflowServiceGetVersionRequestSchema;
-    output: typeof WorkflowServiceGetVersionResponseSchema;
+    input: typeof UpdateWorkflowRequestSchema;
+    output: typeof WorkflowSchema;
   },
   /**
-   * @generated from rpc metarr.v1.WorkflowService.Upsert
+   * @generated from rpc metarr.v1.WorkflowService.DeleteWorkflow
    */
-  upsert: {
+  deleteWorkflow: {
     methodKind: "unary";
-    input: typeof WorkflowServiceUpsertRequestSchema;
-    output: typeof WorkflowServiceUpsertResponseSchema;
+    input: typeof DeleteWorkflowRequestSchema;
+    output: typeof EmptySchema;
+  },
+  /**
+   * @generated from rpc metarr.v1.WorkflowService.GetWorkflowVersion
+   */
+  getWorkflowVersion: {
+    methodKind: "unary";
+    input: typeof GetWorkflowVersionRequestSchema;
+    output: typeof WorkflowSchema;
+  },
+  /**
+   * @generated from rpc metarr.v1.WorkflowService.ListWorkflowVersions
+   */
+  listWorkflowVersions: {
+    methodKind: "unary";
+    input: typeof ListWorkflowVersionsRequestSchema;
+    output: typeof ListWorkflowVersionsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_metarr_v1_workflows, 0);

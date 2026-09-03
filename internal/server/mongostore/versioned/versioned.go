@@ -220,6 +220,21 @@ func (s *Store[T]) GetVersion(ctx context.Context, documentID bson.ObjectID, ver
 	return doc, nil
 }
 
+// DeleteAllVersions hard-removes every version of documentID. It is a real
+// delete, not a tombstone, and the one call in this otherwise append-only
+// package that destroys history (see docs/adr/0013). An id with no versions
+// is ErrNotFound so a caller can map it to a 404.
+func (s *Store[T]) DeleteAllVersions(ctx context.Context, documentID bson.ObjectID) error {
+	res, err := s.collection.DeleteMany(ctx, bson.M{"document_id": documentID})
+	if err != nil {
+		return fmt.Errorf("versioned: deleting all versions of %s: %w", documentID.Hex(), err)
+	}
+	if res.DeletedCount == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // ListVersions returns every version of documentID, newest first.
 func (s *Store[T]) ListVersions(ctx context.Context, documentID bson.ObjectID) ([]T, error) {
 	findOptions := options.Find().SetSort(bson.D{{Key: "version", Value: -1}})

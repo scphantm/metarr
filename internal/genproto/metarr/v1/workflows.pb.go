@@ -9,6 +9,8 @@ package metarrv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -22,20 +24,26 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Workflow is one version of a versioned workflow document: the scalar
-// metadata plus the authored graph. internal/server/mongostore.Workflow is
-// the stored form; internal/shared/workflow aliases WorkflowGraph and its
-// parts. See docs/adr/0005.
+// Workflow is one version of a versioned workflow document, always returned as
+// the latest version by the standard reads: the scalar metadata plus the
+// authored graph. internal/server/mongostore.Workflow is the stored form;
+// internal/shared/workflow aliases WorkflowGraph and its parts. See
+// docs/adr/0005 and docs/adr/0010.
+//
+// id is the logical document id — the value every version shares, minted once
+// when version 1 is created. It kept field number 2 across the rename from
+// document_id (wire-compatible; the BSON field in the collection is
+// independent of the message field name). Field 1 held the per-version raw
+// object id and is retired — a version is addressed by id plus version.
 //
 // The graph's open content — a node's settings, and its extra field — is
 // carried as structured values so a node whose type this build does not
 // recognise, and settings it does not recognise, round-trip through storage
-// unchanged. schema_version lives on WorkflowGraph, which is the canonical
-// graph shape the catalog also advertises.
+// unchanged. schema_version lives on WorkflowGraph, the canonical graph shape
+// the catalog also advertises, not on this message.
 type Workflow struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	DocumentId    string                 `protobuf:"bytes,2,opt,name=document_id,json=documentId,proto3" json:"document_id,omitempty"`
+	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	Version       int32                  `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	Name          string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
@@ -83,13 +91,6 @@ func (x *Workflow) GetId() string {
 	return ""
 }
 
-func (x *Workflow) GetDocumentId() string {
-	if x != nil {
-		return x.DocumentId
-	}
-	return ""
-}
-
 func (x *Workflow) GetVersion() int32 {
 	if x != nil {
 		return x.Version
@@ -132,184 +133,32 @@ func (x *Workflow) GetGraph() *WorkflowGraph {
 	return nil
 }
 
-type WorkflowServiceListRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
-	Cursor        string                 `protobuf:"bytes,2,opt,name=cursor,proto3" json:"cursor,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *WorkflowServiceListRequest) Reset() {
-	*x = WorkflowServiceListRequest{}
-	mi := &file_metarr_v1_workflows_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *WorkflowServiceListRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*WorkflowServiceListRequest) ProtoMessage() {}
-
-func (x *WorkflowServiceListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_workflows_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use WorkflowServiceListRequest.ProtoReflect.Descriptor instead.
-func (*WorkflowServiceListRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *WorkflowServiceListRequest) GetLimit() int32 {
-	if x != nil {
-		return x.Limit
-	}
-	return 0
-}
-
-func (x *WorkflowServiceListRequest) GetCursor() string {
-	if x != nil {
-		return x.Cursor
-	}
-	return ""
-}
-
-type WorkflowServiceListResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Workflows     []*Workflow            `protobuf:"bytes,1,rep,name=workflows,proto3" json:"workflows,omitempty"`
-	NextCursor    string                 `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
-	HasMore       bool                   `protobuf:"varint,3,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *WorkflowServiceListResponse) Reset() {
-	*x = WorkflowServiceListResponse{}
-	mi := &file_metarr_v1_workflows_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *WorkflowServiceListResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*WorkflowServiceListResponse) ProtoMessage() {}
-
-func (x *WorkflowServiceListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_workflows_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use WorkflowServiceListResponse.ProtoReflect.Descriptor instead.
-func (*WorkflowServiceListResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *WorkflowServiceListResponse) GetWorkflows() []*Workflow {
-	if x != nil {
-		return x.Workflows
-	}
-	return nil
-}
-
-func (x *WorkflowServiceListResponse) GetNextCursor() string {
-	if x != nil {
-		return x.NextCursor
-	}
-	return ""
-}
-
-func (x *WorkflowServiceListResponse) GetHasMore() bool {
-	if x != nil {
-		return x.HasMore
-	}
-	return false
-}
-
-type WorkflowServiceGetRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *WorkflowServiceGetRequest) Reset() {
-	*x = WorkflowServiceGetRequest{}
-	mi := &file_metarr_v1_workflows_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *WorkflowServiceGetRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*WorkflowServiceGetRequest) ProtoMessage() {}
-
-func (x *WorkflowServiceGetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_workflows_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use WorkflowServiceGetRequest.ProtoReflect.Descriptor instead.
-func (*WorkflowServiceGetRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *WorkflowServiceGetRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-type WorkflowServiceGetResponse struct {
+// CreateWorkflowRequest carries the resource only — no id, the store mints it
+// and returns the persisted workflow at version 1. name, description and at
+// least one tag are required (InvalidArgument otherwise); the graph is stored
+// as-is and its validity stays the client's job via the catalog validate RPC.
+type CreateWorkflowRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Workflow      *Workflow              `protobuf:"bytes,1,opt,name=workflow,proto3" json:"workflow,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *WorkflowServiceGetResponse) Reset() {
-	*x = WorkflowServiceGetResponse{}
-	mi := &file_metarr_v1_workflows_proto_msgTypes[4]
+func (x *CreateWorkflowRequest) Reset() {
+	*x = CreateWorkflowRequest{}
+	mi := &file_metarr_v1_workflows_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *WorkflowServiceGetResponse) String() string {
+func (x *CreateWorkflowRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*WorkflowServiceGetResponse) ProtoMessage() {}
+func (*CreateWorkflowRequest) ProtoMessage() {}
 
-func (x *WorkflowServiceGetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_workflows_proto_msgTypes[4]
+func (x *CreateWorkflowRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_workflows_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -320,40 +169,40 @@ func (x *WorkflowServiceGetResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use WorkflowServiceGetResponse.ProtoReflect.Descriptor instead.
-func (*WorkflowServiceGetResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{4}
+// Deprecated: Use CreateWorkflowRequest.ProtoReflect.Descriptor instead.
+func (*CreateWorkflowRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *WorkflowServiceGetResponse) GetWorkflow() *Workflow {
+func (x *CreateWorkflowRequest) GetWorkflow() *Workflow {
 	if x != nil {
 		return x.Workflow
 	}
 	return nil
 }
 
-type WorkflowServiceListVersionsRequest struct {
+type GetWorkflowRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *WorkflowServiceListVersionsRequest) Reset() {
-	*x = WorkflowServiceListVersionsRequest{}
-	mi := &file_metarr_v1_workflows_proto_msgTypes[5]
+func (x *GetWorkflowRequest) Reset() {
+	*x = GetWorkflowRequest{}
+	mi := &file_metarr_v1_workflows_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *WorkflowServiceListVersionsRequest) String() string {
+func (x *GetWorkflowRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*WorkflowServiceListVersionsRequest) ProtoMessage() {}
+func (*GetWorkflowRequest) ProtoMessage() {}
 
-func (x *WorkflowServiceListVersionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_workflows_proto_msgTypes[5]
+func (x *GetWorkflowRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_workflows_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -364,39 +213,226 @@ func (x *WorkflowServiceListVersionsRequest) ProtoReflect() protoreflect.Message
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use WorkflowServiceListVersionsRequest.ProtoReflect.Descriptor instead.
-func (*WorkflowServiceListVersionsRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{5}
+// Deprecated: Use GetWorkflowRequest.ProtoReflect.Descriptor instead.
+func (*GetWorkflowRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *WorkflowServiceListVersionsRequest) GetId() string {
+func (x *GetWorkflowRequest) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-type WorkflowServiceListVersionsResponse struct {
+// ListWorkflowsRequest is the AIP-158 page window over the latest version of
+// every workflow, newest first. page_size defaults to 50 and is capped at
+// 100; page_token is the opaque cursor a previous response returned. A
+// non-empty filter or order_by is Unimplemented — the list is storage-ordered
+// and AIP-160 translation is deferred, matching the config lists.
+type ListWorkflowsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Versions      []*Workflow            `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
+	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	Filter        string                 `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
+	OrderBy       string                 `protobuf:"bytes,4,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *WorkflowServiceListVersionsResponse) Reset() {
-	*x = WorkflowServiceListVersionsResponse{}
+func (x *ListWorkflowsRequest) Reset() {
+	*x = ListWorkflowsRequest{}
+	mi := &file_metarr_v1_workflows_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWorkflowsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWorkflowsRequest) ProtoMessage() {}
+
+func (x *ListWorkflowsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_workflows_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWorkflowsRequest.ProtoReflect.Descriptor instead.
+func (*ListWorkflowsRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ListWorkflowsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListWorkflowsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListWorkflowsRequest) GetFilter() string {
+	if x != nil {
+		return x.Filter
+	}
+	return ""
+}
+
+func (x *ListWorkflowsRequest) GetOrderBy() string {
+	if x != nil {
+		return x.OrderBy
+	}
+	return ""
+}
+
+type ListWorkflowsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Workflows     []*Workflow            `protobuf:"bytes,1,rep,name=workflows,proto3" json:"workflows,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWorkflowsResponse) Reset() {
+	*x = ListWorkflowsResponse{}
+	mi := &file_metarr_v1_workflows_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWorkflowsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWorkflowsResponse) ProtoMessage() {}
+
+func (x *ListWorkflowsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_workflows_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWorkflowsResponse.ProtoReflect.Descriptor instead.
+func (*ListWorkflowsResponse) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ListWorkflowsResponse) GetWorkflows() []*Workflow {
+	if x != nil {
+		return x.Workflows
+	}
+	return nil
+}
+
+func (x *ListWorkflowsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+// UpdateWorkflowRequest is an AIP-134 partial update: workflow.id addresses
+// the document, update_mask is authoritative for which fields change. Allowed
+// paths are name, description, tags and graph; graph is masked wholesale (a
+// path may name graph but not a sub-path). An empty mask or an unknown path
+// is InvalidArgument. The update reads the latest version, applies the mask,
+// and appends the result as a new immutable version. There is no
+// allow_missing — a knob that must always be false is a footgun (docs/adr/0010).
+type UpdateWorkflowRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Workflow      *Workflow              `protobuf:"bytes,1,opt,name=workflow,proto3" json:"workflow,omitempty"`
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateWorkflowRequest) Reset() {
+	*x = UpdateWorkflowRequest{}
+	mi := &file_metarr_v1_workflows_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateWorkflowRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateWorkflowRequest) ProtoMessage() {}
+
+func (x *UpdateWorkflowRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_workflows_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateWorkflowRequest.ProtoReflect.Descriptor instead.
+func (*UpdateWorkflowRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *UpdateWorkflowRequest) GetWorkflow() *Workflow {
+	if x != nil {
+		return x.Workflow
+	}
+	return nil
+}
+
+func (x *UpdateWorkflowRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
+// DeleteWorkflowRequest hard-removes every version of the workflow — not a
+// soft delete, not a tombstone version. The one surprising call in an
+// otherwise append-only store; see docs/adr/0013.
+type DeleteWorkflowRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteWorkflowRequest) Reset() {
+	*x = DeleteWorkflowRequest{}
 	mi := &file_metarr_v1_workflows_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *WorkflowServiceListVersionsResponse) String() string {
+func (x *DeleteWorkflowRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*WorkflowServiceListVersionsResponse) ProtoMessage() {}
+func (*DeleteWorkflowRequest) ProtoMessage() {}
 
-func (x *WorkflowServiceListVersionsResponse) ProtoReflect() protoreflect.Message {
+func (x *DeleteWorkflowRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_workflows_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -408,19 +444,19 @@ func (x *WorkflowServiceListVersionsResponse) ProtoReflect() protoreflect.Messag
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use WorkflowServiceListVersionsResponse.ProtoReflect.Descriptor instead.
-func (*WorkflowServiceListVersionsResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteWorkflowRequest.ProtoReflect.Descriptor instead.
+func (*DeleteWorkflowRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *WorkflowServiceListVersionsResponse) GetVersions() []*Workflow {
+func (x *DeleteWorkflowRequest) GetId() string {
 	if x != nil {
-		return x.Versions
+		return x.Id
 	}
-	return nil
+	return ""
 }
 
-type WorkflowServiceGetVersionRequest struct {
+type GetWorkflowVersionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Version       int32                  `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
@@ -428,20 +464,20 @@ type WorkflowServiceGetVersionRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *WorkflowServiceGetVersionRequest) Reset() {
-	*x = WorkflowServiceGetVersionRequest{}
+func (x *GetWorkflowVersionRequest) Reset() {
+	*x = GetWorkflowVersionRequest{}
 	mi := &file_metarr_v1_workflows_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *WorkflowServiceGetVersionRequest) String() string {
+func (x *GetWorkflowVersionRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*WorkflowServiceGetVersionRequest) ProtoMessage() {}
+func (*GetWorkflowVersionRequest) ProtoMessage() {}
 
-func (x *WorkflowServiceGetVersionRequest) ProtoReflect() protoreflect.Message {
+func (x *GetWorkflowVersionRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_workflows_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -453,46 +489,48 @@ func (x *WorkflowServiceGetVersionRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use WorkflowServiceGetVersionRequest.ProtoReflect.Descriptor instead.
-func (*WorkflowServiceGetVersionRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetWorkflowVersionRequest.ProtoReflect.Descriptor instead.
+func (*GetWorkflowVersionRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *WorkflowServiceGetVersionRequest) GetId() string {
+func (x *GetWorkflowVersionRequest) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *WorkflowServiceGetVersionRequest) GetVersion() int32 {
+func (x *GetWorkflowVersionRequest) GetVersion() int32 {
 	if x != nil {
 		return x.Version
 	}
 	return 0
 }
 
-type WorkflowServiceGetVersionResponse struct {
+type ListWorkflowVersionsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Workflow      *Workflow              `protobuf:"bytes,1,opt,name=workflow,proto3" json:"workflow,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *WorkflowServiceGetVersionResponse) Reset() {
-	*x = WorkflowServiceGetVersionResponse{}
+func (x *ListWorkflowVersionsRequest) Reset() {
+	*x = ListWorkflowVersionsRequest{}
 	mi := &file_metarr_v1_workflows_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *WorkflowServiceGetVersionResponse) String() string {
+func (x *ListWorkflowVersionsRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*WorkflowServiceGetVersionResponse) ProtoMessage() {}
+func (*ListWorkflowVersionsRequest) ProtoMessage() {}
 
-func (x *WorkflowServiceGetVersionResponse) ProtoReflect() protoreflect.Message {
+func (x *ListWorkflowVersionsRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_workflows_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -504,46 +542,54 @@ func (x *WorkflowServiceGetVersionResponse) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use WorkflowServiceGetVersionResponse.ProtoReflect.Descriptor instead.
-func (*WorkflowServiceGetVersionResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListWorkflowVersionsRequest.ProtoReflect.Descriptor instead.
+func (*ListWorkflowVersionsRequest) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *WorkflowServiceGetVersionResponse) GetWorkflow() *Workflow {
+func (x *ListWorkflowVersionsRequest) GetId() string {
 	if x != nil {
-		return x.Workflow
+		return x.Id
 	}
-	return nil
+	return ""
 }
 
-// WorkflowServiceUpsertRequest omits id/version/created_at — Upsert decides
-// those. document_id empty creates a new workflow (version 1); set, it
-// appends a new version. Nothing is ever overwritten in place.
-type WorkflowServiceUpsertRequest struct {
+func (x *ListWorkflowVersionsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListWorkflowVersionsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListWorkflowVersionsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	DocumentId    string                 `protobuf:"bytes,1,opt,name=document_id,json=documentId,proto3" json:"document_id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Tags          []string               `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
-	Graph         *WorkflowGraph         `protobuf:"bytes,5,opt,name=graph,proto3" json:"graph,omitempty"`
+	Workflows     []*Workflow            `protobuf:"bytes,1,rep,name=workflows,proto3" json:"workflows,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *WorkflowServiceUpsertRequest) Reset() {
-	*x = WorkflowServiceUpsertRequest{}
+func (x *ListWorkflowVersionsResponse) Reset() {
+	*x = ListWorkflowVersionsResponse{}
 	mi := &file_metarr_v1_workflows_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *WorkflowServiceUpsertRequest) String() string {
+func (x *ListWorkflowVersionsResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*WorkflowServiceUpsertRequest) ProtoMessage() {}
+func (*ListWorkflowVersionsResponse) ProtoMessage() {}
 
-func (x *WorkflowServiceUpsertRequest) ProtoReflect() protoreflect.Message {
+func (x *ListWorkflowVersionsResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_metarr_v1_workflows_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -555,143 +601,77 @@ func (x *WorkflowServiceUpsertRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use WorkflowServiceUpsertRequest.ProtoReflect.Descriptor instead.
-func (*WorkflowServiceUpsertRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListWorkflowVersionsResponse.ProtoReflect.Descriptor instead.
+func (*ListWorkflowVersionsResponse) Descriptor() ([]byte, []int) {
 	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *WorkflowServiceUpsertRequest) GetDocumentId() string {
+func (x *ListWorkflowVersionsResponse) GetWorkflows() []*Workflow {
 	if x != nil {
-		return x.DocumentId
-	}
-	return ""
-}
-
-func (x *WorkflowServiceUpsertRequest) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *WorkflowServiceUpsertRequest) GetDescription() string {
-	if x != nil {
-		return x.Description
-	}
-	return ""
-}
-
-func (x *WorkflowServiceUpsertRequest) GetTags() []string {
-	if x != nil {
-		return x.Tags
+		return x.Workflows
 	}
 	return nil
 }
 
-func (x *WorkflowServiceUpsertRequest) GetGraph() *WorkflowGraph {
+func (x *ListWorkflowVersionsResponse) GetNextPageToken() string {
 	if x != nil {
-		return x.Graph
+		return x.NextPageToken
 	}
-	return nil
-}
-
-type WorkflowServiceUpsertResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Workflow      *Workflow              `protobuf:"bytes,1,opt,name=workflow,proto3" json:"workflow,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *WorkflowServiceUpsertResponse) Reset() {
-	*x = WorkflowServiceUpsertResponse{}
-	mi := &file_metarr_v1_workflows_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *WorkflowServiceUpsertResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*WorkflowServiceUpsertResponse) ProtoMessage() {}
-
-func (x *WorkflowServiceUpsertResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_workflows_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use WorkflowServiceUpsertResponse.ProtoReflect.Descriptor instead.
-func (*WorkflowServiceUpsertResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_workflows_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *WorkflowServiceUpsertResponse) GetWorkflow() *Workflow {
-	if x != nil {
-		return x.Workflow
-	}
-	return nil
+	return ""
 }
 
 var File_metarr_v1_workflows_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_workflows_proto_rawDesc = "" +
 	"\n" +
-	"\x19metarr/v1/workflows.proto\x12\tmetarr.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1emetarr/v1/workflow_graph.proto\"\x8a\x02\n" +
+	"\x19metarr/v1/workflows.proto\x12\tmetarr.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1emetarr/v1/workflow_graph.proto\"\xef\x01\n" +
 	"\bWorkflow\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
-	"\vdocument_id\x18\x02 \x01(\tR\n" +
-	"documentId\x12\x18\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\x05R\aversion\x129\n" +
 	"\n" +
 	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x12\n" +
 	"\x04name\x18\x05 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x06 \x01(\tR\vdescription\x12\x12\n" +
 	"\x04tags\x18\a \x03(\tR\x04tags\x12.\n" +
-	"\x05graph\x18\b \x01(\v2\x18.metarr.v1.WorkflowGraphR\x05graph\"J\n" +
-	"\x1aWorkflowServiceListRequest\x12\x14\n" +
-	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
-	"\x06cursor\x18\x02 \x01(\tR\x06cursor\"\x8c\x01\n" +
-	"\x1bWorkflowServiceListResponse\x121\n" +
-	"\tworkflows\x18\x01 \x03(\v2\x13.metarr.v1.WorkflowR\tworkflows\x12\x1f\n" +
-	"\vnext_cursor\x18\x02 \x01(\tR\n" +
-	"nextCursor\x12\x19\n" +
-	"\bhas_more\x18\x03 \x01(\bR\ahasMore\"+\n" +
-	"\x19WorkflowServiceGetRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"M\n" +
-	"\x1aWorkflowServiceGetResponse\x12/\n" +
-	"\bworkflow\x18\x01 \x01(\v2\x13.metarr.v1.WorkflowR\bworkflow\"4\n" +
-	"\"WorkflowServiceListVersionsRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"V\n" +
-	"#WorkflowServiceListVersionsResponse\x12/\n" +
-	"\bversions\x18\x01 \x03(\v2\x13.metarr.v1.WorkflowR\bversions\"L\n" +
-	" WorkflowServiceGetVersionRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\x05R\aversion\"T\n" +
-	"!WorkflowServiceGetVersionResponse\x12/\n" +
-	"\bworkflow\x18\x01 \x01(\v2\x13.metarr.v1.WorkflowR\bworkflow\"\xb9\x01\n" +
-	"\x1cWorkflowServiceUpsertRequest\x12\x1f\n" +
-	"\vdocument_id\x18\x01 \x01(\tR\n" +
-	"documentId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x12\n" +
-	"\x04tags\x18\x04 \x03(\tR\x04tags\x12.\n" +
-	"\x05graph\x18\x05 \x01(\v2\x18.metarr.v1.WorkflowGraphR\x05graph\"P\n" +
-	"\x1dWorkflowServiceUpsertResponse\x12/\n" +
-	"\bworkflow\x18\x01 \x01(\v2\x13.metarr.v1.WorkflowR\bworkflow2\xf1\x03\n" +
-	"\x0fWorkflowService\x12U\n" +
-	"\x04List\x12%.metarr.v1.WorkflowServiceListRequest\x1a&.metarr.v1.WorkflowServiceListResponse\x12R\n" +
-	"\x03Get\x12$.metarr.v1.WorkflowServiceGetRequest\x1a%.metarr.v1.WorkflowServiceGetResponse\x12m\n" +
-	"\fListVersions\x12-.metarr.v1.WorkflowServiceListVersionsRequest\x1a..metarr.v1.WorkflowServiceListVersionsResponse\x12g\n" +
+	"\x05graph\x18\b \x01(\v2\x18.metarr.v1.WorkflowGraphR\x05graphJ\x04\b\x01\x10\x02\"H\n" +
+	"\x15CreateWorkflowRequest\x12/\n" +
+	"\bworkflow\x18\x01 \x01(\v2\x13.metarr.v1.WorkflowR\bworkflow\"$\n" +
+	"\x12GetWorkflowRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x85\x01\n" +
+	"\x14ListWorkflowsRequest\x12\x1b\n" +
+	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"GetVersion\x12+.metarr.v1.WorkflowServiceGetVersionRequest\x1a,.metarr.v1.WorkflowServiceGetVersionResponse\x12[\n" +
-	"\x06Upsert\x12'.metarr.v1.WorkflowServiceUpsertRequest\x1a(.metarr.v1.WorkflowServiceUpsertResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
+	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x16\n" +
+	"\x06filter\x18\x03 \x01(\tR\x06filter\x12\x19\n" +
+	"\border_by\x18\x04 \x01(\tR\aorderBy\"r\n" +
+	"\x15ListWorkflowsResponse\x121\n" +
+	"\tworkflows\x18\x01 \x03(\v2\x13.metarr.v1.WorkflowR\tworkflows\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x85\x01\n" +
+	"\x15UpdateWorkflowRequest\x12/\n" +
+	"\bworkflow\x18\x01 \x01(\v2\x13.metarr.v1.WorkflowR\bworkflow\x12;\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
+	"updateMask\"'\n" +
+	"\x15DeleteWorkflowRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"E\n" +
+	"\x19GetWorkflowVersionRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\x05R\aversion\"i\n" +
+	"\x1bListWorkflowVersionsRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"y\n" +
+	"\x1cListWorkflowVersionsResponse\x121\n" +
+	"\tworkflows\x18\x01 \x03(\v2\x13.metarr.v1.WorkflowR\tworkflows\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken2\xc0\x04\n" +
+	"\x0fWorkflowService\x12G\n" +
+	"\x0eCreateWorkflow\x12 .metarr.v1.CreateWorkflowRequest\x1a\x13.metarr.v1.Workflow\x12A\n" +
+	"\vGetWorkflow\x12\x1d.metarr.v1.GetWorkflowRequest\x1a\x13.metarr.v1.Workflow\x12R\n" +
+	"\rListWorkflows\x12\x1f.metarr.v1.ListWorkflowsRequest\x1a .metarr.v1.ListWorkflowsResponse\x12G\n" +
+	"\x0eUpdateWorkflow\x12 .metarr.v1.UpdateWorkflowRequest\x1a\x13.metarr.v1.Workflow\x12J\n" +
+	"\x0eDeleteWorkflow\x12 .metarr.v1.DeleteWorkflowRequest\x1a\x16.google.protobuf.Empty\x12O\n" +
+	"\x12GetWorkflowVersion\x12$.metarr.v1.GetWorkflowVersionRequest\x1a\x13.metarr.v1.Workflow\x12g\n" +
+	"\x14ListWorkflowVersions\x12&.metarr.v1.ListWorkflowVersionsRequest\x1a'.metarr.v1.ListWorkflowVersionsResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
 
 var (
 	file_metarr_v1_workflows_proto_rawDescOnce sync.Once
@@ -705,46 +685,50 @@ func file_metarr_v1_workflows_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_workflows_proto_rawDescData
 }
 
-var file_metarr_v1_workflows_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_metarr_v1_workflows_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_metarr_v1_workflows_proto_goTypes = []any{
-	(*Workflow)(nil),                            // 0: metarr.v1.Workflow
-	(*WorkflowServiceListRequest)(nil),          // 1: metarr.v1.WorkflowServiceListRequest
-	(*WorkflowServiceListResponse)(nil),         // 2: metarr.v1.WorkflowServiceListResponse
-	(*WorkflowServiceGetRequest)(nil),           // 3: metarr.v1.WorkflowServiceGetRequest
-	(*WorkflowServiceGetResponse)(nil),          // 4: metarr.v1.WorkflowServiceGetResponse
-	(*WorkflowServiceListVersionsRequest)(nil),  // 5: metarr.v1.WorkflowServiceListVersionsRequest
-	(*WorkflowServiceListVersionsResponse)(nil), // 6: metarr.v1.WorkflowServiceListVersionsResponse
-	(*WorkflowServiceGetVersionRequest)(nil),    // 7: metarr.v1.WorkflowServiceGetVersionRequest
-	(*WorkflowServiceGetVersionResponse)(nil),   // 8: metarr.v1.WorkflowServiceGetVersionResponse
-	(*WorkflowServiceUpsertRequest)(nil),        // 9: metarr.v1.WorkflowServiceUpsertRequest
-	(*WorkflowServiceUpsertResponse)(nil),       // 10: metarr.v1.WorkflowServiceUpsertResponse
-	(*timestamppb.Timestamp)(nil),               // 11: google.protobuf.Timestamp
-	(*WorkflowGraph)(nil),                       // 12: metarr.v1.WorkflowGraph
+	(*Workflow)(nil),                     // 0: metarr.v1.Workflow
+	(*CreateWorkflowRequest)(nil),        // 1: metarr.v1.CreateWorkflowRequest
+	(*GetWorkflowRequest)(nil),           // 2: metarr.v1.GetWorkflowRequest
+	(*ListWorkflowsRequest)(nil),         // 3: metarr.v1.ListWorkflowsRequest
+	(*ListWorkflowsResponse)(nil),        // 4: metarr.v1.ListWorkflowsResponse
+	(*UpdateWorkflowRequest)(nil),        // 5: metarr.v1.UpdateWorkflowRequest
+	(*DeleteWorkflowRequest)(nil),        // 6: metarr.v1.DeleteWorkflowRequest
+	(*GetWorkflowVersionRequest)(nil),    // 7: metarr.v1.GetWorkflowVersionRequest
+	(*ListWorkflowVersionsRequest)(nil),  // 8: metarr.v1.ListWorkflowVersionsRequest
+	(*ListWorkflowVersionsResponse)(nil), // 9: metarr.v1.ListWorkflowVersionsResponse
+	(*timestamppb.Timestamp)(nil),        // 10: google.protobuf.Timestamp
+	(*WorkflowGraph)(nil),                // 11: metarr.v1.WorkflowGraph
+	(*fieldmaskpb.FieldMask)(nil),        // 12: google.protobuf.FieldMask
+	(*emptypb.Empty)(nil),                // 13: google.protobuf.Empty
 }
 var file_metarr_v1_workflows_proto_depIdxs = []int32{
-	11, // 0: metarr.v1.Workflow.created_at:type_name -> google.protobuf.Timestamp
-	12, // 1: metarr.v1.Workflow.graph:type_name -> metarr.v1.WorkflowGraph
-	0,  // 2: metarr.v1.WorkflowServiceListResponse.workflows:type_name -> metarr.v1.Workflow
-	0,  // 3: metarr.v1.WorkflowServiceGetResponse.workflow:type_name -> metarr.v1.Workflow
-	0,  // 4: metarr.v1.WorkflowServiceListVersionsResponse.versions:type_name -> metarr.v1.Workflow
-	0,  // 5: metarr.v1.WorkflowServiceGetVersionResponse.workflow:type_name -> metarr.v1.Workflow
-	12, // 6: metarr.v1.WorkflowServiceUpsertRequest.graph:type_name -> metarr.v1.WorkflowGraph
-	0,  // 7: metarr.v1.WorkflowServiceUpsertResponse.workflow:type_name -> metarr.v1.Workflow
-	1,  // 8: metarr.v1.WorkflowService.List:input_type -> metarr.v1.WorkflowServiceListRequest
-	3,  // 9: metarr.v1.WorkflowService.Get:input_type -> metarr.v1.WorkflowServiceGetRequest
-	5,  // 10: metarr.v1.WorkflowService.ListVersions:input_type -> metarr.v1.WorkflowServiceListVersionsRequest
-	7,  // 11: metarr.v1.WorkflowService.GetVersion:input_type -> metarr.v1.WorkflowServiceGetVersionRequest
-	9,  // 12: metarr.v1.WorkflowService.Upsert:input_type -> metarr.v1.WorkflowServiceUpsertRequest
-	2,  // 13: metarr.v1.WorkflowService.List:output_type -> metarr.v1.WorkflowServiceListResponse
-	4,  // 14: metarr.v1.WorkflowService.Get:output_type -> metarr.v1.WorkflowServiceGetResponse
-	6,  // 15: metarr.v1.WorkflowService.ListVersions:output_type -> metarr.v1.WorkflowServiceListVersionsResponse
-	8,  // 16: metarr.v1.WorkflowService.GetVersion:output_type -> metarr.v1.WorkflowServiceGetVersionResponse
-	10, // 17: metarr.v1.WorkflowService.Upsert:output_type -> metarr.v1.WorkflowServiceUpsertResponse
-	13, // [13:18] is the sub-list for method output_type
-	8,  // [8:13] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	10, // 0: metarr.v1.Workflow.created_at:type_name -> google.protobuf.Timestamp
+	11, // 1: metarr.v1.Workflow.graph:type_name -> metarr.v1.WorkflowGraph
+	0,  // 2: metarr.v1.CreateWorkflowRequest.workflow:type_name -> metarr.v1.Workflow
+	0,  // 3: metarr.v1.ListWorkflowsResponse.workflows:type_name -> metarr.v1.Workflow
+	0,  // 4: metarr.v1.UpdateWorkflowRequest.workflow:type_name -> metarr.v1.Workflow
+	12, // 5: metarr.v1.UpdateWorkflowRequest.update_mask:type_name -> google.protobuf.FieldMask
+	0,  // 6: metarr.v1.ListWorkflowVersionsResponse.workflows:type_name -> metarr.v1.Workflow
+	1,  // 7: metarr.v1.WorkflowService.CreateWorkflow:input_type -> metarr.v1.CreateWorkflowRequest
+	2,  // 8: metarr.v1.WorkflowService.GetWorkflow:input_type -> metarr.v1.GetWorkflowRequest
+	3,  // 9: metarr.v1.WorkflowService.ListWorkflows:input_type -> metarr.v1.ListWorkflowsRequest
+	5,  // 10: metarr.v1.WorkflowService.UpdateWorkflow:input_type -> metarr.v1.UpdateWorkflowRequest
+	6,  // 11: metarr.v1.WorkflowService.DeleteWorkflow:input_type -> metarr.v1.DeleteWorkflowRequest
+	7,  // 12: metarr.v1.WorkflowService.GetWorkflowVersion:input_type -> metarr.v1.GetWorkflowVersionRequest
+	8,  // 13: metarr.v1.WorkflowService.ListWorkflowVersions:input_type -> metarr.v1.ListWorkflowVersionsRequest
+	0,  // 14: metarr.v1.WorkflowService.CreateWorkflow:output_type -> metarr.v1.Workflow
+	0,  // 15: metarr.v1.WorkflowService.GetWorkflow:output_type -> metarr.v1.Workflow
+	4,  // 16: metarr.v1.WorkflowService.ListWorkflows:output_type -> metarr.v1.ListWorkflowsResponse
+	0,  // 17: metarr.v1.WorkflowService.UpdateWorkflow:output_type -> metarr.v1.Workflow
+	13, // 18: metarr.v1.WorkflowService.DeleteWorkflow:output_type -> google.protobuf.Empty
+	0,  // 19: metarr.v1.WorkflowService.GetWorkflowVersion:output_type -> metarr.v1.Workflow
+	9,  // 20: metarr.v1.WorkflowService.ListWorkflowVersions:output_type -> metarr.v1.ListWorkflowVersionsResponse
+	14, // [14:21] is the sub-list for method output_type
+	7,  // [7:14] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_workflows_proto_init() }
@@ -759,7 +743,7 @@ func file_metarr_v1_workflows_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_workflows_proto_rawDesc), len(file_metarr_v1_workflows_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

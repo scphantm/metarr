@@ -8,7 +8,7 @@ import type { Edge, Node, Viewport } from "@xyflow/react";
  * shared wrapper exists to extend.
  */
 
-const keyFor = (documentId: string) => `metarr.workflow-draft.${documentId}`;
+const keyFor = (id: string) => `metarr.workflow-draft.${id}`;
 
 export type StashedDraft = {
   name: string;
@@ -19,27 +19,27 @@ export type StashedDraft = {
   viewport: Viewport;
 };
 
-export function stashDraft(documentId: string, draft: StashedDraft): void {
+export function stashDraft(id: string, draft: StashedDraft): void {
   try {
-    localStorage.setItem(keyFor(documentId), JSON.stringify(draft));
+    localStorage.setItem(keyFor(id), JSON.stringify(draft));
   } catch {
     // Best effort — losing the stash just means "Back to editing" falls back
     // to the last-loaded version instead of the in-progress draft.
   }
 }
 
-export function readStashedDraft(documentId: string): StashedDraft | null {
+export function readStashedDraft(id: string): StashedDraft | null {
   try {
-    const raw = localStorage.getItem(keyFor(documentId));
+    const raw = localStorage.getItem(keyFor(id));
     return raw ? (JSON.parse(raw) as StashedDraft) : null;
   } catch {
     return null;
   }
 }
 
-export function clearStashedDraft(documentId: string): void {
+export function clearStashedDraft(id: string): void {
   try {
-    localStorage.removeItem(keyFor(documentId));
+    localStorage.removeItem(keyFor(id));
   } catch {
     // Best effort.
   }

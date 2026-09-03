@@ -231,3 +231,34 @@ func TestGetLatestNotFound(t *testing.T) {
 		t.Errorf("GetLatest() error = %v, want ErrNotFound", err)
 	}
 }
+
+func TestDeleteAllVersionsRemovesEveryVersion(t *testing.T) {
+	store := connectTestStore(t)
+	ctx := context.Background()
+
+	v1, err := store.SaveNewVersion(ctx, bson.NilObjectID, testDoc{Value: "v1"})
+	if err != nil {
+		t.Fatalf("SaveNewVersion(v1) error = %v", err)
+	}
+	if _, err := store.SaveNewVersion(ctx, v1.DocumentID, testDoc{Value: "v2"}); err != nil {
+		t.Fatalf("SaveNewVersion(v2) error = %v", err)
+	}
+
+	if err := store.DeleteAllVersions(ctx, v1.DocumentID); err != nil {
+		t.Fatalf("DeleteAllVersions() error = %v", err)
+	}
+
+	remaining, err := store.ListVersions(ctx, v1.DocumentID)
+	if err != nil {
+		t.Fatalf("ListVersions() error = %v", err)
+	}
+	if len(remaining) != 0 {
+		t.Errorf("DeleteAllVersions left %d versions behind", len(remaining))
+	}
+
+	// A second delete — nothing left to remove — is ErrNotFound so the
+	// service layer can answer NotFound.
+	if err := store.DeleteAllVersions(ctx, v1.DocumentID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("DeleteAllVersions() on an already-empty id = %v, want ErrNotFound", err)
+	}
+}

@@ -11,7 +11,8 @@ import { Input, Spin, Typography } from "antd";
 import type { Workflow } from "../../gen/metarr/v1/workflows_pb";
 import {
   queryKeys,
-  useSaveWorkflow,
+  useCreateWorkflow,
+  useUpdateWorkflow,
   useWorkflow,
   useWorkflowVersion,
   useWorkflowVersions,
@@ -153,9 +154,9 @@ export function WorkflowEditorPage() {
     // Seed the cache immediately rather than waiting on the mutation's
     // invalidation-triggered refetch, so `baseline` above reflects this save
     // on the very next render.
-    queryClient.setQueryData(queryKeys.workflow(saved.documentId), saved);
+    queryClient.setQueryData(queryKeys.workflow(saved.id), saved);
     if (!id) {
-      void navigate(`/workflows/${saved.documentId}/edit`, { replace: true });
+      void navigate(`/workflows/${saved.id}/edit`, { replace: true });
     }
   }
 
@@ -213,7 +214,7 @@ export function WorkflowEditorPage() {
           <EditorBody
             key={editorKey}
             ref={editorRef}
-            documentId={id}
+            id={id}
             initial={initialSnapshot}
             readOnly={readOnly}
             viewingVersion={viewingVersion}
@@ -244,7 +245,7 @@ export function WorkflowEditorPage() {
 const EditorBody = forwardRef<
   EditorHandle,
   {
-    documentId: string | undefined;
+    id: string | undefined;
     initial: StashedDraft;
     readOnly: boolean;
     viewingVersion: number | null;
@@ -252,7 +253,7 @@ const EditorBody = forwardRef<
     onSaved: (saved: Workflow) => void;
   }
 >(function EditorBody(
-  { documentId, initial, readOnly, viewingVersion, onBackToEditing, onSaved },
+  { id, initial, readOnly, viewingVersion, onBackToEditing, onSaved },
   ref,
 ) {
   const [name, setName] = useState(initial.name);
@@ -262,7 +263,8 @@ const EditorBody = forwardRef<
   const [error, setError] = useState<string | null>(null);
 
   const rfInstanceRef = useRef<ReactFlowInstance | null>(null);
-  const saveWorkflow = useSaveWorkflow();
+  const createWorkflow = useCreateWorkflow();
+  const updateWorkflow = useUpdateWorkflow();
 
   useImperativeHandle(ref, () => ({
     getSnapshot: () => ({
@@ -287,13 +289,17 @@ const EditorBody = forwardRef<
         instance.getEdges(),
         instance.getViewport(),
       );
-      const saved = await saveWorkflow.mutateAsync({
-        documentId: documentId ?? "",
+      const content = {
         name: name.trim(),
         description: description.trim(),
         tags,
         graph,
-      });
+      };
+      // An id in the route means this workflow has been saved before: update
+      // it (append a version). Otherwise create picks a fresh document.
+      const saved = id
+        ? await updateWorkflow.mutateAsync({ id, ...content })
+        : await createWorkflow.mutateAsync(content);
       onSaved(saved);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));

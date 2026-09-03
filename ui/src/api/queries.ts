@@ -51,7 +51,7 @@ import {
 } from "../gen/metarr/v1/directory_scanner_pb";
 import { LoggingConfigSchema } from "../gen/metarr/v1/logging_pb";
 import { EventBusConfigSchema } from "../gen/metarr/v1/event_bus_pb";
-import { WorkflowServiceUpsertRequestSchema } from "../gen/metarr/v1/workflows_pb";
+import { WorkflowSchema } from "../gen/metarr/v1/workflows_pb";
 
 export const queryKeys = {
   config: ["config"] as const,
@@ -841,18 +841,17 @@ export function useDeleteSonarrInstance() {
 }
 
 /*
- * Workflows. These are a direct Mongo read/write with no config document
- * overlap — see the Go handler's doc comment on UpsertWorkflow — so they
- * invalidate only the workflow keys.
+ * Workflows. WorkflowService is on the AIP standard methods (docs/adr/0010),
+ * but it is a direct Mongo read/write over the append-only versioned store
+ * with no config-document overlap, so these hooks invalidate only the
+ * workflow keys. Create picks a fresh document; Update sends a field mask and
+ * appends a version; Delete removes every version.
  */
 
 export function useWorkflow(id: string) {
   return useQuery({
     queryKey: queryKeys.workflow(id),
-    queryFn: async () => {
-      const { workflow } = await workflowClient.get({ id });
-      return workflow;
-    },
+    queryFn: () => workflowClient.getWorkflow({ id }),
     enabled: id !== "",
   });
 }
@@ -860,7 +859,8 @@ export function useWorkflow(id: string) {
 export function useWorkflowVersions(id: string) {
   return useQuery({
     queryKey: queryKeys.workflowVersions(id),
-    queryFn: async () => (await workflowClient.listVersions({ id })).versions,
+    queryFn: async () =>
+      (await workflowClient.listWorkflowVersions({ id })).workflows,
     enabled: id !== "",
   });
 }
@@ -868,35 +868,29 @@ export function useWorkflowVersions(id: string) {
 export function useWorkflowVersion(id: string, version: number | null) {
   return useQuery({
     queryKey: [...queryKeys.workflow(id), "v", version],
-    queryFn: async () => {
-      const { workflow } = await workflowClient.getVersion({
-        id,
-        version: version ?? 0,
-      });
-      return workflow;
-    },
+    queryFn: () =>
+      workflowClient.getWorkflowVersion({ id, version: version ?? 0 }),
     enabled: id !== "" && version != null,
   });
 }
 
-// Infinite-scroll list, paginated by the opaque cursor List returns.
+// Infinite-scroll list, paginated by the opaque page_token List returns. An
+// empty next_page_token ends the list.
 export function useWorkflowList() {
   return useInfiniteQuery({
     queryKey: queryKeys.workflows,
     queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
-      const response = await workflowClient.list({
-        limit: 20,
-        cursor: pageParam ?? "",
+      const response = await workflowClient.listWorkflows({
+        pageSize: 50,
+        pageToken: pageParam ?? "",
       });
       return {
         workflows: response.workflows,
-        nextCursor: response.nextCursor,
-        hasMore: response.hasMore,
+        nextPageToken: response.nextPageToken,
       };
     },
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) =>
-      lastPage.hasMore ? lastPage.nextCursor : undefined,
+    getNextPageParam: (lastPage) => lastPage.nextPageToken || undefined,
   });
 }
 
@@ -917,28 +911,55 @@ export function useWorkflowCatalog() {
   });
 }
 
-// The upsert body is the generated request's init shape — no hand-maintained
-// copy of its fields to keep in step (docs/adr/0005).
-export type SaveWorkflowInput = MessageInitShape<
-  typeof WorkflowServiceUpsertRequestSchema
->;
+// The workflow body is the generated message's init shape — no hand-maintained
+// copy of its fields to keep in step (docs/adr/0005). Create omits id (the
+// store mints it); Update carries it to address the document.
+export type WorkflowInput = MessageInitShape<typeof WorkflowSchema>;
 
-export function useSaveWorkflow() {
+// Every save from the editor rewrites the whole graph, so the update mask is
+// the full set of writable paths. graph is masked wholesale — the server
+// rejects a graph sub-path (docs/adr/0010).
+const workflowUpdateMask = {
+  paths: ["name", "description", "tags", "graph"],
+};
+
+export function useCreateWorkflow() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (body: SaveWorkflowInput) => {
-      const { workflow } = await workflowClient.upsert(body);
-      if (!workflow) throw new Error("save did not return a workflow");
-      return workflow;
+    mutationFn: (workflow: WorkflowInput) =>
+      workflowClient.createWorkflow({ workflow }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.workflows });
     },
+  });
+}
+
+export function useUpdateWorkflow() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (workflow: WorkflowInput) =>
+      workflowClient.updateWorkflow({
+        workflow,
+        updateMask: workflowUpdateMask,
+      }),
     onSuccess: (saved) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.workflows });
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.workflow(saved.documentId),
+        queryKey: queryKeys.workflow(saved.id),
       });
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.workflowVersions(saved.documentId),
+        queryKey: queryKeys.workflowVersions(saved.id),
       });
+    },
+  });
+}
+
+export function useDeleteWorkflow() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => workflowClient.deleteWorkflow({ id }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.workflows });
     },
   });
 }

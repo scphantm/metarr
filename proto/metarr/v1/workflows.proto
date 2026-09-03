@@ -2,24 +2,34 @@ syntax = "proto3";
 
 package metarr.v1;
 
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "metarr/v1/workflow_graph.proto";
 
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
-// Workflow is one version of a versioned workflow document: the scalar
-// metadata plus the authored graph. internal/server/mongostore.Workflow is
-// the stored form; internal/shared/workflow aliases WorkflowGraph and its
-// parts. See docs/adr/0005.
+// Workflow is one version of a versioned workflow document, always returned as
+// the latest version by the standard reads: the scalar metadata plus the
+// authored graph. internal/server/mongostore.Workflow is the stored form;
+// internal/shared/workflow aliases WorkflowGraph and its parts. See
+// docs/adr/0005 and docs/adr/0010.
+//
+// id is the logical document id — the value every version shares, minted once
+// when version 1 is created. It kept field number 2 across the rename from
+// document_id (wire-compatible; the BSON field in the collection is
+// independent of the message field name). Field 1 held the per-version raw
+// object id and is retired — a version is addressed by id plus version.
 //
 // The graph's open content — a node's settings, and its extra field — is
 // carried as structured values so a node whose type this build does not
 // recognise, and settings it does not recognise, round-trip through storage
-// unchanged. schema_version lives on WorkflowGraph, which is the canonical
-// graph shape the catalog also advertises.
+// unchanged. schema_version lives on WorkflowGraph, the canonical graph shape
+// the catalog also advertises, not on this message.
 message Workflow {
-  string id = 1;
-  string document_id = 2;
+  reserved 1;
+
+  string id = 2;
   int32 version = 3;
   google.protobuf.Timestamp created_at = 4;
   string name = 5;
@@ -28,64 +38,83 @@ message Workflow {
   WorkflowGraph graph = 8;
 }
 
-message WorkflowServiceListRequest {
-  int32 limit = 1;
-  string cursor = 2;
-}
-
-message WorkflowServiceListResponse {
-  repeated Workflow workflows = 1;
-  string next_cursor = 2;
-  bool has_more = 3;
-}
-
-message WorkflowServiceGetRequest {
-  string id = 1;
-}
-
-message WorkflowServiceGetResponse {
+// CreateWorkflowRequest carries the resource only — no id, the store mints it
+// and returns the persisted workflow at version 1. name, description and at
+// least one tag are required (InvalidArgument otherwise); the graph is stored
+// as-is and its validity stays the client's job via the catalog validate RPC.
+message CreateWorkflowRequest {
   Workflow workflow = 1;
 }
 
-message WorkflowServiceListVersionsRequest {
+message GetWorkflowRequest {
   string id = 1;
 }
 
-message WorkflowServiceListVersionsResponse {
-  repeated Workflow versions = 1;
+// ListWorkflowsRequest is the AIP-158 page window over the latest version of
+// every workflow, newest first. page_size defaults to 50 and is capped at
+// 100; page_token is the opaque cursor a previous response returned. A
+// non-empty filter or order_by is Unimplemented — the list is storage-ordered
+// and AIP-160 translation is deferred, matching the config lists.
+message ListWorkflowsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  string filter = 3;
+  string order_by = 4;
 }
 
-message WorkflowServiceGetVersionRequest {
+message ListWorkflowsResponse {
+  repeated Workflow workflows = 1;
+  string next_page_token = 2;
+}
+
+// UpdateWorkflowRequest is an AIP-134 partial update: workflow.id addresses
+// the document, update_mask is authoritative for which fields change. Allowed
+// paths are name, description, tags and graph; graph is masked wholesale (a
+// path may name graph but not a sub-path). An empty mask or an unknown path
+// is InvalidArgument. The update reads the latest version, applies the mask,
+// and appends the result as a new immutable version. There is no
+// allow_missing — a knob that must always be false is a footgun (docs/adr/0010).
+message UpdateWorkflowRequest {
+  Workflow workflow = 1;
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// DeleteWorkflowRequest hard-removes every version of the workflow — not a
+// soft delete, not a tombstone version. The one surprising call in an
+// otherwise append-only store; see docs/adr/0013.
+message DeleteWorkflowRequest {
+  string id = 1;
+}
+
+message GetWorkflowVersionRequest {
   string id = 1;
   int32 version = 2;
 }
 
-message WorkflowServiceGetVersionResponse {
-  Workflow workflow = 1;
+message ListWorkflowVersionsRequest {
+  string id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
 }
 
-// WorkflowServiceUpsertRequest omits id/version/created_at — Upsert decides
-// those. document_id empty creates a new workflow (version 1); set, it
-// appends a new version. Nothing is ever overwritten in place.
-message WorkflowServiceUpsertRequest {
-  string document_id = 1;
-  string name = 2;
-  string description = 3;
-  repeated string tags = 4;
-  WorkflowGraph graph = 5;
+message ListWorkflowVersionsResponse {
+  repeated Workflow workflows = 1;
+  string next_page_token = 2;
 }
 
-message WorkflowServiceUpsertResponse {
-  Workflow workflow = 1;
-}
-
-// WorkflowService is a direct, synchronous Mongo read/write (see
-// UpsertWorkflow's doc comment on the Go side): Upsert appends a new
-// immutable version and returns the persisted Workflow.
+// WorkflowService is a direct, synchronous Mongo read/write over the
+// append-only versioned store. It follows the AIP standard methods every
+// config service uses (docs/adr/0010) — Create / Get / List / Update / Delete
+// — with GetWorkflowVersion / ListWorkflowVersions as custom methods (AIP-136)
+// for history. Create and Update return the stored Workflow; Delete returns
+// empty. Storage is unchanged by the reshape: ADR-0011 (config is one
+// document) does not apply here.
 service WorkflowService {
-  rpc List(WorkflowServiceListRequest) returns (WorkflowServiceListResponse);
-  rpc Get(WorkflowServiceGetRequest) returns (WorkflowServiceGetResponse);
-  rpc ListVersions(WorkflowServiceListVersionsRequest) returns (WorkflowServiceListVersionsResponse);
-  rpc GetVersion(WorkflowServiceGetVersionRequest) returns (WorkflowServiceGetVersionResponse);
-  rpc Upsert(WorkflowServiceUpsertRequest) returns (WorkflowServiceUpsertResponse);
+  rpc CreateWorkflow(CreateWorkflowRequest) returns (Workflow);
+  rpc GetWorkflow(GetWorkflowRequest) returns (Workflow);
+  rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse);
+  rpc UpdateWorkflow(UpdateWorkflowRequest) returns (Workflow);
+  rpc DeleteWorkflow(DeleteWorkflowRequest) returns (google.protobuf.Empty);
+  rpc GetWorkflowVersion(GetWorkflowVersionRequest) returns (Workflow);
+  rpc ListWorkflowVersions(ListWorkflowVersionsRequest) returns (ListWorkflowVersionsResponse);
 }

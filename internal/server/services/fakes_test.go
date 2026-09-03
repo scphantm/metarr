@@ -126,6 +126,16 @@ func (f *fakeWorkflowStore) ListVersions(_ context.Context, documentID bson.Obje
 	return out, nil
 }
 
+// DeleteAllVersions drops every version of documentID. An id with nothing
+// stored under it is versioned.ErrNotFound, matching the real store.
+func (f *fakeWorkflowStore) DeleteAllVersions(_ context.Context, documentID bson.ObjectID) error {
+	if len(f.docs[documentID]) == 0 {
+		return versioned.ErrNotFound
+	}
+	delete(f.docs, documentID)
+	return nil
+}
+
 // ListLatest mirrors versioned.Store.ListLatest closely enough for the seam
 // tests: the latest row of each document, sorted by that row's _id
 // descending, paged with an _id < cursor predicate and a fetch-one-extra
@@ -149,7 +159,7 @@ func (f *fakeWorkflowStore) ListLatest(_ context.Context, filter versioned.Lates
 
 	limit := filter.Limit
 	if limit <= 0 {
-		limit = defaultWorkflowLimit
+		limit = defaultWorkflowPageSize
 	}
 	hasMore := int64(len(latest)) > limit
 	if hasMore {
