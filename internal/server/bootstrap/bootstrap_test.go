@@ -9,10 +9,9 @@ import (
 
 	"Metarr/internal/server/appconfigstore"
 	"Metarr/internal/shared/appconfig"
-	"Metarr/internal/shared/eventbus"
 )
 
-// fakeStore plays appconfigstore.Store's three dependencies. Unlike a real
+// fakeStore plays appconfigstore.Store's reader and writer. Unlike a real
 // Mongo-backed repo it never synthesizes appconfig.Default() on an empty
 // read — starting it at appconfig.Config{} simulates a database predating
 // every seeded field; starting it at *appconfig.Default() simulates a
@@ -40,13 +39,9 @@ func (f *fakeStore) Upsert(_ context.Context, cfg *appconfig.Config) error {
 	return nil
 }
 
-func (f *fakeStore) Publish(_ context.Context, _ eventbus.StreamTopic, _, _ string, _ []byte) error {
-	return nil
-}
-
 func newStoreOn(cfg *appconfig.Config) (*appconfigstore.Store, *fakeStore) {
 	backend := &fakeStore{cfg: cfg}
-	return appconfigstore.New(backend, backend, backend), backend
+	return appconfigstore.New(backend, backend), backend
 }
 
 func TestRun_SeedsEverythingOnADatabasePredatingAllFields(t *testing.T) {

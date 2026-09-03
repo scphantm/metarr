@@ -166,8 +166,8 @@ message ResetSidecarTypesResponse {
 // methods (docs/adr/0010): a scalar section, a slug-addressed scan-directory
 // collection, and a minted-id sidecar-type collection. Reads come from live
 // config; every write goes through AppConfigStore.MutateSync — persist under
-// the store lock, propagate in-process, return the stored resource, no
-// system_config_update event (docs/adr/0002).
+// the store lock, propagate in-process, return the stored resource
+// (docs/adr/0002).
 service DirectoryScannerService {
   rpc GetDirectoryScannerConfig(GetDirectoryScannerConfigRequest) returns (GetDirectoryScannerConfigResponse);
   // UpdateDirectoryScannerConfig returns the stored section after the

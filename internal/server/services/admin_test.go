@@ -17,7 +17,7 @@ import (
 
 func newTestAdminServer(seed *appconfig.Config) (*AdminServer, *fakeConfigBackend) {
 	backend := &fakeConfigBackend{cfg: seed}
-	store := appconfigstore.New(backend, backend, backend)
+	store := appconfigstore.New(backend, backend)
 	return &AdminServer{Handlers: &handlers.Handlers{
 		AppConfigStore: store,
 		Logger:         slog.Default(),

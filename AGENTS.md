@@ -69,7 +69,7 @@ Only metarr-server may connect to Mongo. Server↔agent data goes only through t
 - Layout: `internal/agent/` (filesystem), `internal/server/` (mongo, http, listeners), `internal/shared/` (event
   contracts, config, models). Nothing under `internal/agent/` may import `internal/server/`.
 - Agent local config = Redis connection + slug only. Everything else arrives via the redacted
-  `agentregistry.BuildProjection` — never via `system_config_update` (carries admin hash + every API key).
+  `agentregistry.BuildProjection` — never the full config document (it carries the admin hash and every API key).
 
 # Logging
 

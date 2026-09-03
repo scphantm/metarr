@@ -11,7 +11,7 @@ import (
 // as JSON in its payload, with proto field names, so an integrator needs only
 // a Redis client and a JSON parser. Pin that shape.
 func TestMarshalEventProducesTheDocumentedJSONShape(t *testing.T) {
-	event := newEnvelope(SourceServer, "system_config_update", "corr-1", []byte(`{"logging":{"server_level":"debug"}}`))
+	event := newEnvelope(SourceServer, "agent.scan_result", "corr-1", []byte(`{"logging":{"server_level":"debug"}}`))
 
 	data, err := MarshalEvent(event)
 	if err != nil {
@@ -32,8 +32,8 @@ func TestMarshalEventProducesTheDocumentedJSONShape(t *testing.T) {
 	}
 }
 
-// The old system_config_update bug: published with protojson, read back with
-// encoding/json. One encoding on both sides removes that by construction —
+// A protojson-out / encoding/json-back mismatch mishandles well-known types
+// like timestamps. One encoding on both sides removes that by construction —
 // MarshalEvent's output must feed straight back into UnmarshalEvent.
 func TestEventRoundTripsThroughTheBusEncoding(t *testing.T) {
 	original := newEnvelope(AgentSource("nas-01"), "agent.scan_result", "corr-42", []byte(`{"scan_id":"corr-42"}`))

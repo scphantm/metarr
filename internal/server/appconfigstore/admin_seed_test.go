@@ -128,7 +128,7 @@ func TestRecoverLockedOutAdmin_IsIdempotentOnceRecovered(t *testing.T) {
 // seeding didn't just create.
 func TestSeedAdmin_RecoveryCannotRunBeforeSeeding(t *testing.T) {
 	backend := &fakeBackend{}
-	store := New(backend, backend, backend)
+	store := New(backend, backend)
 
 	result, err := store.SeedAdmin(context.Background())
 	if err != nil {
@@ -154,7 +154,7 @@ func TestSeedAdmin_RecoversAnAccountLockedOutByStoredState(t *testing.T) {
 	backend := &fakeBackend{cfg: &appconfig.Config{
 		Admin: &appconfig.AdminUser{Username: "admin", Email: "admin@example.com"},
 	}}
-	store := New(backend, backend, backend)
+	store := New(backend, backend)
 
 	result, err := store.SeedAdmin(context.Background())
 	if err != nil {
@@ -177,7 +177,7 @@ func TestSeedAdmin_NoopWhenAdminAlreadyIntact(t *testing.T) {
 			PasswordHash: "existing-hash",
 		},
 	}}
-	store := New(backend, backend, backend)
+	store := New(backend, backend)
 
 	result, err := store.SeedAdmin(context.Background())
 	if err != nil {

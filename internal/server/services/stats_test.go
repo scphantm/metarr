@@ -142,8 +142,8 @@ func TestStatsPurgeAll(t *testing.T) {
 	server, client, logs := newTestStatsServer(t)
 	ctx := auth.WithRole(context.Background(), auth.RoleAdmin)
 
-	seedPastEntry(t, client, eventbus.SystemConfigUpdateStream, 60*time.Second)
-	seedPastEntry(t, client, eventbus.SystemConfigUpdateStream, 30*time.Second)
+	seedPastEntry(t, client, eventbus.AgentScanResultStream, 60*time.Second)
+	seedPastEntry(t, client, eventbus.AgentScanResultStream, 30*time.Second)
 	seedPastEntry(t, client, eventbus.AgentCommandStream("nas-01"), 20*time.Second)
 	// AgentNodeResultStream is never created — purge-all must not choke on it.
 
@@ -157,7 +157,6 @@ func TestStatsPurgeAll(t *testing.T) {
 		dropped[r.GetStream()] = r.GetDropped()
 	}
 	for _, want := range []string{
-		eventbus.SystemConfigUpdateStream,
 		eventbus.AgentScanResultStream,
 		eventbus.AgentNodeResultStream,
 		eventbus.AgentCommandStream("nas-01"),
@@ -166,8 +165,8 @@ func TestStatsPurgeAll(t *testing.T) {
 			t.Errorf("stream %q missing from purge-all results", want)
 		}
 	}
-	if dropped[eventbus.SystemConfigUpdateStream] != 2 {
-		t.Errorf("%s dropped = %d, want 2", eventbus.SystemConfigUpdateStream, dropped[eventbus.SystemConfigUpdateStream])
+	if dropped[eventbus.AgentScanResultStream] != 2 {
+		t.Errorf("%s dropped = %d, want 2", eventbus.AgentScanResultStream, dropped[eventbus.AgentScanResultStream])
 	}
 
 	if lines := strings.Count(strings.TrimSpace(logs.String()), "\n") + 1; lines != len(resp.Msg.GetResults()) {

@@ -64,8 +64,8 @@ func TestPurgeStreamFastForwardsGroupOnRealRedis(t *testing.T) {
 	client := realRedisClient(t)
 	ctx := context.Background()
 
-	stream := SystemConfigUpdateStream
-	group := SystemConfigUpdateGroup
+	stream := AgentScanResultStream
+	group := AgentScanResultGroup
 
 	for i := 0; i < 5; i++ {
 		seedPastEntry(t, client, stream, time.Duration(300-i*10)*time.Second)
@@ -140,9 +140,9 @@ func TestPurgeAllStreamsFastForwardsEveryGroupOnRealRedis(t *testing.T) {
 	client := realRedisClient(t)
 	ctx := context.Background()
 
-	grouped := SystemConfigUpdateStream
-	groupedName := SystemConfigUpdateGroup
-	ungrouped := AgentScanResultStream
+	grouped := AgentScanResultStream
+	groupedName := AgentScanResultGroup
+	ungrouped := AgentCommandStream("tower") // pattern-discovered, no group ever created
 	agentStream := AgentCommandStream("nas-01")
 	agentGroup := AgentCommandGroup("nas-01")
 
