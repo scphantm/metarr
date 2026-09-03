@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/tasks.proto.
  */
 export const file_metarr_v1_tasks: GenFile = /*@__PURE__*/
-  fileDesc("ChVtZXRhcnIvdjEvdGFza3MucHJvdG8SCW1ldGFyci52MSJLCiJUYXNrU2VydmljZVJ1bkRpcmVjdG9yeVNjYW5SZXF1ZXN0EhQKDHNjYW5uZXJfc2x1ZxgBIAEoCRIPCgdjb21tYW5kGAIgASgJIlwKI1Rhc2tTZXJ2aWNlUnVuRGlyZWN0b3J5U2NhblJlc3BvbnNlEg4KBnN0YXR1cxgBIAEoCRINCgVldmVudBgCIAEoCRIWCg5jb3JyZWxhdGlvbl9pZBgDIAEoCTKAAQoLVGFza1NlcnZpY2UScQoQUnVuRGlyZWN0b3J5U2NhbhItLm1ldGFyci52MS5UYXNrU2VydmljZVJ1bkRpcmVjdG9yeVNjYW5SZXF1ZXN0Gi4ubWV0YXJyLnYxLlRhc2tTZXJ2aWNlUnVuRGlyZWN0b3J5U2NhblJlc3BvbnNlQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw");
+  fileDesc("ChVtZXRhcnIvdjEvdGFza3MucHJvdG8SCW1ldGFyci52MSI6CiJUYXNrU2VydmljZVJ1bkRpcmVjdG9yeVNjYW5SZXF1ZXN0EhQKDHNjYW5uZXJfc2x1ZxgBIAEoCSI2CiNUYXNrU2VydmljZVJ1bkRpcmVjdG9yeVNjYW5SZXNwb25zZRIPCgdzY2FuX2lkGAEgASgJMoABCgtUYXNrU2VydmljZRJxChBSdW5EaXJlY3RvcnlTY2FuEi0ubWV0YXJyLnYxLlRhc2tTZXJ2aWNlUnVuRGlyZWN0b3J5U2NhblJlcXVlc3QaLi5tZXRhcnIudjEuVGFza1NlcnZpY2VSdW5EaXJlY3RvcnlTY2FuUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z");
 
 /**
  * @generated from message metarr.v1.TaskServiceRunDirectoryScanRequest
@@ -20,11 +20,6 @@ export type TaskServiceRunDirectoryScanRequest = Message<"metarr.v1.TaskServiceR
    * @generated from field: string scanner_slug = 1;
    */
   scannerSlug: string;
-
-  /**
-   * @generated from field: string command = 2;
-   */
-  command: string;
 };
 
 /**
@@ -37,27 +32,20 @@ export const TaskServiceRunDirectoryScanRequestSchema: GenMessage<TaskServiceRun
 /**
  * TaskServiceRunDirectoryScanResponse acknowledges that the scan command was
  * accepted onto the event bus. The scan itself runs asynchronously in the
- * agent — see internal/server/handlers/tasks.go for the listener side — so
+ * agent that owns the library, and its results come back on a separate stream
+ * consumed by internal/server/listeners/agent_scan_result_listener.go, so
  * "accepted" means "queued", not "finished". This is a genuine long-running
  * task kickoff, unrelated to the synchronous config writes (docs/adr/0002).
+ * scan_id is the correlation id assigned to the command; the caller uses it to
+ * tie the scan's async results back to this request.
  *
  * @generated from message metarr.v1.TaskServiceRunDirectoryScanResponse
  */
 export type TaskServiceRunDirectoryScanResponse = Message<"metarr.v1.TaskServiceRunDirectoryScanResponse"> & {
   /**
-   * @generated from field: string status = 1;
+   * @generated from field: string scan_id = 1;
    */
-  status: string;
-
-  /**
-   * @generated from field: string event = 2;
-   */
-  event: string;
-
-  /**
-   * @generated from field: string correlation_id = 3;
-   */
-  correlationId: string;
+  scanId: string;
 };
 
 /**
@@ -68,9 +56,9 @@ export const TaskServiceRunDirectoryScanResponseSchema: GenMessage<TaskServiceRu
   messageDesc(file_metarr_v1_tasks, 1);
 
 /**
- * TaskService fires the same durable event-bus commands the REST /api/tasks
- * routes did — see internal/server/handlers/tasks.go for the async listener
- * side, which is unchanged by this migration.
+ * TaskService fires durable event-bus commands for operator-triggered tasks.
+ * Scan results return asynchronously on their own stream — see
+ * internal/server/listeners/agent_scan_result_listener.go.
  *
  * @generated from service metarr.v1.TaskService
  */

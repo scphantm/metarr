@@ -20,16 +20,17 @@ import (
 	"Metarr/internal/shared/scanmodel"
 )
 
-// TaskServer implements metarrv1connect.TaskServiceHandler, ported directly
-// from internal/server/handlers/tasks.go — same event-bus publish calls, only
-// the transport changed. The async listeners on the other end are
-// unaffected by this migration.
+// TaskServer implements metarrv1connect.TaskServiceHandler: it turns an
+// operator-triggered task into a durable event-bus command. RunDirectoryScan
+// resolves the scanner slug, finds the agent that owns the library, and
+// publishes an agent.scan command; the scan runs on the agent and its results
+// come back on their own stream (internal/server/listeners/agent_scan_result_listener.go).
 type TaskServer struct {
 	*handlers.Handlers
 }
 
-// TaskAuthPolicies is this service's method-name -> policy map. Mirrors
-// every task route in router.go being GroupTasks.
+// TaskAuthPolicies is this service's method-name -> policy map. Every task
+// method is in the tasks group.
 var TaskAuthPolicies = map[string]httpserver.RPCPolicy{
 	"RunDirectoryScan": {Group: auth.GroupTasks},
 }
@@ -40,10 +41,6 @@ func (s *TaskServer) RunDirectoryScan(
 ) (*connect.Response[metarrv1.TaskServiceRunDirectoryScanResponse], error) {
 	correlationID := correlation.FromContext(ctx)
 	slug := req.Msg.GetScannerSlug()
-
-	if req.Msg.GetCommand() != "run" {
-		return nil, connectError(http.StatusBadRequest, errors.New(`unsupported command, expected "run"`))
-	}
 
 	appConfig := appconfig.Get()
 
@@ -88,8 +85,6 @@ func (s *TaskServer) RunDirectoryScan(
 	}
 
 	return connect.NewResponse(&metarrv1.TaskServiceRunDirectoryScanResponse{
-		Status:        "accepted",
-		Event:         eventbus.AgentScanCommandEventName,
-		CorrelationId: correlationID,
+		ScanId: correlationID,
 	}), nil
 }

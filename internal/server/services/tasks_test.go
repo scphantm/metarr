@@ -13,6 +13,7 @@ import (
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/shared/appconfig"
+	"Metarr/internal/shared/correlation"
 	"Metarr/internal/shared/eventbus"
 )
 
@@ -70,20 +71,44 @@ func TestRunDirectoryScan_DispatchesToAnAbsentAgentWithoutA422(t *testing.T) {
 	server, client := newTestTaskServer(t)
 	withLiveConfig(t, configWithMappedAgent())
 
-	resp, err := server.RunDirectoryScan(context.Background(), connect.NewRequest(&metarrv1.TaskServiceRunDirectoryScanRequest{
+	// In the running server the request middleware has already put a
+	// correlation id on the context by the time the handler sees it
+	// (internal/server/httpserver/middleware.go); seed one here so the test
+	// exercises the same path. The handler echoes it back as scan_id.
+	ctx := correlation.WithID(context.Background(), "corr-scan-1")
+	resp, err := server.RunDirectoryScan(ctx, connect.NewRequest(&metarrv1.TaskServiceRunDirectoryScanRequest{
 		ScannerSlug: "movies",
-		Command:     "run",
 	}))
 	if err != nil {
 		t.Fatalf("RunDirectoryScan returned an error for an absent agent: %v", err)
 	}
-	if resp.Msg.GetStatus() != "accepted" {
-		t.Errorf("status = %q, want accepted", resp.Msg.GetStatus())
+	if resp.Msg.GetScanId() != "corr-scan-1" {
+		t.Errorf("scan_id = %q, want the context correlation id %q", resp.Msg.GetScanId(), "corr-scan-1")
 	}
 
-	got, err := client.XLen(context.Background(), eventbus.AgentCommandStream("nas-01")).Result()
-	if err != nil || got != 1 {
-		t.Errorf("agent command stream length = %d (err %v), want 1 queued command", got, err)
+	entries, err := client.XRange(context.Background(), eventbus.AgentCommandStream("nas-01"), "-", "+").Result()
+	if err != nil {
+		t.Fatalf("XRange on the agent command stream: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("agent command stream has %d entries, want 1 queued command", len(entries))
+	}
+	raw, ok := entries[0].Values["payload"].(string)
+	if !ok {
+		t.Fatalf("queued command entry has no payload envelope: %v", entries[0].Values)
+	}
+	var event eventbus.Event
+	if err := eventbus.UnmarshalEvent([]byte(raw), &event); err != nil {
+		t.Fatalf("payload is not an event envelope: %v", err)
+	}
+	// It is the agent.scan command, and it carries the same scan id the RPC
+	// handed back — a caller that follows scan_id is watching the command that
+	// was actually published.
+	if event.GetName() != eventbus.AgentScanCommandEventName {
+		t.Errorf("queued command event = %q, want %q", event.GetName(), eventbus.AgentScanCommandEventName)
+	}
+	if event.GetCorrelationId() != resp.Msg.GetScanId() {
+		t.Errorf("queued command correlation id = %q, want scan_id %q", event.GetCorrelationId(), resp.Msg.GetScanId())
 	}
 }
 
@@ -99,7 +124,6 @@ func TestRunDirectoryScan_StillRejectsAnUnmappedScanDirectory(t *testing.T) {
 
 	_, err := server.RunDirectoryScan(context.Background(), connect.NewRequest(&metarrv1.TaskServiceRunDirectoryScanRequest{
 		ScannerSlug: "movies",
-		Command:     "run",
 	}))
 	if err == nil {
 		t.Fatal("expected a rejection when no agent is mapped to the scan directory")

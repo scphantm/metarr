@@ -38,7 +38,7 @@ const items: MenuProps["items"] = [
     label: comingSoonLabel("Automations"),
     disabled: true,
   },
-  { key: "group-tasks", label: comingSoonLabel("Tasks"), disabled: true },
+  { key: "/tasks", label: "Tasks" },
   {
     key: "group-system",
     label: "System",

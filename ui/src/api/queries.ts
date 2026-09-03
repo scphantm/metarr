@@ -17,6 +17,7 @@ import {
   loggingClient,
   sonarrInterfaceClient,
   statsClient,
+  taskClient,
   workflowCatalogClient,
   workflowClient,
 } from "./clients";
@@ -961,5 +962,20 @@ export function useDeleteWorkflow() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.workflows });
     },
+  });
+}
+
+/*
+ * Tasks. TaskService.RunDirectoryScan queues a durable scan command on the
+ * event bus for the agent that owns the library; the scan runs asynchronously
+ * and its results arrive on their own stream (docs/adr/0002 does not apply —
+ * this is a genuine long-running kickoff, not a synchronous config write).
+ * There is nothing to read back and no cache to invalidate: the mutation just
+ * resolves with the scan id the caller uses to follow the results.
+ */
+export function useRunDirectoryScan() {
+  return useMutation({
+    mutationFn: (scannerSlug: string) =>
+      taskClient.runDirectoryScan({ scannerSlug }),
   });
 }

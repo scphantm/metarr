@@ -6,23 +6,23 @@ option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
 message TaskServiceRunDirectoryScanRequest {
   string scanner_slug = 1;
-  string command = 2;
 }
 
 // TaskServiceRunDirectoryScanResponse acknowledges that the scan command was
 // accepted onto the event bus. The scan itself runs asynchronously in the
-// agent — see internal/server/handlers/tasks.go for the listener side — so
+// agent that owns the library, and its results come back on a separate stream
+// consumed by internal/server/listeners/agent_scan_result_listener.go, so
 // "accepted" means "queued", not "finished". This is a genuine long-running
 // task kickoff, unrelated to the synchronous config writes (docs/adr/0002).
+// scan_id is the correlation id assigned to the command; the caller uses it to
+// tie the scan's async results back to this request.
 message TaskServiceRunDirectoryScanResponse {
-  string status = 1;
-  string event = 2;
-  string correlation_id = 3;
+  string scan_id = 1;
 }
 
-// TaskService fires the same durable event-bus commands the REST /api/tasks
-// routes did — see internal/server/handlers/tasks.go for the async listener
-// side, which is unchanged by this migration.
+// TaskService fires durable event-bus commands for operator-triggered tasks.
+// Scan results return asynchronously on their own stream — see
+// internal/server/listeners/agent_scan_result_listener.go.
 service TaskService {
   rpc RunDirectoryScan(TaskServiceRunDirectoryScanRequest) returns (TaskServiceRunDirectoryScanResponse);
 }
