@@ -1,6 +1,7 @@
 FROM asciidoctor/docker-asciidoctor:latest
 
 RUN apk add nodejs npm rsync openssh ruby-dev
-RUN npm install -g yarn
+RUN npm install -g corepack
+RUN corepack enable
 RUN gem install bundle
 
