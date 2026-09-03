@@ -1,0 +1,27 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    asciidoctor (2.0.26)
+    asciidoctor-revealjs (5.2.0)
+      asciidoctor (>= 2.0.0, < 3.0.0)
+    rouge (5.1.0)
+      strscan (~> 3.1)
+    strscan (3.1.8)
+
+PLATFORMS
+  aarch64-linux-musl
+  ruby
+
+DEPENDENCIES
+  asciidoctor-revealjs
+  rouge
+
+CHECKSUMS
+  asciidoctor (2.0.26) sha256=16e3accf1fc206bbd6335848649d7fd65f31d2daa60d85af13d47a8ee4b071c1
+  asciidoctor-revealjs (5.2.0) sha256=3504a5e7eaf2c91de37f96189314ffb1e6bf94dad9d646d5c9a24c6691bf6ae2
+  bundler (4.0.20) sha256=7978a8ac648767f5e635bc522445b79e80a52b907a39a36c2d8085ed6bc762ae
+  rouge (5.1.0) sha256=b77c632842ab7f5147940212f0345808cccfbce864fd5b631d7d12a35ac85452
+  strscan (3.1.8) sha256=aae2db611a225559f21ffbb71765c9a4e60fd262534a9ea84f4f11c7f32f679e
+
+BUNDLED WITH
+  4.0.20
