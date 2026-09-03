@@ -37,6 +37,9 @@ const (
 	AuthServiceLoginProcedure = "/metarr.v1.AuthService/Login"
 	// AuthServiceLogoutProcedure is the fully-qualified name of the AuthService's Logout RPC.
 	AuthServiceLogoutProcedure = "/metarr.v1.AuthService/Logout"
+	// AuthServiceGetAuthSchemeProcedure is the fully-qualified name of the AuthService's GetAuthScheme
+	// RPC.
+	AuthServiceGetAuthSchemeProcedure = "/metarr.v1.AuthService/GetAuthScheme"
 )
 
 // AuthServiceClient is a client for the metarr.v1.AuthService service.
@@ -46,6 +49,11 @@ type AuthServiceClient interface {
 	// routes' separate throttle(...) budgets.
 	Login(context.Context, *connect.Request[v1.AuthServiceLoginRequest]) (*connect.Response[v1.AuthServiceLoginResponse], error)
 	Logout(context.Context, *connect.Request[v1.AuthServiceLogoutRequest]) (*connect.Response[v1.AuthServiceLogoutResponse], error)
+	// GetAuthScheme is the pre-login probe: it returns only the active
+	// authentication scheme and is callable without an API key (NoAuth, like
+	// Login), so the UI can decide whether to show the login gate on a cold
+	// load (docs/adr/0012).
+	GetAuthScheme(context.Context, *connect.Request[v1.AuthServiceGetAuthSchemeRequest]) (*connect.Response[v1.AuthServiceGetAuthSchemeResponse], error)
 }
 
 // NewAuthServiceClient constructs a client for the metarr.v1.AuthService service. By default, it
@@ -71,13 +79,20 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("Logout")),
 			connect.WithClientOptions(opts...),
 		),
+		getAuthScheme: connect.NewClient[v1.AuthServiceGetAuthSchemeRequest, v1.AuthServiceGetAuthSchemeResponse](
+			httpClient,
+			baseURL+AuthServiceGetAuthSchemeProcedure,
+			connect.WithSchema(authServiceMethods.ByName("GetAuthScheme")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // authServiceClient implements AuthServiceClient.
 type authServiceClient struct {
-	login  *connect.Client[v1.AuthServiceLoginRequest, v1.AuthServiceLoginResponse]
-	logout *connect.Client[v1.AuthServiceLogoutRequest, v1.AuthServiceLogoutResponse]
+	login         *connect.Client[v1.AuthServiceLoginRequest, v1.AuthServiceLoginResponse]
+	logout        *connect.Client[v1.AuthServiceLogoutRequest, v1.AuthServiceLogoutResponse]
+	getAuthScheme *connect.Client[v1.AuthServiceGetAuthSchemeRequest, v1.AuthServiceGetAuthSchemeResponse]
 }
 
 // Login calls metarr.v1.AuthService.Login.
@@ -90,6 +105,11 @@ func (c *authServiceClient) Logout(ctx context.Context, req *connect.Request[v1.
 	return c.logout.CallUnary(ctx, req)
 }
 
+// GetAuthScheme calls metarr.v1.AuthService.GetAuthScheme.
+func (c *authServiceClient) GetAuthScheme(ctx context.Context, req *connect.Request[v1.AuthServiceGetAuthSchemeRequest]) (*connect.Response[v1.AuthServiceGetAuthSchemeResponse], error) {
+	return c.getAuthScheme.CallUnary(ctx, req)
+}
+
 // AuthServiceHandler is an implementation of the metarr.v1.AuthService service.
 type AuthServiceHandler interface {
 	// Login is callable without an API key — see connect_auth.go's NoAuth
@@ -97,6 +117,11 @@ type AuthServiceHandler interface {
 	// routes' separate throttle(...) budgets.
 	Login(context.Context, *connect.Request[v1.AuthServiceLoginRequest]) (*connect.Response[v1.AuthServiceLoginResponse], error)
 	Logout(context.Context, *connect.Request[v1.AuthServiceLogoutRequest]) (*connect.Response[v1.AuthServiceLogoutResponse], error)
+	// GetAuthScheme is the pre-login probe: it returns only the active
+	// authentication scheme and is callable without an API key (NoAuth, like
+	// Login), so the UI can decide whether to show the login gate on a cold
+	// load (docs/adr/0012).
+	GetAuthScheme(context.Context, *connect.Request[v1.AuthServiceGetAuthSchemeRequest]) (*connect.Response[v1.AuthServiceGetAuthSchemeResponse], error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -118,12 +143,20 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("Logout")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceGetAuthSchemeHandler := connect.NewUnaryHandler(
+		AuthServiceGetAuthSchemeProcedure,
+		svc.GetAuthScheme,
+		connect.WithSchema(authServiceMethods.ByName("GetAuthScheme")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/metarr.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceLoginProcedure:
 			authServiceLoginHandler.ServeHTTP(w, r)
 		case AuthServiceLogoutProcedure:
 			authServiceLogoutHandler.ServeHTTP(w, r)
+		case AuthServiceGetAuthSchemeProcedure:
+			authServiceGetAuthSchemeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -139,4 +172,8 @@ func (UnimplementedAuthServiceHandler) Login(context.Context, *connect.Request[v
 
 func (UnimplementedAuthServiceHandler) Logout(context.Context, *connect.Request[v1.AuthServiceLogoutRequest]) (*connect.Response[v1.AuthServiceLogoutResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.AuthService.Logout is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) GetAuthScheme(context.Context, *connect.Request[v1.AuthServiceGetAuthSchemeRequest]) (*connect.Response[v1.AuthServiceGetAuthSchemeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.AuthService.GetAuthScheme is not implemented"))
 }

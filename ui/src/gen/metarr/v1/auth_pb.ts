@@ -4,13 +4,15 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { AuthenticationScheme } from "./admin_pb";
+import { file_metarr_v1_admin } from "./admin_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file metarr/v1/auth.proto.
  */
 export const file_metarr_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChRtZXRhcnIvdjEvYXV0aC5wcm90bxIJbWV0YXJyLnYxIj0KF0F1dGhTZXJ2aWNlTG9naW5SZXF1ZXN0EhAKCHVzZXJuYW1lGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIkcKGEF1dGhTZXJ2aWNlTG9naW5SZXNwb25zZRIPCgdhcGlfa2V5GAEgASgJEhoKEmV4cGlyZXNfaW5fc2Vjb25kcxgCIAEoBSIaChhBdXRoU2VydmljZUxvZ291dFJlcXVlc3QiKwoZQXV0aFNlcnZpY2VMb2dvdXRSZXNwb25zZRIOCgZzdGF0dXMYASABKAkytAEKC0F1dGhTZXJ2aWNlElAKBUxvZ2luEiIubWV0YXJyLnYxLkF1dGhTZXJ2aWNlTG9naW5SZXF1ZXN0GiMubWV0YXJyLnYxLkF1dGhTZXJ2aWNlTG9naW5SZXNwb25zZRJTCgZMb2dvdXQSIy5tZXRhcnIudjEuQXV0aFNlcnZpY2VMb2dvdXRSZXF1ZXN0GiQubWV0YXJyLnYxLkF1dGhTZXJ2aWNlTG9nb3V0UmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z");
+  fileDesc("ChRtZXRhcnIvdjEvYXV0aC5wcm90bxIJbWV0YXJyLnYxIj0KF0F1dGhTZXJ2aWNlTG9naW5SZXF1ZXN0EhAKCHVzZXJuYW1lGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIkcKGEF1dGhTZXJ2aWNlTG9naW5SZXNwb25zZRIPCgdhcGlfa2V5GAEgASgJEhoKEmV4cGlyZXNfaW5fc2Vjb25kcxgCIAEoBSIaChhBdXRoU2VydmljZUxvZ291dFJlcXVlc3QiKwoZQXV0aFNlcnZpY2VMb2dvdXRSZXNwb25zZRIOCgZzdGF0dXMYASABKAkiIQofQXV0aFNlcnZpY2VHZXRBdXRoU2NoZW1lUmVxdWVzdCJTCiBBdXRoU2VydmljZUdldEF1dGhTY2hlbWVSZXNwb25zZRIvCgZzY2hlbWUYASABKA4yHy5tZXRhcnIudjEuQXV0aGVudGljYXRpb25TY2hlbWUyngIKC0F1dGhTZXJ2aWNlElAKBUxvZ2luEiIubWV0YXJyLnYxLkF1dGhTZXJ2aWNlTG9naW5SZXF1ZXN0GiMubWV0YXJyLnYxLkF1dGhTZXJ2aWNlTG9naW5SZXNwb25zZRJTCgZMb2dvdXQSIy5tZXRhcnIudjEuQXV0aFNlcnZpY2VMb2dvdXRSZXF1ZXN0GiQubWV0YXJyLnYxLkF1dGhTZXJ2aWNlTG9nb3V0UmVzcG9uc2USaAoNR2V0QXV0aFNjaGVtZRIqLm1ldGFyci52MS5BdXRoU2VydmljZUdldEF1dGhTY2hlbWVSZXF1ZXN0GisubWV0YXJyLnYxLkF1dGhTZXJ2aWNlR2V0QXV0aFNjaGVtZVJlc3BvbnNlQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_metarr_v1_admin]);
 
 /**
  * @generated from message metarr.v1.AuthServiceLoginRequest
@@ -87,6 +89,36 @@ export const AuthServiceLogoutResponseSchema: GenMessage<AuthServiceLogoutRespon
   messageDesc(file_metarr_v1_auth, 3);
 
 /**
+ * @generated from message metarr.v1.AuthServiceGetAuthSchemeRequest
+ */
+export type AuthServiceGetAuthSchemeRequest = Message<"metarr.v1.AuthServiceGetAuthSchemeRequest"> & {
+};
+
+/**
+ * Describes the message metarr.v1.AuthServiceGetAuthSchemeRequest.
+ * Use `create(AuthServiceGetAuthSchemeRequestSchema)` to create a new message.
+ */
+export const AuthServiceGetAuthSchemeRequestSchema: GenMessage<AuthServiceGetAuthSchemeRequest> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_auth, 4);
+
+/**
+ * @generated from message metarr.v1.AuthServiceGetAuthSchemeResponse
+ */
+export type AuthServiceGetAuthSchemeResponse = Message<"metarr.v1.AuthServiceGetAuthSchemeResponse"> & {
+  /**
+   * @generated from field: metarr.v1.AuthenticationScheme scheme = 1;
+   */
+  scheme: AuthenticationScheme;
+};
+
+/**
+ * Describes the message metarr.v1.AuthServiceGetAuthSchemeResponse.
+ * Use `create(AuthServiceGetAuthSchemeResponseSchema)` to create a new message.
+ */
+export const AuthServiceGetAuthSchemeResponseSchema: GenMessage<AuthServiceGetAuthSchemeResponse> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_auth, 5);
+
+/**
  * @generated from service metarr.v1.AuthService
  */
 export const AuthService: GenService<{
@@ -109,6 +141,19 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof AuthServiceLogoutRequestSchema;
     output: typeof AuthServiceLogoutResponseSchema;
+  },
+  /**
+   * GetAuthScheme is the pre-login probe: it returns only the active
+   * authentication scheme and is callable without an API key (NoAuth, like
+   * Login), so the UI can decide whether to show the login gate on a cold
+   * load (docs/adr/0012).
+   *
+   * @generated from rpc metarr.v1.AuthService.GetAuthScheme
+   */
+  getAuthScheme: {
+    methodKind: "unary";
+    input: typeof AuthServiceGetAuthSchemeRequestSchema;
+    output: typeof AuthServiceGetAuthSchemeResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_metarr_v1_auth, 0);

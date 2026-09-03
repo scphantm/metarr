@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { Input, Space, Typography } from "antd";
+import { Input, Select, Space, Typography } from "antd";
 
 import { useUpdateAdmin } from "../../api/queries";
-import type { AdminUser } from "../../gen/metarr/v1/admin_pb";
+import {
+  AuthenticationScheme,
+  type AdminUser,
+} from "../../gen/metarr/v1/admin_pb";
 import { Button, Card, Row } from "../../components/Card";
 import { EditableText } from "../../components/Editable";
 import { SaveIndicator } from "../../components/SaveState";
@@ -47,7 +50,67 @@ export function AdminSection({ admin }: { admin: AdminUser }) {
       >
         <PasswordChanger />
       </Row>
+
+      <Row
+        label="Authentication scheme"
+        hint="None: no login required, every request runs as this administrator. Password: the credentials above are required."
+      >
+        <AuthenticationSchemePicker
+          scheme={admin.authenticationScheme}
+          onChange={(authenticationScheme) =>
+            updateAdmin.mutateAsync({ authenticationScheme })
+          }
+        />
+      </Row>
     </Card>
+  );
+}
+
+function AuthenticationSchemePicker({
+  scheme,
+  onChange,
+}: {
+  scheme: AuthenticationScheme;
+  onChange: (scheme: AuthenticationScheme) => Promise<unknown>;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function select(next: AuthenticationScheme) {
+    if (next === scheme) return;
+    setError(null);
+    setSaving(true);
+    try {
+      await onChange(next);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Space align="center">
+      <Select<AuthenticationScheme>
+        value={
+          scheme === AuthenticationScheme.PASSWORD
+            ? AuthenticationScheme.PASSWORD
+            : AuthenticationScheme.NONE
+        }
+        loading={saving}
+        onChange={(next) => void select(next)}
+        options={[
+          { value: AuthenticationScheme.NONE, label: "None" },
+          { value: AuthenticationScheme.PASSWORD, label: "Password" },
+        ]}
+        style={{ minWidth: 140 }}
+      />
+      {error ? (
+        <Typography.Text type="danger" style={{ fontSize: 12 }}>
+          {error}
+        </Typography.Text>
+      ) : null}
+    </Space>
   );
 }
 

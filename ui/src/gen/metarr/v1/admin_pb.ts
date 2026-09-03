@@ -2,8 +2,8 @@
 // @generated from file metarr/v1/admin.proto (package metarr.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { FieldMask } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/admin.proto.
  */
 export const file_metarr_v1_admin: GenFile = /*@__PURE__*/
-  fileDesc("ChVtZXRhcnIvdjEvYWRtaW4ucHJvdG8SCW1ldGFyci52MSJaCglBZG1pblVzZXISEAoIdXNlcm5hbWUYASABKAkSDQoFZW1haWwYAiABKAkSFQoNcGFzc3dvcmRfc2FsdBgDIAEoCRIVCg1wYXNzd29yZF9oYXNoGAQgASgJIhUKE0dldEFkbWluVXNlclJlcXVlc3QihAEKFlVwZGF0ZUFkbWluVXNlclJlcXVlc3QSIwoFYWRtaW4YASABKAsyFC5tZXRhcnIudjEuQWRtaW5Vc2VyEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzaxIUCgxuZXdfcGFzc3dvcmQYAyABKAkyoAEKDEFkbWluU2VydmljZRJECgxHZXRBZG1pblVzZXISHi5tZXRhcnIudjEuR2V0QWRtaW5Vc2VyUmVxdWVzdBoULm1ldGFyci52MS5BZG1pblVzZXISSgoPVXBkYXRlQWRtaW5Vc2VyEiEubWV0YXJyLnYxLlVwZGF0ZUFkbWluVXNlclJlcXVlc3QaFC5tZXRhcnIudjEuQWRtaW5Vc2VyQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_google_protobuf_field_mask]);
+  fileDesc("ChVtZXRhcnIvdjEvYWRtaW4ucHJvdG8SCW1ldGFyci52MSKaAQoJQWRtaW5Vc2VyEhAKCHVzZXJuYW1lGAEgASgJEg0KBWVtYWlsGAIgASgJEhUKDXBhc3N3b3JkX3NhbHQYAyABKAkSFQoNcGFzc3dvcmRfaGFzaBgEIAEoCRI+ChVhdXRoZW50aWNhdGlvbl9zY2hlbWUYBSABKA4yHy5tZXRhcnIudjEuQXV0aGVudGljYXRpb25TY2hlbWUiFQoTR2V0QWRtaW5Vc2VyUmVxdWVzdCKEAQoWVXBkYXRlQWRtaW5Vc2VyUmVxdWVzdBIjCgVhZG1pbhgBIAEoCzIULm1ldGFyci52MS5BZG1pblVzZXISLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrEhQKDG5ld19wYXNzd29yZBgDIAEoCSqBAQoUQXV0aGVudGljYXRpb25TY2hlbWUSJQohQVVUSEVOVElDQVRJT05fU0NIRU1FX1VOU1BFQ0lGSUVEEAASHgoaQVVUSEVOVElDQVRJT05fU0NIRU1FX05PTkUQARIiCh5BVVRIRU5USUNBVElPTl9TQ0hFTUVfUEFTU1dPUkQQAjKgAQoMQWRtaW5TZXJ2aWNlEkQKDEdldEFkbWluVXNlchIeLm1ldGFyci52MS5HZXRBZG1pblVzZXJSZXF1ZXN0GhQubWV0YXJyLnYxLkFkbWluVXNlchJKCg9VcGRhdGVBZG1pblVzZXISIS5tZXRhcnIudjEuVXBkYXRlQWRtaW5Vc2VyUmVxdWVzdBoULm1ldGFyci52MS5BZG1pblVzZXJCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_google_protobuf_field_mask]);
 
 /**
  * AdminUser is the system's single administrative user account. This message
@@ -25,6 +25,12 @@ export const file_metarr_v1_admin: GenFile = /*@__PURE__*/
  * UpdateAdminUserRequest.new_password (docs/adr/0005). A generated client
  * therefore sees two fields that are always empty — the deliberate cost of
  * one definition for the wire shape and the stored shape.
+ *
+ * authentication_scheme is which login scheme is active (docs/adr/0012).
+ * Setting it is orthogonal to the credential — the password is seeded and
+ * editable under either scheme; AUTHENTICATION_SCHEME_NONE simply never
+ * demands it. GetAdminUser returns it; UpdateAdminUser accepts it in the
+ * update_mask.
  *
  * @generated from message metarr.v1.AdminUser
  */
@@ -48,6 +54,11 @@ export type AdminUser = Message<"metarr.v1.AdminUser"> & {
    * @generated from field: string password_hash = 4;
    */
   passwordHash: string;
+
+  /**
+   * @generated from field: metarr.v1.AuthenticationScheme authentication_scheme = 5;
+   */
+  authenticationScheme: AuthenticationScheme;
 };
 
 /**
@@ -72,11 +83,12 @@ export const GetAdminUserRequestSchema: GenMessage<GetAdminUserRequest> = /*@__P
 
 /**
  * UpdateAdminUserRequest is an AIP-134 partial update of the single admin
- * account. update_mask names the identity fields to change (username, email)
- * and admin carries their new values; an empty mask or a path naming
- * anything other than username / email is InvalidArgument. A set field that
- * is empty (an explicit "") is rejected rather than silently clearing the
- * value.
+ * account. update_mask names the fields to change (username, email,
+ * authentication_scheme) and admin carries their new values; an empty mask
+ * or a path naming anything else is InvalidArgument. A set identity field
+ * that is empty (an explicit "") is rejected rather than silently clearing
+ * the value, and an authentication_scheme of AUTHENTICATION_SCHEME_UNSPECIFIED
+ * or an unknown value is InvalidArgument.
  *
  * new_password is never named by the mask (a hash is never on the wire,
  * docs/adr/0005). It is acted on only when non-empty: a non-empty value
@@ -109,6 +121,45 @@ export type UpdateAdminUserRequest = Message<"metarr.v1.UpdateAdminUserRequest">
  */
 export const UpdateAdminUserRequestSchema: GenMessage<UpdateAdminUserRequest> = /*@__PURE__*/
   messageDesc(file_metarr_v1_admin, 2);
+
+/**
+ * AuthenticationScheme is how (or whether) a human is authenticated before
+ * reaching the system (docs/adr/0012). It is a closed enumeration carried on
+ * the admin record, not a resource collection, so there is no
+ * AuthenticationSchemeService. AUTHENTICATION_SCHEME_UNSPECIFIED is the unset
+ * value; config normalisation maps it to AUTHENTICATION_SCHEME_NONE, and it
+ * is InvalidArgument where a scheme is required.
+ *
+ * @generated from enum metarr.v1.AuthenticationScheme
+ */
+export enum AuthenticationScheme {
+  /**
+   * @generated from enum value: AUTHENTICATION_SCHEME_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * No login is required. A full administrator principal is synthesised for
+   * every request. The default on a fresh install.
+   *
+   * @generated from enum value: AUTHENTICATION_SCHEME_NONE = 1;
+   */
+  NONE = 1,
+
+  /**
+   * The admin username and password are required, a session token is minted
+   * on login, and every RPC is checked.
+   *
+   * @generated from enum value: AUTHENTICATION_SCHEME_PASSWORD = 2;
+   */
+  PASSWORD = 2,
+}
+
+/**
+ * Describes the enum metarr.v1.AuthenticationScheme.
+ */
+export const AuthenticationSchemeSchema: GenEnum<AuthenticationScheme> = /*@__PURE__*/
+  enumDesc(file_metarr_v1_admin, 0);
 
 /**
  * AdminService owns the single administrative account (docs/adr/0010). The

@@ -22,6 +22,65 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// AuthenticationScheme is how (or whether) a human is authenticated before
+// reaching the system (docs/adr/0012). It is a closed enumeration carried on
+// the admin record, not a resource collection, so there is no
+// AuthenticationSchemeService. AUTHENTICATION_SCHEME_UNSPECIFIED is the unset
+// value; config normalisation maps it to AUTHENTICATION_SCHEME_NONE, and it
+// is InvalidArgument where a scheme is required.
+type AuthenticationScheme int32
+
+const (
+	AuthenticationScheme_AUTHENTICATION_SCHEME_UNSPECIFIED AuthenticationScheme = 0
+	// No login is required. A full administrator principal is synthesised for
+	// every request. The default on a fresh install.
+	AuthenticationScheme_AUTHENTICATION_SCHEME_NONE AuthenticationScheme = 1
+	// The admin username and password are required, a session token is minted
+	// on login, and every RPC is checked.
+	AuthenticationScheme_AUTHENTICATION_SCHEME_PASSWORD AuthenticationScheme = 2
+)
+
+// Enum value maps for AuthenticationScheme.
+var (
+	AuthenticationScheme_name = map[int32]string{
+		0: "AUTHENTICATION_SCHEME_UNSPECIFIED",
+		1: "AUTHENTICATION_SCHEME_NONE",
+		2: "AUTHENTICATION_SCHEME_PASSWORD",
+	}
+	AuthenticationScheme_value = map[string]int32{
+		"AUTHENTICATION_SCHEME_UNSPECIFIED": 0,
+		"AUTHENTICATION_SCHEME_NONE":        1,
+		"AUTHENTICATION_SCHEME_PASSWORD":    2,
+	}
+)
+
+func (x AuthenticationScheme) Enum() *AuthenticationScheme {
+	p := new(AuthenticationScheme)
+	*p = x
+	return p
+}
+
+func (x AuthenticationScheme) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AuthenticationScheme) Descriptor() protoreflect.EnumDescriptor {
+	return file_metarr_v1_admin_proto_enumTypes[0].Descriptor()
+}
+
+func (AuthenticationScheme) Type() protoreflect.EnumType {
+	return &file_metarr_v1_admin_proto_enumTypes[0]
+}
+
+func (x AuthenticationScheme) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AuthenticationScheme.Descriptor instead.
+func (AuthenticationScheme) EnumDescriptor() ([]byte, []int) {
+	return file_metarr_v1_admin_proto_rawDescGZIP(), []int{0}
+}
+
 // AdminUser is the system's single administrative user account. This message
 // is the single definition of that account across the Go server, the UI and
 // the stored document (docs/adr/0005).
@@ -32,14 +91,21 @@ const (
 // UpdateAdminUserRequest.new_password (docs/adr/0005). A generated client
 // therefore sees two fields that are always empty — the deliberate cost of
 // one definition for the wire shape and the stored shape.
+//
+// authentication_scheme is which login scheme is active (docs/adr/0012).
+// Setting it is orthogonal to the credential — the password is seeded and
+// editable under either scheme; AUTHENTICATION_SCHEME_NONE simply never
+// demands it. GetAdminUser returns it; UpdateAdminUser accepts it in the
+// update_mask.
 type AdminUser struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	PasswordSalt  string                 `protobuf:"bytes,3,opt,name=password_salt,json=passwordSalt,proto3" json:"password_salt,omitempty"`
-	PasswordHash  string                 `protobuf:"bytes,4,opt,name=password_hash,json=passwordHash,proto3" json:"password_hash,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Username             string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Email                string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	PasswordSalt         string                 `protobuf:"bytes,3,opt,name=password_salt,json=passwordSalt,proto3" json:"password_salt,omitempty"`
+	PasswordHash         string                 `protobuf:"bytes,4,opt,name=password_hash,json=passwordHash,proto3" json:"password_hash,omitempty"`
+	AuthenticationScheme AuthenticationScheme   `protobuf:"varint,5,opt,name=authentication_scheme,json=authenticationScheme,proto3,enum=metarr.v1.AuthenticationScheme" json:"authentication_scheme,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *AdminUser) Reset() {
@@ -100,6 +166,13 @@ func (x *AdminUser) GetPasswordHash() string {
 	return ""
 }
 
+func (x *AdminUser) GetAuthenticationScheme() AuthenticationScheme {
+	if x != nil {
+		return x.AuthenticationScheme
+	}
+	return AuthenticationScheme_AUTHENTICATION_SCHEME_UNSPECIFIED
+}
+
 type GetAdminUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -137,11 +210,12 @@ func (*GetAdminUserRequest) Descriptor() ([]byte, []int) {
 }
 
 // UpdateAdminUserRequest is an AIP-134 partial update of the single admin
-// account. update_mask names the identity fields to change (username, email)
-// and admin carries their new values; an empty mask or a path naming
-// anything other than username / email is InvalidArgument. A set field that
-// is empty (an explicit "") is rejected rather than silently clearing the
-// value.
+// account. update_mask names the fields to change (username, email,
+// authentication_scheme) and admin carries their new values; an empty mask
+// or a path naming anything else is InvalidArgument. A set identity field
+// that is empty (an explicit "") is rejected rather than silently clearing
+// the value, and an authentication_scheme of AUTHENTICATION_SCHEME_UNSPECIFIED
+// or an unknown value is InvalidArgument.
 //
 // new_password is never named by the mask (a hash is never on the wire,
 // docs/adr/0005). It is acted on only when non-empty: a non-empty value
@@ -212,18 +286,23 @@ var File_metarr_v1_admin_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_admin_proto_rawDesc = "" +
 	"\n" +
-	"\x15metarr/v1/admin.proto\x12\tmetarr.v1\x1a google/protobuf/field_mask.proto\"\x87\x01\n" +
+	"\x15metarr/v1/admin.proto\x12\tmetarr.v1\x1a google/protobuf/field_mask.proto\"\xdd\x01\n" +
 	"\tAdminUser\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12#\n" +
 	"\rpassword_salt\x18\x03 \x01(\tR\fpasswordSalt\x12#\n" +
-	"\rpassword_hash\x18\x04 \x01(\tR\fpasswordHash\"\x15\n" +
+	"\rpassword_hash\x18\x04 \x01(\tR\fpasswordHash\x12T\n" +
+	"\x15authentication_scheme\x18\x05 \x01(\x0e2\x1f.metarr.v1.AuthenticationSchemeR\x14authenticationScheme\"\x15\n" +
 	"\x13GetAdminUserRequest\"\xa4\x01\n" +
 	"\x16UpdateAdminUserRequest\x12*\n" +
 	"\x05admin\x18\x01 \x01(\v2\x14.metarr.v1.AdminUserR\x05admin\x12;\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
 	"updateMask\x12!\n" +
-	"\fnew_password\x18\x03 \x01(\tR\vnewPassword2\xa0\x01\n" +
+	"\fnew_password\x18\x03 \x01(\tR\vnewPassword*\x81\x01\n" +
+	"\x14AuthenticationScheme\x12%\n" +
+	"!AUTHENTICATION_SCHEME_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aAUTHENTICATION_SCHEME_NONE\x10\x01\x12\"\n" +
+	"\x1eAUTHENTICATION_SCHEME_PASSWORD\x10\x022\xa0\x01\n" +
 	"\fAdminService\x12D\n" +
 	"\fGetAdminUser\x12\x1e.metarr.v1.GetAdminUserRequest\x1a\x14.metarr.v1.AdminUser\x12J\n" +
 	"\x0fUpdateAdminUser\x12!.metarr.v1.UpdateAdminUserRequest\x1a\x14.metarr.v1.AdminUserB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
@@ -240,25 +319,28 @@ func file_metarr_v1_admin_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_admin_proto_rawDescData
 }
 
+var file_metarr_v1_admin_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_metarr_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_metarr_v1_admin_proto_goTypes = []any{
-	(*AdminUser)(nil),              // 0: metarr.v1.AdminUser
-	(*GetAdminUserRequest)(nil),    // 1: metarr.v1.GetAdminUserRequest
-	(*UpdateAdminUserRequest)(nil), // 2: metarr.v1.UpdateAdminUserRequest
-	(*fieldmaskpb.FieldMask)(nil),  // 3: google.protobuf.FieldMask
+	(AuthenticationScheme)(0),      // 0: metarr.v1.AuthenticationScheme
+	(*AdminUser)(nil),              // 1: metarr.v1.AdminUser
+	(*GetAdminUserRequest)(nil),    // 2: metarr.v1.GetAdminUserRequest
+	(*UpdateAdminUserRequest)(nil), // 3: metarr.v1.UpdateAdminUserRequest
+	(*fieldmaskpb.FieldMask)(nil),  // 4: google.protobuf.FieldMask
 }
 var file_metarr_v1_admin_proto_depIdxs = []int32{
-	0, // 0: metarr.v1.UpdateAdminUserRequest.admin:type_name -> metarr.v1.AdminUser
-	3, // 1: metarr.v1.UpdateAdminUserRequest.update_mask:type_name -> google.protobuf.FieldMask
-	1, // 2: metarr.v1.AdminService.GetAdminUser:input_type -> metarr.v1.GetAdminUserRequest
-	2, // 3: metarr.v1.AdminService.UpdateAdminUser:input_type -> metarr.v1.UpdateAdminUserRequest
-	0, // 4: metarr.v1.AdminService.GetAdminUser:output_type -> metarr.v1.AdminUser
-	0, // 5: metarr.v1.AdminService.UpdateAdminUser:output_type -> metarr.v1.AdminUser
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0, // 0: metarr.v1.AdminUser.authentication_scheme:type_name -> metarr.v1.AuthenticationScheme
+	1, // 1: metarr.v1.UpdateAdminUserRequest.admin:type_name -> metarr.v1.AdminUser
+	4, // 2: metarr.v1.UpdateAdminUserRequest.update_mask:type_name -> google.protobuf.FieldMask
+	2, // 3: metarr.v1.AdminService.GetAdminUser:input_type -> metarr.v1.GetAdminUserRequest
+	3, // 4: metarr.v1.AdminService.UpdateAdminUser:input_type -> metarr.v1.UpdateAdminUserRequest
+	1, // 5: metarr.v1.AdminService.GetAdminUser:output_type -> metarr.v1.AdminUser
+	1, // 6: metarr.v1.AdminService.UpdateAdminUser:output_type -> metarr.v1.AdminUser
+	5, // [5:7] is the sub-list for method output_type
+	3, // [3:5] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_metarr_v1_admin_proto_init() }
@@ -271,13 +353,14 @@ func file_metarr_v1_admin_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_admin_proto_rawDesc), len(file_metarr_v1_admin_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_metarr_v1_admin_proto_goTypes,
 		DependencyIndexes: file_metarr_v1_admin_proto_depIdxs,
+		EnumInfos:         file_metarr_v1_admin_proto_enumTypes,
 		MessageInfos:      file_metarr_v1_admin_proto_msgTypes,
 	}.Build()
 	File_metarr_v1_admin_proto = out.File

@@ -50,6 +50,10 @@ func (s *Store) SeedAdmin(ctx context.Context) (AdminSeedResult, error) {
 				Email:        email,
 				PasswordSalt: salt,
 				PasswordHash: hash,
+				// The initial credential is seeded and printed regardless of
+				// scheme; a fresh install just starts with None so the login
+				// wall is off out of the box (docs/adr/0012).
+				AuthenticationScheme: appconfig.AuthSchemeNone,
 			}
 			result = AdminSeedResult{Username: cfg.Admin.Username, Password: password}
 			return true, nil

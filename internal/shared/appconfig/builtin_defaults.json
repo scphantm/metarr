@@ -448,7 +448,8 @@
   },
   "admin": {
     "username": "admin",
-    "email": "admin@example.com"
+    "email": "admin@example.com",
+    "authentication_scheme": "AUTHENTICATION_SCHEME_NONE"
   },
   "api_keys": {
     "admin": {
