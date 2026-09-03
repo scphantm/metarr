@@ -12,7 +12,28 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/auth.proto.
  */
 export const file_metarr_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChRtZXRhcnIvdjEvYXV0aC5wcm90bxIJbWV0YXJyLnYxIj0KF0F1dGhTZXJ2aWNlTG9naW5SZXF1ZXN0EhAKCHVzZXJuYW1lGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIkcKGEF1dGhTZXJ2aWNlTG9naW5SZXNwb25zZRIPCgdhcGlfa2V5GAEgASgJEhoKEmV4cGlyZXNfaW5fc2Vjb25kcxgCIAEoBSIaChhBdXRoU2VydmljZUxvZ291dFJlcXVlc3QiKwoZQXV0aFNlcnZpY2VMb2dvdXRSZXNwb25zZRIOCgZzdGF0dXMYASABKAkiIQofQXV0aFNlcnZpY2VHZXRBdXRoU2NoZW1lUmVxdWVzdCJTCiBBdXRoU2VydmljZUdldEF1dGhTY2hlbWVSZXNwb25zZRIvCgZzY2hlbWUYASABKA4yHy5tZXRhcnIudjEuQXV0aGVudGljYXRpb25TY2hlbWUyngIKC0F1dGhTZXJ2aWNlElAKBUxvZ2luEiIubWV0YXJyLnYxLkF1dGhTZXJ2aWNlTG9naW5SZXF1ZXN0GiMubWV0YXJyLnYxLkF1dGhTZXJ2aWNlTG9naW5SZXNwb25zZRJTCgZMb2dvdXQSIy5tZXRhcnIudjEuQXV0aFNlcnZpY2VMb2dvdXRSZXF1ZXN0GiQubWV0YXJyLnYxLkF1dGhTZXJ2aWNlTG9nb3V0UmVzcG9uc2USaAoNR2V0QXV0aFNjaGVtZRIqLm1ldGFyci52MS5BdXRoU2VydmljZUdldEF1dGhTY2hlbWVSZXF1ZXN0GisubWV0YXJyLnYxLkF1dGhTZXJ2aWNlR2V0QXV0aFNjaGVtZVJlc3BvbnNlQi1aK01ldGFyci9pbnRlcm5hbC9nZW5wcm90by9tZXRhcnIvdjE7bWV0YXJydjFiBnByb3RvMw", [file_metarr_v1_admin]);
+  fileDesc("ChRtZXRhcnIvdjEvYXV0aC5wcm90bxIJbWV0YXJyLnYxIiEKCkF1dGhDb25maWcSEwoLaG1hY19zZWNyZXQYASABKAkiPQoXQXV0aFNlcnZpY2VMb2dpblJlcXVlc3QSEAoIdXNlcm5hbWUYASABKAkSEAoIcGFzc3dvcmQYAiABKAkiRwoYQXV0aFNlcnZpY2VMb2dpblJlc3BvbnNlEg8KB2FwaV9rZXkYASABKAkSGgoSZXhwaXJlc19pbl9zZWNvbmRzGAIgASgFIhoKGEF1dGhTZXJ2aWNlTG9nb3V0UmVxdWVzdCIrChlBdXRoU2VydmljZUxvZ291dFJlc3BvbnNlEg4KBnN0YXR1cxgBIAEoCSIhCh9BdXRoU2VydmljZUdldEF1dGhTY2hlbWVSZXF1ZXN0IlMKIEF1dGhTZXJ2aWNlR2V0QXV0aFNjaGVtZVJlc3BvbnNlEi8KBnNjaGVtZRgBIAEoDjIfLm1ldGFyci52MS5BdXRoZW50aWNhdGlvblNjaGVtZTKeAgoLQXV0aFNlcnZpY2USUAoFTG9naW4SIi5tZXRhcnIudjEuQXV0aFNlcnZpY2VMb2dpblJlcXVlc3QaIy5tZXRhcnIudjEuQXV0aFNlcnZpY2VMb2dpblJlc3BvbnNlElMKBkxvZ291dBIjLm1ldGFyci52MS5BdXRoU2VydmljZUxvZ291dFJlcXVlc3QaJC5tZXRhcnIudjEuQXV0aFNlcnZpY2VMb2dvdXRSZXNwb25zZRJoCg1HZXRBdXRoU2NoZW1lEioubWV0YXJyLnYxLkF1dGhTZXJ2aWNlR2V0QXV0aFNjaGVtZVJlcXVlc3QaKy5tZXRhcnIudjEuQXV0aFNlcnZpY2VHZXRBdXRoU2NoZW1lUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_metarr_v1_admin]);
+
+/**
+ * AuthConfig holds authentication configuration including the HMAC signing secret.
+ *
+ * @generated from message metarr.v1.AuthConfig
+ */
+export type AuthConfig = Message<"metarr.v1.AuthConfig"> & {
+  /**
+   * hmac_secret is the base64-encoded HMAC-SHA256 signing key used for JWT tokens.
+   *
+   * @generated from field: string hmac_secret = 1;
+   */
+  hmacSecret: string;
+};
+
+/**
+ * Describes the message metarr.v1.AuthConfig.
+ * Use `create(AuthConfigSchema)` to create a new message.
+ */
+export const AuthConfigSchema: GenMessage<AuthConfig> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_auth, 0);
 
 /**
  * @generated from message metarr.v1.AuthServiceLoginRequest
@@ -34,7 +55,7 @@ export type AuthServiceLoginRequest = Message<"metarr.v1.AuthServiceLoginRequest
  * Use `create(AuthServiceLoginRequestSchema)` to create a new message.
  */
 export const AuthServiceLoginRequestSchema: GenMessage<AuthServiceLoginRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_auth, 0);
+  messageDesc(file_metarr_v1_auth, 1);
 
 /**
  * @generated from message metarr.v1.AuthServiceLoginResponse
@@ -56,7 +77,7 @@ export type AuthServiceLoginResponse = Message<"metarr.v1.AuthServiceLoginRespon
  * Use `create(AuthServiceLoginResponseSchema)` to create a new message.
  */
 export const AuthServiceLoginResponseSchema: GenMessage<AuthServiceLoginResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_auth, 1);
+  messageDesc(file_metarr_v1_auth, 2);
 
 /**
  * @generated from message metarr.v1.AuthServiceLogoutRequest
@@ -69,7 +90,7 @@ export type AuthServiceLogoutRequest = Message<"metarr.v1.AuthServiceLogoutReque
  * Use `create(AuthServiceLogoutRequestSchema)` to create a new message.
  */
 export const AuthServiceLogoutRequestSchema: GenMessage<AuthServiceLogoutRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_auth, 2);
+  messageDesc(file_metarr_v1_auth, 3);
 
 /**
  * @generated from message metarr.v1.AuthServiceLogoutResponse
@@ -86,7 +107,7 @@ export type AuthServiceLogoutResponse = Message<"metarr.v1.AuthServiceLogoutResp
  * Use `create(AuthServiceLogoutResponseSchema)` to create a new message.
  */
 export const AuthServiceLogoutResponseSchema: GenMessage<AuthServiceLogoutResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_auth, 3);
+  messageDesc(file_metarr_v1_auth, 4);
 
 /**
  * @generated from message metarr.v1.AuthServiceGetAuthSchemeRequest
@@ -99,7 +120,7 @@ export type AuthServiceGetAuthSchemeRequest = Message<"metarr.v1.AuthServiceGetA
  * Use `create(AuthServiceGetAuthSchemeRequestSchema)` to create a new message.
  */
 export const AuthServiceGetAuthSchemeRequestSchema: GenMessage<AuthServiceGetAuthSchemeRequest> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_auth, 4);
+  messageDesc(file_metarr_v1_auth, 5);
 
 /**
  * @generated from message metarr.v1.AuthServiceGetAuthSchemeResponse
@@ -116,7 +137,7 @@ export type AuthServiceGetAuthSchemeResponse = Message<"metarr.v1.AuthServiceGet
  * Use `create(AuthServiceGetAuthSchemeResponseSchema)` to create a new message.
  */
 export const AuthServiceGetAuthSchemeResponseSchema: GenMessage<AuthServiceGetAuthSchemeResponse> = /*@__PURE__*/
-  messageDesc(file_metarr_v1_auth, 5);
+  messageDesc(file_metarr_v1_auth, 6);
 
 /**
  * @generated from service metarr.v1.AuthService

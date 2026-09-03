@@ -44,6 +44,7 @@ type (
 	LoggingConfig          = metarrv1.LoggingConfig
 	EventBusConfig         = metarrv1.EventBusConfig
 	AuthenticationScheme   = metarrv1.AuthenticationScheme
+	AuthConfig             = metarrv1.AuthConfig
 )
 
 // The authentication schemes (docs/adr/0012). Unspecified is the unset value
@@ -154,6 +155,9 @@ func normalizeSections(config *Config) {
 	}
 	if config.EventBus == nil {
 		config.EventBus = &EventBusConfig{}
+	}
+	if config.Auth == nil {
+		config.Auth = &AuthConfig{}
 	}
 }
 
@@ -293,5 +297,6 @@ func Default() *Config {
 		// that shared copy.
 		Logging:  proto.Clone(defaults.Logging).(*LoggingConfig),
 		EventBus: proto.Clone(defaults.EventBus).(*EventBusConfig),
+		Auth:     &AuthConfig{},
 	}
 }

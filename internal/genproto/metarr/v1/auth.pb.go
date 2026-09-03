@@ -21,6 +21,52 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// AuthConfig holds authentication configuration including the HMAC signing secret.
+type AuthConfig struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// hmac_secret is the base64-encoded HMAC-SHA256 signing key used for JWT tokens.
+	HmacSecret    string `protobuf:"bytes,1,opt,name=hmac_secret,json=hmacSecret,proto3" json:"hmac_secret,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthConfig) Reset() {
+	*x = AuthConfig{}
+	mi := &file_metarr_v1_auth_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthConfig) ProtoMessage() {}
+
+func (x *AuthConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_auth_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthConfig.ProtoReflect.Descriptor instead.
+func (*AuthConfig) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *AuthConfig) GetHmacSecret() string {
+	if x != nil {
+		return x.HmacSecret
+	}
+	return ""
+}
+
 type AuthServiceLoginRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
@@ -31,7 +77,7 @@ type AuthServiceLoginRequest struct {
 
 func (x *AuthServiceLoginRequest) Reset() {
 	*x = AuthServiceLoginRequest{}
-	mi := &file_metarr_v1_auth_proto_msgTypes[0]
+	mi := &file_metarr_v1_auth_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +89,7 @@ func (x *AuthServiceLoginRequest) String() string {
 func (*AuthServiceLoginRequest) ProtoMessage() {}
 
 func (x *AuthServiceLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_auth_proto_msgTypes[0]
+	mi := &file_metarr_v1_auth_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +102,7 @@ func (x *AuthServiceLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthServiceLoginRequest.ProtoReflect.Descriptor instead.
 func (*AuthServiceLoginRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{0}
+	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *AuthServiceLoginRequest) GetUsername() string {
@@ -83,7 +129,7 @@ type AuthServiceLoginResponse struct {
 
 func (x *AuthServiceLoginResponse) Reset() {
 	*x = AuthServiceLoginResponse{}
-	mi := &file_metarr_v1_auth_proto_msgTypes[1]
+	mi := &file_metarr_v1_auth_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -95,7 +141,7 @@ func (x *AuthServiceLoginResponse) String() string {
 func (*AuthServiceLoginResponse) ProtoMessage() {}
 
 func (x *AuthServiceLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_auth_proto_msgTypes[1]
+	mi := &file_metarr_v1_auth_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -108,7 +154,7 @@ func (x *AuthServiceLoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthServiceLoginResponse.ProtoReflect.Descriptor instead.
 func (*AuthServiceLoginResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{1}
+	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *AuthServiceLoginResponse) GetApiKey() string {
@@ -133,7 +179,7 @@ type AuthServiceLogoutRequest struct {
 
 func (x *AuthServiceLogoutRequest) Reset() {
 	*x = AuthServiceLogoutRequest{}
-	mi := &file_metarr_v1_auth_proto_msgTypes[2]
+	mi := &file_metarr_v1_auth_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -145,7 +191,7 @@ func (x *AuthServiceLogoutRequest) String() string {
 func (*AuthServiceLogoutRequest) ProtoMessage() {}
 
 func (x *AuthServiceLogoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_auth_proto_msgTypes[2]
+	mi := &file_metarr_v1_auth_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -158,7 +204,7 @@ func (x *AuthServiceLogoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthServiceLogoutRequest.ProtoReflect.Descriptor instead.
 func (*AuthServiceLogoutRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{2}
+	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{3}
 }
 
 type AuthServiceLogoutResponse struct {
@@ -170,7 +216,7 @@ type AuthServiceLogoutResponse struct {
 
 func (x *AuthServiceLogoutResponse) Reset() {
 	*x = AuthServiceLogoutResponse{}
-	mi := &file_metarr_v1_auth_proto_msgTypes[3]
+	mi := &file_metarr_v1_auth_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -182,7 +228,7 @@ func (x *AuthServiceLogoutResponse) String() string {
 func (*AuthServiceLogoutResponse) ProtoMessage() {}
 
 func (x *AuthServiceLogoutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_auth_proto_msgTypes[3]
+	mi := &file_metarr_v1_auth_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -195,7 +241,7 @@ func (x *AuthServiceLogoutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthServiceLogoutResponse.ProtoReflect.Descriptor instead.
 func (*AuthServiceLogoutResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{3}
+	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AuthServiceLogoutResponse) GetStatus() string {
@@ -213,7 +259,7 @@ type AuthServiceGetAuthSchemeRequest struct {
 
 func (x *AuthServiceGetAuthSchemeRequest) Reset() {
 	*x = AuthServiceGetAuthSchemeRequest{}
-	mi := &file_metarr_v1_auth_proto_msgTypes[4]
+	mi := &file_metarr_v1_auth_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -225,7 +271,7 @@ func (x *AuthServiceGetAuthSchemeRequest) String() string {
 func (*AuthServiceGetAuthSchemeRequest) ProtoMessage() {}
 
 func (x *AuthServiceGetAuthSchemeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_auth_proto_msgTypes[4]
+	mi := &file_metarr_v1_auth_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -238,7 +284,7 @@ func (x *AuthServiceGetAuthSchemeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthServiceGetAuthSchemeRequest.ProtoReflect.Descriptor instead.
 func (*AuthServiceGetAuthSchemeRequest) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{4}
+	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{5}
 }
 
 type AuthServiceGetAuthSchemeResponse struct {
@@ -250,7 +296,7 @@ type AuthServiceGetAuthSchemeResponse struct {
 
 func (x *AuthServiceGetAuthSchemeResponse) Reset() {
 	*x = AuthServiceGetAuthSchemeResponse{}
-	mi := &file_metarr_v1_auth_proto_msgTypes[5]
+	mi := &file_metarr_v1_auth_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -262,7 +308,7 @@ func (x *AuthServiceGetAuthSchemeResponse) String() string {
 func (*AuthServiceGetAuthSchemeResponse) ProtoMessage() {}
 
 func (x *AuthServiceGetAuthSchemeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_metarr_v1_auth_proto_msgTypes[5]
+	mi := &file_metarr_v1_auth_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -275,7 +321,7 @@ func (x *AuthServiceGetAuthSchemeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthServiceGetAuthSchemeResponse.ProtoReflect.Descriptor instead.
 func (*AuthServiceGetAuthSchemeResponse) Descriptor() ([]byte, []int) {
-	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{5}
+	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *AuthServiceGetAuthSchemeResponse) GetScheme() AuthenticationScheme {
@@ -289,7 +335,11 @@ var File_metarr_v1_auth_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x14metarr/v1/auth.proto\x12\tmetarr.v1\x1a\x15metarr/v1/admin.proto\"Q\n" +
+	"\x14metarr/v1/auth.proto\x12\tmetarr.v1\x1a\x15metarr/v1/admin.proto\"-\n" +
+	"\n" +
+	"AuthConfig\x12\x1f\n" +
+	"\vhmac_secret\x18\x01 \x01(\tR\n" +
+	"hmacSecret\"Q\n" +
 	"\x17AuthServiceLoginRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"a\n" +
@@ -319,24 +369,25 @@ func file_metarr_v1_auth_proto_rawDescGZIP() []byte {
 	return file_metarr_v1_auth_proto_rawDescData
 }
 
-var file_metarr_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_metarr_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_metarr_v1_auth_proto_goTypes = []any{
-	(*AuthServiceLoginRequest)(nil),          // 0: metarr.v1.AuthServiceLoginRequest
-	(*AuthServiceLoginResponse)(nil),         // 1: metarr.v1.AuthServiceLoginResponse
-	(*AuthServiceLogoutRequest)(nil),         // 2: metarr.v1.AuthServiceLogoutRequest
-	(*AuthServiceLogoutResponse)(nil),        // 3: metarr.v1.AuthServiceLogoutResponse
-	(*AuthServiceGetAuthSchemeRequest)(nil),  // 4: metarr.v1.AuthServiceGetAuthSchemeRequest
-	(*AuthServiceGetAuthSchemeResponse)(nil), // 5: metarr.v1.AuthServiceGetAuthSchemeResponse
-	(AuthenticationScheme)(0),                // 6: metarr.v1.AuthenticationScheme
+	(*AuthConfig)(nil),                       // 0: metarr.v1.AuthConfig
+	(*AuthServiceLoginRequest)(nil),          // 1: metarr.v1.AuthServiceLoginRequest
+	(*AuthServiceLoginResponse)(nil),         // 2: metarr.v1.AuthServiceLoginResponse
+	(*AuthServiceLogoutRequest)(nil),         // 3: metarr.v1.AuthServiceLogoutRequest
+	(*AuthServiceLogoutResponse)(nil),        // 4: metarr.v1.AuthServiceLogoutResponse
+	(*AuthServiceGetAuthSchemeRequest)(nil),  // 5: metarr.v1.AuthServiceGetAuthSchemeRequest
+	(*AuthServiceGetAuthSchemeResponse)(nil), // 6: metarr.v1.AuthServiceGetAuthSchemeResponse
+	(AuthenticationScheme)(0),                // 7: metarr.v1.AuthenticationScheme
 }
 var file_metarr_v1_auth_proto_depIdxs = []int32{
-	6, // 0: metarr.v1.AuthServiceGetAuthSchemeResponse.scheme:type_name -> metarr.v1.AuthenticationScheme
-	0, // 1: metarr.v1.AuthService.Login:input_type -> metarr.v1.AuthServiceLoginRequest
-	2, // 2: metarr.v1.AuthService.Logout:input_type -> metarr.v1.AuthServiceLogoutRequest
-	4, // 3: metarr.v1.AuthService.GetAuthScheme:input_type -> metarr.v1.AuthServiceGetAuthSchemeRequest
-	1, // 4: metarr.v1.AuthService.Login:output_type -> metarr.v1.AuthServiceLoginResponse
-	3, // 5: metarr.v1.AuthService.Logout:output_type -> metarr.v1.AuthServiceLogoutResponse
-	5, // 6: metarr.v1.AuthService.GetAuthScheme:output_type -> metarr.v1.AuthServiceGetAuthSchemeResponse
+	7, // 0: metarr.v1.AuthServiceGetAuthSchemeResponse.scheme:type_name -> metarr.v1.AuthenticationScheme
+	1, // 1: metarr.v1.AuthService.Login:input_type -> metarr.v1.AuthServiceLoginRequest
+	3, // 2: metarr.v1.AuthService.Logout:input_type -> metarr.v1.AuthServiceLogoutRequest
+	5, // 3: metarr.v1.AuthService.GetAuthScheme:input_type -> metarr.v1.AuthServiceGetAuthSchemeRequest
+	2, // 4: metarr.v1.AuthService.Login:output_type -> metarr.v1.AuthServiceLoginResponse
+	4, // 5: metarr.v1.AuthService.Logout:output_type -> metarr.v1.AuthServiceLogoutResponse
+	6, // 6: metarr.v1.AuthService.GetAuthScheme:output_type -> metarr.v1.AuthServiceGetAuthSchemeResponse
 	4, // [4:7] is the sub-list for method output_type
 	1, // [1:4] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
@@ -356,7 +407,7 @@ func file_metarr_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_auth_proto_rawDesc), len(file_metarr_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

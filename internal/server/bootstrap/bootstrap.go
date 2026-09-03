@@ -42,6 +42,10 @@ type Report struct {
 	// minted a missing id for (0 once every entry has one).
 	APIKeyIDsBackfilled int
 
+	// HmacSecretGenerated reports whether an HMAC signing secret was
+	// generated for the first time (false on an ordinary restart).
+	HmacSecretGenerated bool
+
 	// FinalConfig is the fully-seeded document as Run last saw it — the
 	// same *appconfig.Config the static-config Bootstrap call below already
 	// read from storage and mutated in place, handed back so a caller (only
@@ -82,7 +86,7 @@ func Run(ctx context.Context, store *appconfigstore.Store) (Report, error) {
 	}
 
 	var apiKeysSeeded bool
-	apply := staticConfigSteps(apiKeysTemplate, &apiKeysSeeded, &report.SidecarTypesAdded, &report.APIKeyIDsBackfilled)
+	apply := staticConfigSteps(apiKeysTemplate, &apiKeysSeeded, &report.SidecarTypesAdded, &report.APIKeyIDsBackfilled, &report.HmacSecretGenerated)
 
 	var finalCfg *appconfig.Config
 	if err := store.Bootstrap(ctx, func(cfg *appconfig.Config) (bool, error) {
@@ -107,7 +111,7 @@ func Run(ctx context.Context, store *appconfigstore.Store) (Report, error) {
 // errors stops the sequence immediately, wrapped with its own name so a
 // failure is still traceable to the step that caused it despite no longer
 // being its own Bootstrap call.
-func staticConfigSteps(apiKeysTemplate []byte, apiKeysSeeded *bool, sidecarTypesAdded, apiKeyIDsBackfilled *int) func(cfg *appconfig.Config) (bool, error) {
+func staticConfigSteps(apiKeysTemplate []byte, apiKeysSeeded *bool, sidecarTypesAdded, apiKeyIDsBackfilled *int, hmacSecretGenerated *bool) func(cfg *appconfig.Config) (bool, error) {
 	steps := []struct {
 		name  string
 		apply func(*appconfig.Config) (bool, error)
@@ -119,6 +123,7 @@ func staticConfigSteps(apiKeysTemplate []byte, apiKeysSeeded *bool, sidecarTypes
 		{"event_bus_defaults", eventBusDefaultsStep},
 		{"sidecar_types_merge_missing", sidecarTypesMergeMissingStep(sidecarTypesAdded)},
 		{"api_key_ids_backfill", apiKeyIDsBackfillStep(apiKeyIDsBackfilled)},
+		{"hmac_secret_seed", hmacSecretSeedStep(hmacSecretGenerated)},
 	}
 
 	return func(cfg *appconfig.Config) (bool, error) {
