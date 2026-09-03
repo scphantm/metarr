@@ -24,12 +24,32 @@ const (
 	maxWorkflowLimit     = 100
 )
 
-// WorkflowServer implements metarrv1connect.WorkflowServiceHandler, ported
-// directly from internal/server/handlers/workflows.go — same Mongo reads
-// and the same synchronous Save call (see UpsertWorkflow's doc comment),
-// only the transport changed.
+// WorkflowStore is the narrow, consumer-declared view of the versioned
+// workflow repository that WorkflowServer needs — only the append-only save
+// plus the four reads it calls today, no speculative surface. It is declared
+// here, by the consumer, the same way appconfigstore declares its own
+// configReader / configWriter interfaces rather than naming a concrete repo.
+// The concrete *mongostore.WorkflowRepo satisfies it unchanged in
+// production; an in-memory fake satisfies it in tests.
+type WorkflowStore interface {
+	Save(ctx context.Context, documentID bson.ObjectID, w mongostore.Workflow) (mongostore.Workflow, error)
+	ListLatest(ctx context.Context, filter versioned.LatestFilter) ([]mongostore.Workflow, string, bool, error)
+	GetLatest(ctx context.Context, documentID bson.ObjectID) (mongostore.Workflow, error)
+	GetVersion(ctx context.Context, documentID bson.ObjectID, version int) (mongostore.Workflow, error)
+	ListVersions(ctx context.Context, documentID bson.ObjectID) ([]mongostore.Workflow, error)
+}
+
+// WorkflowServer implements metarrv1connect.WorkflowServiceHandler. It reads
+// and writes workflow graphs through the WorkflowStore seam — the append-only
+// versioned store, reached via the concrete repo in production and a fake in
+// tests. Writes are synchronous (see Upsert's doc comment).
 type WorkflowServer struct {
 	*handlers.Handlers
+
+	// Store is the workflow persistence seam. The composition root
+	// (cmd/metarr-server) wires the concrete *mongostore.WorkflowRepo here;
+	// tests wire an in-memory fake.
+	Store WorkflowStore
 }
 
 // WorkflowAuthPolicies is this service's method-name -> policy map. Mirrors
@@ -66,7 +86,7 @@ func (s *WorkflowServer) List(
 		filter.Cursor = cursor
 	}
 
-	workflows, nextCursor, hasMore, err := s.WorkflowRepo.ListLatest(ctx, filter)
+	workflows, nextCursor, hasMore, err := s.Store.ListLatest(ctx, filter)
 	if err != nil {
 		s.Logger.Error("failed to list workflows", "error", err)
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to list workflows"))
@@ -98,7 +118,7 @@ func (s *WorkflowServer) Get(
 		return nil, connectError(http.StatusBadRequest, err)
 	}
 
-	workflow, err := s.WorkflowRepo.GetLatest(ctx, workflowID)
+	workflow, err := s.Store.GetLatest(ctx, workflowID)
 	if err != nil {
 		return nil, workflowLookupError(err, workflowID, s.Logger)
 	}
@@ -121,7 +141,7 @@ func (s *WorkflowServer) ListVersions(
 		return nil, connectError(http.StatusBadRequest, err)
 	}
 
-	versions, err := s.WorkflowRepo.ListVersions(ctx, workflowID)
+	versions, err := s.Store.ListVersions(ctx, workflowID)
 	if err != nil {
 		s.Logger.Error("failed to list workflow versions", "workflow_id", workflowID.Hex(), "error", err)
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to list workflow versions"))
@@ -154,7 +174,7 @@ func (s *WorkflowServer) GetVersion(
 		return nil, connectError(http.StatusBadRequest, errors.New("version must be a positive integer"))
 	}
 
-	workflow, err := s.WorkflowRepo.GetVersion(ctx, workflowID, version)
+	workflow, err := s.Store.GetVersion(ctx, workflowID, version)
 	if err != nil {
 		return nil, workflowLookupError(err, workflowID, s.Logger)
 	}
@@ -190,7 +210,7 @@ func (s *WorkflowServer) Upsert(
 		return nil, connectError(http.StatusBadRequest, err)
 	}
 
-	saved, err := s.WorkflowRepo.Save(ctx, documentID, entry)
+	saved, err := s.Store.Save(ctx, documentID, entry)
 	if err != nil {
 		s.Logger.Error("failed to save workflow", "error", err)
 		return nil, connectError(http.StatusInternalServerError, errors.New("failed to save workflow"))
