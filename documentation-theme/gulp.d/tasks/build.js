@@ -6,7 +6,7 @@ const concat = require('gulp-concat')
 const cssnano = require('cssnano')
 const fs = require('fs-extra')
 const imageminPlugin = require('gulp-imagemin')
-const imagemin = imageminPlugin.default
+const imagemin = typeof imageminPlugin === 'function' ? imageminPlugin : imageminPlugin.default
 const merge = require('merge-stream')
 const ospath = require('path')
 const path = ospath.posix
