@@ -3,7 +3,6 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Input, Space, Typography } from "antd";
 
 import {
-  queryKeys,
   useCreateSonarrInstance,
   useDeleteSonarrInstance,
   useUpdateSonarrInstance,
@@ -102,8 +101,6 @@ function InstanceCard({
   onSave: (next: SonarrInstanceInit) => Promise<unknown>;
   onRemove: () => void;
 }) {
-  const key = queryKeys.sonarr;
-
   // A plain object built field-by-field, never {...instance, field}: once a
   // spread carries instance's own literal $typeName, TS resolves
   // MessageInit<SonarrInstance>'s union to the strict branded branch even
@@ -150,7 +147,6 @@ function InstanceCard({
       <Row label="Name">
         <EditableText
           label="Instance name"
-          queryKey={key}
           value={instance.instanceName ?? ""}
           placeholder="Unnamed instance"
           onSave={(instanceName) => onSave(nextInstance({ instanceName }))}
@@ -160,7 +156,6 @@ function InstanceCard({
       <Row label="URL">
         <EditableText
           label="Sonarr URL"
-          queryKey={key}
           value={instance.sonarrUrl ?? ""}
           monospace
           placeholder="http://localhost:8989"
@@ -176,7 +171,6 @@ function InstanceCard({
       <Row label="API key">
         <EditableText
           label="Sonarr API key"
-          queryKey={key}
           value={instance.sonarrApiKey ?? ""}
           monospace
           secret
@@ -191,7 +185,6 @@ function InstanceCard({
       >
         <EditableSelect
           label="Storage mode"
-          queryKey={key}
           value={instance.storage?.mode ?? "cache"}
           options={storageModes}
           onSave={(mode) =>
@@ -215,7 +208,6 @@ function InstanceCard({
         <Row label="Max revisions">
           <EditableNumber
             label="Max count"
-            queryKey={key}
             value={instance.storage?.maxCount ?? 0}
             min={1}
             onSave={(maxCount) =>
@@ -238,7 +230,6 @@ function InstanceCard({
         <Row label="TTL" hint="How long cached data lives, e.g. 24h or 90m">
           <EditableText
             label="TTL"
-            queryKey={key}
             value={instance.storage?.ttl ?? ""}
             monospace
             placeholder="24h"
@@ -315,7 +306,6 @@ function RootDirMap({
           <div className="sonarr-root-dir-field">
             <EditableText
               label="Sonarr path"
-              queryKey={queryKeys.sonarr}
               value={mapping.sonarrPath ?? ""}
               monospace
               onSave={(sonarrPath) => {
@@ -331,7 +321,6 @@ function RootDirMap({
           <div className="sonarr-root-dir-field">
             <EditableText
               label="Local path"
-              queryKey={queryKeys.sonarr}
               value={mapping.localPath ?? ""}
               monospace
               onSave={(localPath) => {
@@ -428,14 +417,18 @@ function NewInstance({
       return;
     }
     setError(null);
-    await onCreate({
-      instanceSlug: slug.trim(),
-      instanceName: name.trim() || slug.trim(),
-      sonarrUrl: url.trim(),
-      sonarrApiKey: apiKey.trim(),
-      rootDirMap: [],
-      storage: { mode: "cache", ttl: "24h" },
-    });
+    try {
+      await onCreate({
+        instanceSlug: slug.trim(),
+        instanceName: name.trim() || slug.trim(),
+        sonarrUrl: url.trim(),
+        sonarrApiKey: apiKey.trim(),
+        rootDirMap: [],
+        storage: { mode: "cache", ttl: "24h" },
+      });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    }
   }
 
   return (

@@ -8,13 +8,12 @@ import { useSaveState } from "./useSaveState";
  * Edit-in-place fields, each a genuine antd form control at all times rather
  * than a text/input toggle — commits on blur or Enter, Escape reverts the
  * draft. Nothing here knows how to save: each field is handed an onSave that
- * performs the write, and useSaveState owns what happens between accepting
- * it and the server confirming it.
+ * performs the write, and useSaveState owns the idle → saving → saved
+ * lifecycle around it.
  */
 
 type CommonProps = {
   label: string;
-  queryKey: readonly unknown[];
   disabled?: boolean;
 };
 
@@ -22,7 +21,6 @@ export function EditableText({
   value,
   onSave,
   label,
-  queryKey,
   placeholder = "Not set",
   monospace = false,
   secret = false,
@@ -43,7 +41,7 @@ export function EditableText({
   validate?: (next: string) => string | null;
 }) {
   const { state, error, displayValue, save, dismissError } =
-    useSaveState<string>({ serverValue: value, queryKey });
+    useSaveState<string>({ serverValue: value });
 
   const [draft, setDraft] = useState(displayValue);
   const [focused, setFocused] = useState(false);
@@ -158,7 +156,6 @@ export function EditableNumber({
   value,
   onSave,
   label,
-  queryKey,
   min,
   disabled,
   validate,
@@ -169,7 +166,7 @@ export function EditableNumber({
   validate?: (next: number) => string | null;
 }) {
   const { state, error, displayValue, save, dismissError } =
-    useSaveState<number>({ serverValue: value, queryKey });
+    useSaveState<number>({ serverValue: value });
 
   const [draft, setDraft] = useState<number>(displayValue);
   const [focused, setFocused] = useState(false);
@@ -242,7 +239,6 @@ export function EditableSelect({
   options,
   onSave,
   label,
-  queryKey,
   disabled,
 }: CommonProps & {
   value: string;
@@ -250,7 +246,7 @@ export function EditableSelect({
   onSave: (next: string) => Promise<unknown>;
 }) {
   const { state, error, displayValue, save, dismissError } =
-    useSaveState<string>({ serverValue: value, queryKey });
+    useSaveState<string>({ serverValue: value });
 
   // A stored value outside the vocabulary still has to be selectable, or the
   // select would silently rewrite it on the next save.

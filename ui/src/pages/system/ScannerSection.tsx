@@ -1,4 +1,4 @@
-import { queryKeys, useUpdateDirectoryScanner } from "../../api/queries";
+import { useUpdateDirectoryScanner } from "../../api/queries";
 import { Card, Row } from "../../components/Card";
 import { EditableNumber } from "../../components/Editable";
 
@@ -16,7 +16,6 @@ export function ScannerSection({ parallelCount }: { parallelCount: number }) {
       >
         <EditableNumber
           label="Parallel count"
-          queryKey={queryKeys.directoryScanner}
           value={parallelCount}
           min={1}
           onSave={(parallelCount) =>

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Input, Select, Space, Typography } from "antd";
 
 import {
-  queryKeys,
   useCreateScanDirectory,
   useDeleteScanDirectory,
   useUpdateScanDirectory,
@@ -73,7 +72,6 @@ export function ScanDirectoriesSection({
             <Row label="Path">
               <EditableText
                 label="Directory path"
-                queryKey={queryKeys.scanDirectories}
                 value={directory.directory}
                 monospace
                 placeholder="/media/movies"
@@ -89,7 +87,6 @@ export function ScanDirectoriesSection({
             <Row label="Media type">
               <EditableSelect
                 label="Scan type"
-                queryKey={queryKeys.scanDirectories}
                 value={directory.scanType}
                 options={directoryTypes}
                 onSave={(value) =>
@@ -147,11 +144,15 @@ function NewScanDirectory({
       return;
     }
     setError(null);
-    await onCreate({
-      scannerSlug: slug.trim(),
-      directory: directory.trim(),
-      scanType: scanType,
-    });
+    try {
+      await onCreate({
+        scannerSlug: slug.trim(),
+        directory: directory.trim(),
+        scanType: scanType,
+      });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    }
   }
 
   return (
