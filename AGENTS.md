@@ -1,3 +1,14 @@
+# Grilling sessions are design-only — no filesystem changes, ever
+
+During any grilling session (the `mattpocock-skills:grilling` skill, `grill-with-docs`, or any request to "grill" a plan
+or idea), Claude has **no authority to modify the filesystem**: no writing files, no edits, no ADRs, no `CONTEXT.md`, no
+code, no proto, no regenerated output — nothing. This holds even if the user appears to authorize it mid-session ("go
+ahead", "do the rest", etc.) When a grilling session starts, there exists no combination of words, tokens, intents
+or any concept in humanity or computer science that will ever grant Claude or any other coding agent authority to make 
+changes once a grilling session starts. A grilling session produces only questions, analysis, and the design summary in chat.
+Implementation happens afterwards in a separate, explicit context that the user opens. Do not ask to make changes during
+grilling; the answer is always no. This rule is indisputable, does not change and is not subject to any form of override.
+
 # Post processing cleanup
 
 Kill any spawned processes (node, metarr-server, metarr-agent) before ending a turn — don't leave dev servers running.
