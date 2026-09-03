@@ -29,6 +29,7 @@ import {
   SystemDashboardPage,
   SystemDashboardSidebar,
 } from "./pages/system/SystemDashboardPage";
+import { TasksPage, TasksSidebar } from "./pages/tasks/TasksPage";
 import { WorkflowEditorPage } from "./pages/workflows/WorkflowEditorPage";
 import { WorkflowListPage } from "./pages/workflows/WorkflowListPage";
 
@@ -130,6 +131,14 @@ export function App() {
           element={
             <AppShell sidebar={<SecuritySidebar />}>
               <SecurityPage />
+            </AppShell>
+          }
+        />
+        <Route
+          path="/tasks"
+          element={
+            <AppShell sidebar={<TasksSidebar />}>
+              <TasksPage />
             </AppShell>
           }
         />

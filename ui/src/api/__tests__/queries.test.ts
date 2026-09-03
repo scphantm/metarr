@@ -32,6 +32,7 @@ const resetSidecarTypes = vi.fn();
 const createWorkflow = vi.fn();
 const updateWorkflow = vi.fn();
 const deleteWorkflow = vi.fn();
+const runDirectoryScan = vi.fn();
 
 vi.mock("../clients", () => ({
   statsClient: { purge: (...args: unknown[]) => purge(...args) },
@@ -84,6 +85,9 @@ vi.mock("../clients", () => ({
     updateWorkflow: (...args: unknown[]) => updateWorkflow(...args),
     deleteWorkflow: (...args: unknown[]) => deleteWorkflow(...args),
   },
+  taskClient: {
+    runDirectoryScan: (...args: unknown[]) => runDirectoryScan(...args),
+  },
 }));
 
 import {
@@ -116,6 +120,7 @@ import {
   useCreateWorkflow,
   useUpdateWorkflow,
   useDeleteWorkflow,
+  useRunDirectoryScan,
 } from "../queries";
 
 describe("queryKeys", () => {
@@ -866,5 +871,23 @@ describe("workflow write hooks", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(deleteWorkflow).toHaveBeenCalledWith({ id: "wf-1" });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.workflows });
+  });
+});
+
+// TaskService.RunDirectoryScan queues a durable scan command; there is nothing
+// to read back and no cache to invalidate, so the hook is a bare mutation that
+// resolves with the scan id.
+describe("useRunDirectoryScan", () => {
+  it("calls the task client with the selected slug and resolves with the scan id", async () => {
+    runDirectoryScan.mockReset().mockResolvedValue({ scanId: "scan-123" });
+    const { invalidate, wrapper } = mutationHarness();
+
+    const { result } = renderHook(() => useRunDirectoryScan(), { wrapper });
+    result.current.mutate("movies");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(runDirectoryScan).toHaveBeenCalledWith({ scannerSlug: "movies" });
+    expect(result.current.data).toEqual({ scanId: "scan-123" });
+    expect(invalidate).not.toHaveBeenCalled();
   });
 });

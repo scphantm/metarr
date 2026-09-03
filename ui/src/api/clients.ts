@@ -9,6 +9,7 @@ import { EventBusService } from "../gen/metarr/v1/event_bus_pb";
 import { LoggingService } from "../gen/metarr/v1/logging_pb";
 import { SonarrInterfaceService } from "../gen/metarr/v1/sonarr_interfaces_pb";
 import { StatsService } from "../gen/metarr/v1/stats_pb";
+import { TaskService } from "../gen/metarr/v1/tasks_pb";
 import { WorkflowCatalogService } from "../gen/metarr/v1/workflow_catalog_pb";
 import { WorkflowService } from "../gen/metarr/v1/workflows_pb";
 import { transport } from "./transport";
@@ -36,3 +37,4 @@ export const workflowCatalogClient = createClient(
 );
 export const workflowClient = createClient(WorkflowService, transport);
 export const statsClient = createClient(StatsService, transport);
+export const taskClient = createClient(TaskService, transport);
