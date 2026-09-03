@@ -1,9 +1,9 @@
-// Package services implements the gRPC-Web (Connect) service layer that is
-// replacing internal/server/handlers domain by domain. Each file here
-// mirrors one handlers/*.go file one-for-one, moved rather than wrapped —
-// same Mongo calls, same fireConfigUpdate/eventbus behavior, only the
-// http.ResponseWriter/*http.Request signature becomes
-// connect.Request/connect.Response.
+// Package services is the gRPC-Web (Connect) service layer. Each config
+// service reads from live config and writes through the one synchronous path
+// — appconfigstore.Store.MutateSync: persist under the store lock, propagate
+// in-process, return the stored resource (docs/adr/0002 / docs/adr/0010).
+// The non-config services (stats, tasks, workflows, …) keep their own
+// direct Mongo or Redis calls.
 package services
 
 import (
@@ -24,14 +24,13 @@ func connectError(status int, err error) error {
 	return connect.NewError(codeForStatus(status), err)
 }
 
-// mutateConfigErr maps an error returned by AppConfigStore.Mutate /
-// MutateSync to the Connect error a config-mutating RPC surfaces. A mutation
-// closure's own rejection is already Connect-shaped (built with connectError,
-// the same way these methods built it before the config store existed) and
-// passes through unchanged; an aip sentinel (bad mask) is mapped; anything
-// else — the store's own read, persist, or event failing — is logged and
-// reported as a generic 500, matching what every one of these methods
-// already did for that case.
+// mutateConfigErr maps an error returned by AppConfigStore.MutateSync to the
+// Connect error a config-mutating RPC surfaces. A mutation closure's own
+// rejection is already Connect-shaped (built with connectError, the same way
+// these methods built it before the config store existed) and passes through
+// unchanged; an aip sentinel (bad mask) is mapped; anything else — the
+// store's own read or persist failing — is logged and reported as a generic
+// 500, matching what every one of these methods already did for that case.
 func mutateConfigErr(logger *slog.Logger, correlationID string, err error) error {
 	var connectErr *connect.Error
 	if errors.As(err, &connectErr) {

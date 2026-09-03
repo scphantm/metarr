@@ -294,10 +294,9 @@ export const WorkflowServiceUpsertResponseSchema: GenMessage<WorkflowServiceUpse
   messageDesc(file_metarr_v1_workflows, 10);
 
 /**
- * WorkflowService is a direct, synchronous Mongo read/write with no
- * system_config_update event behind it (see UpsertWorkflow's doc comment on
- * the Go side) — unlike every config-mutation service so far, Upsert
- * returns the persisted Workflow directly rather than AcceptedResponse.
+ * WorkflowService is a direct, synchronous Mongo read/write (see
+ * UpsertWorkflow's doc comment on the Go side): Upsert appends a new
+ * immutable version and returns the persisted Workflow.
  *
  * @generated from service metarr.v1.WorkflowService
  */
