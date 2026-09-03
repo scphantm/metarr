@@ -115,6 +115,16 @@ _Avoid_: uuid, guid
 **API key entry**: One issued key, held in an access-level group. Its name is optional and not unique, so it is
 identified by a minted id. _Avoid_: token, credential
 
+### Authentication
+
+**Authentication scheme**: A property of the system describing whether and how a human is authenticated. It is a field
+on the admin record, not a config block of its own, and it takes effect on the next request with no restart. Values
+today: **None** and **Password**. **None** means "implicitly the administrator" — a full administrator principal is
+synthesised for every request, not an anonymous or reduced one — and is the default on a fresh install. **Password** is
+the username-and-session-token login: credentials required, every RPC checked. Setting the admin password is orthogonal
+to the scheme — bootstrap seeds and prints it under either value, and the Security page can always change it; **None**
+simply never demands it. See `docs/adr/0012-optional-authentication.md`. _Avoid_: auth mode, login mode, security level
+
 ### API surface
 
 **Config resource**: One addressable entry in the application config — an agent, a Sonarr instance, a scan directory, a
