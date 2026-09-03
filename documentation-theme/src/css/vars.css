@@ -137,7 +137,11 @@
   --table-border-color: var(--hl);
   --table-stripe-background-a: var(--bg);
   --table-stripe-background-b: var(--hl);
-  --table-footer-background: linear-gradient(to bottom, var(--emph) 0%, var(--comment) 100%);
+  --table-footer-background: linear-gradient(
+    to bottom,
+    var(--emph) 0%,
+    var(--comment) 100%
+  );
   /* toc */
   --toc-font-color: var(--comment);
   --toc-heading-font-color: var(--emph);

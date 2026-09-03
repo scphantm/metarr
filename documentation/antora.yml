@@ -1,6 +1,6 @@
 name: metarr
 title: Metarr
-version: '~'
+version: "~"
 nav:
-- modules/ROOT/nav.adoc
-- modules/design/nav.adoc
+  - modules/ROOT/nav.adoc
+  - modules/design/nav.adoc

@@ -36,7 +36,7 @@
 
 .nav {
   background: var(--nav-background);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   position: relative;
   top: var(--toolbar-height);
   height: var(--nav-height);
@@ -44,7 +44,9 @@
 
 @media screen and (min-width: 769px) {
   .nav {
-    box-shadow: 0.5px 0 3px var(--nav-border-color), inset 0 1px 0 rgba(255,255,255,0.08);
+    box-shadow:
+      0.5px 0 3px var(--nav-border-color),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 }
 
@@ -100,7 +102,8 @@
 }
 
 .nav-menu-toggle {
-  background: transparent url(../img/octicons-16.svg#view-unfold) no-repeat center / 100% 100%;
+  background: transparent url(../img/octicons-16.svg#view-unfold) no-repeat
+    center / 100% 100%;
   border: none;
   float: right;
   height: 1em;

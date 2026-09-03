@@ -1,3 +1,3 @@
-import { standardConfig } from '../eslint.config.js'
+import { standardConfig } from "../eslint.config.js";
 
-export default standardConfig
+export default standardConfig;

@@ -4,10 +4,10 @@ site:
 
 content:
   sources:
-  # Paths are resolved against this file's directory; ./.. is the repo root.
-  - url: ./..
-    branches: HEAD
-    start_path: documentation
+    # Paths are resolved against this file's directory; ./.. is the repo root.
+    - url: ./..
+      branches: HEAD
+      start_path: documentation
 
 ui:
   bundle:
@@ -27,8 +27,8 @@ antora:
   # https://github.com/lask79/antora-shiki-extension
   # https://github.com/shikijs/shiki/
   extensions:
-    - require: '@antora/lunr-extension'
-    - require: 'antora-shiki-extension'
+    - require: "@antora/lunr-extension"
+    - require: "antora-shiki-extension"
       languages: # default: see this list
         - bash
         - console
@@ -44,8 +44,8 @@ antora:
       theme: solarized-dark
 asciidoc:
   extensions:
-    - '@asciidoctor/tabs'
-    - 'asciidoctor-kroki'
+    - "@asciidoctor/tabs"
+    - "asciidoctor-kroki"
   attributes:
     kroki-fetch-diagram: true
     kroki-default-format: svg

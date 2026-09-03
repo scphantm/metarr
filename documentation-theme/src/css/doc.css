@@ -398,7 +398,7 @@
 .doc .admonitionblock td.content {
   padding: 1rem 1rem 0.75rem;
   background: var(--admonition-background);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   border-radius: 0 0.35rem 0.35rem 0;
   width: 100%;
   word-wrap: anywhere;
@@ -521,7 +521,7 @@
 .doc .verseblock {
   background: var(--quote-background);
   border-left: 5px solid var(--quote-border-color);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   color: var(--quote-font-color);
 }
 
@@ -766,7 +766,9 @@
   background: var(--example-background);
   border: 0.25rem solid var(--example-border-color);
   border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   padding: 0.75rem;
 }
 
@@ -785,7 +787,9 @@
 .doc .sidebarblock {
   background: var(--sidebar-background);
   border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   padding: 0.75rem 1.5rem;
 }
 
@@ -813,7 +817,9 @@
 .doc .literalblock pre {
   background: var(--pre-background);
   border-radius: 0.35rem;
-  box-shadow: inset 0 0 10px var(--pre-border-color), inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow:
+    inset 0 0 10px var(--pre-border-color),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   display: block;
   overflow-x: auto;
   padding: 0.875em;
@@ -1016,7 +1022,9 @@
   background: var(--kbd-background);
   border: 1px solid var(--kbd-border-color);
   border-radius: 0.25em;
-  box-shadow: 0 1px 0 var(--kbd-border-color), 0 0 0 0.1em var(--body-background) inset;
+  box-shadow:
+    0 1px 0 var(--kbd-border-color),
+    0 0 0 0.1em var(--body-background) inset;
   padding: 0.25em 0.5em;
   vertical-align: text-bottom;
   white-space: nowrap; /* effectively ignores hyphens setting */
