@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package metarr.v1;
 
+import "metarr/v1/admin.proto";
+
 option go_package = "Metarr/internal/genproto/metarr/v1;metarrv1";
 
 message AuthServiceLoginRequest {
@@ -20,10 +22,21 @@ message AuthServiceLogoutResponse {
   string status = 1;
 }
 
+message AuthServiceGetAuthSchemeRequest {}
+
+message AuthServiceGetAuthSchemeResponse {
+  AuthenticationScheme scheme = 1;
+}
+
 service AuthService {
   // Login is callable without an API key — see connect_auth.go's NoAuth
   // policy. Rate-limited independently from Logout, matching the REST
   // routes' separate throttle(...) budgets.
   rpc Login(AuthServiceLoginRequest) returns (AuthServiceLoginResponse);
   rpc Logout(AuthServiceLogoutRequest) returns (AuthServiceLogoutResponse);
+  // GetAuthScheme is the pre-login probe: it returns only the active
+  // authentication scheme and is callable without an API key (NoAuth, like
+  // Login), so the UI can decide whether to show the login gate on a cold
+  // load (docs/adr/0012).
+  rpc GetAuthScheme(AuthServiceGetAuthSchemeRequest) returns (AuthServiceGetAuthSchemeResponse);
 }

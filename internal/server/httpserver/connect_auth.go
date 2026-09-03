@@ -13,6 +13,13 @@ import (
 	"Metarr/internal/shared/appconfig"
 )
 
+// schemeNoneSyntheticKey is the API-key marker attached to a request's
+// context when the authentication scheme is None. It stands in for a real
+// resolved key so downstream code (auth.APIKeyFromContext, audit logging)
+// has a non-empty value, and is deliberately not a value auth.Resolve or the
+// session store would ever mint (docs/adr/0012).
+const schemeNoneSyntheticKey = "authentication-scheme-none"
+
 // RPCPolicy is a Connect RPC's auth requirement — the gRPC-Web equivalent of
 // a REST route's (auth.Group, HTTP method) pair passed to protect() in
 // router.go. gRPC has no HTTP verb, so the read-only role's GET-only
@@ -84,6 +91,16 @@ func (i *connectAuthInterceptor) authorize(ctx context.Context, procedure string
 		return nil, connect.NewError(connect.CodeInternal, errors.New("no auth policy registered for this RPC"))
 	}
 	if policy.NoAuth {
+		return ctx, nil
+	}
+
+	// Authentication scheme None: every request runs as the administrator
+	// (docs/adr/0012). Attach an administrator role and a synthetic key
+	// marker and return allowed — no header is read, no session store is
+	// consulted, no API key is resolved. A presented X-Api-Key is ignored.
+	if appconfig.Get().GetAdmin().GetAuthenticationScheme() != appconfig.AuthSchemePassword {
+		ctx = auth.WithAPIKey(ctx, schemeNoneSyntheticKey)
+		ctx = auth.WithRole(ctx, auth.RoleAdmin)
 		return ctx, nil
 	}
 

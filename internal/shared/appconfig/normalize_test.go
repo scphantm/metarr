@@ -63,6 +63,28 @@ func TestNormalizeLeavesPopulatedSectionsAlone(t *testing.T) {
 	}
 }
 
+// A document written before authentication_scheme existed, or a freshly
+// seeded one, carries the zero value. The config layer — not just
+// builtin_defaults.json — guarantees the default resolves to None so the
+// auth interceptor can compare against a concrete scheme (docs/adr/0012).
+func TestNormalizeDefaultsAnUnsetAuthenticationSchemeToNone(t *testing.T) {
+	config := Normalize(&Config{})
+
+	if got := config.Admin.GetAuthenticationScheme(); got != AuthSchemeNone {
+		t.Errorf("authentication_scheme = %v, want %v", got, AuthSchemeNone)
+	}
+}
+
+// Normalize fills what is absent; a document that actually selected Password
+// must be left exactly as it is.
+func TestNormalizeLeavesAChosenAuthenticationSchemeAlone(t *testing.T) {
+	config := Normalize(&Config{Admin: &AdminUser{AuthenticationScheme: AuthSchemePassword}})
+
+	if got := config.Admin.GetAuthenticationScheme(); got != AuthSchemePassword {
+		t.Errorf("authentication_scheme = %v, want %v", got, AuthSchemePassword)
+	}
+}
+
 func TestNormalizeFillsAMissingStorageSection(t *testing.T) {
 	config := Normalize(&Config{
 		Interfaces: &InterfacesConfig{Sonarr: []*SonarrInstance{{InstanceSlug: "main"}}},

@@ -58,7 +58,7 @@ func TestMarshalStoredUsesProtoFieldNames(t *testing.T) {
 		"admin", "agents", "api_keys", "directory_scanner", "event_bus", "interfaces", "logging",
 	})
 	assertKeys(t, "config.admin", document["admin"], []string{
-		"email", "password_hash", "password_salt", "username",
+		"authentication_scheme", "email", "password_hash", "password_salt", "username",
 	})
 	assertKeys(t, "config.api_keys", document["api_keys"], []string{
 		"admin", "read_only", "user", "webhook",

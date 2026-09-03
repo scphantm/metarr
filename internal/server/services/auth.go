@@ -24,12 +24,14 @@ type AuthServer struct {
 	*handlers.Handlers
 }
 
-// AuthAuthPolicies is this service's method-name -> policy map. Login is
-// the one RPC in the whole surface that needs no API key at all — matching
-// the REST route, which is the only one registered outside protect(...).
+// AuthAuthPolicies is this service's method-name -> policy map. Login and
+// GetAuthScheme need no API key at all: Login mints the session, and
+// GetAuthScheme is the pre-login probe the UI calls on a cold load to decide
+// whether to show the login gate (docs/adr/0012).
 var AuthAuthPolicies = map[string]httpserver.RPCPolicy{
-	"Login":  {NoAuth: true},
-	"Logout": {Group: auth.GroupConfig},
+	"Login":         {NoAuth: true},
+	"Logout":        {Group: auth.GroupConfig},
+	"GetAuthScheme": {NoAuth: true},
 }
 
 func (s *AuthServer) Login(
@@ -55,6 +57,20 @@ func (s *AuthServer) Login(
 	return connect.NewResponse(&metarrv1.AuthServiceLoginResponse{
 		ApiKey:           apiKey,
 		ExpiresInSeconds: int32(session.TTL.Seconds()),
+	}), nil
+}
+
+// GetAuthScheme returns the active authentication scheme and nothing else.
+// It carries a NoAuth policy, so it answers before any credential exists —
+// the UI's cold-load probe for whether to show the login gate
+// (docs/adr/0012). The scheme is read from live config, normalised, so the
+// answer is never AUTHENTICATION_SCHEME_UNSPECIFIED.
+func (s *AuthServer) GetAuthScheme(
+	ctx context.Context,
+	req *connect.Request[metarrv1.AuthServiceGetAuthSchemeRequest],
+) (*connect.Response[metarrv1.AuthServiceGetAuthSchemeResponse], error) {
+	return connect.NewResponse(&metarrv1.AuthServiceGetAuthSchemeResponse{
+		Scheme: appconfig.Get().GetAdmin().GetAuthenticationScheme(),
 	}), nil
 }
 
