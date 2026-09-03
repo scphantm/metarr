@@ -11,6 +11,8 @@
 !/package.json
 !/eslint.config.mjs
 !/.prettierrc.json
+!/documentation
+!/documentation-theme
 !**/*.md
 
 # ...but never these, even inside ui/
@@ -19,4 +21,7 @@ ui/dist/
 ui/.vite/
 ui/src/gen/
 **/*.tsbuildinfo
+
+# Handlebars templates (not supported by Prettier)
+**/*.hbs
 
