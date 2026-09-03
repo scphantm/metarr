@@ -130,13 +130,12 @@ class Stream<T> {
 /** Subscribes to stream and writes each frame into queryKey's cache entry. */
 function useStream<T>(stream: Stream<T>, queryKey: readonly unknown[]): void {
   const queryClient = useQueryClient();
-  const serializedKey = JSON.stringify(queryKey);
 
   useEffect(() => {
     return stream.subscribe((value) => {
-      queryClient.setQueryData(JSON.parse(serializedKey) as unknown[], value);
+      queryClient.setQueryData(queryKey, value);
     });
-  }, [stream, serializedKey, queryClient]);
+  }, [stream, queryKey, queryClient]);
 }
 
 function useStreamStatus<T>(stream: Stream<T>): StreamStatus {
