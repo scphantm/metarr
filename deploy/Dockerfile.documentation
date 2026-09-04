@@ -1,7 +1,7 @@
-FROM asciidoctor/docker-asciidoctor:latest
+FROM antora/antora:3.2.0
 
-RUN apk add nodejs npm rsync openssh ruby-dev
-RUN npm install -g corepack
+RUN apk add npm rsync openssh ruby-dev make
+RUN npm install -g corepack gulp
 RUN corepack enable
 RUN gem install bundle
 

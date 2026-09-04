@@ -12,12 +12,12 @@ docs-initialize: docs-install
 # Install documentation workspace dependencies.
 docs-install: docs-theme-install
 	cd documentation
-	yarn install
+	COREPACK_ENABLE_DOWNLOAD_PROMPT=0 yarn install
 
 # Install documentation-theme workspace dependencies.
 docs-theme-install:
 	cd documentation-theme
-	yarn install
+	COREPACK_ENABLE_DOWNLOAD_PROMPT=0 yarn install
 
 # Build the documentation site: pack theme first, then run Antora.
 docs-build: node-sync-version docs-theme-pack docs-antora-run

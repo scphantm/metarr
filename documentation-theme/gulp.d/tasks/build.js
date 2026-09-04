@@ -5,11 +5,16 @@ const browserify = require("browserify");
 const concat = require("gulp-concat");
 const cssnano = require("cssnano");
 const fs = require("fs-extra");
-const imageminPlugin = require("gulp-imagemin");
-const imagemin =
-  typeof imageminPlugin === "function"
-    ? imageminPlugin
-    : imageminPlugin.default;
+let imagemin;
+try {
+  const imageminPlugin = require("gulp-imagemin");
+  imagemin =
+    typeof imageminPlugin === "function"
+      ? imageminPlugin
+      : imageminPlugin.default;
+} catch {
+  imagemin = null;
+}
 const merge = require("merge-stream");
 const ospath = require("path");
 const path = ospath.posix;
@@ -105,14 +110,14 @@ module.exports = (src, dest, preview) => () => {
       ),
     vfs.src("font/*.{ttf,woff*(2)}", opts),
     vfs.src("img/**/*.{gif,ico,jpg,png,svg}", opts).pipe(
-      preview
+      preview || !imagemin
         ? through()
         : imagemin(
             [
-              imageminPlugin.gifsicle(),
-              imageminPlugin.mozjpeg(),
-              imageminPlugin.optipng(),
-              imageminPlugin.svgo({
+              imagemin.gifsicle(),
+              imagemin.mozjpeg(),
+              imagemin.optipng(),
+              imagemin.svgo({
                 plugins: [
                   {
                     name: "cleanupIDs",
