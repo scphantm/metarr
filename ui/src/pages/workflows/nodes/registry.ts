@@ -14,30 +14,12 @@ import { NotesNode } from "./core/NotesNode";
 import { ParallelNode } from "./core/ParallelNode";
 import { StartNode } from "./core/StartNode";
 import { TrickplayNode } from "./core/TrickplayNode";
-import { WriteChangesNode } from "./core/WriteChangesNode";
 import { CopyFileNode } from "./fs/CopyFileNode";
 import { DeleteFileNode } from "./fs/DeleteFileNode";
-import { ExistsNode } from "./fs/ExistsNode";
-import { FileSizeNode } from "./fs/FileSizeNode";
-import { ListDirectoryNode } from "./fs/ListDirectoryNode";
-import { MakeDirectoryNode } from "./fs/MakeDirectoryNode";
 import { MoveFileNode } from "./fs/MoveFileNode";
-import { ReadTextFileNode } from "./fs/ReadTextFileNode";
-import { WriteTextFileNode } from "./fs/WriteTextFileNode";
-import { ExtractStreamNode } from "./media/ExtractStreamNode";
 import { GenerateThumbnailNode } from "./media/GenerateThumbnailNode";
-import { ProbeNode } from "./media/ProbeNode";
-import { TranscodeNode } from "./media/TranscodeNode";
-import { ReadNode as NfoReadNode } from "./nfo/ReadNode";
 import { WriteNode as NfoWriteNode } from "./nfo/WriteNode";
 import { UnknownNode } from "./shared/UnknownNode";
-import { ConcatNode } from "./string/ConcatNode";
-import { FormatNode } from "./string/FormatNode";
-import { ParseNumberNode } from "./string/ParseNumberNode";
-import { RegexMatchNode } from "./string/RegexMatchNode";
-import { TrimNode } from "./string/TrimNode";
-import { IsDirNode } from "@/pages/workflows/nodes/fs/IsDirNode.tsx";
-import { IsFileNode } from "@/pages/workflows/nodes/fs/IsFileNode.tsx";
 
 /*
  * Every catalog entry gets its own registered React Flow node component —
@@ -54,11 +36,9 @@ export const nodeTypes: Record<
   ComponentType<NodeProps<Node<CatalogNodeData>>>
 > = {
   "core/start": StartNode,
-  "core/writeChanges": WriteChangesNode,
   "core/errorOutput": ErrorOutputNode,
   "core/note": NotesNode,
-  "core/checkFlowVariable": CheckFlowVariableNode,
-  "core/trickplay": TrickplayNode,
+  "core/conditional": CheckFlowVariableNode,
   "core/forEach": ForEachNode,
   "core/collect": CollectNode,
   "core/parallel": ParallelNode,
@@ -67,31 +47,15 @@ export const nodeTypes: Record<
   "core/end": EndNode,
   "core/fail": FailNode,
 
-  "fs/listDirectory": ListDirectoryNode,
   "fs/moveFile": MoveFileNode,
   "fs/copyFile": CopyFileNode,
   "fs/deleteFile": DeleteFileNode,
-  "fs/exists": ExistsNode,
-  "fs/isdir": IsDirNode,
-  "fs/isfile": IsFileNode,
-  "fs/makeDirectory": MakeDirectoryNode,
-  "fs/fileSize": FileSizeNode,
-  "fs/readTextFile": ReadTextFileNode,
-  "fs/writeTextFile": WriteTextFileNode,
 
-  "media/probe": ProbeNode,
-  "media/transcode": TranscodeNode,
-  "media/extractStream": ExtractStreamNode,
   "media/generateThumbnail": GenerateThumbnailNode,
+  "media/trickplay": TrickplayNode,
 
-  "nfo/read": NfoReadNode,
   "nfo/write": NfoWriteNode,
 
-  "string/format": FormatNode,
-  "string/regexMatch": RegexMatchNode,
-  "string/concat": ConcatNode,
-  "string/parseNumber": ParseNumberNode,
-  "string/trim": TrimNode,
 };
 
 // unknownNode is the catalog-drift fallback (graphAdapter.UNKNOWN_NODE_TYPE)

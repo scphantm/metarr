@@ -38,7 +38,10 @@ function DirectoryScanCard({
 
   useEffect(() => {
     if (!feedback) return;
-    const timer = window.setTimeout(() => setFeedback(null), FEEDBACK_TIMEOUT_MS);
+    const timer = window.setTimeout(
+      () => setFeedback(null),
+      FEEDBACK_TIMEOUT_MS,
+    );
     return () => window.clearTimeout(timer);
   }, [feedback]);
 

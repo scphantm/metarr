@@ -49,17 +49,6 @@
     "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
-    "type": "core/writeChanges",
-    "id": "cc45bcdf-48be-466f-9bbf-d4c74da3b05f",
-    "name": "Write changes",
-    "category": "workflow",
-    "subcategory": "end",
-    "kind": "WORKFLOW_NODE_KIND_END",
-    "description": "Commits pending changes and ends this path of the run.",
-    "control": { "in": ["in"], "out": [], "error": true },
-    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_WRITE" }
-  },
-  {
     "type": "core/errorOutput",
     "id": "f71e846a-2015-4d2d-99f1-22b35ec9dc43",
     "name": "Error Output",
@@ -88,7 +77,7 @@
     "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
-    "type": "core/checkFlowVariable",
+    "type": "core/conditional",
     "id": "6b32e34c-c356-4536-a073-9c40f0b4ec91",
     "name": "Check flow variable",
     "subcategory": "check",
@@ -112,7 +101,7 @@
     "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
-    "type": "core/trickplay",
+    "type": "media/trickplay",
     "id": "68c3a45b-da57-4e9c-a86b-0debf67b2ca9",
     "name": "Generate Trickplay",
     "subcategory": "function",
@@ -263,25 +252,6 @@
     "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   },
   {
-    "type": "fs/listDirectory",
-    "id": "77212793-4419-49e0-9e0f-4aafd7643b2f",
-    "name": "List Directory",
-    "category": "agent",
-    "subcategory": "filesystem",
-    "description": "Lists the immediate contents of a directory.",
-    "control": { "in": ["in"], "out": ["next"], "error": true },
-    "dataIn": [
-      { "name": "dir", "label": "Directory", "type": "path.dir", "required": true }
-    ],
-    "dataOut": [
-      { "name": "entries", "label": "Entries", "type": "list<path>", "description": "Every direct child of the directory, files and subdirectories alike." }
-    ],
-    "settings": [
-      { "name": "recursive", "label": "Recursive", "type": "bool", "default": false }
-    ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_READ" }
-  },
-  {
     "type": "fs/moveFile",
     "id": "31e09fea-bb13-4c83-8996-90ab10854380",
     "name": "Move File",
@@ -329,173 +299,6 @@
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_DESTRUCTIVE" }
   },
   {
-    "type": "fs/exists",
-    "id": "5bb99fb3-41a1-4fbe-94c3-d738c7785214",
-    "name": "File Exists",
-    "category": "agent",
-    "subcategory": "filesystem",
-    "kind": "WORKFLOW_NODE_KIND_BRANCH",
-    "description": "Checks whether a path exists on disk and takes the yes or no branch. The branches are control flow, not booleans.",
-    "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
-    "dataIn": [
-      { "name": "target", "label": "Path", "type": "path", "required": true }
-    ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_READ" }
-  },
-  {
-    "type": "fs/isdir",
-    "id": "1b900117-dca1-4530-b391-fd42b43fbc6b",
-    "name": "Is Directory?",
-    "category": "agent",
-    "subcategory": "filesystem",
-    "kind": "WORKFLOW_NODE_KIND_BRANCH",
-    "description": "Checks if the path is a directory or not",
-    "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
-    "dataIn": [
-      { "name": "target", "label": "Path", "type": "path", "required": true }
-    ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_READ" }
-  },
-  {
-    "type": "fs/isfile",
-    "id": "ea9ad657-28fe-4d79-89be-50d466d27ea7",
-    "name": "Is File?",
-    "category": "agent",
-    "subcategory": "filesystem",
-    "kind": "WORKFLOW_NODE_KIND_BRANCH",
-    "description": "Checks if the path is a file or not",
-    "control": { "in": ["in"], "out": ["yes", "no"], "error": true },
-    "dataIn": [
-      { "name": "target", "label": "Path", "type": "path", "required": true }
-    ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_READ" }
-  },
-  {
-    "type": "fs/makeDirectory",
-    "id": "2bad8e41-d1fd-4f27-a2d6-aed8130bb68d",
-    "name": "Make Directory",
-    "category": "agent",
-    "subcategory": "filesystem",
-    "description": "Creates a directory, including any missing parents.",
-    "control": { "in": ["in"], "out": ["next"], "error": true },
-    "dataIn": [
-      { "name": "target", "label": "Directory", "type": "path.dir", "required": true }
-    ],
-    "dataOut": [
-      { "name": "created", "label": "Created", "type": "path.dir" }
-    ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_WRITE" }
-  },
-  {
-    "type": "fs/fileSize",
-    "id": "89d26a9e-d14a-408f-91c4-45535c8a44fe",
-    "name": "File Size",
-    "category": "agent",
-    "subcategory": "filesystem",
-    "description": "Reads the size of a file in bytes.",
-    "control": { "in": ["in"], "out": ["next"], "error": true },
-    "dataIn": [
-      { "name": "target", "label": "File", "type": "path.file", "required": true }
-    ],
-    "dataOut": [
-      { "name": "size", "label": "Size", "type": "any" }
-    ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_READ" }
-  },
-  {
-    "type": "fs/readTextFile",
-    "id": "8fb47e16-24a0-4173-ac87-9a4fa12ab230",
-    "name": "Read Text File",
-    "category": "agent",
-    "subcategory": "filesystem",
-    "description": "Reads a small text file's full contents as a string.",
-    "control": { "in": ["in"], "out": ["next"], "error": true },
-    "dataIn": [
-      { "name": "source", "label": "File", "type": "path.file", "required": true }
-    ],
-    "dataOut": [
-      { "name": "content", "label": "Content", "type": "string" }
-    ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_READ" }
-  },
-  {
-    "type": "fs/writeTextFile",
-    "id": "a4a20322-dfb8-4898-a83e-885715448ed6",
-    "name": "Write Text File",
-    "category": "agent",
-    "subcategory": "filesystem",
-    "description": "Writes a string out to a text file, overwriting it if present.",
-    "control": { "in": ["in"], "out": ["next"], "error": true },
-    "dataIn": [
-      { "name": "content", "label": "Content", "type": "string", "required": true },
-      { "name": "target", "label": "File", "type": "path.file", "required": true }
-    ],
-    "dataOut": [
-      { "name": "written", "label": "Written to", "type": "path.file" }
-    ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_WRITE" }
-  },
-  {
-    "type": "media/probe",
-    "id": "d3cfe88e-e1ef-4ac5-88d1-0b6d581b87fc",
-    "name": "Probe Media",
-    "category": "agent",
-    "subcategory": "media",
-    "description": "Reads technical metadata from a video file without decoding it (duration, streams, codecs).",
-    "control": { "in": ["in"], "out": ["next"], "error": true },
-    "dataIn": [
-      { "name": "source", "label": "Source file", "type": "any", "required": true }
-    ],
-    "dataOut": [
-      { "name": "duration", "label": "Duration", "type": "any" },
-      { "name": "streams", "label": "Streams", "type": "list<any>" }
-    ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "1m", "effects": "WORKFLOW_EFFECTS_READ" }
-  },
-  {
-    "type": "media/transcode",
-    "id": "54d0e42c-1800-41f2-8db1-b4cc33a03df2",
-    "name": "Transcode",
-    "category": "agent",
-    "subcategory": "media",
-    "description": "Re-encodes a video file into a different codec or container.",
-    "control": { "in": ["in"], "out": ["next"], "error": true },
-    "dataIn": [
-      { "name": "source", "label": "Source file", "type": "any", "required": true },
-      { "name": "destination", "label": "Destination", "type": "any", "required": true }
-    ],
-    "dataOut": [
-      { "name": "output", "label": "Output file", "type": "any" }
-    ],
-    "settings": [
-      { "name": "videoCodec", "label": "Video codec", "type": "any", "default": "h264", "ui": { "widget": "dropdown", "options": ["h264", "hevc", "av1", "copy"] } },
-      { "name": "audioCodec", "label": "Audio codec", "type": "any", "default": "aac", "ui": { "widget": "dropdown", "options": ["aac", "ac3", "copy"] } },
-      { "name": "crf", "label": "Quality (CRF)", "type": "any", "default": 20 }
-    ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "6h", "cancellable": true, "effects": "WORKFLOW_EFFECTS_WRITE", "retry": { "attempts": 1 } }
-  },
-  {
-    "type": "media/extractStream",
-    "id": "2332ec38-de75-4df1-b441-0ca8e8d49318",
-    "name": "Extract Stream",
-    "category": "agent",
-    "subcategory": "media",
-    "description": "Extracts a single subtitle or audio stream out of a container into its own file.",
-    "control": { "in": ["in"], "out": ["next"], "error": true },
-    "dataIn": [
-      { "name": "source", "label": "Source file", "type": "any", "required": true }
-    ],
-    "dataOut": [
-      { "name": "subtitle", "label": "Extracted subtitle", "type": "any" },
-      { "name": "audio", "label": "Extracted audio", "type": "path.file" }
-    ],
-    "settings": [
-      { "name": "streamIndex", "label": "Stream index", "type": "any", "default": 0 },
-      { "name": "kind", "label": "Stream kind", "type": "any", "default": "subtitle", "ui": { "widget": "dropdown", "options": ["subtitle", "audio"] } }
-    ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "5m", "effects": "WORKFLOW_EFFECTS_WRITE" }
-  },
-  {
     "type": "media/generateThumbnail",
     "id": "0ee12496-ce2d-43b2-98bc-0ab4377e6c33",
     "name": "Generate Thumbnail",
@@ -516,21 +319,6 @@
     "exec": { "runsOn": "agent", "agentSelector": "path", "timeout": "1m", "effects": "WORKFLOW_EFFECTS_WRITE" }
   },
   {
-    "type": "nfo/read",
-    "id": "f06ccdcc-d98f-471c-bdfb-ded9276d5906",
-    "name": "Read NFO",
-    "subcategory": "metadata",
-    "description": "Parses an NFO sidecar into structured metadata.",
-    "control": { "in": ["in"], "out": ["next"], "error": true },
-    "dataIn": [
-      { "name": "source", "label": "NFO file", "type": "any", "required": true }
-    ],
-    "dataOut": [
-      { "name": "metadata", "label": "Metadata", "type": "any" }
-    ],
-    "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_READ" }
-  },
-  {
     "type": "nfo/write",
     "id": "5c076327-da48-4179-9cb8-5ba507eb7912",
     "name": "Write NFO",
@@ -545,94 +333,6 @@
       { "name": "written", "label": "Written to", "type": "any" }
     ],
     "exec": { "runsOn": "agent", "agentSelector": "path", "effects": "WORKFLOW_EFFECTS_WRITE" }
-  },
-  {
-    "type": "string/format",
-    "id": "7ee07308-1c52-457c-b1de-6c1ece67d3ff",
-    "name": "Format String",
-    "subcategory": "string",
-    "description": "Substitutes wired values into a template string, e.g. \"{value1} ({value2})\".",
-    "control": { "in": ["in"], "out": ["next"] },
-    "dataIn": [
-      { "name": "value1", "label": "Value 1", "type": "any", "required": false },
-      { "name": "value2", "label": "Value 2", "type": "any", "required": false }
-    ],
-    "dataOut": [
-      { "name": "result", "label": "Result", "type": "string" }
-    ],
-    "settings": [
-      { "name": "template", "label": "Template", "type": "string", "default": "", "description": "Use {value1}, {value2} as placeholders." }
-    ],
-    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
-  },
-  {
-    "type": "string/regexMatch",
-    "id": "a72025a1-41b4-469b-907b-b0034c73901a",
-    "name": "Regex Match",
-    "subcategory": "string",
-    "kind": "WORKFLOW_NODE_KIND_BRANCH",
-    "description": "Tests a string against a regular expression and takes the matched or unmatched branch.",
-    "control": { "in": ["in"], "out": ["matched", "unmatched"], "error": true },
-    "dataIn": [
-      { "name": "input", "label": "Input", "type": "string", "required": true }
-    ],
-    "dataOut": [
-      { "name": "match", "label": "Matched text", "type": "string", "description": "The first match, or the first capture group if the pattern has one. Readable only on the matched branch." }
-    ],
-    "settings": [
-      { "name": "pattern", "label": "Pattern", "type": "string", "default": "" }
-    ],
-    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
-  },
-  {
-    "type": "string/concat",
-    "id": "fc10ec6d-fe31-4922-bfa2-c7138221a76d",
-    "name": "Concatenate",
-    "subcategory": "string",
-    "description": "Joins two strings with an optional separator.",
-    "control": { "in": ["in"], "out": ["next"] },
-    "dataIn": [
-      { "name": "left", "label": "Left", "type": "string", "required": true },
-      { "name": "right", "label": "Right", "type": "string", "required": true }
-    ],
-    "dataOut": [
-      { "name": "result", "label": "Result", "type": "string" }
-    ],
-    "settings": [
-      { "name": "separator", "label": "Separator", "type": "string", "default": "" }
-    ],
-    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
-  },
-  {
-    "type": "string/parseNumber",
-    "id": "48b4ef68-2b41-417d-a26a-e8d6f06afd8d",
-    "name": "Parse Number",
-    "subcategory": "string",
-    "kind": "WORKFLOW_NODE_KIND_BRANCH",
-    "description": "Parses text as a number and takes the parsed or failed branch, for when the value needs branching on rather than just wiring through the parseNumber transform.",
-    "control": { "in": ["in"], "out": ["parsed", "failed"] },
-    "dataIn": [
-      { "name": "input", "label": "Input", "type": "string", "required": true }
-    ],
-    "dataOut": [
-      { "name": "value", "label": "Value", "type": "number", "description": "Readable only on the parsed branch." }
-    ],
-    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
-  },
-  {
-    "type": "string/trim",
-    "id": "be0d4299-2cee-49a8-ac9c-709aa927b223",
-    "name": "Trim",
-    "subcategory": "string",
-    "description": "Removes leading and trailing whitespace from a string.",
-    "control": { "in": ["in"], "out": ["next"] },
-    "dataIn": [
-      { "name": "input", "label": "Input", "type": "string", "required": true }
-    ],
-    "dataOut": [
-      { "name": "result", "label": "Result", "type": "string" }
-    ],
-    "exec": { "runsOn": "server", "effects": "WORKFLOW_EFFECTS_READ" }
   }
   ]
 }

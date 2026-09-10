@@ -34,3 +34,6 @@ ui-test:
 # Reruns tests when source files change — useful during development.
 ui-test-watch:
 	yarn workspace @metarr/metarr-ui run test:watch
+
+ui-clean:
+	rm -Rf ui/dist
