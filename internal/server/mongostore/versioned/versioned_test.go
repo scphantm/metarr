@@ -24,7 +24,7 @@ func setTestDocEnvelope(d *testDoc, e Envelope) { d.Envelope = e }
 
 // connectTestStore opens a Store[testDoc] against a real MongoDB instance in
 // its own collection, dropped on test cleanup. This package has no mock for
-// the Mongo driver, so SaveNewVersion's flip-then-insert atomicity and
+// the Mongo driver, so Save's flip-then-insert atomicity and
 // ListLatest's cursor pagination can only be verified end to end; the test
 // skips cleanly (rather than failing) when no MongoDB is reachable, so
 // `go test ./...` still passes in an environment without one running.
@@ -65,13 +65,13 @@ func connectTestStore(t *testing.T) *Store[testDoc] {
 	return store
 }
 
-func TestSaveNewVersionStartsAtOne(t *testing.T) {
+func TestSaveStartsAtOne(t *testing.T) {
 	store := connectTestStore(t)
 	ctx := context.Background()
 
-	saved, err := store.SaveNewVersion(ctx, bson.NilObjectID, testDoc{Value: "v1"})
+	saved, err := store.Save(ctx, bson.NilObjectID, testDoc{Value: "v1"})
 	if err != nil {
-		t.Fatalf("SaveNewVersion() error = %v", err)
+		t.Fatalf("Save() error = %v", err)
 	}
 	if saved.Version != 1 {
 		t.Errorf("Version = %d, want 1", saved.Version)
@@ -84,18 +84,18 @@ func TestSaveNewVersionStartsAtOne(t *testing.T) {
 	}
 }
 
-func TestSaveNewVersionAppendsAndFlipsLatest(t *testing.T) {
+func TestSaveAppendsAndFlipsLatest(t *testing.T) {
 	store := connectTestStore(t)
 	ctx := context.Background()
 
-	v1, err := store.SaveNewVersion(ctx, bson.NilObjectID, testDoc{Value: "v1"})
+	v1, err := store.Save(ctx, bson.NilObjectID, testDoc{Value: "v1"})
 	if err != nil {
-		t.Fatalf("SaveNewVersion(v1) error = %v", err)
+		t.Fatalf("Save(v1) error = %v", err)
 	}
 
-	v2, err := store.SaveNewVersion(ctx, v1.DocumentID, testDoc{Value: "v2"})
+	v2, err := store.Save(ctx, v1.DocumentID, testDoc{Value: "v2"})
 	if err != nil {
-		t.Fatalf("SaveNewVersion(v2) error = %v", err)
+		t.Fatalf("Save(v2) error = %v", err)
 	}
 	if v2.Version != 2 {
 		t.Errorf("Version = %d, want 2", v2.Version)
@@ -126,12 +126,12 @@ func TestGetVersionIsUnaffectedByLaterSaves(t *testing.T) {
 	store := connectTestStore(t)
 	ctx := context.Background()
 
-	v1, err := store.SaveNewVersion(ctx, bson.NilObjectID, testDoc{Value: "original"})
+	v1, err := store.Save(ctx, bson.NilObjectID, testDoc{Value: "original"})
 	if err != nil {
-		t.Fatalf("SaveNewVersion(v1) error = %v", err)
+		t.Fatalf("Save(v1) error = %v", err)
 	}
-	if _, err := store.SaveNewVersion(ctx, v1.DocumentID, testDoc{Value: "changed"}); err != nil {
-		t.Fatalf("SaveNewVersion(v2) error = %v", err)
+	if _, err := store.Save(ctx, v1.DocumentID, testDoc{Value: "changed"}); err != nil {
+		t.Fatalf("Save(v2) error = %v", err)
 	}
 
 	original, err := store.GetVersion(ctx, v1.DocumentID, 1)
@@ -147,15 +147,15 @@ func TestListLatestReturnsOnlyNewestPerDocument(t *testing.T) {
 	store := connectTestStore(t)
 	ctx := context.Background()
 
-	first, err := store.SaveNewVersion(ctx, bson.NilObjectID, testDoc{Value: "a-v1"})
+	first, err := store.Save(ctx, bson.NilObjectID, testDoc{Value: "a-v1"})
 	if err != nil {
-		t.Fatalf("SaveNewVersion() error = %v", err)
+		t.Fatalf("Save() error = %v", err)
 	}
-	if _, err := store.SaveNewVersion(ctx, first.DocumentID, testDoc{Value: "a-v2"}); err != nil {
-		t.Fatalf("SaveNewVersion() error = %v", err)
+	if _, err := store.Save(ctx, first.DocumentID, testDoc{Value: "a-v2"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
 	}
-	if _, err := store.SaveNewVersion(ctx, bson.NilObjectID, testDoc{Value: "b-v1"}); err != nil {
-		t.Fatalf("SaveNewVersion() error = %v", err)
+	if _, err := store.Save(ctx, bson.NilObjectID, testDoc{Value: "b-v1"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
 	}
 
 	items, _, hasMore, err := store.ListLatest(ctx, LatestFilter{Limit: 10})
@@ -181,8 +181,8 @@ func TestListLatestPaginatesByCursor(t *testing.T) {
 
 	const total = 5
 	for i := 0; i < total; i++ {
-		if _, err := store.SaveNewVersion(ctx, bson.NilObjectID, testDoc{Value: "doc"}); err != nil {
-			t.Fatalf("SaveNewVersion() error = %v", err)
+		if _, err := store.Save(ctx, bson.NilObjectID, testDoc{Value: "doc"}); err != nil {
+			t.Fatalf("Save() error = %v", err)
 		}
 	}
 
@@ -236,12 +236,12 @@ func TestDeleteAllVersionsRemovesEveryVersion(t *testing.T) {
 	store := connectTestStore(t)
 	ctx := context.Background()
 
-	v1, err := store.SaveNewVersion(ctx, bson.NilObjectID, testDoc{Value: "v1"})
+	v1, err := store.Save(ctx, bson.NilObjectID, testDoc{Value: "v1"})
 	if err != nil {
-		t.Fatalf("SaveNewVersion(v1) error = %v", err)
+		t.Fatalf("Save(v1) error = %v", err)
 	}
-	if _, err := store.SaveNewVersion(ctx, v1.DocumentID, testDoc{Value: "v2"}); err != nil {
-		t.Fatalf("SaveNewVersion(v2) error = %v", err)
+	if _, err := store.Save(ctx, v1.DocumentID, testDoc{Value: "v2"}); err != nil {
+		t.Fatalf("Save(v2) error = %v", err)
 	}
 
 	if err := store.DeleteAllVersions(ctx, v1.DocumentID); err != nil {

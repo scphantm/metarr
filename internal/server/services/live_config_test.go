@@ -49,13 +49,17 @@ func TestConfigServerGet_ReadsLiveConfig(t *testing.T) {
 	}
 }
 
-// TestConfigServerGet_RedactsAdminCredentialsWithoutDisturbingLiveConfig is
-// the one genuinely new invariant of the config generation slice: a read of
-// the application config returns blanked admin credentials, AND leaves the
-// stored credentials intact. Both halves matter — live config holds the
-// running server's own password hash, and a redaction that mutated it in
-// place would lock the administrator out until the next reload.
-func TestConfigServerGet_RedactsAdminCredentialsWithoutDisturbingLiveConfig(t *testing.T) {
+// TestConfigServerGet_RedactsSecretsWithoutDisturbingLiveConfig is the one
+// genuinely new invariant of the config generation slice: a read of the
+// application config returns blanked secrets — admin credentials and the JWT
+// signing secret alike — AND leaves the stored values intact. Both halves
+// matter: live config holds the running server's own password hash and HMAC
+// secret, and a redaction that mutated either in place would lock the
+// administrator out and invalidate every issued token until the next reload.
+// The HMAC-secret half also closes an active leak — the value that can forge
+// an admin JWT for any username previously shipped to the browser on every
+// config-page load.
+func TestConfigServerGet_RedactsSecretsWithoutDisturbingLiveConfig(t *testing.T) {
 	withLiveConfig(t, &appconfig.Config{
 		Admin: &appconfig.AdminUser{
 			Username:     "admin",
@@ -63,6 +67,7 @@ func TestConfigServerGet_RedactsAdminCredentialsWithoutDisturbingLiveConfig(t *t
 			PasswordSalt: "live-salt",
 			PasswordHash: "live-hash",
 		},
+		Auth: &appconfig.AuthConfig{HmacSecret: "live-hmac-secret"},
 	})
 
 	server := &ConfigServer{Handlers: &handlers.Handlers{}}
@@ -79,10 +84,16 @@ func TestConfigServerGet_RedactsAdminCredentialsWithoutDisturbingLiveConfig(t *t
 	if admin.GetUsername() != "admin" || admin.GetEmail() != "admin@example.com" {
 		t.Errorf("response dropped the admin identity: %+v", admin)
 	}
+	if got := resp.Msg.GetConfig().GetAuth().GetHmacSecret(); got != "" {
+		t.Errorf("response carried the HMAC signing secret: %q", got)
+	}
 
-	live := appconfig.Get().Admin
-	if live.PasswordSalt != "live-salt" || live.PasswordHash != "live-hash" {
-		t.Fatalf("a config read erased the running server's own credentials: %+v", live)
+	live := appconfig.Get()
+	if live.Admin.PasswordSalt != "live-salt" || live.Admin.PasswordHash != "live-hash" {
+		t.Fatalf("a config read erased the running server's own credentials: %+v", live.Admin)
+	}
+	if live.Auth.HmacSecret != "live-hmac-secret" {
+		t.Fatalf("a config read erased the running server's own HMAC secret: %q", live.Auth.HmacSecret)
 	}
 }
 

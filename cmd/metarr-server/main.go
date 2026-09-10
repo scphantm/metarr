@@ -129,7 +129,7 @@ func run() error {
 	appConfigRepo := mongostore.NewAppConfigRepo(mongoClient, cfg.MongoDatabase)
 	appConfigStore := appconfigstore.New(appConfigRepo, appConfigRepo)
 	localDirectoryRepo := mongostore.NewLocalDirectoryRepo(mongoClient, cfg.MongoDatabase)
-	workflowRepo := mongostore.NewWorkflowRepo(mongoClient, cfg.MongoDatabase)
+	workflowStore := mongostore.NewWorkflowStore(mongoClient, cfg.MongoDatabase)
 
 	// The local_directory indexes include the unique index on path that makes a
 	// rescan replace records rather than duplicate them, so a failure here is
@@ -137,7 +137,7 @@ func run() error {
 	if err := localDirectoryRepo.EnsureIndexes(connectCtx); err != nil {
 		return err
 	}
-	if err := workflowRepo.EnsureIndexes(connectCtx); err != nil {
+	if err := workflowStore.EnsureIndexes(connectCtx); err != nil {
 		return err
 	}
 
@@ -393,7 +393,7 @@ func run() error {
 		),
 		newConnectService[metarrv1connect.WorkflowServiceHandler](
 			metarrv1connect.NewWorkflowServiceHandler,
-			&services.WorkflowServer{Handlers: apiHandlers, Store: workflowRepo},
+			&services.WorkflowServer{Handlers: apiHandlers, Store: workflowStore},
 			services.WorkflowAuthPolicies,
 		),
 		newConnectService[metarrv1connect.StatsServiceHandler](

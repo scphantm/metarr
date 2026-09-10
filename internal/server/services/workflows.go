@@ -36,13 +36,14 @@ var workflowUpdatePaths = map[string]bool{
 }
 
 // WorkflowStore is the narrow, consumer-declared view of the versioned
-// workflow repository that WorkflowServer needs — the append-only save, the
-// four reads it calls, and the delete-all-versions the AIP DeleteWorkflow
-// method added. It is declared here, by the consumer, the same way
-// appconfigstore declares its own configReader / configWriter interfaces
-// rather than naming a concrete repo. The concrete *mongostore.WorkflowRepo
-// satisfies it unchanged in production; an in-memory fake satisfies it in
-// tests.
+// workflow store that WorkflowServer needs — the append-only save, the four
+// reads it calls, and the delete-all-versions the AIP DeleteWorkflow method
+// added. It is declared here, by the consumer, the same way appconfigstore
+// declares its own configReader / configWriter interfaces rather than naming
+// a concrete type. Its shape is versioned.Store[mongostore.Workflow]'s own
+// public shape, so the real *versioned.Store satisfies it directly in
+// production — no pass-through wrapper — and an in-memory fake satisfies it
+// in tests.
 type WorkflowStore interface {
 	Save(ctx context.Context, documentID bson.ObjectID, w mongostore.Workflow) (mongostore.Workflow, error)
 	ListLatest(ctx context.Context, filter versioned.LatestFilter) ([]mongostore.Workflow, string, bool, error)
@@ -55,15 +56,15 @@ type WorkflowStore interface {
 // WorkflowServer implements metarrv1connect.WorkflowServiceHandler on the AIP
 // standard methods (docs/adr/0010). It reads and writes workflow graphs
 // through the WorkflowStore seam — the append-only versioned store, reached
-// via the concrete repo in production and a fake in tests. Writes are
-// synchronous: CreateWorkflow / UpdateWorkflow append a version and return the
-// stored resource, DeleteWorkflow removes every version and returns empty.
+// directly in production and via a fake in tests. Writes are synchronous:
+// CreateWorkflow / UpdateWorkflow append a version and return the stored
+// resource, DeleteWorkflow removes every version and returns empty.
 type WorkflowServer struct {
 	*handlers.Handlers
 
 	// Store is the workflow persistence seam. The composition root
-	// (cmd/metarr-server) wires the concrete *mongostore.WorkflowRepo here;
-	// tests wire an in-memory fake.
+	// (cmd/metarr-server) wires the real *versioned.Store[mongostore.Workflow]
+	// here; tests wire an in-memory fake.
 	Store WorkflowStore
 }
 

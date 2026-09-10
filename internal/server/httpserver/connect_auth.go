@@ -2,51 +2,16 @@ package httpserver
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"net/http"
 	"strings"
-	"sync"
 
 	"connectrpc.com/connect"
 
 	"Metarr/internal/server/auth"
-	"Metarr/internal/server/jwt"
+	"Metarr/internal/server/authsecret"
 	"Metarr/internal/shared/appconfig"
 )
-
-// hmacSecretCache memoises the base64 decode of the configured HMAC secret.
-// authorize() runs on every authenticated RPC and the secret only changes
-// when config is re-propagated in-process, so decoding it once per distinct
-// encoded value keeps a per-request base64 allocation off the hot path.
-var hmacSecretCache struct {
-	mu      sync.RWMutex
-	encoded string
-	decoded []byte
-}
-
-// decodeHMACSecret returns the raw bytes of the base64-encoded HMAC secret,
-// reusing the last decode when encoded is unchanged.
-func decodeHMACSecret(encoded string) ([]byte, error) {
-	hmacSecretCache.mu.RLock()
-	if hmacSecretCache.encoded == encoded && hmacSecretCache.decoded != nil {
-		decoded := hmacSecretCache.decoded
-		hmacSecretCache.mu.RUnlock()
-		return decoded, nil
-	}
-	hmacSecretCache.mu.RUnlock()
-
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		return nil, err
-	}
-
-	hmacSecretCache.mu.Lock()
-	hmacSecretCache.encoded = encoded
-	hmacSecretCache.decoded = decoded
-	hmacSecretCache.mu.Unlock()
-	return decoded, nil
-}
 
 // schemeNoneSyntheticKey is the API-key marker attached to a request's
 // context when the authentication scheme is None. It stands in for a real
@@ -141,18 +106,16 @@ func (i *connectAuthInterceptor) authorize(ctx context.Context, procedure string
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("missing JWT token"))
 	}
 
-	cfg := appconfig.Get()
-	if cfg.Auth == nil || cfg.Auth.HmacSecret == "" {
+	// authsecret owns the base64 decode and its cache now — the same
+	// decode-once-per-encoded-value memoisation this interceptor used to keep
+	// for itself, shared with Login and IssueToken.
+	claims, err := authsecret.Verify(jwtToken)
+	switch {
+	case errors.Is(err, authsecret.ErrSecretNotConfigured):
 		return nil, connect.NewError(connect.CodeInternal, errors.New("authentication not configured"))
-	}
-
-	secret, err := decodeHMACSecret(cfg.Auth.HmacSecret)
-	if err != nil {
+	case errors.Is(err, authsecret.ErrSecretMalformed):
 		return nil, connect.NewError(connect.CodeInternal, errors.New("authentication configuration error"))
-	}
-
-	claims, err := jwt.VerifyJWT(jwtToken, secret)
-	if err != nil {
+	case err != nil:
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid or expired JWT token"))
 	}
 
