@@ -55,7 +55,6 @@ export const nodeTypes: Record<
   "media/trickplay": TrickplayNode,
 
   "nfo/write": NfoWriteNode,
-
 };
 
 // unknownNode is the catalog-drift fallback (graphAdapter.UNKNOWN_NODE_TYPE)

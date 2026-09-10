@@ -2,8 +2,8 @@ package services
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -11,6 +11,7 @@ import (
 
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
 	"Metarr/internal/server/auth"
+	"Metarr/internal/server/authsecret"
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/server/httpserver"
 	"Metarr/internal/server/jwt"
@@ -50,23 +51,10 @@ func (s *AuthServer) Login(
 		return nil, connectError(http.StatusUnauthorized, errors.New("invalid username or password"))
 	}
 
-	cfg := appconfig.Get()
-	if cfg.Auth == nil || cfg.Auth.HmacSecret == "" {
-		s.Logger.Error("hmac secret not configured", "correlation_id", correlationID)
-		return nil, connectError(http.StatusInternalServerError, errors.New("authentication not properly configured"))
-	}
-
-	secret, err := base64.StdEncoding.DecodeString(cfg.Auth.HmacSecret)
-	if err != nil {
-		s.Logger.Error("failed to decode hmac secret", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("authentication configuration error"))
-	}
-
 	const sessionTTL = 24 * 60 * 60
-	token, err := jwt.SignJWT(username, string(jwt.RoleAdmin), int32(sessionTTL), secret)
+	token, err := authsecret.Sign(username, string(jwt.RoleAdmin), int32(sessionTTL))
 	if err != nil {
-		s.Logger.Error("failed to create JWT", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to create session token"))
+		return nil, hmacSignError(s.Logger, correlationID, err, "failed to create session token")
 	}
 
 	expiresAt := time.Now().Unix() + sessionTTL
@@ -136,18 +124,6 @@ func (s *TokenServer) IssueToken(
 		return nil, connectError(http.StatusBadRequest, errors.New("ttl_seconds exceeds maximum (365 days)"))
 	}
 
-	cfg := appconfig.Get()
-	if cfg.Auth == nil || cfg.Auth.HmacSecret == "" {
-		s.Logger.Error("hmac secret not configured", "correlation_id", correlationID)
-		return nil, connectError(http.StatusInternalServerError, errors.New("authentication not properly configured"))
-	}
-
-	secret, err := base64.StdEncoding.DecodeString(cfg.Auth.HmacSecret)
-	if err != nil {
-		s.Logger.Error("failed to decode hmac secret", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("authentication configuration error"))
-	}
-
 	// name identifies the integration the token is for; it becomes the JWT
 	// subject so an issued token is traceable back to who asked for it.
 	// Falls back to a generic label when the caller names nothing.
@@ -157,10 +133,9 @@ func (s *TokenServer) IssueToken(
 	}
 
 	roleStr := roleFromAccessLevel(role)
-	token, err := jwt.SignJWT(subject, roleStr, ttl, secret)
+	token, err := authsecret.Sign(subject, roleStr, ttl)
 	if err != nil {
-		s.Logger.Error("failed to create JWT", "correlation_id", correlationID, "error", err)
-		return nil, connectError(http.StatusInternalServerError, errors.New("failed to create token"))
+		return nil, hmacSignError(s.Logger, correlationID, err, "failed to create token")
 	}
 
 	expiresAt := time.Now().Unix() + int64(ttl)
@@ -169,6 +144,26 @@ func (s *TokenServer) IssueToken(
 		JwtToken:  token,
 		ExpiresAt: expiresAt,
 	}), nil
+}
+
+// hmacSignError maps an authsecret.Sign failure onto the same three
+// outcomes the inline decode-and-sign blocks in Login and IssueToken
+// produced before this package existed: a missing secret is "authentication
+// not properly configured", a corrupted (non-base64) secret is
+// "authentication configuration error", and anything else — a jwt.SignJWT
+// failure — is the caller's generic message. All three are HTTP 500.
+func hmacSignError(logger *slog.Logger, correlationID string, err error, genericMsg string) error {
+	switch {
+	case errors.Is(err, authsecret.ErrSecretNotConfigured):
+		logger.Error("hmac secret not configured", "correlation_id", correlationID)
+		return connectError(http.StatusInternalServerError, errors.New("authentication not properly configured"))
+	case errors.Is(err, authsecret.ErrSecretMalformed):
+		logger.Error("failed to decode hmac secret", "correlation_id", correlationID, "error", err)
+		return connectError(http.StatusInternalServerError, errors.New("authentication configuration error"))
+	default:
+		logger.Error("failed to create JWT", "correlation_id", correlationID, "error", err)
+		return connectError(http.StatusInternalServerError, errors.New(genericMsg))
+	}
 }
 
 // roleFromAccessLevel converts proto AccessLevel to jwt role string.

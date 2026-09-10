@@ -35,6 +35,16 @@ fall back to `gh issue view 42`.
 
 Create a GitHub issue.
 
+### Per-skill labels
+
+In addition to the `ready-for-agent` label those skills already apply, tag the issue by which skill produced it:
+
+- **`/to-spec`** — add the `agent-specification` label to every spec issue it publishes.
+- **`/to-tickets`** — add the `agent-ticket` label to every ticket issue it publishes.
+
+Apply with `gh issue edit <number> --add-label "agent-specification"` (or `agent-ticket`). Both labels already exist in
+the repo.
+
 ## When a skill says "fetch the relevant ticket"
 
 Run `gh issue view <number> --comments`.

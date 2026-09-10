@@ -5,7 +5,7 @@
 // each document" stays a cheap indexed query instead of a scan-and-compare.
 //
 // This package knows nothing about any specific document type — Workflow
-// (internal/server/mongostore/workflow_repo.go) is its first consumer, but it
+// (internal/server/mongostore/workflow.go) is its first consumer, but it
 // is meant to be reused by future versioned document types too.
 package versioned
 
@@ -85,7 +85,7 @@ func (s *Store[T]) EnsureIndexes(ctx context.Context) error {
 	indexes := []mongo.IndexModel{
 		{
 			// Defends the one-version-per-number invariant even though the
-			// only writer (SaveNewVersion) already maintains it.
+			// only writer (Save) already maintains it.
 			Keys:    bson.D{{Key: "document_id", Value: 1}, {Key: "version", Value: 1}},
 			Options: options.Index().SetName("document_id_version_unique").SetUnique(true),
 		},
@@ -102,9 +102,9 @@ func (s *Store[T]) EnsureIndexes(ctx context.Context) error {
 	return nil
 }
 
-// SaveNewVersion inserts a new version of the document identified by
-// documentID, or starts a brand new document if documentID is the zero
-// value. It never mutates a previous version in place.
+// Save inserts a new version of the document identified by documentID, or
+// starts a brand new document if documentID is the zero value. It never
+// mutates a previous version in place.
 //
 // Atomicity: this is two writes — unmark the previous latest, then insert the
 // new one — not one transaction. This package has no session/transaction
@@ -113,7 +113,7 @@ func (s *Store[T]) EnsureIndexes(ctx context.Context) error {
 // succeeds, the document is briefly "latest-less"; that's recoverable (every
 // version is still found by ListVersions, and a retried save fixes it) and
 // simpler than adding transaction machinery for a single-collection flip.
-func (s *Store[T]) SaveNewVersion(ctx context.Context, documentID bson.ObjectID, doc T) (T, error) {
+func (s *Store[T]) Save(ctx context.Context, documentID bson.ObjectID, doc T) (T, error) {
 	var zero T
 
 	nextVersion := 1

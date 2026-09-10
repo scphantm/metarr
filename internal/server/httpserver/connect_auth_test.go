@@ -145,31 +145,9 @@ func TestAuthorize_SchemePassword_InvalidJWT_IsUnauthenticated(t *testing.T) {
 	}
 }
 
-// decodeHMACSecret memoises the base64 decode across authorize() calls; it
-// must still return the right bytes when the encoded secret changes (a
-// rotation) and when it does not.
-func TestDecodeHMACSecret_CachesAndRefreshesOnChange(t *testing.T) {
-	first := base64.StdEncoding.EncodeToString([]byte("secret-one"))
-	second := base64.StdEncoding.EncodeToString([]byte("secret-two"))
-
-	got, err := decodeHMACSecret(first)
-	if err != nil || string(got) != "secret-one" {
-		t.Fatalf("decodeHMACSecret(first) = %q, %v; want \"secret-one\", nil", got, err)
-	}
-	// Same input again: the cached slice comes back.
-	again, _ := decodeHMACSecret(first)
-	if string(again) != "secret-one" {
-		t.Fatalf("cached decode = %q, want \"secret-one\"", again)
-	}
-	// A rotated secret must not keep returning the stale bytes.
-	rotated, err := decodeHMACSecret(second)
-	if err != nil || string(rotated) != "secret-two" {
-		t.Fatalf("decodeHMACSecret(second) = %q, %v; want \"secret-two\", nil", rotated, err)
-	}
-	if _, err := decodeHMACSecret("not-base64!!!"); err == nil {
-		t.Fatal("expected an error decoding invalid base64")
-	}
-}
+// The base64 decode and its decode-once-per-encoded-value cache moved to
+// internal/server/authsecret (see authsecret_test.go for their coverage);
+// this interceptor now verifies through authsecret.Verify.
 
 // The missing-policy guard is unchanged by the scheme early-out: it still
 // runs first, so an RPC with no registered policy is CodeInternal even under
