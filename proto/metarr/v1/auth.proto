@@ -56,6 +56,13 @@ message IssueTokenResponse {
   int64 expires_at = 2;
 }
 
+message RotateHmacSecretRequest {}
+
+// RotateHmacSecretResponse is deliberately empty: the freshly generated
+// secret is never returned to any caller, so rotation cannot be the moment it
+// leaks.
+message RotateHmacSecretResponse {}
+
 service AuthService {
   // Login is callable without an API key — see connect_auth.go's NoAuth
   // policy. Rate-limited independently from Logout, matching the REST
@@ -74,4 +81,11 @@ service TokenService {
   // IssueToken creates a new JWT token with the specified role and TTL.
   // Only callable by admin users.
   rpc IssueToken(IssueTokenRequest) returns (IssueTokenResponse);
+  // RotateHmacSecret generates a fresh server-side HMAC signing secret and
+  // replaces the stored one through the normal synchronous config write. It
+  // is a custom method (AIP-136), admin-only like IssueToken. Rotation is
+  // immediate and total: every JWT signed under the previous secret —
+  // including IssueToken's long-lived integration/webhook tokens — stops
+  // verifying the instant it completes. The new value is never returned.
+  rpc RotateHmacSecret(RotateHmacSecretRequest) returns (RotateHmacSecretResponse);
 }
