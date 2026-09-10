@@ -13,6 +13,7 @@
 package authsecret
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -21,6 +22,23 @@ import (
 	"Metarr/internal/server/jwt"
 	"Metarr/internal/shared/appconfig"
 )
+
+// secretBytes is the length of a raw HMAC-SHA256 signing secret. Bootstrap
+// seeds the initial secret at this length and RotateHmacSecret replaces it
+// with another of the same length.
+const secretBytes = 32
+
+// GenerateSecret returns a fresh, base64-encoded 32-byte HMAC signing secret
+// read from crypto/rand — the exact format stored in Auth.HmacSecret. It is
+// the one generator for that value: bootstrap seeds the first secret with it,
+// and RotateHmacSecret replaces the live one with it.
+func GenerateSecret() (string, error) {
+	buf := make([]byte, secretBytes)
+	if _, err := rand.Read(buf); err != nil {
+		return "", fmt.Errorf("authsecret: generating secret: %w", err)
+	}
+	return base64.StdEncoding.EncodeToString(buf), nil
+}
 
 // ErrSecretNotConfigured is returned by Sign and Verify when the live config
 // carries no HMAC secret at all — the same condition the inline

@@ -1,9 +1,7 @@
 package bootstrap
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-
+	"Metarr/internal/server/authsecret"
 	"Metarr/internal/shared/appconfig"
 )
 
@@ -72,22 +70,22 @@ func sidecarTypesMergeMissingStep(added *int) func(cfg *appconfig.Config) (bool,
 }
 
 // hmacSecretSeedStep generates the HMAC-SHA256 signing secret the first
-// time the app starts against a database with none configured. The secret is
-// cryptographically random 32 bytes, base64-encoded, and stored in Auth.HmacSecret
-// for use in JWT token signing and verification. generated is set to true iff
-// this call actually generated a secret.
+// time the app starts against a database with none configured. Generation is
+// authsecret.GenerateSecret — the same call RotateHmacSecret uses — so a
+// seeded and a rotated secret carry identical cryptographic strength.
+// generated is set to true iff this call actually generated a secret.
 func hmacSecretSeedStep(generated *bool) func(cfg *appconfig.Config) (bool, error) {
 	return func(cfg *appconfig.Config) (bool, error) {
 		if cfg.Auth.HmacSecret != "" {
 			return false, nil
 		}
 
-		secret := make([]byte, 32)
-		if _, err := rand.Read(secret); err != nil {
+		secret, err := authsecret.GenerateSecret()
+		if err != nil {
 			return false, err
 		}
 
-		cfg.Auth.HmacSecret = base64.StdEncoding.EncodeToString(secret)
+		cfg.Auth.HmacSecret = secret
 		*generated = true
 		return true, nil
 	}

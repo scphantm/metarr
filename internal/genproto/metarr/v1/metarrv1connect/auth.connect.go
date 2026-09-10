@@ -44,6 +44,9 @@ const (
 	AuthServiceGetAuthSchemeProcedure = "/metarr.v1.AuthService/GetAuthScheme"
 	// TokenServiceIssueTokenProcedure is the fully-qualified name of the TokenService's IssueToken RPC.
 	TokenServiceIssueTokenProcedure = "/metarr.v1.TokenService/IssueToken"
+	// TokenServiceRotateHmacSecretProcedure is the fully-qualified name of the TokenService's
+	// RotateHmacSecret RPC.
+	TokenServiceRotateHmacSecretProcedure = "/metarr.v1.TokenService/RotateHmacSecret"
 )
 
 // AuthServiceClient is a client for the metarr.v1.AuthService service.
@@ -187,6 +190,13 @@ type TokenServiceClient interface {
 	// IssueToken creates a new JWT token with the specified role and TTL.
 	// Only callable by admin users.
 	IssueToken(context.Context, *connect.Request[v1.IssueTokenRequest]) (*connect.Response[v1.IssueTokenResponse], error)
+	// RotateHmacSecret generates a fresh server-side HMAC signing secret and
+	// replaces the stored one through the normal synchronous config write. It
+	// is a custom method (AIP-136), admin-only like IssueToken. Rotation is
+	// immediate and total: every JWT signed under the previous secret —
+	// including IssueToken's long-lived integration/webhook tokens — stops
+	// verifying the instant it completes. The new value is never returned.
+	RotateHmacSecret(context.Context, *connect.Request[v1.RotateHmacSecretRequest]) (*connect.Response[v1.RotateHmacSecretResponse], error)
 }
 
 // NewTokenServiceClient constructs a client for the metarr.v1.TokenService service. By default, it
@@ -206,12 +216,19 @@ func NewTokenServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(tokenServiceMethods.ByName("IssueToken")),
 			connect.WithClientOptions(opts...),
 		),
+		rotateHmacSecret: connect.NewClient[v1.RotateHmacSecretRequest, v1.RotateHmacSecretResponse](
+			httpClient,
+			baseURL+TokenServiceRotateHmacSecretProcedure,
+			connect.WithSchema(tokenServiceMethods.ByName("RotateHmacSecret")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // tokenServiceClient implements TokenServiceClient.
 type tokenServiceClient struct {
-	issueToken *connect.Client[v1.IssueTokenRequest, v1.IssueTokenResponse]
+	issueToken       *connect.Client[v1.IssueTokenRequest, v1.IssueTokenResponse]
+	rotateHmacSecret *connect.Client[v1.RotateHmacSecretRequest, v1.RotateHmacSecretResponse]
 }
 
 // IssueToken calls metarr.v1.TokenService.IssueToken.
@@ -219,11 +236,23 @@ func (c *tokenServiceClient) IssueToken(ctx context.Context, req *connect.Reques
 	return c.issueToken.CallUnary(ctx, req)
 }
 
+// RotateHmacSecret calls metarr.v1.TokenService.RotateHmacSecret.
+func (c *tokenServiceClient) RotateHmacSecret(ctx context.Context, req *connect.Request[v1.RotateHmacSecretRequest]) (*connect.Response[v1.RotateHmacSecretResponse], error) {
+	return c.rotateHmacSecret.CallUnary(ctx, req)
+}
+
 // TokenServiceHandler is an implementation of the metarr.v1.TokenService service.
 type TokenServiceHandler interface {
 	// IssueToken creates a new JWT token with the specified role and TTL.
 	// Only callable by admin users.
 	IssueToken(context.Context, *connect.Request[v1.IssueTokenRequest]) (*connect.Response[v1.IssueTokenResponse], error)
+	// RotateHmacSecret generates a fresh server-side HMAC signing secret and
+	// replaces the stored one through the normal synchronous config write. It
+	// is a custom method (AIP-136), admin-only like IssueToken. Rotation is
+	// immediate and total: every JWT signed under the previous secret —
+	// including IssueToken's long-lived integration/webhook tokens — stops
+	// verifying the instant it completes. The new value is never returned.
+	RotateHmacSecret(context.Context, *connect.Request[v1.RotateHmacSecretRequest]) (*connect.Response[v1.RotateHmacSecretResponse], error)
 }
 
 // NewTokenServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -239,10 +268,18 @@ func NewTokenServiceHandler(svc TokenServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(tokenServiceMethods.ByName("IssueToken")),
 		connect.WithHandlerOptions(opts...),
 	)
+	tokenServiceRotateHmacSecretHandler := connect.NewUnaryHandler(
+		TokenServiceRotateHmacSecretProcedure,
+		svc.RotateHmacSecret,
+		connect.WithSchema(tokenServiceMethods.ByName("RotateHmacSecret")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/metarr.v1.TokenService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TokenServiceIssueTokenProcedure:
 			tokenServiceIssueTokenHandler.ServeHTTP(w, r)
+		case TokenServiceRotateHmacSecretProcedure:
+			tokenServiceRotateHmacSecretHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -254,4 +291,8 @@ type UnimplementedTokenServiceHandler struct{}
 
 func (UnimplementedTokenServiceHandler) IssueToken(context.Context, *connect.Request[v1.IssueTokenRequest]) (*connect.Response[v1.IssueTokenResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.TokenService.IssueToken is not implemented"))
+}
+
+func (UnimplementedTokenServiceHandler) RotateHmacSecret(context.Context, *connect.Request[v1.RotateHmacSecretRequest]) (*connect.Response[v1.RotateHmacSecretResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("metarr.v1.TokenService.RotateHmacSecret is not implemented"))
 }

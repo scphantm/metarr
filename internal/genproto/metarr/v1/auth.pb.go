@@ -501,6 +501,81 @@ func (x *IssueTokenResponse) GetExpiresAt() int64 {
 	return 0
 }
 
+type RotateHmacSecretRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RotateHmacSecretRequest) Reset() {
+	*x = RotateHmacSecretRequest{}
+	mi := &file_metarr_v1_auth_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RotateHmacSecretRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RotateHmacSecretRequest) ProtoMessage() {}
+
+func (x *RotateHmacSecretRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_auth_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RotateHmacSecretRequest.ProtoReflect.Descriptor instead.
+func (*RotateHmacSecretRequest) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{9}
+}
+
+// RotateHmacSecretResponse is deliberately empty: the freshly generated
+// secret is never returned to any caller, so rotation cannot be the moment it
+// leaks.
+type RotateHmacSecretResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RotateHmacSecretResponse) Reset() {
+	*x = RotateHmacSecretResponse{}
+	mi := &file_metarr_v1_auth_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RotateHmacSecretResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RotateHmacSecretResponse) ProtoMessage() {}
+
+func (x *RotateHmacSecretResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_metarr_v1_auth_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RotateHmacSecretResponse.ProtoReflect.Descriptor instead.
+func (*RotateHmacSecretResponse) Descriptor() ([]byte, []int) {
+	return file_metarr_v1_auth_proto_rawDescGZIP(), []int{10}
+}
+
 var File_metarr_v1_auth_proto protoreflect.FileDescriptor
 
 const file_metarr_v1_auth_proto_rawDesc = "" +
@@ -531,7 +606,9 @@ const file_metarr_v1_auth_proto_rawDesc = "" +
 	"\x12IssueTokenResponse\x12\x1b\n" +
 	"\tjwt_token\x18\x01 \x01(\tR\bjwtToken\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x02 \x01(\x03R\texpiresAt*\x90\x01\n" +
+	"expires_at\x18\x02 \x01(\x03R\texpiresAt\"\x19\n" +
+	"\x17RotateHmacSecretRequest\"\x1a\n" +
+	"\x18RotateHmacSecretResponse*\x90\x01\n" +
 	"\vAccessLevel\x12\x1c\n" +
 	"\x18ACCESS_LEVEL_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12ACCESS_LEVEL_ADMIN\x10\x01\x12\x15\n" +
@@ -541,10 +618,11 @@ const file_metarr_v1_auth_proto_rawDesc = "" +
 	"\vAuthService\x12P\n" +
 	"\x05Login\x12\".metarr.v1.AuthServiceLoginRequest\x1a#.metarr.v1.AuthServiceLoginResponse\x12S\n" +
 	"\x06Logout\x12#.metarr.v1.AuthServiceLogoutRequest\x1a$.metarr.v1.AuthServiceLogoutResponse\x12h\n" +
-	"\rGetAuthScheme\x12*.metarr.v1.AuthServiceGetAuthSchemeRequest\x1a+.metarr.v1.AuthServiceGetAuthSchemeResponse2Y\n" +
+	"\rGetAuthScheme\x12*.metarr.v1.AuthServiceGetAuthSchemeRequest\x1a+.metarr.v1.AuthServiceGetAuthSchemeResponse2\xb6\x01\n" +
 	"\fTokenService\x12I\n" +
 	"\n" +
-	"IssueToken\x12\x1c.metarr.v1.IssueTokenRequest\x1a\x1d.metarr.v1.IssueTokenResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
+	"IssueToken\x12\x1c.metarr.v1.IssueTokenRequest\x1a\x1d.metarr.v1.IssueTokenResponse\x12[\n" +
+	"\x10RotateHmacSecret\x12\".metarr.v1.RotateHmacSecretRequest\x1a#.metarr.v1.RotateHmacSecretResponseB-Z+Metarr/internal/genproto/metarr/v1;metarrv1b\x06proto3"
 
 var (
 	file_metarr_v1_auth_proto_rawDescOnce sync.Once
@@ -559,7 +637,7 @@ func file_metarr_v1_auth_proto_rawDescGZIP() []byte {
 }
 
 var file_metarr_v1_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_metarr_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_metarr_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_metarr_v1_auth_proto_goTypes = []any{
 	(AccessLevel)(0),                         // 0: metarr.v1.AccessLevel
 	(*AuthConfig)(nil),                       // 1: metarr.v1.AuthConfig
@@ -571,21 +649,25 @@ var file_metarr_v1_auth_proto_goTypes = []any{
 	(*AuthServiceGetAuthSchemeResponse)(nil), // 7: metarr.v1.AuthServiceGetAuthSchemeResponse
 	(*IssueTokenRequest)(nil),                // 8: metarr.v1.IssueTokenRequest
 	(*IssueTokenResponse)(nil),               // 9: metarr.v1.IssueTokenResponse
-	(AuthenticationScheme)(0),                // 10: metarr.v1.AuthenticationScheme
+	(*RotateHmacSecretRequest)(nil),          // 10: metarr.v1.RotateHmacSecretRequest
+	(*RotateHmacSecretResponse)(nil),         // 11: metarr.v1.RotateHmacSecretResponse
+	(AuthenticationScheme)(0),                // 12: metarr.v1.AuthenticationScheme
 }
 var file_metarr_v1_auth_proto_depIdxs = []int32{
-	10, // 0: metarr.v1.AuthServiceGetAuthSchemeResponse.scheme:type_name -> metarr.v1.AuthenticationScheme
+	12, // 0: metarr.v1.AuthServiceGetAuthSchemeResponse.scheme:type_name -> metarr.v1.AuthenticationScheme
 	0,  // 1: metarr.v1.IssueTokenRequest.role:type_name -> metarr.v1.AccessLevel
 	2,  // 2: metarr.v1.AuthService.Login:input_type -> metarr.v1.AuthServiceLoginRequest
 	4,  // 3: metarr.v1.AuthService.Logout:input_type -> metarr.v1.AuthServiceLogoutRequest
 	6,  // 4: metarr.v1.AuthService.GetAuthScheme:input_type -> metarr.v1.AuthServiceGetAuthSchemeRequest
 	8,  // 5: metarr.v1.TokenService.IssueToken:input_type -> metarr.v1.IssueTokenRequest
-	3,  // 6: metarr.v1.AuthService.Login:output_type -> metarr.v1.AuthServiceLoginResponse
-	5,  // 7: metarr.v1.AuthService.Logout:output_type -> metarr.v1.AuthServiceLogoutResponse
-	7,  // 8: metarr.v1.AuthService.GetAuthScheme:output_type -> metarr.v1.AuthServiceGetAuthSchemeResponse
-	9,  // 9: metarr.v1.TokenService.IssueToken:output_type -> metarr.v1.IssueTokenResponse
-	6,  // [6:10] is the sub-list for method output_type
-	2,  // [2:6] is the sub-list for method input_type
+	10, // 6: metarr.v1.TokenService.RotateHmacSecret:input_type -> metarr.v1.RotateHmacSecretRequest
+	3,  // 7: metarr.v1.AuthService.Login:output_type -> metarr.v1.AuthServiceLoginResponse
+	5,  // 8: metarr.v1.AuthService.Logout:output_type -> metarr.v1.AuthServiceLogoutResponse
+	7,  // 9: metarr.v1.AuthService.GetAuthScheme:output_type -> metarr.v1.AuthServiceGetAuthSchemeResponse
+	9,  // 10: metarr.v1.TokenService.IssueToken:output_type -> metarr.v1.IssueTokenResponse
+	11, // 11: metarr.v1.TokenService.RotateHmacSecret:output_type -> metarr.v1.RotateHmacSecretResponse
+	7,  // [7:12] is the sub-list for method output_type
+	2,  // [2:7] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
@@ -603,7 +685,7 @@ func file_metarr_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_metarr_v1_auth_proto_rawDesc), len(file_metarr_v1_auth_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

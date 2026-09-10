@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file metarr/v1/auth.proto.
  */
 export const file_metarr_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChRtZXRhcnIvdjEvYXV0aC5wcm90bxIJbWV0YXJyLnYxIiEKCkF1dGhDb25maWcSEwoLaG1hY19zZWNyZXQYASABKAkiPQoXQXV0aFNlcnZpY2VMb2dpblJlcXVlc3QSEAoIdXNlcm5hbWUYASABKAkSEAoIcGFzc3dvcmQYAiABKAkiQQoYQXV0aFNlcnZpY2VMb2dpblJlc3BvbnNlEhEKCWp3dF90b2tlbhgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgDIhoKGEF1dGhTZXJ2aWNlTG9nb3V0UmVxdWVzdCIrChlBdXRoU2VydmljZUxvZ291dFJlc3BvbnNlEg4KBnN0YXR1cxgBIAEoCSIhCh9BdXRoU2VydmljZUdldEF1dGhTY2hlbWVSZXF1ZXN0IlMKIEF1dGhTZXJ2aWNlR2V0QXV0aFNjaGVtZVJlc3BvbnNlEi8KBnNjaGVtZRgBIAEoDjIfLm1ldGFyci52MS5BdXRoZW50aWNhdGlvblNjaGVtZSJcChFJc3N1ZVRva2VuUmVxdWVzdBIkCgRyb2xlGAEgASgOMhYubWV0YXJyLnYxLkFjY2Vzc0xldmVsEhMKC3R0bF9zZWNvbmRzGAIgASgFEgwKBG5hbWUYAyABKAkiOwoSSXNzdWVUb2tlblJlc3BvbnNlEhEKCWp3dF90b2tlbhgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgDKpABCgtBY2Nlc3NMZXZlbBIcChhBQ0NFU1NfTEVWRUxfVU5TUEVDSUZJRUQQABIWChJBQ0NFU1NfTEVWRUxfQURNSU4QARIVChFBQ0NFU1NfTEVWRUxfVVNFUhACEhgKFEFDQ0VTU19MRVZFTF9XRUJIT09LEAMSGgoWQUNDRVNTX0xFVkVMX1JFQURfT05MWRAEMp4CCgtBdXRoU2VydmljZRJQCgVMb2dpbhIiLm1ldGFyci52MS5BdXRoU2VydmljZUxvZ2luUmVxdWVzdBojLm1ldGFyci52MS5BdXRoU2VydmljZUxvZ2luUmVzcG9uc2USUwoGTG9nb3V0EiMubWV0YXJyLnYxLkF1dGhTZXJ2aWNlTG9nb3V0UmVxdWVzdBokLm1ldGFyci52MS5BdXRoU2VydmljZUxvZ291dFJlc3BvbnNlEmgKDUdldEF1dGhTY2hlbWUSKi5tZXRhcnIudjEuQXV0aFNlcnZpY2VHZXRBdXRoU2NoZW1lUmVxdWVzdBorLm1ldGFyci52MS5BdXRoU2VydmljZUdldEF1dGhTY2hlbWVSZXNwb25zZTJZCgxUb2tlblNlcnZpY2USSQoKSXNzdWVUb2tlbhIcLm1ldGFyci52MS5Jc3N1ZVRva2VuUmVxdWVzdBodLm1ldGFyci52MS5Jc3N1ZVRva2VuUmVzcG9uc2VCLVorTWV0YXJyL2ludGVybmFsL2dlbnByb3RvL21ldGFyci92MTttZXRhcnJ2MWIGcHJvdG8z", [file_metarr_v1_admin]);
+  fileDesc("ChRtZXRhcnIvdjEvYXV0aC5wcm90bxIJbWV0YXJyLnYxIiEKCkF1dGhDb25maWcSEwoLaG1hY19zZWNyZXQYASABKAkiPQoXQXV0aFNlcnZpY2VMb2dpblJlcXVlc3QSEAoIdXNlcm5hbWUYASABKAkSEAoIcGFzc3dvcmQYAiABKAkiQQoYQXV0aFNlcnZpY2VMb2dpblJlc3BvbnNlEhEKCWp3dF90b2tlbhgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgDIhoKGEF1dGhTZXJ2aWNlTG9nb3V0UmVxdWVzdCIrChlBdXRoU2VydmljZUxvZ291dFJlc3BvbnNlEg4KBnN0YXR1cxgBIAEoCSIhCh9BdXRoU2VydmljZUdldEF1dGhTY2hlbWVSZXF1ZXN0IlMKIEF1dGhTZXJ2aWNlR2V0QXV0aFNjaGVtZVJlc3BvbnNlEi8KBnNjaGVtZRgBIAEoDjIfLm1ldGFyci52MS5BdXRoZW50aWNhdGlvblNjaGVtZSJcChFJc3N1ZVRva2VuUmVxdWVzdBIkCgRyb2xlGAEgASgOMhYubWV0YXJyLnYxLkFjY2Vzc0xldmVsEhMKC3R0bF9zZWNvbmRzGAIgASgFEgwKBG5hbWUYAyABKAkiOwoSSXNzdWVUb2tlblJlc3BvbnNlEhEKCWp3dF90b2tlbhgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgDIhkKF1JvdGF0ZUhtYWNTZWNyZXRSZXF1ZXN0IhoKGFJvdGF0ZUhtYWNTZWNyZXRSZXNwb25zZSqQAQoLQWNjZXNzTGV2ZWwSHAoYQUNDRVNTX0xFVkVMX1VOU1BFQ0lGSUVEEAASFgoSQUNDRVNTX0xFVkVMX0FETUlOEAESFQoRQUNDRVNTX0xFVkVMX1VTRVIQAhIYChRBQ0NFU1NfTEVWRUxfV0VCSE9PSxADEhoKFkFDQ0VTU19MRVZFTF9SRUFEX09OTFkQBDKeAgoLQXV0aFNlcnZpY2USUAoFTG9naW4SIi5tZXRhcnIudjEuQXV0aFNlcnZpY2VMb2dpblJlcXVlc3QaIy5tZXRhcnIudjEuQXV0aFNlcnZpY2VMb2dpblJlc3BvbnNlElMKBkxvZ291dBIjLm1ldGFyci52MS5BdXRoU2VydmljZUxvZ291dFJlcXVlc3QaJC5tZXRhcnIudjEuQXV0aFNlcnZpY2VMb2dvdXRSZXNwb25zZRJoCg1HZXRBdXRoU2NoZW1lEioubWV0YXJyLnYxLkF1dGhTZXJ2aWNlR2V0QXV0aFNjaGVtZVJlcXVlc3QaKy5tZXRhcnIudjEuQXV0aFNlcnZpY2VHZXRBdXRoU2NoZW1lUmVzcG9uc2UytgEKDFRva2VuU2VydmljZRJJCgpJc3N1ZVRva2VuEhwubWV0YXJyLnYxLklzc3VlVG9rZW5SZXF1ZXN0Gh0ubWV0YXJyLnYxLklzc3VlVG9rZW5SZXNwb25zZRJbChBSb3RhdGVIbWFjU2VjcmV0EiIubWV0YXJyLnYxLlJvdGF0ZUhtYWNTZWNyZXRSZXF1ZXN0GiMubWV0YXJyLnYxLlJvdGF0ZUhtYWNTZWNyZXRSZXNwb25zZUItWitNZXRhcnIvaW50ZXJuYWwvZ2VucHJvdG8vbWV0YXJyL3YxO21ldGFycnYxYgZwcm90bzM", [file_metarr_v1_admin]);
 
 /**
  * AuthConfig holds authentication configuration including the HMAC signing secret.
@@ -189,6 +189,36 @@ export const IssueTokenResponseSchema: GenMessage<IssueTokenResponse> = /*@__PUR
   messageDesc(file_metarr_v1_auth, 8);
 
 /**
+ * @generated from message metarr.v1.RotateHmacSecretRequest
+ */
+export type RotateHmacSecretRequest = Message<"metarr.v1.RotateHmacSecretRequest"> & {
+};
+
+/**
+ * Describes the message metarr.v1.RotateHmacSecretRequest.
+ * Use `create(RotateHmacSecretRequestSchema)` to create a new message.
+ */
+export const RotateHmacSecretRequestSchema: GenMessage<RotateHmacSecretRequest> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_auth, 9);
+
+/**
+ * RotateHmacSecretResponse is deliberately empty: the freshly generated
+ * secret is never returned to any caller, so rotation cannot be the moment it
+ * leaks.
+ *
+ * @generated from message metarr.v1.RotateHmacSecretResponse
+ */
+export type RotateHmacSecretResponse = Message<"metarr.v1.RotateHmacSecretResponse"> & {
+};
+
+/**
+ * Describes the message metarr.v1.RotateHmacSecretResponse.
+ * Use `create(RotateHmacSecretResponseSchema)` to create a new message.
+ */
+export const RotateHmacSecretResponseSchema: GenMessage<RotateHmacSecretResponse> = /*@__PURE__*/
+  messageDesc(file_metarr_v1_auth, 10);
+
+/**
  * AccessLevel is the fixed four-value set of access levels for JWT tokens.
  * It is a closed enumeration used by TokenService to specify the role of issued tokens.
  * ACCESS_LEVEL_UNSPECIFIED is the unset value and is always InvalidArgument where a level is required.
@@ -284,6 +314,21 @@ export const TokenService: GenService<{
     methodKind: "unary";
     input: typeof IssueTokenRequestSchema;
     output: typeof IssueTokenResponseSchema;
+  },
+  /**
+   * RotateHmacSecret generates a fresh server-side HMAC signing secret and
+   * replaces the stored one through the normal synchronous config write. It
+   * is a custom method (AIP-136), admin-only like IssueToken. Rotation is
+   * immediate and total: every JWT signed under the previous secret —
+   * including IssueToken's long-lived integration/webhook tokens — stops
+   * verifying the instant it completes. The new value is never returned.
+   *
+   * @generated from rpc metarr.v1.TokenService.RotateHmacSecret
+   */
+  rotateHmacSecret: {
+    methodKind: "unary";
+    input: typeof RotateHmacSecretRequestSchema;
+    output: typeof RotateHmacSecretResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_metarr_v1_auth, 1);

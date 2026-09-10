@@ -95,10 +95,12 @@ type TokenServer struct {
 	*handlers.Handlers
 }
 
-// TokenAuthPolicies defines the auth policy for TokenService.IssueToken.
-// IssueToken is admin-only.
+// TokenAuthPolicies defines the auth policy for TokenService. Both methods
+// are admin-only: IssueToken mints programmatic tokens, RotateHmacSecret
+// invalidates every issued one.
 var TokenAuthPolicies = map[string]httpserver.RPCPolicy{
-	"IssueToken": {Group: auth.GroupConfig},
+	"IssueToken":       {Group: auth.GroupConfig},
+	"RotateHmacSecret": {Group: auth.GroupConfig},
 }
 
 // IssueToken creates a new JWT token with the specified role and TTL.
@@ -144,6 +146,39 @@ func (s *TokenServer) IssueToken(
 		JwtToken:  token,
 		ExpiresAt: expiresAt,
 	}), nil
+}
+
+// RotateHmacSecret generates a fresh HMAC signing secret and replaces the
+// stored one through AppConfigStore.MutateSync — the same synchronous
+// persist-and-propagate path every other config write uses (docs/adr/0002).
+// The new value is generated server-side and never returned. Once the write
+// lands, authsecret re-decodes on its next call and every JWT signed under
+// the previous secret — including IssueToken's long-lived tokens — fails
+// verification. There is no grace window.
+func (s *TokenServer) RotateHmacSecret(
+	ctx context.Context,
+	req *connect.Request[metarrv1.RotateHmacSecretRequest],
+) (*connect.Response[metarrv1.RotateHmacSecretResponse], error) {
+	correlationID := correlation.FromContext(ctx)
+
+	newSecret, err := authsecret.GenerateSecret()
+	if err != nil {
+		s.Logger.Error("failed to generate hmac secret", "correlation_id", correlationID, "error", err)
+		return nil, connectError(http.StatusInternalServerError, errors.New("failed to rotate signing secret"))
+	}
+
+	if err := s.AppConfigStore.MutateSync(ctx, func(cfg *appconfig.Config) error {
+		if cfg.Auth == nil {
+			cfg.Auth = &appconfig.AuthConfig{}
+		}
+		cfg.Auth.HmacSecret = newSecret
+		return nil
+	}); err != nil {
+		return nil, mutateConfigErr(s.Logger, correlationID, err)
+	}
+
+	s.Logger.Info("hmac signing secret rotated", "correlation_id", correlationID)
+	return connect.NewResponse(&metarrv1.RotateHmacSecretResponse{}), nil
 }
 
 // hmacSignError maps an authsecret.Sign failure onto the same three

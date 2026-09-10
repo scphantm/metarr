@@ -8,8 +8,12 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/proto"
 
 	metarrv1 "Metarr/internal/genproto/metarr/v1"
+	"Metarr/internal/server/appconfigstore"
+	"Metarr/internal/server/auth"
+	"Metarr/internal/server/authsecret"
 	"Metarr/internal/server/handlers"
 	"Metarr/internal/server/jwt"
 	"Metarr/internal/server/passwordhash"
@@ -251,5 +255,98 @@ func TestTokenServiceIssueToken_FailsWithUnspecifiedRole(t *testing.T) {
 	}
 	if c := connect.CodeOf(err); c != connect.CodeInvalidArgument {
 		t.Fatalf("expected InvalidArgument error, got %v", c)
+	}
+}
+
+// newTestTokenServer wires a TokenServer over an in-memory config store whose
+// synchronous writes propagate straight to the live-config singleton, so a
+// RotateHmacSecret call is observable both in the backend document and via
+// authsecret on the next verify. Pair with withLiveConfig for singleton
+// cleanup.
+func newTestTokenServer(seed *appconfig.Config) (*TokenServer, *fakeConfigBackend) {
+	backend := &fakeConfigBackend{cfg: seed}
+	store := appconfigstore.New(backend, backend)
+	store.SetPropagator(liveConfigPropagator{})
+	return &TokenServer{Handlers: &handlers.Handlers{
+		AppConfigStore: store,
+		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
+	}}, backend
+}
+
+// RotateHmacSecret is admin-only, the same group IssueToken requires — a
+// lower-privileged caller must not be able to invalidate every issued token.
+func TestTokenAuthPolicies_RotateHmacSecretIsAdminOnly(t *testing.T) {
+	policy, ok := TokenAuthPolicies["RotateHmacSecret"]
+	if !ok {
+		t.Fatal("no auth policy registered for RotateHmacSecret")
+	}
+	if policy.Group != auth.GroupConfig {
+		t.Errorf("RotateHmacSecret group = %q, want %q", policy.Group, auth.GroupConfig)
+	}
+	if policy.Group != TokenAuthPolicies["IssueToken"].Group {
+		t.Errorf("RotateHmacSecret group %q differs from IssueToken's %q",
+			policy.Group, TokenAuthPolicies["IssueToken"].Group)
+	}
+	if policy.NoAuth || policy.ReadOnly {
+		t.Errorf("RotateHmacSecret must not be NoAuth or ReadOnly: %+v", policy)
+	}
+}
+
+// The core rotation contract: a fresh secret is generated server-side and
+// stored through the normal config-store path, the stored value actually
+// changes, and every token signed under the previous secret stops verifying
+// the instant the write lands — with no raw secret anywhere in the response.
+func TestTokenServiceRotateHmacSecret_ReplacesTheStoredSecretAndRevokesOldTokens(t *testing.T) {
+	oldSecret := base64.StdEncoding.EncodeToString([]byte("old-secret-32-bytes-for-hmac-256"))
+	seed := &appconfig.Config{Auth: &appconfig.AuthConfig{HmacSecret: oldSecret}}
+
+	withLiveConfig(t, proto.Clone(seed).(*appconfig.Config))
+	server, backend := newTestTokenServer(proto.Clone(seed).(*appconfig.Config))
+
+	// A token minted under the pre-rotation secret verifies now.
+	staleToken, err := authsecret.Sign("integration", string(jwt.RoleUser), 3600)
+	if err != nil {
+		t.Fatalf("authsecret.Sign: %v", err)
+	}
+	if _, err := authsecret.Verify(staleToken); err != nil {
+		t.Fatalf("token should verify before rotation: %v", err)
+	}
+
+	resp, err := server.RotateHmacSecret(context.Background(),
+		connect.NewRequest(&metarrv1.RotateHmacSecretRequest{}))
+	if err != nil {
+		t.Fatalf("RotateHmacSecret: %v", err)
+	}
+
+	// The stored secret changed, and the write went through the config store
+	// (the backend document, not just the live singleton, carries it).
+	stored := backend.cfg.GetAuth().GetHmacSecret()
+	if stored == "" || stored == oldSecret {
+		t.Fatalf("stored secret = %q, want a new non-empty value distinct from %q", stored, oldSecret)
+	}
+	// Same generator as bootstrap's hmacSecretSeedStep: 32 random bytes,
+	// base64-encoded.
+	raw, err := base64.StdEncoding.DecodeString(stored)
+	if err != nil || len(raw) != 32 {
+		t.Fatalf("rotated secret is not 32 base64-encoded bytes: len=%d err=%v", len(raw), err)
+	}
+
+	// The raw new value is never in the response: RotateHmacSecretResponse
+	// has no fields, so it marshals to nothing.
+	if wire, _ := proto.Marshal(resp.Msg); len(wire) != 0 {
+		t.Errorf("RotateHmacSecretResponse carried %d bytes on the wire, want an empty message", len(wire))
+	}
+
+	// Rotation is immediate and total: the old token no longer verifies.
+	if _, err := authsecret.Verify(staleToken); err == nil {
+		t.Error("a token signed under the rotated-away secret still verifies")
+	}
+	// A token minted after rotation verifies against the new secret.
+	freshToken, err := authsecret.Sign("integration", string(jwt.RoleUser), 3600)
+	if err != nil {
+		t.Fatalf("authsecret.Sign after rotation: %v", err)
+	}
+	if _, err := authsecret.Verify(freshToken); err != nil {
+		t.Errorf("token signed under the new secret should verify: %v", err)
 	}
 }
